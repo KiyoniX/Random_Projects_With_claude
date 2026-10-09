@@ -130,7 +130,8 @@
       '<ul class="adapt">' + traits.map(function (t) { return '<li><span>' + esc(t.cause) + '</span>' + esc(t.effect) + '</li>'; }).join('') +
       '<li><span>Écriture ' + L.script.name + '</span>' + esc(L.script.desc) + '</li></ul></div>' +
       '<div class="langsample">' + L.write(hello.text, 34) + '<p class="roman">' + esc(hello.text) + '</p><p class="gloss">« Nous sommes les ' + esc(p.name) + '. »</p>' +
-      '<a class="btn" href="../langues-inventees/index.html#' + address() + '">Explorer la langue</a></div></div>';
+      '<a class="btn" href="../langues-inventees/index.html#' + address() + '">Explorer la langue</a> ' +
+      '<a class="btn btn-ghost" href="../chroniques/index.html#' + address() + '">Lire son histoire</a></div></div>';
   }
 
   // ---------- Mise à jour ----------

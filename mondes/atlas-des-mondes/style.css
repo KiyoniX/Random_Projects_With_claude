@@ -128,7 +128,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 3rem; }
 .langsample .script { max-width: 100%; height: auto; color: var(--accent); }
 .langsample .roman { font-family: var(--serif); font-size: 1.3rem; margin-top: .5rem; }
 .langsample .gloss { color: var(--muted); font-size: .85rem; margin-bottom: 1rem; }
-.langsample .btn { display: inline-block; text-decoration: none; }
+.langsample .btn { display: inline-block; text-decoration: none; margin: .2rem; }
 
 .foot { max-width: 1180px; margin: 0 auto; padding: 1.5rem 1.25rem 2.5rem; color: var(--muted); font-size: .8rem; border-top: 1px solid var(--line); }
 

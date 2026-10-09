@@ -66,6 +66,8 @@
     var link = $('#toAtlas');
     link.hidden = !w;
     link.href = '../atlas-des-mondes/index.html#' + address();
+    $('#toHist').hidden = !p;
+    $('#toHist').href = '../chroniques/index.html#' + address();
   }
 
   function renderWorld() {
