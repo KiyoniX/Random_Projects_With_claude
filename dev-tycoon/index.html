@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev Tycoon</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hud">
+    <h1>Dev <em>Tycoon</em></h1>
+    <dl class="stats">
+      <div class="stat stat-money"><dt>Trésorerie</dt><dd id="money">0 €</dd></div>
+      <div class="stat"><dt>Revenu</dt><dd id="rate">0 €/s</dd></div>
+      <div class="stat"><dt>Stade</dt><dd id="stage">Chambre</dd></div>
+      <div class="stat"><dt>Flagrants délits</dt><dd id="caught">0</dd></div>
+    </dl>
+    <button type="button" class="reset" id="reset">Recommencer</button>
+  </header>
+
+  <div class="goal"><span class="goal-bar" id="goalBar"></span><span class="goal-text" id="goalText"></span></div>
+
+  <main class="layout">
+    <section class="office" id="office" aria-label="Open space"></section>
+
+    <aside class="panel" aria-label="Gestion">
+      <section class="card" id="devCard"></section>
+      <section class="card">
+        <h2>Ta boîte</h2>
+        <ul class="shop" id="shop"></ul>
+      </section>
+      <p class="help">Clique sur ton écran pour coder. Recrute, forme ton équipe, et surveille les écrans : un dev surpris sur <b>Klode</b> voit son salaire baisser un moment.</p>
+    </aside>
+  </main>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <script src="game.js"></script>
+</body>
+</html>

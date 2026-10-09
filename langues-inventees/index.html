@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fabrique de langues</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Fabrique <em>de langues</em></h1>
+    <form class="seed" id="seedForm">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <button type="submit" class="btn btn-ghost">Charger</button>
+      <button type="button" class="btn" id="newBtn">Nouvelle langue</button>
+    </form>
+  </header>
+
+  <main>
+    <section class="hero">
+      <p class="eyebrow" id="origin"></p>
+      <h2 id="name"></h2>
+      <div class="hero-script" id="heroScript"></div>
+      <p class="hero-roman" id="heroRoman"></p>
+      <p class="hero-fr" id="heroFr"></p>
+      <a class="btn btn-ghost" id="toAtlas" hidden>Voir la planète dans l'Atlas des mondes</a>
+    </section>
+
+    <section class="block" id="world" hidden>
+      <div class="block-head"><h3>Ce que le monde a fait à la langue</h3></div>
+      <ul class="causes" id="causes"></ul>
+      <h4 class="sub-h">Des mots que nous n'avons pas, et des mots qui leur manquent</h4>
+      <ul class="wwords" id="wwords"></ul>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Les sons</h3>
+        <p class="block-sub">Cliquez sur un son pour l'ajouter ou le retirer : toute la langue se refabrique.</p>
+      </div>
+      <div class="sounds">
+        <div><p class="label">Consonnes <span id="nCons"></span></p><div class="chips" id="cons"></div></div>
+        <div><p class="label">Voyelles <span id="nVows"></span></p><div class="chips" id="vows"></div></div>
+      </div>
+      <p class="shape" id="shape"></p>
+      <button type="button" class="btn btn-ghost small" id="resetSounds" hidden>Revenir aux sons d'origine</button>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Traduire</h3>
+        <p class="block-sub">Phrases simples en français. Un mot inconnu reçoit une racine inventée.</p>
+      </div>
+      <div class="examples" id="examples"></div>
+      <textarea id="input" rows="2" spellcheck="false" aria-label="Phrase à traduire"></textarea>
+      <div class="result">
+        <div class="res-script" id="resScript"></div>
+        <p class="res-roman" id="resRoman"></p>
+        <div class="gloss" id="resGloss"></div>
+        <ul class="notes" id="resNotes"></ul>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>La grammaire</h3>
+        <div class="order">
+          <label for="order">Ordre des mots</label>
+          <select id="order">
+            <option value="SOV">sujet – objet – verbe</option>
+            <option value="SVO">sujet – verbe – objet</option>
+            <option value="VSO">verbe – sujet – objet</option>
+            <option value="VOS">verbe – objet – sujet</option>
+            <option value="OVS">objet – verbe – sujet</option>
+            <option value="OSV">objet – sujet – verbe</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap"><table class="gram" id="gram"></table></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h3>L'écriture</h3><p class="block-sub" id="scriptDesc"></p></div>
+      <div class="alphabet" id="alphabet"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Mille ans plus tard</h3>
+        <p class="block-sub">Une langue change par lois régulières : chaque son touché l'est dans tous les mots.</p>
+      </div>
+      <div class="years">
+        <label for="years">Temps écoulé <output id="yearsOut"></output></label>
+        <input id="years" type="range" min="0" max="2000" step="250" value="1000">
+      </div>
+      <ol class="laws" id="laws"></ol>
+      <div class="table-wrap"><table class="evo" id="evo"></table></div>
+      <div class="then-now" id="thenNow"></div>
+      <div id="dialects"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Le dictionnaire</h3>
+        <div class="dict-tools">
+          <input id="search" type="search" placeholder="Chercher un mot…" aria-label="Chercher dans le dictionnaire">
+          <select id="cat" aria-label="Catégorie"></select>
+        </div>
+      </div>
+      <div class="dict" id="dict"></div>
+    </section>
+  </main>
+
+  <footer class="foot">Même graine, même langue. Le traducteur comprend des phrases simples : sujet, verbe, compléments.</footer>
+
+  <script src="lang.js"></script>
+  <script src="../atlas-des-mondes/planet.js"></script>
+  <script src="../atlas-des-mondes/life.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

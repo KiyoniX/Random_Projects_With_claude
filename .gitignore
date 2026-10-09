@@ -1,0 +1,6 @@
+# Compilation Rust
+target/
+
+# Dépendances et archives
+node_modules/
+*.zip

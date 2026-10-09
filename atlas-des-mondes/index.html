@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atlas des mondes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>Atlas <em>des mondes</em></h1>
+    <form class="seed" id="seedForm">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <button type="submit" class="btn btn-ghost">Charger</button>
+      <button type="button" class="btn" id="newBtn">Nouvelle planète</button>
+    </form>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="globe-wrap">
+        <canvas id="globe" width="460" height="460" aria-label="Globe de la planète, faites glisser pour la tourner"></canvas>
+        <button type="button" class="pause" id="pause" aria-pressed="false">Pause</button>
+        <div class="busy" id="busy">Formation de la planète…</div>
+      </div>
+
+      <div class="sheet">
+        <p class="eyebrow" id="pStar"></p>
+        <h2 id="pName"></h2>
+        <p class="verdict" id="pVerdict"></p>
+        <dl class="facts" id="facts"></dl>
+
+        <div class="controls">
+          <div class="ctl">
+            <label for="cStar">Étoile</label>
+            <select id="cStar">
+              <option value="M">Naine rouge</option>
+              <option value="K">Naine orange</option>
+              <option value="G">Naine jaune</option>
+              <option value="F">Étoile blanche</option>
+            </select>
+          </div>
+          <div class="ctl"><label for="cS">Ensoleillement <output id="oS"></output></label><input id="cS" type="range" min="0.25" max="2.2" step="0.01"></div>
+          <div class="ctl"><label for="cWater">Eau <output id="oWater"></output></label><input id="cWater" type="range" min="0" max="1" step="0.01"></div>
+          <div class="ctl"><label for="cP">Atmosphère <output id="oP"></output></label><input id="cP" type="range" min="0" max="5" step="0.05"></div>
+          <div class="ctl"><label for="cR">Taille <output id="oR"></output></label><input id="cR" type="range" min="0.4" max="2.2" step="0.02"></div>
+          <div class="ctl"><label for="cTilt">Inclinaison <output id="oTilt"></output></label><input id="cTilt" type="range" min="0" max="60" step="1"></div>
+        </div>
+        <p class="hint">Bougez un curseur : le climat, les biomes et tout le vivant se recalculent.</p>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Carte</h3>
+        <div class="modes" role="group" aria-label="Type de carte">
+          <button type="button" class="mode" data-mode="natural" aria-pressed="true">Biomes</button>
+          <button type="button" class="mode" data-mode="relief" aria-pressed="false">Relief</button>
+          <button type="button" class="mode" data-mode="temp" aria-pressed="false">Température</button>
+          <button type="button" class="mode" data-mode="hum" aria-pressed="false">Humidité</button>
+        </div>
+      </div>
+      <div class="map-grid">
+        <div>
+          <canvas id="map" width="720" height="360" aria-label="Carte de la planète"></canvas>
+          <p class="probe" id="probe">Survolez la carte pour lire le climat d'un lieu.</p>
+        </div>
+        <ul class="biomes" id="biomes"></ul>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h3>Le vivant</h3><p class="block-sub">Chaque espèce est déduite du climat de son biome, de la gravité, de l'air et de l'étoile.</p></div>
+      <p class="note" id="lifeNote" hidden></p>
+      <div id="life"></div>
+    </section>
+
+    <section class="block">
+      <div class="block-head"><h3>Peuple</h3></div>
+      <div id="people"></div>
+    </section>
+  </main>
+
+  <footer class="foot">Tout est calculé dans le navigateur à partir de la graine. Même graine, même monde.</footer>
+
+  <script src="../langues-inventees/lang.js"></script>
+  <script src="planet.js"></script>
+  <script src="life.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
