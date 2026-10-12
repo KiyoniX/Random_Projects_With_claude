@@ -1,0 +1,160 @@
+/* Le mobilier de voirie : un panneau « plan de la ville » et, à côté, le mât qui porte les règles. */
+:root {
+  --ciel: #c5d5dc;
+  --blanc: #f4f3ec;      /* face des panneaux */
+  --noir: #16181b;       /* lettres et listels */
+  --rouge: #c4161c;      /* ce qui interdit ou limite, et les alertes */
+  --bleu: #0b4ea2;       /* ce qui indique ou oblige */
+  --jaune: #f7c800;      /* ce que tu regardes en ce moment */
+  --galva: #8f989b;      /* acier des mâts et des cadres, règles levées */
+  --galva-clair: #b3bbbd;
+  --galva-sombre: #5c6568;
+  --panneau: 'Franklin Gothic Medium', 'Franklin Gothic', 'Arial Narrow', Arial, sans-serif;
+  --texte: 'Segoe UI', Tahoma, Verdana, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: var(--texte); font-size: 13px; line-height: 1.4; color: var(--noir); background: var(--ciel); display: grid; grid-template-columns: minmax(0, 1fr) 384px; gap: 6px; padding: 12px 0 12px 12px; overflow: hidden; }
+button, input { font: inherit; color: inherit; }
+ul { list-style: none; }
+h1, h2, h3, .titre, .plaque, .views button, .vitesses button, .texte b, .kpis b, .heure b, #seed, #taxOut, .inspect h3, .veil p, .signe text, kbd { font-family: var(--panneau); font-weight: 400; }
+:focus-visible { outline: 3px solid var(--jaune); outline-offset: 2px; }
+
+/* ---------- Le plan ---------- */
+.plan { min-width: 0; min-height: 0; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: var(--blanc); border: 6px solid var(--galva); outline: 1px solid var(--galva-sombre); }
+.bandeau { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding: 6px 12px; background: var(--bleu); color: var(--blanc); }
+.bandeau h1 { font-size: 25px; line-height: 1; text-transform: uppercase; }
+.heure { flex: 1; display: flex; gap: 10px; align-items: baseline; white-space: nowrap; }
+.heure b { font-size: 18px; }
+.heure span { font-variant-numeric: tabular-nums; }
+
+/* Limitations de vitesse : celle qui vaut est cerclée de rouge, les autres sont barrées comme une fin de limitation */
+.vitesses { display: flex; gap: 6px; }
+.vitesses button { position: relative; isolation: isolate; width: 38px; height: 38px; border-radius: 50%; border: 5px solid var(--galva); background: var(--blanc); color: var(--galva-sombre); font-size: 14px; line-height: 1; cursor: pointer; }
+.vitesses button:not(.on)::after { content: ''; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: var(--galva-clair); transform: rotate(45deg); z-index: -1; }
+.vitesses button.on { border-color: var(--rouge); color: var(--noir); }
+.vitesses .stop { border: 0; border-radius: 0; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); background: var(--galva); color: var(--blanc); font-size: 11px; text-transform: uppercase; box-shadow: inset 0 0 0 2px var(--blanc); }
+.vitesses .stop:not(.on)::after { background: var(--galva-sombre); }
+.vitesses .stop.on { background: var(--rouge); color: var(--blanc); }
+.vitesses .stop:focus-visible { box-shadow: inset 0 0 0 3px var(--jaune); }
+
+.stage { position: relative; min-height: 0; overflow: hidden; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+#view.drag { cursor: grabbing; }
+.plaque { background: var(--blanc); border: 2px solid var(--noir); border-radius: 4px; padding: 3px 12px 4px; font-size: 15px; cursor: pointer; white-space: nowrap; }
+.plaque:hover, .views button:hover { background: var(--jaune); }
+#fit { position: absolute; bottom: 8px; right: 8px; }
+kbd { display: inline-block; min-width: 18px; margin-left: 4px; padding: 0 4px; background: var(--noir); color: var(--blanc); border-radius: 3px; font-size: 13px; text-align: center; }
+
+/* Pendant la fondation, le plan n'est pas encore posé : panneau de chantier */
+.veil { position: absolute; inset: 0; background: var(--blanc); display: grid; place-content: center; justify-items: center; gap: 10px; }
+.veil[hidden] { display: none; }
+.veil svg { width: 96px; height: 96px; }
+.veil p { background: var(--jaune); border: 3px solid var(--noir); border-radius: 5px; padding: 5px 18px; font-size: 22px; }
+
+.legende { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 14px; align-items: center; padding: 7px 10px 6px; border-top: 3px solid var(--noir); }
+.views { display: flex; flex-wrap: wrap; gap: 5px; }
+.views button { background: var(--blanc); border: 2px solid var(--noir); border-radius: 4px; padding: 2px 11px 3px; font-size: 15px; cursor: pointer; white-space: nowrap; }
+.views button.on { background: var(--jaune); box-shadow: inset 0 0 0 2px var(--noir); }
+.legend { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px 14px; min-height: 19px; }
+.legend li { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.sw { width: 16px; height: 13px; flex: none; }
+.mode { color: var(--galva-sombre); font-style: italic; text-align: right; }
+
+/* ---------- Le mât ---------- */
+.mat { min-height: 0; overflow-y: auto; padding: 14px 14px 40px 12px; display: grid; gap: 14px; align-content: start; scrollbar-color: var(--galva-sombre) transparent; scrollbar-width: thin;
+  /* le fût, visible entre deux panneaux */
+  background: linear-gradient(90deg, transparent calc(50% - 8px), var(--galva-sombre) calc(50% - 8px), var(--galva-sombre) calc(50% - 7px), var(--galva) calc(50% - 7px), var(--galva) calc(50% - 2px), var(--galva-clair) calc(50% - 2px), var(--galva-clair) calc(50% + 2px), var(--galva) calc(50% + 2px), var(--galva) calc(50% + 6px), var(--galva-sombre) calc(50% + 6px), var(--galva-sombre) calc(50% + 7px), transparent calc(50% + 7px)); }
+.panneau { background: var(--blanc); border: 1px solid var(--galva-sombre); border-radius: 9px; padding: 11px 14px 12px; box-shadow: inset 0 0 0 2px var(--blanc), inset 0 0 0 4px var(--noir); }
+.mat h2 { font-size: 19px; line-height: 1.15; margin-bottom: 6px; }
+.mat h3 { font-size: 15px; margin: 10px 0 4px; }
+
+/* Panneau d'entrée d'agglomération : le nom de la commune est la graine */
+.commune { padding: 16px 18px 14px; border-radius: 12px; box-shadow: inset 0 0 0 3px var(--blanc), inset 0 0 0 10px var(--rouge); text-align: center; }
+#seed { width: 100%; background: none; border: 0; border-bottom: 2px solid var(--noir); font-size: 31px; line-height: 1.15; text-align: center; padding: 0 2px; }
+.devise { font-size: 14px; font-style: italic; margin-top: 6px; }
+.note { color: var(--galva-sombre); font-size: 12px; }
+.fonder { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+
+/* Panneaux d'information : listel bleu */
+.chiffres, .releves { box-shadow: inset 0 0 0 2px var(--blanc), inset 0 0 0 6px var(--bleu); padding: 13px 16px 14px; }
+.kpis { display: grid; grid-template-columns: 1fr 1fr; column-gap: 16px; }
+.kpis li { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; border-bottom: 1px solid var(--galva-clair); padding: 1px 0; }
+.kpis b { font-size: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kpis li.warn b { color: var(--rouge); }
+.kpis li.warn b::before { content: '▲ '; font-size: 11px; }
+.bar { display: grid; grid-template-columns: 5.4rem 3.2rem 1fr 2rem; align-items: center; gap: 6px; }
+.bar small { font-size: 11px; font-style: italic; color: var(--galva-sombre); }
+.bar small:first-of-type { text-align: right; }
+.bar div { height: 10px; border: 1px solid var(--noir); position: relative; background: #fff; }
+.bar div::after { content: ''; position: absolute; left: 50%; top: -4px; bottom: -4px; width: 1px; background: var(--noir); }
+.bar i { position: absolute; top: 0; bottom: 0; border-inline: 1px solid var(--noir); }
+
+/* Les règles : un panneau chacune, en couleur quand elle est en vigueur, grise et barrée quand elle est levée */
+.arretes { display: grid; gap: 7px; }
+.cartouche { justify-self: center; background: var(--bleu); color: var(--blanc); border: 1px solid var(--galva-sombre); border-radius: 5px; padding: 3px 18px 4px; box-shadow: inset 0 0 0 2px var(--bleu), inset 0 0 0 3px var(--blanc); margin: 0 0 1px; }
+.loi, .impot { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 11px; align-items: center; padding: 8px 13px 9px 11px; }
+.loi { cursor: pointer; }
+.loi input, .trace input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.loi:focus-within, .trace label:focus-within { outline: 3px solid var(--jaune); outline-offset: 2px; }
+.signe { position: relative; width: 46px; height: 46px; display: block; }
+.signe svg { width: 100%; height: 100%; display: block; }
+.loi input:not(:checked) ~ .signe svg { filter: grayscale(1) contrast(.55) brightness(1.2); }
+.loi input:not(:checked) ~ .signe::after { content: ''; position: absolute; left: 50%; top: -2px; bottom: -2px; width: 5px; margin-left: -2.5px; background: var(--noir); border-inline: 1px solid var(--blanc); transform: rotate(45deg); }
+.loi input:not(:checked) ~ .texte { color: var(--galva-sombre); }
+.texte { font-size: 12.5px; line-height: 1.3; }
+.texte b { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 17px; line-height: 1.2; color: var(--noir); }
+.loi .texte b::after { content: 'levée'; font-family: var(--texte); font-size: 12px; font-style: italic; color: var(--galva-sombre); }
+.loi input:checked ~ .texte b::after { content: 'en vigueur'; color: var(--rouge); font-style: normal; font-weight: 600; }
+.loi:hover { background: #fff; }
+
+.trace { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px 6px; padding: 9px 12px 9px; text-align: center; }
+.titre { grid-column: 1 / -1; font-size: 17px; text-align: left; display: flex; justify-content: space-between; align-items: baseline; }
+.titre small { font-family: var(--texte); font-size: 12px; font-style: italic; color: var(--galva-sombre); }
+.trace label { position: relative; cursor: pointer; padding: 2px 0 3px; border-radius: 4px; font-size: 12.5px; line-height: 1.2; color: var(--galva-sombre); }
+.trace svg { width: 50px; height: 50px; display: block; margin: 0 auto; filter: grayscale(1) contrast(.55) brightness(1.2); }
+.trace input:checked ~ svg { filter: none; }
+.trace input:checked ~ span { color: var(--noir); font-weight: 600; border-bottom: 3px solid var(--noir); }
+.trace label:hover { background: #fff; }
+
+.signe.rond { border: 6px solid var(--rouge); border-radius: 50%; display: grid; place-items: center; }
+#taxOut { font-size: 13px; white-space: nowrap; }
+.impot input[type=range] { -webkit-appearance: none; appearance: none; display: block; width: 100%; height: 22px; margin: 2px 0 3px; background: none; cursor: pointer; }
+/* la réglette est une chaussée, avec sa ligne discontinue */
+.impot input[type=range]::-webkit-slider-runnable-track { height: 12px; background: repeating-linear-gradient(90deg, var(--blanc) 0 9px, transparent 9px 18px) center / 100% 2px no-repeat, var(--galva-sombre); }
+.impot input[type=range]::-moz-range-track { height: 12px; background: repeating-linear-gradient(90deg, var(--blanc) 0 9px, transparent 9px 18px) center / 100% 2px no-repeat, var(--galva-sombre); }
+.impot input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; margin-top: -4px; border-radius: 50%; background: var(--blanc); border: 5px solid var(--rouge); }
+.impot input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--blanc); border: 5px solid var(--rouge); box-sizing: border-box; }
+
+.charts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+.chart canvas { width: 100%; height: 40px; display: block; border-left: 1px solid var(--noir); border-bottom: 1px solid var(--noir); }
+.chart span { display: flex; justify-content: space-between; }
+
+/* Panneau temporaire, jaune : ce que tu as désigné sur le plan */
+.loupe { background: var(--jaune); box-shadow: inset 0 0 0 2px var(--jaune), inset 0 0 0 5px var(--noir); padding: 12px 15px 13px; }
+.inspect h3 { font-size: 17px; margin: 0 0 2px; }
+.inspect p { margin-bottom: 4px; }
+.inspect li { padding: 4px 0; border-top: 1px solid var(--noir); }
+.inspect li b { font-weight: 600; }
+.inspect li small { display: block; font-size: 12px; }
+.inspect .sw { vertical-align: -1px; margin-right: 5px; }
+.alerte { font-weight: 600; }
+.alerte::before { content: '▲ '; color: var(--rouge); font-size: 11px; }
+
+.journal { padding-bottom: 13px; }
+.log li { display: grid; grid-template-columns: 3.6rem 1fr; gap: 8px; padding: 2px 0; border-top: 1px solid var(--galva-clair); }
+.log li span { font-variant-numeric: tabular-nums; color: var(--galva-sombre); }
+
+@media (max-width: 820px) {
+  body { display: block; height: auto; padding: 12px 8px; overflow: auto; }
+  .plan { height: 72vh; min-height: 420px; }
+  .bandeau { padding: 6px 8px; }
+  .bandeau h1 { font-size: 21px; }
+  .heure { order: 3; flex-basis: 100%; }
+  .vitesses { margin-left: auto; }
+  .vitesses button { width: 34px; height: 34px; font-size: 13px; }
+  .legende { grid-template-columns: 1fr; }
+  .mode { text-align: left; }
+  .mat { overflow: visible; padding: 14px 4px 40px; }
+}

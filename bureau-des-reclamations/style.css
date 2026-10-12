@@ -1,0 +1,587 @@
+/* Un guichet d'administration vers 1978 : cloison laquée, comptoir en formica orange, liasses autocopiantes imprimées en brun. */
+:root {
+  --formica: #d47a2a;
+  --formica-ombre: #a3561a;
+  --mur: #e9e1ca;
+  --alu: #b4b8b1;
+  --alu-ombre: #7f847d;
+  --brun: #58310f;
+  --papier: #fbfaf3;
+  --rose: #f0b8c4;
+  --jaune: #f4e07a;
+  --bille-bleue: #1c3fa8;
+  --bille-noire: #1a1a1c;
+  --bille-verte: #1c7a3c;
+  --bille-rouge: #c4281c;
+  --enseigne: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+  --imprime: Arial, Helvetica, sans-serif;
+  --bille: "Segoe Script", "Segoe Print", "Lucida Handwriting", cursive;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  /* Le moucheté du stratifié */
+  background:
+    radial-gradient(#c66f22 1px, transparent 1.6px) 0 0 / 7px 7px,
+    radial-gradient(#de8a3c 1px, transparent 1.6px) 3px 4px / 11px 11px,
+    var(--formica);
+  color: var(--brun);
+  font: 14px/1.4 var(--imprime);
+}
+
+h1, h2 { margin: 0; font-family: var(--enseigne); font-weight: 400; }
+button { font: inherit; cursor: pointer; }
+button:focus-visible { outline: 2px dashed var(--brun); outline-offset: 3px; }
+
+/* ---------- Cloison : plaque, éphéméride, horloge ---------- */
+.mur {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 24px;
+  padding: 12px 22px 10px;
+  background: var(--mur);
+  border-bottom: 5px solid var(--alu);
+  box-shadow: 0 3px 0 var(--alu-ombre);
+}
+.plaque {
+  position: relative;
+  padding: 9px 30px 8px;
+  background: var(--brun);
+  color: var(--mur);
+  font-size: 23px;
+  line-height: 1.1;
+  text-transform: uppercase;
+  box-shadow: 2px 2px 0 #b9ae90;
+}
+.plaque small { display: block; font-size: 14px; text-transform: none; }
+/* Les deux vis de la plaque gravée */
+.plaque::before, .plaque::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--alu);
+  box-shadow: inset 0 -2px 0 var(--alu-ombre);
+}
+.plaque::before { left: 10px; }
+.plaque::after { right: 10px; }
+
+.pendus { display: flex; align-items: center; gap: 22px; }
+.ephemeride {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  min-width: 150px;
+  padding: 0 10px 4px;
+  background: var(--papier);
+  border-top: 9px solid var(--brun);
+  box-shadow: 2px 2px 0 #b9ae90, 4px 4px 0 #cfc5a8;
+  font-family: var(--enseigne);
+  line-height: 1.1;
+}
+.ephemeride b { grid-row: 1 / span 3; font-weight: 400; font-size: 46px; line-height: 1; color: var(--bille-noire); }
+.ephemeride span { font-size: 17px; text-transform: capitalize; }
+.ephemeride small { font: 11px var(--imprime); }
+
+/* Horloge à palettes */
+.horloge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  background: var(--formica);
+  border: 3px solid var(--brun);
+  border-radius: 14px;
+  font-family: var(--enseigne);
+}
+.horloge b {
+  min-width: 52px;
+  padding: 0 6px;
+  text-align: center;
+  font-weight: 400;
+  font-size: 36px;
+  line-height: 46px;
+  color: var(--papier);
+  /* La fente entre les deux palettes */
+  background: linear-gradient(#2a2420 0 22px, #0e0c0a 22px 24px, #2a2420 24px);
+  border-radius: 4px;
+}
+.horloge i { font-style: normal; font-size: 15px; color: var(--brun); }
+.horloge.late::after {
+  content: "Fermeture";
+  position: absolute;
+  left: 50%;
+  bottom: -11px;
+  transform: translateX(-50%);
+  padding: 0 6px;
+  background: var(--bille-rouge);
+  color: #fff;
+  font: 700 11px/15px var(--imprime);
+}
+
+/* ---------- Plan de travail ---------- */
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 262px minmax(0, 1fr) 412px;
+  grid-template-areas: "guichet bureau reglement";
+  align-items: start;
+}
+
+.guichet {
+  grid-area: guichet;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 16px 20px 22px;
+  background: var(--mur);
+  border-right: 5px solid var(--alu);
+  box-shadow: 3px 0 0 var(--alu-ombre);
+}
+.window {
+  position: relative;
+  height: 196px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* La salle d'attente derrière la vitre : mur vert d'eau et soubassement */
+  background: linear-gradient(#bccbb4 0 64%, #8fa48b 64% 66%, #a4b79d 66%);
+  border: 7px solid var(--alu);
+  border-bottom: 13px solid var(--alu);
+  box-shadow: 0 0 0 2px var(--alu-ombre);
+}
+/* Le passe-documents */
+.window::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 96px;
+  height: 5px;
+  margin-left: -48px;
+  background: #2b1a0b;
+}
+.visitor { width: 150px; line-height: 0; }
+.visitor svg { width: 100%; height: auto; }
+.visitor.in { animation: arrive .35s ease-out; }
+.visitor.out { transform: translateX(-140%); transition: transform .35s ease-in; }
+.hygiaphone {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  width: 58px;
+  height: 58px;
+  margin-left: -29px;
+  border: 4px solid var(--alu);
+  border-radius: 50%;
+  background: radial-gradient(rgba(43, 26, 11, .55) 1.6px, transparent 2.2px) 1px 1px / 8px 8px, rgba(255, 255, 255, .32);
+  box-shadow: 0 0 0 1px var(--alu-ombre);
+}
+.rideau {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: repeating-linear-gradient(#c6c9c2 0 9px, #8f948d 9px 11px);
+  transform: translateY(-102%);
+  transition: transform .45s ease-in;
+}
+.rideau span {
+  padding: 5px 12px 4px;
+  background: var(--papier);
+  border: 2px solid var(--brun);
+  font: 17px var(--enseigne);
+  text-transform: uppercase;
+  transform: rotate(-3deg);
+}
+.veil:not([hidden]) ~ .guichet .rideau { transform: none; }
+
+.say { margin: 0; min-height: 3em; font-style: italic; font-size: 14px; line-height: 1.35; }
+.say:not(:empty)::before { content: "«\a0 "; }
+.say:not(:empty)::after { content: "\a0»"; }
+
+/* Le papillon du contrôle, punaisé sous le guichet */
+.slip {
+  position: relative;
+  margin: 0;
+  min-height: 5.6em;
+  padding: 13px 10px 9px;
+  background: var(--rose);
+  color: var(--bille-noire);
+  font-size: 13px;
+  line-height: 1.35;
+  box-shadow: 2px 2px 0 #b9ae90;
+}
+.slip:empty { visibility: hidden; }
+.slip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: var(--brun);
+}
+.slip.ok::before, .slip.half::before, .slip.err::before {
+  float: left;
+  width: 22px;
+  margin: 1px 7px 0 0;
+  border: 2px solid currentColor;
+  text-align: center;
+  font: 700 15px/18px var(--imprime);
+}
+.slip.ok::before { content: "✓"; color: var(--bille-verte); }
+.slip.half::before { content: "½"; color: var(--brun); border-style: dashed; }
+.slip.err::before { content: "✗"; color: #fff; background: var(--bille-rouge); border-color: var(--bille-rouge); }
+.slip.err { font-weight: 700; }
+
+/* Le feuillet jaune où l'on tient ses comptes */
+.bordereau {
+  margin: 6px 0 0;
+  padding: 8px 12px 10px;
+  background: var(--jaune);
+  box-shadow: 2px 2px 0 #b9ae90;
+}
+.bordereau .titre { margin-bottom: 4px; padding-bottom: 2px; border-bottom: 2px solid var(--brun); font: 16px var(--enseigne); }
+.bordereau div:not(.titre) { display: flex; align-items: baseline; gap: 4px; }
+.bordereau dt { font-size: 13px; }
+.bordereau dd {
+  flex: 1;
+  margin: 0;
+  text-align: right;
+  border-bottom: 1px dotted var(--brun);
+  color: var(--bille-noire);
+  font: 15px/1.5 var(--bille);
+}
+
+.desk {
+  grid-area: bureau;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  overflow: hidden;
+}
+
+/* ---------- Liasse autocopiante ---------- */
+.dossier {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  min-height: 404px;
+  padding: 0 22px 16px;
+  background: var(--papier);
+  color: var(--brun);
+  font: 13px/1.35 var(--imprime);
+  /* Les deux doubles, rose et jaune, dépassent sous l'original */
+  box-shadow: 5px 5px 0 var(--rose), 10px 10px 0 var(--jaune), 12px 13px 0 var(--formica-ombre);
+}
+.dossier:empty { visibility: hidden; }
+.dossier.in { animation: slide .3s ease-out; }
+.dossier.out { transform: translateX(130%) rotate(7deg); opacity: 0; transition: transform .35s ease-in, opacity .35s; }
+.souche {
+  margin: 0 -22px 9px;
+  padding: 4px 22px 3px;
+  background: var(--brun);
+  color: var(--papier);
+  font-size: 10.5px;
+  border-bottom: 2px dashed var(--papier);
+}
+.dossier .head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 7px; border-bottom: 3px solid var(--brun); }
+.dossier .code { padding: 2px 6px; border: 1.5px solid var(--brun); font-size: 11px; }
+.dossier h2 { font-size: 25px; line-height: 1; text-transform: uppercase; }
+.dossier .num { font: 19px var(--enseigne); color: var(--bille-noire); }
+.recu { margin: 7px 0 9px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 12px; }
+.recu b {
+  width: 28px;
+  border: 2px solid var(--brun);
+  text-align: center;
+  font: 400 19px/24px var(--enseigne);
+  color: var(--bille-noire);
+}
+.dossier dl { margin: 0; display: grid; grid-template-columns: 148px 1fr; gap: 5px 8px; counter-reset: rubrique; }
+.dossier dt { counter-increment: rubrique; padding-top: 6px; font-size: 12px; }
+.dossier dt::before {
+  content: counter(rubrique);
+  display: inline-block;
+  width: 15px;
+  margin-right: 6px;
+  background: var(--brun);
+  color: var(--papier);
+  text-align: center;
+  font: 700 10px/15px var(--imprime);
+}
+.dossier dd { margin: 0; border-bottom: 1px dotted var(--brun); min-height: 1.9em; }
+.hand { font: 15px/1.45 var(--bille); }
+.ink-bleue { color: var(--bille-bleue); }
+.ink-noire { color: var(--bille-noire); }
+.ink-verte { color: var(--bille-verte); }
+.ink-rouge { color: var(--bille-rouge); }
+.pieces-title { margin: 11px 0 0; font-size: 12px; font-weight: 700; }
+.pieces { margin: 5px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.pieces li { font-size: 12.5px; }
+/* Cases imprimées, cochées par l'agent d'accueil */
+.pieces li:not(.none)::before {
+  content: "✗";
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 5px;
+  border: 1.5px solid var(--brun);
+  color: var(--bille-noire);
+  text-align: center;
+  font: 700 12px/11px var(--imprime);
+  vertical-align: -1px;
+}
+.pieces .none { font-style: italic; }
+.ink-note { float: left; margin: 30px 0 0; font-size: 12px; font-style: italic; }
+.sign { margin: 10px 0 0 auto; width: 56%; padding: 3px 8px 4px; border: 1.5px solid var(--brun); }
+.sign small { display: block; font-size: 11px; }
+.sign .hand { display: block; min-height: 1.7em; font-size: 19px; line-height: 1.5; transform: rotate(-2deg); transform-origin: left bottom; white-space: nowrap; }
+
+/* Empreintes : cadre double, ovale ou filets fléchés, pour ne pas se fier à la seule couleur */
+.mark {
+  --penche: -8deg;
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  margin: -34px 0 0 -128px;
+  width: 256px;
+  padding: 7px 0 5px;
+  text-align: center;
+  font: 35px/1.1 var(--enseigne);
+  letter-spacing: .04em;
+  border: 6px double currentColor;
+  transform: rotate(var(--penche));
+  mix-blend-mode: multiply;
+  opacity: .86;
+  animation: thump .18s ease-in;
+}
+.mark.approve { color: var(--bille-verte); }
+.mark.refuse { --penche: 7deg; color: var(--bille-rouge); border: 5px solid currentColor; border-radius: 50%; padding: 16px 0 13px; margin-top: -44px; }
+.mark.transmit { --penche: -3deg; color: var(--bille-bleue); border-style: solid; border-width: 5px 0; }
+.mark.transmit::after { content: " →"; }
+
+/* ---------- Tampons à manche de bois ---------- */
+.stamps { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 6px 26px; padding-top: 4px; }
+.stamp {
+  position: relative;
+  width: 122px;
+  margin-top: 40px;
+  padding: 0 0 20px;
+  background: none;
+  border: 0;
+  color: var(--brun);
+}
+/* Le manche tourné, vu de côté */
+.stamp::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 1px);
+  width: 34px;
+  height: 40px;
+  margin-left: -17px;
+  background: #8b5a2b;
+  border: 2px solid var(--brun);
+  border-bottom: 0;
+  border-radius: 17px 17px 5px 5px / 20px 20px 16px 16px;
+  box-shadow: inset 6px 0 0 #a8743c;
+}
+.stamp span {
+  display: block;
+  padding: 7px 4px 5px;
+  background: var(--papier);
+  border: 2px solid var(--brun);
+  border-top: 9px solid #8b5a2b;
+  border-bottom: 6px solid currentColor;
+  outline: 2px solid var(--brun);
+  outline-offset: -2px;
+  font: 17px/1.2 var(--enseigne);
+  text-transform: uppercase;
+  box-shadow: 0 4px 0 var(--formica-ombre);
+}
+.stamp.approve span { color: var(--bille-verte); text-decoration: underline double; text-underline-offset: 3px; }
+.stamp.refuse span { color: var(--bille-rouge); }
+.stamp.refuse span::before { content: "("; }
+.stamp.refuse span::after { content: ")"; }
+.stamp.transmit span { color: var(--bille-bleue); }
+.stamp.transmit span::after { content: " →"; }
+.stamp kbd { position: absolute; left: 0; right: 0; bottom: 0; font: 12px var(--imprime); color: var(--brun); }
+.stamp:hover { transform: translateY(-3px); }
+.stamp:active { transform: translateY(3px); }
+.stamp:active span { box-shadow: none; }
+.motif { margin: 0; min-height: 1.5em; padding: 2px 12px; background: var(--papier); font-size: 13px; box-shadow: 2px 2px 0 var(--formica-ombre); }
+.motif:empty { visibility: hidden; }
+
+/* ---------- Règlement affiché sous plexiglas ---------- */
+.reglement {
+  grid-area: reglement;
+  position: relative;
+  margin: 16px 22px 16px 0;
+  padding: 12px 18px 10px;
+  background: var(--papier);
+  border: 6px solid rgba(255, 255, 255, .45);
+  background-clip: padding-box;
+  box-shadow: 4px 5px 0 var(--formica-ombre);
+}
+/* Deux des quatre vis de la plaque */
+.reglement::before, .reglement::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--alu-ombre);
+  box-shadow: 0 var(--bas, 0) 0 var(--alu-ombre);
+}
+.reglement::before { left: -5px; }
+.reglement::after { right: -5px; }
+.reglement h2 { margin-bottom: 8px; padding-bottom: 5px; border-bottom: 3px solid var(--brun); font-size: 21px; text-transform: uppercase; text-align: center; }
+.reglement ol { margin: 0; padding: 0; list-style: none; }
+.reglement button, .reglement li > p {
+  position: relative;
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 2px 8px 2px 26px;
+  text-align: left;
+  color: inherit;
+  font-size: 12.5px;
+  line-height: 1.32;
+  background: none;
+  border: 2px solid transparent;
+}
+/* Case à cocher imprimée devant chaque article qui peut motiver un refus */
+.reglement button::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 4px;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--brun);
+  text-align: center;
+  font: 700 15px/10px var(--imprime);
+  color: var(--bille-rouge);
+}
+.reglement li > p::before { content: "→"; position: absolute; left: 6px; top: 2px; font-weight: 700; }
+.reglement button:hover { background: #fbf1b5; }
+/* L'article cité est cerclé au feutre rouge sur le plexiglas */
+.reglement button.sel { border-color: var(--bille-rouge); border-radius: 60% 8px 55% 10px / 12px 60% 10px 55%; }
+.reglement button.sel::before { content: "✗"; }
+.reglement b { font-family: var(--enseigne); font-weight: 400; font-size: 14px; }
+.reglement em, .card li em {
+  display: inline-block;
+  padding: 0 6px;
+  background: var(--jaune);
+  border: 1px dashed var(--brun);
+  font: 700 11px/15px var(--imprime);
+  transform: rotate(-2deg);
+}
+.hint { margin: 8px 0 0; padding-top: 6px; border-top: 1px solid var(--brun); font-size: 12px; font-style: italic; }
+
+/* ---------- Notes de service et bilans : une feuille perforée posée sur le comptoir ---------- */
+.veil { grid-area: bureau; display: flex; justify-content: center; padding: 22px 24px 20px; }
+.veil:not([hidden]) ~ .desk { display: none; }
+.card {
+  width: 100%;
+  max-width: 580px;
+  padding: 22px 30px 18px 58px;
+  /* Les deux trous de classeur laissent voir le formica */
+  background:
+    radial-gradient(circle at 24px 26%, var(--formica) 0 7px, transparent 7.6px),
+    radial-gradient(circle at 24px 74%, var(--formica) 0 7px, transparent 7.6px),
+    var(--papier);
+  color: var(--bille-noire);
+  font: 14px/1.45 var(--imprime);
+  box-shadow: 4px 5px 0 var(--formica-ombre);
+}
+.card h1 { margin-bottom: 10px; font-size: 30px; line-height: 1.1; color: var(--brun); }
+.card h2 { margin: 14px 0 6px; padding-bottom: 2px; font-size: 17px; color: var(--brun); border-bottom: 2px solid var(--brun); }
+.card .ref { margin: 0 0 12px; padding-bottom: 5px; border-bottom: 3px solid var(--brun); font: 15px var(--enseigne); color: var(--brun); }
+.card p { margin: 0 0 8px; }
+.card ul { margin: 0; padding-left: 18px; }
+.card li { margin-bottom: 4px; }
+.card b { color: var(--brun); }
+.card table { width: 100%; border-collapse: collapse; }
+.card td { padding: 2px 0; border-bottom: 1px dotted var(--brun); }
+.card td:last-child { text-align: right; white-space: nowrap; font: 15px/1.3 var(--bille); }
+.card tr.sum td { border-top: 2px solid var(--brun); font-weight: 700; padding-top: 5px; }
+.card .verdict { margin-top: 14px; padding: 10px 12px; background: var(--jaune); border-left: 7px solid var(--brun); }
+/* Le talon à détacher : on s'engage en cochant */
+.card .actions { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 16px -30px 0 -58px; padding: 12px 30px 0 58px; border-top: 2px dashed var(--brun); }
+.card button { position: relative; padding: 3px 4px 3px 30px; background: none; border: 0; color: var(--brun); font: 19px var(--enseigne); }
+.card button::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--brun);
+  color: var(--bille-bleue);
+  text-align: center;
+  font: 700 22px/14px var(--imprime);
+}
+.card button:hover::before, .card button:active::before { content: "✗"; }
+.card button:hover { text-decoration: underline; text-underline-offset: 4px; }
+.card button.alt { font-size: 16px; }
+
+@keyframes slide { from { transform: translateY(40px) rotate(-3deg); opacity: 0; } }
+@keyframes arrive { from { transform: translateX(140%); } }
+@keyframes thump { from { transform: rotate(var(--penche)) scale(2.2); opacity: 0; } }
+
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 240px minmax(0, 1fr) 320px; }
+  .guichet { padding-left: 16px; }
+  .reglement { margin-right: 14px; }
+}
+@media (max-width: 900px) {
+  .mur { padding: 14px 12px 12px; gap: 12px; }
+  .plaque { font-size: 19px; }
+  .pendus { gap: 12px; }
+  .layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "guichet" "bureau" "reglement"; }
+  .guichet { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px 12px; padding: 12px; border-right: 0; border-bottom: 5px solid var(--alu); box-shadow: 0 3px 0 var(--alu-ombre); }
+  .window { height: 150px; grid-row: span 2; }
+  .visitor { width: 112px; }
+  .rideau span { font-size: 14px; white-space: nowrap; }
+  .hygiaphone { width: 44px; height: 44px; margin-left: -22px; bottom: 8px; }
+  .say { min-height: 2.7em; }
+  .bordereau { grid-column: 1 / -1; margin: 0; }
+  .desk, .veil { padding: 18px 14px 16px 8px; }
+  .dossier { padding: 0 14px 14px; }
+  .souche { margin: 0 -14px 9px; padding: 4px 14px 3px; }
+  .dossier h2 { font-size: 20px; }
+  .dossier dl { grid-template-columns: 112px 1fr; }
+  .stamps { gap: 6px 10px; }
+  .stamp { width: 108px; }
+  .stamp span { font-size: 15px; white-space: nowrap; }
+  .card { padding: 18px 16px 16px 46px; }
+  .card .actions { margin: 16px -16px 0 -46px; padding: 12px 16px 0 46px; }
+  .reglement { margin: 6px 14px 20px 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dossier.in, .visitor.in, .mark { animation: none; }
+  .rideau { transition: none; }
+}

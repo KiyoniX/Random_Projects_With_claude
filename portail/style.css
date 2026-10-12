@@ -47,13 +47,14 @@ a { color: inherit; text-decoration: none; }
 .box .dot { position: absolute; left: 50%; bottom: 12px; width: 11px; height: 11px; margin-left: -5.5px; border-radius: 50%; background: var(--brass); box-shadow: 0 0 0 2px rgba(0, 0, 0, .35); }
 .box.on { transform: translateY(-16px); }
 
-.b-atlas, .b-langues, .b-chroniques { background: linear-gradient(#c4165c 0 24%, #f4f4ef 24% 93%, #000 93% 94.5%, #f4f4ef 94.5%); color: #000; }
-.b-atlas .name, .b-langues .name, .b-chroniques .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; margin-top: 78px; }
-.b-atlas::before, .b-langues::before, .b-chroniques::before { position: absolute; left: 0; right: 0; top: 14px; text-align: center; color: #fff; font: 700 30px Bahnschrift, 'Franklin Gothic Medium', sans-serif; }
+.b-atlas, .b-langues, .b-chroniques, .b-steles { background: linear-gradient(#c4165c 0 24%, #f4f4ef 24% 93%, #000 93% 94.5%, #f4f4ef 94.5%); color: #000; }
+.b-atlas .name, .b-langues .name, .b-chroniques .name, .b-steles .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; margin-top: 78px; }
+.b-atlas::before, .b-langues::before, .b-chroniques::before, .b-steles::before { position: absolute; left: 0; right: 0; top: 14px; text-align: center; color: #fff; font: 700 30px Bahnschrift, 'Franklin Gothic Medium', sans-serif; }
 .b-atlas::before { content: '1'; }
 .b-chroniques::before { content: '2'; }
 .b-langues::before { content: '3'; }
-.b-atlas .dot, .b-langues .dot, .b-chroniques .dot { bottom: 22px; }
+.b-steles::before { content: '4'; }
+.b-atlas .dot, .b-langues .dot, .b-chroniques .dot, .b-steles .dot { bottom: 22px; }
 .b-plans, .b-siege, .b-riviere { background: #e4d2aa; color: #3d2f21; }
 .b-plans .name, .b-siege .name, .b-riviere .name { font-family: 'Palatino Linotype', 'Book Antiqua', Georgia, serif; font-style: italic; }
 .b-plans { outline: 2px solid #3d2f21; outline-offset: -8px; }
@@ -75,6 +76,17 @@ a { color: inherit; text-decoration: none; }
 .b-usine .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; text-transform: uppercase; }
 .b-tycoon { background: linear-gradient(#0a246a 0 30px, #c0c0c0 30px); color: #000; box-shadow: inset 2px 2px 0 #fff, inset -2px -2px 0 #404040; }
 .b-tycoon .name { font-family: Tahoma, 'MS Sans Serif', 'Segoe UI', sans-serif; font-weight: 700; margin-top: 26px; }
+.b-ville { background: linear-gradient(#0b4ea2 0 14px, transparent 14px), #f4f3ec; color: #16181b; box-shadow: inset 0 0 0 2px #f4f3ec, inset 0 0 0 6px #c4161c; }
+.b-ville .name { font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; margin-top: 12px; }
+.b-ville .dot { bottom: 16px; }
+.b-backrooms { background: linear-gradient(#c4161c 0 26px, transparent 26px), linear-gradient(to top, transparent 0 24px, #00874a 24px 40px, transparent 40px), #f4f3ec; color: #16181a; }
+.b-backrooms .name { font-family: 'Arial Black', Arial, Helvetica, sans-serif; font-weight: 900; margin-top: 30px; }
+.b-backrooms .dot { bottom: 8px; }
+.b-phare { background: radial-gradient(circle, #4a5d53 0 2px, #1a2520 2px 3.5px, transparent 4px) 50% 5px / 12px 10px repeat-x, radial-gradient(circle, #4a5d53 0 2px, #1a2520 2px 3.5px, transparent 4px) 50% calc(100% - 5px) / 12px 10px repeat-x, #2f4038; color: #dcc078; }
+.b-phare .name { font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; margin-top: 10px; }
+.b-phare .dot { bottom: 22px; }
+.b-bureau { background: linear-gradient(#58310f 0 26px, transparent 26px calc(100% - 14px), #f0b8c4 calc(100% - 14px) calc(100% - 7px), #f4e07a calc(100% - 7px)), #d47a2a; color: #fbfaf3; }
+.b-bureau .name { font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase; margin-top: 30px; }
 .b-atelier { background: conic-gradient(#3a3d46 25%, #2b2d35 0 50%, #3a3d46 0 75%, #2b2d35 0) 0 0 / 16px 16px; color: #f4f4f6; }
 .b-atelier .name { font-family: Consolas, 'Lucida Console', monospace; font-weight: 700; background: #1d1e24; padding: 8px 3px; }
 .b-textures { background: linear-gradient(#5a5048 0 2px, transparent 2px) 0 0 / 100% 18px, linear-gradient(90deg, #5a5048 0 2px, transparent 2px) 0 0 / 38px 36px, #a8452f; color: #fff3e6; }
@@ -91,7 +103,8 @@ a { color: inherit; text-decoration: none; }
 .b-chiptune { background: linear-gradient(#cbc7ba 0 12%, #5a5c6e 12% 14%, #9bbc0f 14% 34%, #5a5c6e 34% 36%, #cbc7ba 36% 94%, #8b1d4f 94% 97%, #cbc7ba 97%); color: #1c2a5a; }
 .b-chiptune .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; font-style: italic; margin-top: 112px; }
 .b-erosion { background: linear-gradient(100deg, #7a3a16, #c2622a 45%, #8a4a22 70%, #5c2c12); color: #ffe9d2; }
-.b-erosion .name { font-family: var(--display); font-weight: 700; }
+.b-erosion .name, .b-feu .name { font-family: var(--display); font-weight: 700; }
+.b-feu { background: linear-gradient(100deg, #2f3a1e, #55682f 40%, #b8501a 72%, #3a1c10); color: #ffe9d2; }
 
 /* ---------- Boîte sortie, posée sur la table ---------- */
 .table { position: sticky; top: 1.5rem; margin-top: 1.25rem; }

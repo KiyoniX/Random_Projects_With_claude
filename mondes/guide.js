@@ -1,4 +1,4 @@
-// Guides de l'Écliptique : habillage commun aux trois chapitres (titre courant, onglets, sommaire, pictogrammes, carte à zoom).
+// Guides de l'Écliptique : habillage commun aux quatre chapitres (titre courant, onglets, sommaire, pictogrammes, carte à zoom).
 (function () {
   'use strict';
 
@@ -17,7 +17,8 @@
   Guide.CHAPITRES = [
     { cle: 'planete', titre: 'La planète', page: '../atlas-des-mondes/index.html', folio: 7 },
     { cle: 'histoire', titre: 'Un peu d\'histoire', page: '../chroniques/index.html', folio: 33 },
-    { cle: 'langue', titre: 'Petit guide de conversation', page: '../langues-inventees/index.html', folio: 53 }
+    { cle: 'langue', titre: 'Petit guide de conversation', page: '../langues-inventees/index.html', folio: 53 },
+    { cle: 'steles', titre: 'Les stèles', page: '../steles/index.html', folio: 79 }
   ];
 
   // Tous les liens de chapitre de la page suivent l'adresse courante (graine et réglages)

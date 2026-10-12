@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Les couloirs oublient</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- Pictogrammes : rond bleu pour ce qu'on fait, carré vert pour ce qui mène dehors, triangle jaune pour ce dont on se méfie -->
+  <svg class="pictos" aria-hidden="true">
+    <symbol id="p-marche" viewBox="0 0 24 24"><circle class="p-bleu" cx="12" cy="12" r="12"/><circle class="p-plein" cx="12.5" cy="5.4" r="2"/><path class="p-trait" d="M12 9.2 11.5 14l3 5.5M11.5 14l-3 5.5M8.3 12 12 9.6l3.6 2.6"/></symbol>
+    <symbol id="p-son" viewBox="0 0 24 24"><rect class="p-vert" width="24" height="24" rx="2"/><circle class="p-plein" cx="6.5" cy="12" r="2.3"/><path class="p-trait fin" d="M10.5 8a5.6 5.6 0 0 1 0 8M13.6 5.4a9.2 9.2 0 0 1 0 13.2M16.8 3a12.6 12.6 0 0 1 0 18"/></symbol>
+    <symbol id="p-ruban" viewBox="0 0 24 24"><circle class="p-bleu" cx="12" cy="12" r="12"/><circle class="p-trait gros" cx="11" cy="11.5" r="4.6"/><path class="p-trait" d="M11 17.4h8"/></symbol>
+    <symbol id="p-miroir" viewBox="0 0 24 24"><circle class="p-bleu" cx="12" cy="12" r="12"/><circle class="p-trait" cx="12" cy="9.4" r="5"/><path class="p-trait gros" d="M12 15v5"/></symbol>
+    <symbol id="p-avis" viewBox="0 0 24 24"><path class="p-jaune" d="M12 2 22.6 21H1.4Z"/><path class="p-noir" d="M10.9 8.5h2.2l-.4 6.6h-1.4Z"/><circle class="p-noir" cx="12" cy="17.6" r="1.3"/></symbol>
+    <symbol id="p-souffle" viewBox="0 0 24 24"><circle class="p-bleu" cx="12" cy="12" r="12"/><path class="p-trait fin" d="M5 8.6q3-2.6 6 0t6 0M7 12.2q3-2.6 6 0t6 0M5 15.8q3-2.6 6 0t6 0"/></symbol>
+    <symbol id="p-lampe" viewBox="0 0 24 24"><circle class="p-bleu" cx="12" cy="12" r="12"/><path class="p-plein" d="M4.5 10h6l3-2.6v9.2l-3-2.6h-6Z"/><path class="p-trait fin" d="m16 9 3.2-1.6M16.4 12h3.8M16 15l3.2 1.6"/></symbol>
+    <symbol id="p-oeil" viewBox="0 0 24 24"><circle class="p-bleu" cx="12" cy="12" r="12"/><path class="p-trait fin" d="M4 12q8-7.6 16 0-8 7.6-16 0Z"/><circle class="p-plein" cx="12" cy="12" r="2.7"/></symbol>
+    <symbol id="p-sortie" viewBox="0 0 46 30"><path class="p-plein" d="M31 2h13v26H31Z"/><circle class="p-plein" cx="14" cy="5.6" r="3.1"/><path class="p-trait gros" d="m13.2 11.4 3.6 7.2 5.6 3.4-1 6M16.8 18.6l-5.4 3.2L6 27.6M7 15.4l6.2-4 5.8 2.4 4.2-3.4"/></symbol>
+    <symbol id="p-point" viewBox="0 0 24 24"><rect class="p-vert" width="24" height="24" rx="2"/><path class="p-plein" d="M2.5 2.5h5l-1.7 1.7 2.6 2.6-1 1-2.6-2.6-2.3 2.3ZM21.5 2.5v5l-1.7-1.7-2.6 2.6-1-1 2.6-2.6-2.3-2.3ZM2.5 21.5v-5l1.7 1.7 2.6-2.6 1 1-2.6 2.6 2.3 2.3ZM21.5 21.5h-5l1.7-1.7-2.6-2.6 1-1 2.6 2.6 2.3-2.3Z"/><circle class="p-plein" cx="12" cy="9.3" r="1.5"/><path class="p-plein" d="M10.3 11.4h3.4v5.2h-3.4Z"/><circle class="p-plein" cx="8.3" cy="10.7" r="1.2"/><path class="p-plein" d="M7 12.4h2.4v4.2H7Z"/><circle class="p-plein" cx="15.7" cy="10.7" r="1.2"/><path class="p-plein" d="M14.6 12.4H17v4.2h-2.4Z"/></symbol>
+  </svg>
+
+  <canvas id="view" width="480" height="270" aria-label="Vue subjective des couloirs"></canvas>
+
+  <div class="veil" id="veil">
+    <div class="affiche">
+      <p class="bandeau" id="band">Consignes en cas d'égarement</p>
+      <svg class="rassemblement"><use href="#p-point"/></svg>
+      <h1 id="title">Les couloirs oublient</h1>
+      <p class="lead" id="lead">Tu es passé à travers le sol. Dix paliers te séparent de la sortie, et aucun n'oublie de la même façon.</p>
+      <ol id="rules">
+        <li><svg><use href="#p-marche"/></svg><p><b>ZQSD, WASD ou flèches</b> pour marcher, <b>souris</b> pour regarder, <b>Maj</b> pour courir. Courir fait du bruit et couvre le bourdonnement.</p></li>
+        <li><svg><use href="#p-son"/></svg><p>La sortie bourdonne : suis le son, à gauche ou à droite. Il n'y a pas de boussole, et tout ce qui bourdonne n'est pas la sortie.</p></li>
+        <li><svg><use href="#p-ruban"/></svg><p><b>E</b> pose un ruban qui fige les murs autour de toi. <b>F</b> allume la lampe. <b>Espace</b> cligne des yeux.</p></li>
+        <li><svg><use href="#p-miroir"/></svg><p><b>Clic droit ou R</b> lève le miroir de poche, une fois trouvé. Il montre ce qui est dans ton dos.</p></li>
+        <li><svg><use href="#p-avis"/></svg><p>Les notes punaisées aux murs disent comment survivre. Presque toutes disent vrai.</p></li>
+      </ol>
+      <div class="pied">
+        <p class="seed"><label for="seed">Plan n° (graine)</label><input id="seed" maxlength="24" placeholder="au hasard" autocomplete="off" spellcheck="false"></p>
+        <button type="button" id="start"><svg><use href="#p-sortie"/></svg><span id="go">Entrer</span></button>
+      </div>
+      <p class="hint" id="hint">Échap rend la souris. Mets le son.</p>
+    </div>
+  </div>
+
+  <div class="hud" id="hud" hidden>
+    <div class="palier">
+      <p id="level"></p>
+      <p id="place"></p>
+      <p class="releve"><span id="clock"></span><span id="marks"></span><span id="caught"></span></p>
+    </div>
+    <canvas id="mirror" width="120" height="68" hidden aria-label="Miroir de poche"></canvas>
+    <ul class="gauges">
+      <li><svg><use href="#p-son"/></svg>Bourdonnement <b><i id="signal"></i></b></li>
+      <li id="row-breath"><svg><use href="#p-souffle"/></svg>Souffle <b><i id="breath"></i></b></li>
+      <li id="row-lamp"><svg><use href="#p-lampe"/></svg>Lampe <b><i id="lamp"></i></b></li>
+      <li id="row-blink"><svg><use href="#p-oeil"/></svg>Paupières <b><i id="blink"></i></b></li>
+    </ul>
+    <figure class="plan">
+      <figcaption>Plan d'évacuation</figcaption>
+      <canvas id="map" width="186" height="186" aria-label="Plan tenu de mémoire"></canvas>
+      <p>Tu es ici. Tenu de mémoire.</p>
+    </figure>
+    <p class="note" id="note"></p>
+    <p class="say" id="say"></p>
+  </div>
+
+  <script src="world.js"></script>
+  <script src="render.js"></script>
+  <script src="game.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

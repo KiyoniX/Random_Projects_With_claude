@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Le quart de nuit</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas id="view" width="480" height="270" aria-label="Vue subjective du phare"></canvas>
+
+  <!-- Les cadrans du pupitre : émail blanc, graduations noires, zone rouge au minium -->
+  <svg class="gabarits" aria-hidden="true">
+    <symbol id="lunette" viewBox="0 0 100 100">
+      <circle cx="50" cy="50" r="48" class="laiton"/>
+      <circle cx="50" cy="50" r="41.5" class="email"/>
+    </symbol>
+    <symbol id="mano" viewBox="0 0 100 100">
+      <use href="#lunette"/>
+      <circle cx="50" cy="50" r="36" pathLength="360" class="rouge" stroke-dasharray="48 400" transform="rotate(150 50 50)"/>
+      <circle cx="50" cy="50" r="36" pathLength="360" class="traits" stroke-dasharray="1.6 22.4 1.6 22.4 1.6 22.4 1.6 22.4 1.6 22.4 1.6 22.4 1.6 22.4 1.6 22.4 1.6 22.4 1.6 22.4 1.6 400" stroke-dashoffset=".8" transform="rotate(150 50 50)"/>
+      <text x="32" y="66">0</text><text x="50" y="29">50</text><text x="65" y="66">100</text>
+    </symbol>
+    <symbol id="pendule" viewBox="0 0 100 100">
+      <use href="#lunette"/>
+      <circle cx="50" cy="50" r="37" pathLength="360" class="traits" stroke-dasharray="1.6 28.4 1.6 28.4 1.6 28.4 1.6 28.4 1.6 28.4 1.6 28.4 1.6 28.4 1.6 28.4 1.6 28.4 1.6 28.4 1.6 400" stroke-dashoffset=".8" transform="rotate(120 50 50)"/>
+      <text x="36" y="78">20</text><text x="24" y="53">22</text><text x="37" y="30">0</text><text x="63" y="30">2</text><text x="76" y="53">4</text><text x="64" y="78">6</text>
+      <rect x="42" y="57" width="16" height="13" class="guichet"/>
+    </symbol>
+  </svg>
+
+  <div class="hud" id="hud" hidden>
+    <div class="cross" aria-hidden="true"></div>
+    <p class="aim" id="aim"></p>
+
+    <section class="panel" id="panel" hidden>
+      <p class="entete"><span>Service des Phares et Balises</span><span>Salle de veille</span></p>
+      <h2 id="panel-title"></h2>
+      <p class="cols" id="panel-cols"><span>Heure</span><span id="panel-col"></span></p>
+      <div id="panel-body"></div>
+      <canvas id="chart" width="680" height="680" hidden></canvas>
+      <p class="signes" id="panel-signs" hidden>
+        <svg viewBox="-10 -10 20 20"><path d="M8 0 L-5 5 L-5 -5 Z" class="plein"/></svg> fait route,
+        <svg viewBox="-10 -10 20 20"><path d="M8 0 L-5 5 L-5 -5 Z" class="creux"/></svg> hésite,
+        <svg viewBox="-13 -13 26 26"><circle r="11" class="cercle"/><path d="M8 0 L-5 5 L-5 -5 Z" class="alarme"/></svg> ne voit plus le feu ou dérive,
+        <svg viewBox="-10 -10 20 20"><path d="M-5 -5 L5 5 M5 -5 L-5 5" class="cercle"/></svg> perdu.
+      </p>
+      <p class="hint">E pour refermer.</p>
+    </section>
+
+    <p class="say" id="say"></p>
+    <p class="prompt" id="prompt"></p>
+
+    <div class="pupitre">
+      <div class="poste">
+        <svg viewBox="0 0 100 100" role="img" id="clock" aria-label="Pendule de quart"><use href="#pendule"/><text class="nuit" id="nuit" x="50" y="67.5"></text><g class="aiguille" id="g-clock"><path d="M50 15 L47.6 50 L50 57 L52.4 50 Z"/></g><circle cx="50" cy="50" r="3.5" class="moyeu"/></svg>
+        <span class="plaque">Quart</span>
+      </div>
+      <div class="poste">
+        <div class="rang"><span class="voyant" id="lampe"></span><em id="g-fire"></em></div>
+        <span class="plaque">Feu</span>
+      </div>
+      <div class="poste">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Ressort du mécanisme"><use href="#mano"/><g class="aiguille" id="g-spring"><path d="M50 15 L47.6 50 L50 57 L52.4 50 Z"/></g><circle cx="50" cy="50" r="3.5" class="moyeu"/></svg>
+        <span class="plaque">Mécanisme</span>
+      </div>
+      <div class="poste">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Niveau de la cuve"><use href="#mano"/><g class="aiguille" id="g-tank"><path d="M50 15 L47.6 50 L50 57 L52.4 50 Z"/></g><circle cx="50" cy="50" r="3.5" class="moyeu"/></svg>
+        <span class="plaque">Cuve</span>
+      </div>
+      <div class="poste">
+        <svg viewBox="0 0 100 100" role="img" aria-label="Propreté des vitres"><use href="#mano"/><g class="aiguille" id="g-glass"><path d="M50 15 L47.6 50 L50 57 L52.4 50 Z"/></g><circle cx="50" cy="50" r="3.5" class="moyeu"/></svg>
+        <span class="plaque">Vitres</span>
+      </div>
+      <div class="poste" id="call">
+        <div class="rang"><span class="voyant"></span></div>
+        <span class="plaque">Radio</span>
+      </div>
+      <div class="poste">
+        <div class="rang"><span class="clous" id="trust" role="img"></span></div>
+        <span class="plaque">Confiance</span>
+      </div>
+      <div class="poste">
+        <div class="rang"><span class="fiche" id="hand"></span></div>
+        <span class="plaque">En main</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="veil" id="veil"><div class="card" id="card"></div></div>
+
+  <script src="world.js"></script>
+  <script src="render.js"></script>
+  <script src="game.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

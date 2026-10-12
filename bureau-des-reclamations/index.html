@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bureau des réclamations</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="mur">
+    <h1 class="plaque">Bureau des réclamations <small>Guichet 7</small></h1>
+    <div class="pendus">
+      <div class="ephemeride" id="day" role="group" aria-label="Jour"></div>
+      <div class="horloge" id="clock" role="group" aria-label="Heure"><b>9</b><i>h</i><b>00</b></div>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="veil" id="veil">
+      <div class="card" id="card"></div>
+    </div>
+
+    <section class="guichet" aria-label="Guichet">
+      <div class="window">
+        <div class="visitor" id="visitor"></div>
+        <div class="hygiaphone"></div>
+        <div class="rideau"><span>Guichet fermé</span></div>
+      </div>
+      <p class="say" id="say"></p>
+      <p class="slip" id="slip" aria-live="polite"></p>
+      <dl class="bordereau">
+        <div class="titre">Bordereau du jour</div>
+        <div><dt>Dossiers traités</dt><dd id="done">0</dd></div>
+        <div><dt>Erreurs</dt><dd id="errors">0</dd></div>
+        <div><dt>Prime du jour</dt><dd id="pay">0 €</dd></div>
+        <div><dt>Solde</dt><dd id="money">0 €</dd></div>
+      </dl>
+    </section>
+
+    <section class="desk" aria-label="Bureau">
+      <article class="dossier" id="dossier"></article>
+      <div class="stamps">
+        <button type="button" class="stamp approve" id="approve"><span>Approuvé</span><kbd>touche A</kbd></button>
+        <button type="button" class="stamp refuse" id="refuse"><span>Refusé</span><kbd>touche R</kbd></button>
+        <button type="button" class="stamp transmit" id="transmit" hidden><span>Transmis</span><kbd>touche T</kbd></button>
+      </div>
+      <p class="motif" id="motif"></p>
+    </section>
+
+    <aside class="reglement" aria-label="Règlement">
+      <h2>Règlement en vigueur</h2>
+      <ol id="rules"></ol>
+      <p class="hint">Pour refuser, cliquez d’abord l’article enfreint.</p>
+    </aside>
+  </main>
+
+  <script src="game.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

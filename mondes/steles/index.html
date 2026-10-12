@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Les stèles · Guides de l’Écliptique</title>
+  <link rel="stylesheet" href="../guide.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="courant">
+    <div class="courant-in">
+      <p class="collection">
+        <svg viewBox="0 0 22 12" aria-hidden="true"><ellipse cx="11" cy="6" rx="10" ry="4.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="3" r="2.3" fill="currentColor"/></svg>
+        <b>Guides de l’Écliptique</b><span class="dest" id="gDest"></span>
+      </p>
+      <p class="folio"><span id="gSection">Les stèles</span><b id="gFolio">79</b></p>
+    </div>
+  </header>
+
+  <nav class="onglets" aria-label="Chapitres du guide">
+    <a data-ch="planete" href="../atlas-des-mondes/index.html"><b>1</b>La planète</a>
+    <a data-ch="histoire" href="../chroniques/index.html"><b>2</b>Un peu d’histoire</a>
+    <a data-ch="langue" href="../langues-inventees/index.html"><b>3</b>Conversation</a>
+    <a data-ch="steles" href="index.html" aria-current="page"><b>4</b>Les stèles</a>
+  </nav>
+
+  <div class="livre">
+    <aside class="marge">
+      <nav class="sommaire" aria-label="Dans ce chapitre">
+        <h2>Dans ce chapitre</h2>
+        <ul id="gSommaire"></ul>
+      </nav>
+      <div class="encadre gris marge-note" id="margeNote">
+        <p class="etiquette">Bon à savoir</p>
+        <p>Une seule stèle est bilingue, celle de la capitale. Chaque stèle traduite finance une campagne de fouilles, qui ouvre un site de votre choix.</p>
+      </div>
+    </aside>
+
+    <main class="page">
+      <section class="couverture" id="couverture" data-folio="79" data-courant="Les stèles">
+        <div class="bandeau">
+          <p class="marque"><span><b>Guides de l’Écliptique</b>, destinations hors système</span><span>Chapitre 4, cahier de l’épigraphiste</span></p>
+          <h1>Cahier de l’épigraphiste</h1>
+          <p class="sous-titre"><span id="name"></span><span id="origin"></span></p>
+        </div>
+        <form class="destination" id="seedForm">
+          <label for="seed" title="La graine dont tout le guide est tiré">Destination nº</label>
+          <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+          <button type="submit" class="bouton">Ouvrir ce guide</button>
+          <button type="button" class="bouton plein" id="newBtn">Un autre monde</button>
+        </form>
+        <div class="entree" id="entree">
+          <p class="synopsis" id="brief"></p>
+          <div class="encadre gris bilan">
+            <p class="etiquette">État des fouilles</p>
+            <table class="tableau" id="stats"></table>
+          </div>
+        </div>
+      </section>
+
+      <div id="game">
+        <div class="encadre fin" id="win" hidden></div>
+
+        <section class="rubrique" id="chantier" data-folio="82" data-titre="Les sites de fouilles">
+          <div class="tete"><h2>Les sites de fouilles</h2><p class="chapo">Les numéros sont ceux de la carte générale du chapitre 1. Les cités vivantes portent leur nom ; celui des ruines s’est perdu.</p></div>
+          <div class="fouilles">
+            <div class="map-wrap">
+              <div class="carte-cadre">
+                <canvas id="map" width="720" height="360" tabindex="0" aria-label="Carte des sites de fouilles. Molette ou touches plus et moins pour zoomer, flèches pour déplacer, zéro pour revoir la carte entière." aria-describedby="carteAide"></canvas>
+                <div class="carte-outils" id="mapOutils">
+                  <button type="button" class="bouton" data-zoom="plus" aria-label="Zoomer">+</button>
+                  <button type="button" class="bouton" data-zoom="moins" aria-label="Dézoomer">−</button>
+                  <button type="button" class="bouton" data-zoom="tout" disabled>Carte entière</button>
+                </div>
+              </div>
+              <p class="sonde lineale" id="mapNote" aria-live="polite"></p>
+              <p class="note-ligne carte-aide" id="mapSonde"></p>
+              <p class="note-ligne" id="carteAide">Molette pour zoomer, glisser pour déplacer ; la carte boucle d’est en ouest. Touche 0 pour revoir la carte entière.</p>
+            </div>
+            <div>
+              <div class="sites" id="sites"></div>
+              <ul class="legende-sites lineale">
+                <li><span class="renvoi">n</span>fouilles ouvertes</li>
+                <li><span class="renvoi fait">n</span>tout est traduit</li>
+                <li><span class="renvoi ferme">n</span>à fouiller</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section class="rubrique" id="releves" data-folio="84" data-titre="Relevés des stèles">
+          <div class="tete"><h2>Relevés des stèles</h2><p class="chapo">Désignez un mot pour l’étudier. Une lecture tient quand chaque mot plein a son sens et que chaque nom propre se lit.</p></div>
+          <div class="pupitre">
+            <div>
+              <h3 class="lieu" id="siteTitle"></h3>
+              <div id="steles"></div>
+            </div>
+            <aside class="etude" id="panel" aria-live="polite"></aside>
+          </div>
+        </section>
+
+        <section class="rubrique" id="vocabulaire" data-folio="92" data-titre="Carnet de vocabulaire">
+          <div class="tete"><h2>Carnet de vocabulaire</h2><p class="chapo">Tous les sens à retrouver. Une racine reconnue est annotée partout, même sous sa forme ancienne.</p></div>
+          <div class="carnet" id="carnet"></div>
+        </section>
+
+        <section class="rubrique" id="grammaire" data-folio="94" data-titre="Notes de grammaire">
+          <div class="tete"><h2>Notes de grammaire</h2><p class="chapo">Ce que les stèles traduites vous ont appris. Le détail est au chapitre 3.</p></div>
+          <div class="defile"><table class="tableau" id="grammar"></table></div>
+        </section>
+
+        <section class="rubrique" id="chronique" data-folio="96" data-titre="La chronique à compléter">
+          <div class="tete"><h2>La chronique à compléter</h2><button type="button" class="bouton" id="reset">Recommencer les fouilles</button></div>
+          <div id="chronicle"></div>
+        </section>
+      </div>
+      <div class="encadre gris sans-steles" id="noPeople" hidden></div>
+
+      <nav class="suite" aria-label="Suite du guide">
+        <a data-ch="planete" href="../atlas-des-mondes/index.html">Chapitre 1, page 7<b>La planète</b>Climat, carte générale, milieux naturels, villes et étapes.</a>
+        <a data-ch="histoire" href="../chroniques/index.html">Chapitre 2, page 33<b>Un peu d’histoire</b>Mille ans de chronique, cartes et souverains.</a>
+        <a data-ch="langue" href="../langues-inventees/index.html">Chapitre 3, page 53<b>Petit guide de conversation</b>Prononciation, expressions utiles, écriture.</a>
+      </nav>
+    </main>
+  </div>
+
+  <footer class="acheve">Même numéro de destination (la graine), mêmes stèles. L’avancement de vos fouilles est gardé dans ce navigateur.</footer>
+
+  <script src="../langues-inventees/lang.js"></script>
+  <script src="../atlas-des-mondes/planet.js"></script>
+  <script src="../atlas-des-mondes/life.js"></script>
+  <script src="../chroniques/hist.js"></script>
+  <script src="steles.js"></script>
+  <script src="../guide.js"></script>
+  <script src="app.js"></script>
+  <script src="../../portail/site.js"></script>
+</body>
+</html>

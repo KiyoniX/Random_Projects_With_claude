@@ -173,6 +173,78 @@ Le jeu se joue dans une application Windows d'époque : barre de titre bleue, vr
 | Orange « Klode » (le tricheur) | `#e8601c` |
 | Caractères | Tahoma, puis MS Sans Serif, Segoe UI |
 
+### `ville-a-regles` : le plan de ville et son mât de signalisation
+
+On est à l'entrée de la commune, devant son mobilier de voirie. À gauche, le panneau « plan de la ville » dans son cadre d'acier galvanisé : bandeau bleu, plan carroyé de A à L et de 1 à 8, légende en pied. À droite, un mât porte les panneaux empilés. Le premier est le panneau d'entrée d'agglomération, blanc à listel rouge : le nom qu'on y écrit est la graine. Chaque règle est un panneau de zone avec son signal : rond cerclé de rouge pour ce qui interdit ou limite, bleu pour ce qui indique ou oblige, triangle pour le tracé des rues. Une règle levée devient grise et barrée d'une diagonale, comme un panneau de fin de prescription. La vitesse du temps se règle avec des limitations de vitesse et un STOP octogonal, l'impôt sur une réglette en forme de chaussée à ligne discontinue. Ce qu'on désigne sur le plan s'affiche sur un panneau temporaire jaune.
+
+| Rôle | Valeur |
+| --- | --- |
+| Ciel (fond) | `#c5d5dc` |
+| Blanc des panneaux | `#f4f3ec` |
+| Noir (lettres, listels) | `#16181b` |
+| Rouge (ce qui interdit ou limite, alertes, véhicules à l'arrêt) | `#c4161c` |
+| Bleu (ce qui indique ou oblige, bandeau, trajets) | `#0b4ea2` |
+| Jaune temporaire (ce qu'on regarde : vue choisie, objet désigné, focus) | `#f7c800` |
+| Acier galvanisé (mât, cadre, règles levées) | `#8f989b`, clair `#b3bbbd`, sombre `#5c6568` |
+| Panneaux | Franklin Gothic Medium, puis Arial Narrow, Arial |
+| Texte courant | Segoe UI, puis Tahoma, Verdana |
+
+Le plan reste en couleurs, comme un plan de ville imprimé : rues blanches, avenues jaunes, boulevards orangés. Chaque teinte de toit est doublée d'un signe : trait pour les commerces, deux barres pour l'industrie, carré pour les bureaux, croix rouge pour la clinique ; zéro, une ou deux barres selon le rang des ménages. Le trafic se lit à l'épaisseur du trait autant qu'à sa couleur. La vue de près donne le carré du plan (« carré E4 »), comme un index des rues.
+
+### `backrooms` : la signalétique de sécurité
+
+Bureaux, parking, piscine, hôtel : quatre lieux qui n'ont rien en commun, sauf ce que le règlement visse à leurs murs. Tout ce qui recouvre la vue est donc de la signalétique. L'écran-titre est l'affiche de consignes, bandeau rouge « Consignes en cas d'égarement », une consigne par ligne avec son pictogramme, et la graine s'écrit au feutre bleu dans la case « Plan n° ». On entre en appuyant sur le bloc de secours, boîtier blanc à face verte et deux voyants. En jeu : une plaque de palier (numéro, lieu, puis un relevé temps / ruban / réveils), des jauges à dix crans précédées de leur pictogramme, un plan d'évacuation « Tu es ici, tenu de mémoire », les messages sur une plaque gravée noire. La pause rappelle les consignes, la fin de partie est le panneau vert du point de rassemblement. Les lieux en 3D gardent leurs couleurs et leur lumière : c'est le bâtiment, pas l'habillage.
+
+| Rôle | Valeur |
+| --- | --- |
+| Blanc de plaque (affiche, plaques, sol du plan) | `#f4f3ec`, chant `#c9c8bf` |
+| Encre (texte, murs du plan, plaque gravée) | `#16181a` |
+| Vert de secours (ce qui mène dehors : sortie, bourdonnement, bloc « Entrer », point de rassemblement) | `#00874a` |
+| Rouge d'incendie (bandeau des consignes, jauge à bout, ruban posé) | `#c4161c` |
+| Jaune d'avertissement (ce dont on se méfie : les notes) | `#f9a900` |
+| Bleu d'obligation (ce que le joueur fait : gestes, « tu es ici », écriture au feutre) | `#00558c` |
+| Papier des notes punaisées, repris de la texture des murs | `#e4dec6`, encre `#464660` |
+| Signalétique | Arial, titres en Arial Black, puis Helvetica |
+| Écriture à la main (notes, case de la graine) | Segoe Print, puis Ink Free, Comic Sans MS |
+
+La couleur suit le code des panneaux et la forme le double toujours : rond pour un geste, carré pour le secours, triangle pour la méfiance. Une jauge à bout passe du cran plein au cran hachuré ; sur le plan, la sortie est encadrée, une porte évidée, un mur tenu par le ruban percé d'un point, une note bordée de noir. Pas de voile sombre derrière l'affiche : elle est posée sur le mur du premier palier.
+
+### `phare` : la salle de veille
+
+La nuit en 3D reste le sujet ; tout ce qui la recouvre vient de la salle de veille d'un phare des années 1950, en deux matières qui ne se mélangent pas. Ce que dit la tour se lit sur un pupitre de tôle peinte et rivetée, en bas de l'écran : pendule de quart dont l'aiguille fait son tour en dix heures, de 20 h à 6 h, avec le numéro de la nuit dans un guichet ; trois manomètres à zone rouge pour le ressort, la cuve et les vitres ; voyant du feu avec son état dans un guichet ; voyant d'appel radio ; têtes de laiton pour la confiance ; porte-étiquette pour ce qu'on a en main. Ce que dit le gardien s'écrit à la plume dans le registre des Phares et Balises : journal de bord et cahier de veille radio en colonnes « Heure » et « Observations », messages du jeu sur une bande de papier réglé, écran-titre, pause et relève sur les pages du registre relié (dos de toile, coins de laiton), la relève en double page avec le bon de ravitaillement à droite. Aucun voile sombre : le registre est posé sur la vue, qui reste visible à côté. La carte du secteur est une carte marine.
+
+| Rôle | Valeur |
+| --- | --- |
+| Tôle peinte (pupitre, mur de la lanterne) | `#2f4038`, clair `#4a5d53`, ombre `#1a2520` |
+| Laiton (lunettes des cadrans, plaques, porte-étiquettes, coins du registre) | `#b08a3c`, clair `#dcc078`, ombre `#6b5220` |
+| Émail des cadrans et papier du registre | `#ece5cf`, réglure `#9db3c4` |
+| Noir (imprimé, graduations, aiguilles) | `#1b1b18` |
+| Encre bleu-noir (tout ce que le gardien écrit) | `#1c2a4a` |
+| Minium (zone rouge, état dangereux, navire en péril) | `#b02a20` |
+| Lampe allumée (voyants, rien d'autre) | `#ffd27a` |
+| Plaques gravées, intitulés de colonnes | Franklin Gothic Medium, puis Arial Narrow, Arial |
+| Imprimé du registre | Cambria, puis Georgia, Times New Roman |
+| Plume du gardien | Segoe Script, puis Segoe Print |
+
+On ne clique pas un bouton, on signe le registre : chaque action de page est une ligne de signature pointillée (« Je prends le quart »), et le ravitaillement se commande dans des cases imprimées, un « + » à la plume ou une coche pour ce qui est acquis. Rien ne tient à la seule couleur : un état dangereux du feu passe en réserve sur rouge dans son guichet, une aiguille tombe dans la zone rouge, un message radio non lu est souligné au crayon rouge, et sur la carte un navire est plein s'il fait route, creux s'il hésite, cerclé s'il ne voit plus le feu, en croix s'il est perdu. Les navires vouvoient le gardien à la radio.
+
+### `bureau-des-reclamations` : le guichet, vers 1978
+
+On est assis derrière le guichet 7. La cloison laquée forme un L : en haut la plaque gravée du bureau, l'éphéméride et l'horloge à palettes, à gauche la vitre à hygiaphone derrière laquelle attend le plaignant. Le reste est le comptoir en formica orange, vu de dessus. La réclamation est une liasse autocopiante en trois exemplaires (l'original blanc, les doubles rose et jaune qui dépassent), imprimée en brun et remplie au stylo-bille. Le règlement est une affiche vissée sous plexiglas, où l'on cercle au feutre rouge l'article qui motive le refus. Les décisions se prennent avec trois tampons à manche de bois. Les notes de service et les bilans du soir sont des feuilles perforées posées sur le comptoir à la place de la liasse, pendant que le rideau métallique du guichet est baissé : il n'y a pas de fenêtre modale.
+
+| Rôle | Valeur |
+| --- | --- |
+| Formica du comptoir | `#d47a2a`, ombre portée `#a3561a` |
+| Cloison laquée | `#e9e1ca` ; aluminium des huisseries `#b4b8b1`, ombre `#7f847d` |
+| Brun d'imprimerie (tout ce qui est imprimé, plaque, bois) | `#58310f` |
+| Papier | `#fbfaf3` ; doubles rose `#f0b8c4` (papillon du contrôle) et jaune `#f4e07a` (bordereau du jour, rectificatifs) |
+| Stylos-bille et encres de tampon | bleue `#1c3fa8`, noire `#1a1a1c`, verte `#1c7a3c`, rouge `#c4281c` |
+| Signalétique et titres | Franklin Gothic Medium, puis Arial Narrow, Arial |
+| Imprimés | Arial, puis Helvetica |
+| Stylo-bille | Segoe Script, puis Segoe Print, Lucida Handwriting |
+
+Le brun est réservé à l'imprimé, pour que les quatre couleurs de stylo, qui comptent dans le règlement, ne se confondent jamais avec le formulaire ; l'encre employée est en outre écrite en toutes lettres au bas de la liasse. Les trois empreintes se distinguent par leur forme autant que par leur couleur : cadre double pour « Approuvé », ovale pour « Refusé », deux filets et une flèche pour « Transmis ». Le contrôle répond par un papillon rose marqué d'une case ✓, ½ ou ✗. L'Administration vouvoie son agent, dans les notes de service comme dans les messages du contrôle.
+
 ### `chiptune` : la console de poche, 1989
 
 « La Puce à l'oreille » est une console portable : coque gris chaud, lunette ardoise, écran à quatre verts, boutons bordeaux, inscriptions bleu marine. Tout ce qui est à l'écran est dessiné avec une police à points 5 × 7 faite pour l'outil.
@@ -202,9 +274,9 @@ Ici le fond gris neutre n'est pas un défaut de parti pris, c'est une nécessit�
 
 ### `mondes` : le guide de voyage
 
-`atlas-des-mondes`, `chroniques`, `langues-inventees`.
+`atlas-des-mondes`, `chroniques`, `langues-inventees`, `steles`.
 
-Les trois pages sont trois chapitres d'un même guide touristique imaginaire, les « Guides de l'Écliptique, destinations hors système ». On ne consulte pas un générateur : on feuillette le guide d'une destination qui se trouve être un monde inventé. Le chapitre 1 est la planète (fiche d'identité, « Avant de partir », carte générale, milieux naturels, le peuple, villes et étapes notées en étoiles, chacune renvoyant à son plan), le chapitre 2 « Un peu d'histoire », le chapitre 3 le « Petit guide de conversation ».
+Les quatre pages sont quatre chapitres d'un même guide touristique imaginaire, les « Guides de l'Écliptique, destinations hors système ». On ne consulte pas un générateur : on feuillette le guide d'une destination qui se trouve être un monde inventé. Le chapitre 1 est la planète (fiche d'identité, « Avant de partir », carte générale, milieux naturels, le peuple, villes et étapes notées en étoiles, chacune renvoyant à son plan), le chapitre 2 « Un peu d'histoire », le chapitre 3 le « Petit guide de conversation », le chapitre 4 le « Cahier de l'épigraphiste ».
 
 La mise en page reprend le vocabulaire des guides imprimés : titre courant avec folio en haut de page, onglets de chapitre sur la tranche droite, sommaire du chapitre à points de conduite dans la marge, encadrés tramés « Bon à savoir », pastilles de renvoi numérotées partagées entre la carte et le texte, légendes « Fig. n » sous les planches d'espèces. Les curseurs qui modifient la planète sont un encart assumé, le « Baromètre du voyageur », fait de réglettes graduées. Le globe est le frontispice, posé sur un aplat noir comme une photo de couverture.
 
@@ -218,6 +290,10 @@ La mise en page reprend le vocabulaire des guides imprimés : titre courant avec
 | Texte courant | Palatino Linotype, puis Book Antiqua, Georgia ; italique pour les chapôs, les légendes et les mots de la langue inventée |
 
 Aucun arrondi sauf les pastilles rondes. Les cartes et les créatures restent en couleurs : ce sont les illustrations du guide. Zoom à la molette sur la carte générale et sur la carte historique, de ×1 à ×14, avec une carte qui boucle d'est en ouest.
+
+Le chapitre 4, « Cahier de l'épigraphiste » (onglet « Les stèles »), est le cahier pratique du guide : le seul chapitre où le lecteur écrit. Le jeu de déchiffrement y prend les formes d'un cahier imprimé à remplir. Les sites de fouilles sont des pastilles sur la carte, reprises dans la liste voisine avec les numéros de la carte générale (les ruines prennent les numéros qu'elle laisse libres). Chaque stèle est une planche de relevé légendée « Fig. site.rang », où chaque mot porte sa translittération et une ligne pointillée qui attend son sens. Le mot à l'étude s'ouvre dans un encadré tramé : signes en cases jointives, sons proposés sur une réglette de cases, sens et noms de cités en cases à cocher imprimées. Viennent ensuite le carnet de vocabulaire, les notes de grammaire et la chronique à compléter, qui renvoie à chaque figure.
+
+Les états s'y lisent sans la couleur. Un site ouvert a une pastille magenta, un site entièrement traduit une pastille noire avec une coche, un site à fouiller une pastille blanche cerclée de noir. Un sens établi est en romain sur filet plein, une hypothèse en italique avec un point d'interrogation sur pointillé. Une case choisie est noire et cochée, une case déjà employée ailleurs est hachurée, une case écartée est barrée d'une croix. Une stèle porte un tampon plein « ✓ Traduite » ou un tampon en tirets « À traduire » ; les avis commencent par ✓ ou ✕. Les familles d'événements reprennent les signes du chapitre 2 (carré, triangle, losange, rond, couronne). Les reliefs sculptés et les pictogrammes du vocabulaire sont imprimés en noir, comme des clichés tramés.
 
 ## Ajouter un projet
 

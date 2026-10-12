@@ -1,0 +1,140 @@
+/* Les couloirs oublient : tout ce qui recouvre la vue est la signalétique de sécurité du bâtiment.
+   Affiche de consignes, plaque de palier, pictogrammes, plan d'évacuation, bloc de secours. */
+:root {
+  --plaque: #f4f3ec;      /* blanc des plaques et de l'affiche */
+  --encre: #16181a;       /* texte, murs du plan */
+  --secours: #00874a;     /* ce qui mène dehors : sortie, bourdonnement, bloc « Entrer » */
+  --incendie: #c4161c;    /* bandeau des consignes, jauge à bout, ruban posé */
+  --avis: #f9a900;        /* ce dont on se méfie : les notes */
+  --obligation: #00558c;  /* ce qu'on fait soi-même : gestes, « tu es ici », écriture au feutre */
+  --billet: #e4dec6;      /* papier des notes, repris de la texture des murs */
+  --plume: #464660;
+  --tole: #c9c8bf;
+  --signal: Arial, Helvetica, 'Liberation Sans', sans-serif;
+  --titre: 'Arial Black', 'Arial Bold', Arial, Helvetica, sans-serif;
+  --main: 'Segoe Print', 'Ink Free', 'Comic Sans MS', cursive;
+  --vis: radial-gradient(circle, #6d6f6a 0 1px, #a9aba5 1.2px 2.6px, #5f615c 2.8px 3.4px, transparent 3.8px);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: #121210; color: var(--encre); font-family: var(--signal); font-size: 15px; line-height: 1.4; overflow: hidden; }
+button, input { font: inherit; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 3px solid var(--obligation); outline-offset: 3px; }
+
+#view { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; background: #121210; }
+
+.pictos { position: absolute; width: 0; height: 0; }
+.p-bleu { fill: var(--obligation); }
+.p-vert { fill: var(--secours); }
+.p-jaune { fill: var(--avis); stroke: var(--encre); stroke-width: 1.6; stroke-linejoin: round; }
+.p-noir { fill: var(--encre); }
+.p-plein { fill: #fff; }
+.p-trait { fill: none; stroke: #fff; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.p-trait.fin { stroke-width: 1.7; }
+.p-trait.gros { stroke-width: 3; }
+
+/* Une plaque : PVC blanc vissé au mur, épaisseur visible en bas */
+.palier, .gauges, .plan, .affiche { background-color: var(--plaque); border-radius: 3px; box-shadow: 0 2px 0 var(--tole), 0 4px 0 rgba(0, 0, 0, .55); }
+
+/* ---------- En jeu ---------- */
+.hud { position: fixed; inset: 0; pointer-events: none; }
+
+/* Plaque de palier */
+.palier { position: absolute; top: 14px; left: 16px; min-width: 11.5rem; padding: .3rem .85rem 0; }
+#level { font: 1.7rem/1.05 var(--titre); }
+#place { font-size: 1rem; line-height: 1.2; padding-bottom: .3rem; }
+.releve { display: flex; margin: 0 -.85rem; border-top: 3px solid var(--encre); font-weight: 700; font-size: .92rem; font-variant-numeric: tabular-nums; }
+.releve span { padding: .22rem .7rem .2rem; white-space: nowrap; }
+.releve span + span { border-left: 1px solid var(--encre); }
+.releve span:empty { display: none; }
+/* Le rouleau de ruban : un anneau rouge */
+#marks::before { content: ''; display: inline-block; width: .82em; height: .82em; margin-right: .4em; vertical-align: -.08em; border: .26em solid var(--incendie); border-radius: 50%; }
+
+/* Jauges : un pictogramme, un mot, dix crans. Un cran plein est noir, un cran à bout est hachuré de rouge. */
+.gauges { position: absolute; top: 14px; right: 16px; list-style: none; display: grid; gap: .32rem; padding: .45rem .6rem; font-weight: 700; font-size: .86rem; }
+.gauges li { display: grid; grid-template-columns: 1.25rem 1fr 100px; align-items: center; gap: .5rem; }
+.gauges svg { width: 1.25rem; height: 1.25rem; display: block; }
+.gauges b { height: 12px; background: repeating-linear-gradient(90deg, #cfcec5 0 8px, transparent 8px 10px); overflow: hidden; }
+.gauges i { display: block; height: 100%; background: repeating-linear-gradient(90deg, var(--encre) 0 8px, var(--plaque) 8px 10px); }
+.gauges #signal { background: repeating-linear-gradient(90deg, var(--secours) 0 8px, var(--plaque) 8px 10px); }
+.gauges i.bad { background: repeating-linear-gradient(90deg, transparent 0 8px, var(--plaque) 8px 10px), repeating-linear-gradient(135deg, var(--incendie) 0 2.5px, #fff 2.5px 4.5px); }
+
+/* Le miroir se tient en haut de l'écran, image inversée comme dans une vraie glace */
+#mirror { position: absolute; top: 12px; left: 50%; width: min(300px, 38vw); transform: translateX(-50%) scaleX(-1); image-rendering: pixelated; border: 4px solid #96783a; border-radius: 5px; box-shadow: 0 0 0 1px #4d3c18, 0 4px 0 rgba(0, 0, 0, .55); }
+
+/* Plan d'évacuation : murs noirs sur blanc, sortie en vert, « tu es ici » en bleu */
+.plan { position: absolute; right: 16px; bottom: 18px; width: 198px; padding: 0 6px 3px; }
+.plan figcaption { margin: 0 -6px 6px; padding: .16rem .5rem .12rem; background: var(--secours); color: #fff; font: .78rem/1.3 var(--titre); text-transform: uppercase; border-radius: 3px 3px 0 0; }
+#map { display: block; width: 186px; height: 186px; image-rendering: pixelated; background: #bfbeb5; outline: 1px solid var(--encre); }
+.plan p { padding-top: 3px; font-size: .72rem; line-height: 1.35; }
+.plan p::before { content: ''; display: inline-block; margin-right: .35em; border: .36em solid transparent; border-left: .62em solid var(--obligation); border-right: 0; vertical-align: -.08em; }
+
+/* Une note punaisée, lue de près */
+.note { position: absolute; top: 57%; left: 50%; width: max-content; max-width: min(30rem, 92vw); padding: .9rem 1.1rem .5rem; transform: translateX(-50%) rotate(-1.2deg); background: var(--billet); color: var(--plume); font: clamp(.95rem, 1.7vw, 1.2rem)/1.35 var(--main); text-align: center; box-shadow: 1px 2px 0 rgba(0, 0, 0, .5); }
+.note::before { content: ''; position: absolute; left: 50%; top: -5px; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--incendie); box-shadow: 0 2px 0 rgba(0, 0, 0, .4); }
+.note:empty, .say:empty { display: none; }
+
+/* Ce qu'on se dit : une plaque gravée, lettres blanches sur fond noir */
+.say { position: absolute; bottom: 11vh; left: 50%; width: max-content; max-width: 92vw; transform: translateX(-50%); padding: .5rem 1.9rem .46rem; background: var(--encre) var(--vis) left 7px center / 8px 8px no-repeat; color: #fff; font: 700 clamp(1rem, 2vw, 1.4rem)/1.25 var(--signal); text-align: center; border-radius: 3px; box-shadow: inset 0 0 0 2px var(--encre), inset 0 0 0 3px #fff, 0 3px 0 rgba(0, 0, 0, .6); transition: opacity .6s; }
+.say::after { content: ''; position: absolute; right: 7px; top: 50%; width: 8px; height: 8px; margin-top: -4px; background: var(--vis); }
+
+/* ---------- L'affiche : accueil, pause, fin ---------- */
+/* Affiche levée : on ne lit plus ni note ni plaque derrière elle */
+.veil:not([hidden]) ~ .hud .say, .veil:not([hidden]) ~ .hud .note { display: none; }
+.veil { position: fixed; inset: 0; z-index: 2; display: grid; place-items: center; padding: 20px 12px 14px; overflow: auto; }
+.affiche { width: min(43rem, 100%); padding-bottom: .9rem; background-image: var(--vis), var(--vis), var(--vis), var(--vis); background-size: 8px 8px; background-repeat: no-repeat; background-position: left 8px top 9px, right 8px top 9px, left 8px bottom 8px, right 8px bottom 8px; }
+.bandeau { padding: .5rem 2rem .42rem; background: var(--vis) left 8px center / 8px 8px no-repeat, var(--vis) right 8px center / 8px 8px no-repeat, var(--incendie); color: #fff; font: 1.02rem/1.2 var(--titre); text-transform: uppercase; border-radius: 3px 3px 0 0; }
+.fin .bandeau { background-color: var(--secours); }
+/* Fin de partie : le panneau du point de rassemblement */
+.rassemblement { display: none; float: right; width: 5.6rem; height: 5.6rem; margin: .9rem 2rem .3rem 1rem; }
+.fin .rassemblement { display: block; }
+.affiche h1 { margin: .75rem 2rem 0; font: 400 clamp(1.7rem, 5.4vw, 2.7rem)/1.05 var(--titre); }
+.lead { margin: .4rem 2rem .8rem; font-size: 1.08rem; }
+#rules { list-style: none; margin: 0 2rem; border-top: 3px solid var(--encre); }
+#rules li { display: grid; grid-template-columns: 2.3rem 1fr; align-items: center; gap: .85rem; padding: .42rem 0; border-bottom: 1px solid var(--encre); }
+#rules svg { width: 2.3rem; height: 2.3rem; display: block; }
+.pied { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .8rem 1.5rem; margin: .85rem 2rem 0; }
+.seed { display: flex; align-items: baseline; gap: .6rem; font-weight: 700; }
+/* La case se remplit à la main, au feutre bleu */
+.seed input { width: 9.5rem; padding: 0 .2rem; background: none; border: 0; border-bottom: 2px dotted var(--encre); color: var(--obligation); font: 1.1rem/1.3 var(--main); }
+.seed input::placeholder { color: #7d8085; }
+/* Le bloc de secours : boîtier blanc, face verte, deux voyants */
+#start { position: relative; display: flex; align-items: center; gap: .7rem; padding: .4rem 1.2rem .4rem .7rem; background: var(--secours); color: #fff; font: 1.35rem/1 var(--titre); text-transform: uppercase; border: solid #e3e2da; border-width: 5px 5px 15px; border-radius: 4px; box-shadow: 0 0 0 1px #8b8d87, 0 3px 0 #8b8d87; cursor: pointer; }
+#start svg { width: 3.4rem; height: 2.2rem; display: block; }
+#start::after { content: ''; position: absolute; right: 8px; bottom: -11px; width: 6px; height: 6px; border-radius: 50%; background: #2bbf62; box-shadow: -11px 0 0 var(--avis); }
+#start:hover { background: #00a35a; }
+#start:active { transform: translateY(2px); box-shadow: 0 0 0 1px #8b8d87, 0 1px 0 #8b8d87; }
+.hint { margin: .7rem 2rem 0; font-size: .82rem; color: #4b4e50; }
+
+@media (max-width: 34rem) {
+  .palier { top: 12px; left: 8px; min-width: 0; padding: .25rem .6rem 0; }
+  #level { font-size: 1.25rem; }
+  #place { font-size: .86rem; }
+  .releve { margin: 0 -.6rem; font-size: .76rem; }
+  .releve span { padding: .18rem .4rem .16rem; }
+  .gauges { right: 8px; top: 12px; font-size: .72rem; padding: .35rem .4rem; }
+  .gauges li { grid-template-columns: 1rem 1fr 50px; gap: .3rem; }
+  .gauges svg { width: 1rem; height: 1rem; }
+  #mirror { top: 6.4rem; width: 46vw; }
+  .plan { right: 8px; bottom: 12px; width: 136px; }
+  .plan figcaption { font-size: .62rem; white-space: nowrap; }
+  #map { width: 124px; height: 124px; image-rendering: auto; }
+  .plan p { font-size: .64rem; }
+  .say { bottom: 232px; }
+  .veil { padding: 16px 6px 8px; place-items: start center; }
+  .bandeau { font-size: .86rem; padding-left: 1.5rem; padding-right: 1.5rem; }
+  .affiche h1, .lead, #rules, .pied, .hint { margin-left: 1rem; margin-right: 1rem; }
+  .rassemblement { width: 3.6rem; height: 3.6rem; margin: .7rem 1rem .2rem .6rem; }
+  #rules li { grid-template-columns: 1.9rem 1fr; gap: .6rem; font-size: .92rem; }
+  #rules svg { width: 1.9rem; height: 1.9rem; }
+}
+@media (max-height: 34rem) {
+  .plan { width: 136px; }
+  .plan figcaption { font-size: .62rem; white-space: nowrap; }
+  #map { width: 124px; height: 124px; image-rendering: auto; }
+  .lead { margin-bottom: .5rem; }
+  #rules li { padding: .25rem 0; font-size: .9rem; }
+}
+@media (prefers-reduced-motion: reduce) { .say { transition: none; } }

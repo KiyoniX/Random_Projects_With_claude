@@ -22,8 +22,13 @@ Pour tout parcourir, ouvrir `index.html` à la racine : c'est un portail qui pr�
 | `tuiles` | Éditeur de cartes en tuiles : calques, collisions, objets, raccords automatiques, mode d'essai, export JSON et Tiled. Reprend les tuiles de Textures et les sprites d'Atelier Pixel. | Ouvrir `index.html` |
 | `police-pixel` | Éditeur de polices en pixels, accents français compris, qui exporte de vrais fichiers TTF et WOFF. | Ouvrir `index.html` |
 | `chiptune` | « La Puce à l'oreille » : séquenceur 8 bits à cinq voix, atelier de bruitages, export WAV, et un `lecteur.js` que les jeux peuvent charger pour avoir du son. | Ouvrir `index.html` |
-| `mondes` | Trois pages reliées qui construisent un univers à partir d'une graine, présentées comme les trois chapitres d'un guide de voyage (voir ci-dessous). | Ouvrir `atlas-des-mondes/index.html` |
+| `mondes` | Quatre pages reliées qui construisent un univers à partir d'une graine, présentées comme les quatre chapitres d'un guide de voyage (voir ci-dessous). | Ouvrir `atlas-des-mondes/index.html` |
+| `ville-a-regles` | Ville qui pousse seule : rues, ménages, emplois, loyers, budget et circulation voiture par voiture. On ne règle que ses lois (tracé, zonage, loyers, bus, impôt). | Ouvrir `index.html` |
+| `backrooms` | Dix paliers en vue subjective façon Backrooms : bureaux, parking, piscine et hôtel oublient chacun à leur manière, cinq créatures obéissent chacune à sa règle, et la sortie ne se trouve qu'à l'oreille. | Ouvrir `index.html` |
+| `bureau-des-reclamations` | Jeu de guichet façon Papers, Please : sept jours à approuver, refuser ou transmettre des réclamations absurdes, selon un règlement qui change chaque matin. | Ouvrir `index.html` |
+| `phare` | Gardien de phare en vue subjective : dix heures de nuit à tenir le feu allumé pour les navires, entre pannes, brume et orages, avec un journal de bord qui s'écrit seul. | Ouvrir `index.html` |
 | `erosion-rust` | Simulateur d'érosion en Rust : eau, gel, chimie, vent, glaciers et végétation, avec vingt paramètres. | `cargo run --release` |
+| `feu-rust` | Simulateur de feu de forêt en Rust : vent, rafales, humidité, pente et sept essences qui brûlent chacune à leur façon. On allume, on trace des pare-feu, on largue de l'eau. | `cargo run --release` |
 
 Les projets web tournent sans installation ni connexion.
 
@@ -33,12 +38,13 @@ Plusieurs projets se renvoient l'un à l'autre et partagent du code, ils doivent
 
 ## Le dossier `mondes`
 
-Une même graine donne une planète, la langue de son peuple et son histoire. Chaque page a des boutons vers les deux autres.
+Une même graine donne une planète, la langue de son peuple, son histoire et les stèles qui la racontent. Les quatre pages sont les chapitres d'un même guide de voyage : des onglets sur la tranche mènent de l'un à l'autre.
 
 | Sous-dossier | Ce que c'est |
 | --- | --- |
 | `atlas-des-mondes` | Générateur de planètes : climat, biomes, espèces adaptées à leur milieu, peuple et cités. |
 | `langues-inventees` | Fabrique de langues : sons, grammaire, écriture, traduction du français et évolution sur 2 000 ans. |
 | `chroniques` | Mille ans d'histoire du peuple : frise, carte animée, guerres, cités, souverains, racontés dans sa langue. |
+| `steles` | Jeu de déchiffrement : on fouille les cités, on lit l'écriture à partir des noms connus, on retrouve le sens des mots et on reconstitue la chronique. |
 
-Les trois sous-dossiers doivent rester côte à côte : ils partagent leur code.
+Les quatre sous-dossiers doivent rester côte à côte : ils partagent leur code.

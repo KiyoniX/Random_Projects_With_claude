@@ -14,11 +14,12 @@
 
   var SHELVES = [
     {
-      title: 'Un même univers', note: 'La graine d\'une planète donne ses cités, chaque cité son plan, et chaque plan ses catacombes, son siège, sa rivière et sa visite à pied.',
+      title: 'Un même univers', note: 'La graine d\'une planète donne sa langue, son histoire, ses stèles et ses cités, chaque cité son plan, et chaque plan ses catacombes, son siège, sa rivière et sa visite à pied.',
       items: [
         { id: 'atlas', title: 'Atlas des mondes', dir: 'mondes/atlas-des-mondes', hash: plain, kind: 'Générateur', w: 86, h: 318, text: 'Le guide de voyage d\'une planète entière : climat, milieux naturels, espèces, peuple, villes et étapes.' },
         { id: 'chroniques', title: 'Chroniques d\'un monde', dir: 'mondes/chroniques', hash: plain, kind: 'Générateur', w: 70, h: 310, text: 'Le chapitre d\'histoire : mille ans de guerres, de cités et de souverains sur une carte animée.' },
         { id: 'langues', title: 'Fabrique de langues', dir: 'mondes/langues-inventees', hash: plain, kind: 'Générateur', w: 62, h: 300, text: 'Le guide de conversation : prononciation, expressions utiles, grammaire, écriture, traduction du français.' },
+        { id: 'steles', title: 'Stèles d\'un monde', dir: 'mondes/steles', hash: plain, kind: 'Jeu de déchiffrement', w: 64, h: 296, text: 'Le cahier de fouilles : lire l\'écriture d\'un peuple à partir des noms connus, puis reconstituer sa chronique.' },
         { id: 'plans', title: 'Plans de ville', dir: 'plans-de-ville', hash: town, kind: 'Générateur', w: 78, h: 290, text: 'Une ville médiévale sur parchemin : remparts, quartiers, parcelles, champs.' },
         { id: 'cachots', title: 'Cartes & Cachots', dir: 'cartes-et-cachots', hash: plain, kind: 'Jeu de dix minutes', w: 66, h: 276, text: 'Un donjon en caractères, des combats de cartes, un dragon au fond.' },
         { id: 'siege', title: 'Sièges de villes', dir: 'siege', hash: town, kind: 'Jeu', w: 72, h: 290, text: 'Les assaillants arrivent par les routes du plan : à toi de tenir les portes.' },
@@ -33,11 +34,15 @@
         { id: 'enquete', title: 'Nuit blanche au manoir', dir: 'enquete', hash: function (s) { return encodeURIComponent(s) + '/normal'; }, kind: 'Jeu de déduction', w: 90, h: 312, text: 'Un crime, des dépositions à recouper, une seule solution logique.' },
         { id: 'flux', title: 'Flux', dir: 'flux', kind: 'Jeu de réflexion', w: 60, h: 284, text: 'Dix gaines à retailler pour obtenir le meilleur débit, sur une vraie simulation de fluide.' },
         { id: 'usine', title: 'Usine à la chaîne', dir: 'usine', kind: 'Jeu d\'automatisation', w: 84, h: 306, text: 'Tapis roulants, machines et recettes : tiens le débit demandé avec le moins de pièces.' },
+        { id: 'ville', title: 'Ville à règles', dir: 'ville-a-regles', hash: plain, kind: 'Simulation', w: 66, h: 286, text: 'Une ville qui pousse seule, voiture par voiture : tu ne règles que ses lois, tracé, zonage, loyers, bus et impôt.' },
+        { id: 'backrooms', title: 'Les couloirs oublient', dir: 'backrooms', hash: plain, kind: 'Jeu en vue subjective', w: 72, h: 298, text: 'Dix paliers de bureaux, de parking, de piscine et d\'hôtel, cinq créatures à règle, et une sortie qui ne se trouve qu\'à l\'oreille.' },
+        { id: 'phare', title: 'Le quart de nuit', dir: 'phare', hash: plain, lourd: true, kind: 'Jeu en vue subjective', w: 68, h: 292, text: 'Gardien de phare : dix heures de nuit à tenir le feu pour les navires, entre pannes, brume et orages.' },
+        { id: 'bureau', title: 'Bureau des réclamations', dir: 'bureau-des-reclamations', kind: 'Jeu de guichet', w: 70, h: 300, text: 'Sept jours à approuver, refuser ou transmettre des réclamations absurdes, selon un règlement qui change chaque matin.' },
         { id: 'tycoon', title: 'Dev Tycoon', dir: 'dev-tycoon', kind: 'Jeu de gestion', w: 68, h: 270, text: 'Monte ta boîte de développeurs, et surprends ceux qui trichent avec une IA.' }
       ]
     },
     {
-      title: 'Outils et atelier', note: 'Pour dessiner, composer, fabriquer, et un simulateur à lancer au terminal.',
+      title: 'Outils et atelier', note: 'Pour dessiner, composer, fabriquer, et deux simulateurs à lancer au terminal.',
       items: [
         { id: 'atelier', title: 'Atelier Pixel', dir: 'atelier-pixel', kind: 'Outil', w: 80, h: 300, text: 'Éditeur de pixel-art animé : calques, frise d\'images, pelure d\'oignon, export GIF.' },
         { id: 'textures', title: 'Textures répétables', dir: 'textures', kind: 'Outil', w: 76, h: 288, text: 'Pierre, bois, herbe, eau : des tuiles en pixel-art qui se raccordent sans couture.' },
@@ -45,7 +50,8 @@
         { id: 'tuiles', title: 'Tuiles', dir: 'tuiles', kind: 'Outil', w: 70, h: 294, text: 'Éditeur de cartes en tuiles : calques, collisions, objets, et un personnage pour essayer le niveau.' },
         { id: 'police', title: 'Police Pixel', dir: 'police-pixel', kind: 'Outil', w: 68, h: 284, text: 'Dessiner un alphabet case par case, accents français compris, et l\'exporter en vraie police.' },
         { id: 'chiptune', title: 'La Puce à l\'oreille', dir: 'chiptune', kind: 'Outil', w: 82, h: 304, text: 'Séquenceur 8 bits à cinq voix : morceaux, bruitages, export WAV et lecteur pour les jeux.' },
-        { id: 'erosion', title: 'Érosion', dir: 'erosion-rust', cmd: 'cargo run --release', link: 'https://github.com/KiyoniX/Random_Projects_With_claude/tree/main/erosion-rust', kind: 'Simulateur en Rust', w: 58, h: 262, text: 'Eau, gel, vent, glaciers et végétation sculptent un relief.' }
+        { id: 'erosion', title: 'Érosion', dir: 'erosion-rust', cmd: 'cargo run --release', link: 'https://github.com/KiyoniX/Random_Projects_With_claude/tree/main/erosion-rust', kind: 'Simulateur en Rust', w: 58, h: 262, text: 'Eau, gel, vent, glaciers et végétation sculptent un relief.' },
+        { id: 'feu', title: 'Feu de forêt', dir: 'feu-rust', cmd: 'cargo run --release', link: 'https://github.com/KiyoniX/Random_Projects_With_claude/tree/main/feu-rust', kind: 'Simulateur en Rust', w: 58, h: 270, text: 'Vent, rafales, humidité, pente et sept essences : on allume, on trace des pare-feu, on largue de l\'eau.' }
       ]
     }
   ];

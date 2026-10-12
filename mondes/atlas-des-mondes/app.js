@@ -250,7 +250,7 @@
     return '<div class="encadre parler"><div><p class="etiquette">Bon à savoir</p><h3>La langue des ' + esc(p.name) + '</h3>' +
       '<ul class="adaptations">' + traits.map(function (t) { return '<li><b>' + esc(t.cause) + '.</b> ' + esc(cap(t.effect)) + '.</li>'; }).join('') +
       '<li><b>Écriture ' + L.script.name + '.</b> ' + esc(cap(L.script.desc)) + '.</li></ul>' +
-      '<p class="renvois">Voir le <a href="../langues-inventees/index.html#' + address() + '">Petit guide de conversation, page 53</a>, et <a href="../chroniques/index.html#' + address() + '">Un peu d’histoire, page 33</a>.</p></div>' +
+      '<p class="renvois">Voir le <a href="../langues-inventees/index.html#' + address() + '">Petit guide de conversation, page 53</a>, <a href="../chroniques/index.html#' + address() + '">Un peu d’histoire, page 33</a>, et <a href="../steles/index.html#' + address() + '">Les stèles, page 79</a>.</p></div>' +
       '<figure class="specimen">' + L.write(hello.text, 40) + '<figcaption><span class="indigene">' + esc(hello.text) + '</span><br>« Nous sommes les ' + esc(p.name) + '. »</figcaption></figure></div>';
   }
 

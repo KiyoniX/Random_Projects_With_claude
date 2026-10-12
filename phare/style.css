@@ -1,0 +1,175 @@
+/* Le quart de nuit : la salle de veille. Ce que dit la tour se lit sur le pupitre de fonte et de laiton ;
+   ce que dit le gardien s'écrit à la plume dans le registre des Phares et Balises. */
+:root {
+  --fonte: #2f4038;        /* tôle peinte du pupitre et de la lanterne */
+  --fonte-claire: #4a5d53;
+  --fonte-ombre: #1a2520;
+  --laiton: #b08a3c;       /* lunettes des cadrans, plaques gravées, porte-étiquettes */
+  --laiton-clair: #dcc078;
+  --laiton-ombre: #6b5220;
+  --papier: #ece5cf;       /* émail des cadrans et papier du registre */
+  --reglure: #9db3c4;
+  --noir: #1b1b18;         /* imprimé, graduations, aiguilles */
+  --encre: #1c2a4a;        /* bleu-noir du gardien */
+  --minium: #b02a20;       /* zone rouge, alarme, perte */
+  --feu: #ffd27a;          /* une lampe allumée, rien d'autre */
+  --grave: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+  --imprime: Cambria, Georgia, 'Times New Roman', serif;
+  --plume: 'Segoe Script', 'Segoe Print', 'Bradley Hand', cursive;
+  --pupitre: 8.2rem;
+  --cadran: 5.2rem;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--fonte-ombre); color: var(--papier); font-family: var(--imprime); font-size: 16px; line-height: 1.4; overflow: hidden; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 3px solid var(--laiton-clair); outline-offset: 3px; }
+
+/* La vue : une baie dans la tôle de la lanterne */
+#view { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; background: var(--fonte-ombre) repeating-linear-gradient(0deg, transparent 0 94px, #111916 94px 96px); }
+#view.step { animation: step .4s ease-out; }
+@keyframes step { from { filter: brightness(0); } to { filter: none; } }
+.gabarits { position: absolute; width: 0; height: 0; }
+
+/* ---------- En veille : ce qui se pose sur la vue ---------- */
+.hud { position: fixed; inset: 0; pointer-events: none; }
+.cross { position: absolute; top: 50%; left: 50%; width: 4px; height: 4px; margin: -2px; background: var(--papier); opacity: .6; }
+.aim { position: absolute; top: calc(50% + 14px); left: 0; right: 0; text-align: center; font-family: var(--plume); font-size: 1.05rem; color: var(--papier); -webkit-text-stroke: 4px #0a0f12; paint-order: stroke fill; }
+
+/* Une ligne du registre, encore humide */
+.say { position: absolute; left: 50%; bottom: calc(var(--pupitre) + 3.7rem); transform: translateX(-50%) rotate(-.5deg); width: max-content; max-width: min(46rem, 92vw); padding: .15rem 1.3rem .3rem; background: var(--papier) repeating-linear-gradient(transparent 0 calc(1.6em - 1px), var(--reglure) calc(1.6em - 1px) 1.6em); background-origin: content-box; color: var(--encre); font-family: var(--plume); font-size: clamp(1rem, 1.8vw, 1.3rem); line-height: 1.6; text-align: center; box-shadow: 4px 5px 0 rgba(0, 0, 0, .5); opacity: 0; transition: opacity .6s; }
+.say:empty { display: none; }
+
+/* Porte-étiquette : ce que la main peut faire de ce qu'elle a devant elle */
+.prompt { position: absolute; left: 50%; bottom: calc(var(--pupitre) + .9rem); transform: translateX(-50%); width: max-content; max-width: min(42rem, 94vw); padding: .3rem 1.5rem; background: var(--papier); color: var(--noir); font-family: var(--grave); font-size: 1rem; line-height: 1.3; text-align: center; border: solid var(--laiton); border-width: 4px 4px 8px; box-shadow: 0 0 0 1px var(--laiton-ombre), 4px 5px 0 rgba(0, 0, 0, .5); }
+.prompt:empty { display: none; }
+.prompt::before, .prompt::after { content: ''; position: absolute; bottom: -6px; width: 4px; height: 4px; border-radius: 50%; background: var(--laiton-ombre); }
+.prompt::before { left: 6px; }
+.prompt::after { right: 6px; }
+
+/* ---------- Le pupitre ---------- */
+.pupitre { position: absolute; left: 0; right: 0; bottom: 0; min-height: var(--pupitre); display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: .5rem clamp(.5rem, 2vw, 1.9rem); padding: 1.05rem .8rem .5rem; background: radial-gradient(circle, var(--fonte-claire) 0 2px, var(--fonte-ombre) 2px 3.5px, transparent 4px) 0 2px / 46px 12px repeat-x, var(--fonte); border-top: 3px solid var(--fonte-claire); box-shadow: 0 -3px 0 var(--fonte-ombre); }
+.poste { display: grid; justify-items: center; gap: .3rem; }
+.poste svg { display: block; width: var(--cadran); height: var(--cadran); }
+.rang { display: flex; align-items: center; gap: .5rem; height: var(--cadran); }
+.plaque { background: radial-gradient(circle, var(--laiton-ombre) 0 1.5px, transparent 2px) 3px 50% / 6px 6px no-repeat, radial-gradient(circle, var(--laiton-ombre) 0 1.5px, transparent 2px) calc(100% - 3px) 50% / 6px 6px no-repeat, var(--laiton); padding: 0 .8rem; color: #20180a; font-family: var(--grave); font-size: .72rem; line-height: 1.5; text-transform: uppercase; white-space: nowrap; box-shadow: 0 0 0 1px var(--laiton-ombre); }
+
+.laiton { fill: var(--laiton); stroke: var(--laiton-ombre); stroke-width: 1.5; }
+.email { fill: var(--papier); stroke: var(--laiton-ombre); stroke-width: 2; }
+.traits { fill: none; stroke: var(--noir); stroke-width: 6; }
+.rouge { fill: none; stroke: var(--minium); stroke-width: 6; }
+.guichet { fill: #fbf8ec; stroke: var(--noir); stroke-width: 1.2; }
+.gabarits text, .nuit { font: 9.5px var(--grave); fill: var(--noir); text-anchor: middle; }
+.nuit { font-size: 12px; }
+.aiguille { fill: var(--noir); transform-box: view-box; transform-origin: 50px 50px; transform: rotate(-120deg); }
+.bad .aiguille { fill: var(--minium); }
+.moyeu { fill: var(--laiton); stroke: var(--noir); stroke-width: 1; }
+
+/* Voyant : un cabochon de verre dans sa bague de laiton */
+.voyant { position: relative; width: 2.3rem; height: 2.3rem; border-radius: 50%; background: #2c1a10; border: .38rem solid var(--laiton); box-shadow: 0 0 0 1px var(--laiton-ombre), inset 0 0 0 2px #120a06; }
+.lit .voyant, .on .voyant { background: var(--feu); box-shadow: 0 0 0 1px var(--laiton-ombre), inset 0 0 0 2px #c98f2a, 0 0 14px 3px rgba(255, 210, 122, .55); }
+.lit .voyant::after, .on .voyant::after { content: ''; position: absolute; left: 22%; top: 20%; width: 34%; height: 34%; border-radius: 50%; background: #fffbe6; }
+.on .voyant { animation: appel 1s steps(2) infinite; }
+@keyframes appel { 50% { background: #2c1a10; box-shadow: 0 0 0 1px var(--laiton-ombre), inset 0 0 0 2px #120a06; } }
+/* L'état du feu se lit dans un guichet ; un état dangereux y passe en réserve sur rouge */
+#g-fire { min-width: 6.4rem; padding: .12rem .5rem; background: #fbf8ec; color: var(--noir); border: 2px solid var(--noir); box-shadow: 0 0 0 3px var(--laiton), 0 0 0 4px var(--laiton-ombre); font: normal 1rem/1.3 var(--grave); text-transform: uppercase; text-align: center; }
+#g-fire.bad { background: var(--minium); color: #fbf8ec; }
+/* Confiance des Phares et Balises : têtes de laiton en place, ou trous vides */
+.clous { display: flex; gap: .3rem; }
+.clous i { width: 1rem; height: 1rem; border-radius: 50%; background: #0e1512; border: 2px solid var(--fonte-ombre); }
+.clous i.on { background: var(--laiton-clair); border-color: var(--laiton-ombre); box-shadow: inset 0 0 0 2px var(--laiton); }
+.fiche { min-width: 6.6rem; padding: .12rem .5rem; background: var(--papier); color: var(--noir); border: solid var(--laiton); border-width: 3px 3px 6px; box-shadow: 0 0 0 1px var(--laiton-ombre); font: 1rem/1.3 var(--grave); text-align: center; }
+
+/* ---------- Le registre ouvert : journal, cahier de radio, carte ---------- */
+.panel, .page { background: var(--papier); color: var(--noir); }
+.panel { position: absolute; top: 1.5rem; left: 50%; transform: translateX(-50%); width: min(35rem, 94vw); display: flex; flex-direction: column; padding: .9rem 1.3rem .7rem; border-left: .9rem solid #121a17; box-shadow: 6px 7px 0 rgba(0, 0, 0, .5); }
+.entete { display: flex; justify-content: space-between; gap: 1rem; padding-bottom: .15rem; border-bottom: 3px double var(--noir); font-family: var(--grave); font-size: .82rem; }
+.panel h2, .page h2 { font-weight: 700; font-size: 1.4rem; line-height: 1.2; margin: .35rem 0 .3rem; }
+.cols { display: grid; grid-template-columns: 4.7rem 1fr; border: solid var(--noir); border-width: 1px 0; font-family: var(--grave); font-size: .8rem; }
+.cols span { padding: .08rem .45rem; }
+.cols span + span { border-left: 1px solid var(--noir); }
+#panel-body { max-height: 40vh; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; }
+.ligne { flex: none; display: grid; grid-template-columns: 4.7rem 1fr; border-bottom: 1px solid var(--reglure); font-family: var(--plume); font-size: .98rem; line-height: 1.55; color: var(--encre); }
+.ligne time { padding-left: .45rem; white-space: nowrap; }
+.ligne span { padding: 0 .5rem; border-left: 1px solid var(--noir); }
+/* Message pas encore lu : souligné au crayon rouge */
+.ligne.new span { text-decoration: underline 2px var(--minium); text-underline-offset: 3px; }
+#panel-body h3 { flex: none; border-bottom: 1px solid var(--reglure); font: 400 1.05rem/1.7 var(--plume); color: var(--encre); text-align: center; text-decoration: underline; }
+#chart { align-self: center; width: min(380px, 100%, 44vh); border: 1px solid var(--noir); }
+.signes { margin-top: .35rem; font-size: .85rem; text-align: center; }
+.signes svg { width: 1rem; height: 1rem; vertical-align: -.15rem; margin-left: .3rem; }
+.plein { fill: var(--noir); }
+.creux { fill: none; stroke: var(--noir); stroke-width: 1.6; }
+.alarme { fill: var(--minium); }
+.cercle { fill: none; stroke: var(--minium); stroke-width: 2; }
+.hint { margin-top: .5rem; font-style: italic; font-size: .85rem; }
+
+/* ---------- Pages du registre : accueil, pause, relève ---------- */
+.veil { position: fixed; inset: 0; display: flex; padding: 1.4rem clamp(.8rem, 5vw, 4.5rem); overflow: auto; }
+/* Le registre ouvert : dos de toile, plats qui dépassent, coins de laiton */
+.card { position: relative; display: flex; margin: auto 0; max-width: 100%; padding: .45rem .45rem .45rem 0; background: #121a17; border-left: 1rem solid #0b100e; box-shadow: 6px 7px 0 rgba(0, 0, 0, .5); }
+.card::before, .card::after { content: ''; position: absolute; right: 0; width: 1.5rem; height: 1.5rem; }
+.card::before { top: 0; background: linear-gradient(225deg, var(--laiton) 50%, transparent 50%); }
+.card::after { bottom: 0; background: linear-gradient(315deg, var(--laiton) 50%, transparent 50%); }
+.card.double, .card.billet { margin: auto; }
+.page { width: 31rem; max-width: 100%; padding: 1rem 1.5rem 1.1rem; }
+.billet .page { width: 26rem; }
+.page + .page { border-left: 2px solid #c3bba2; }
+.page h1 { font-weight: 700; font-size: clamp(2rem, 5vw, 3rem); line-height: 1.05; margin: .5rem 0 .2rem; }
+.double .page h1 { font-size: 1.9rem; }
+.lead { font-style: italic; font-size: 1.08rem; margin: .3rem 0 .6rem; }
+.page ol { margin: 0 0 .2rem 1.3rem; display: grid; gap: .32rem; font-size: .98rem; }
+.page ol li::marker { font-family: var(--grave); }
+.page ol b { font-weight: 700; }
+
+/* On ne clique pas un bouton : on signe le registre */
+.signe { display: flex; align-items: baseline; gap: .7rem; margin-top: .9rem; font-family: var(--grave); font-size: .85rem; white-space: nowrap; }
+.signe button { flex: 1; min-width: 0; padding: 0 .3rem; border-bottom: 2px dotted var(--noir); font: 1.5rem/1.35 var(--plume); color: var(--encre); text-align: left; white-space: normal; }
+.signe button::before { content: '×'; margin-right: .5rem; font: 1.1rem var(--grave); color: var(--noir); }
+.signe button:hover, .signe button:focus-visible { border-bottom: 2px solid var(--encre); background: linear-gradient(var(--reglure), var(--reglure)) 0 100% / 100% 35% no-repeat; }
+.signe button.quiet { font-size: 1.15rem; }
+
+.log { min-height: 11rem; max-height: 27vh; overflow: auto; scrollbar-width: thin; }
+.double .page:first-child { display: flex; flex-direction: column; }
+.double .log { flex: 1 1 0; max-height: none; }
+.tally { width: 100%; margin: .7rem 0 .5rem; border-collapse: collapse; }
+.tally th, .tally td { border: 1px solid var(--noir); padding: .05rem .4rem; }
+.tally th { font: 400 .8rem var(--grave); text-align: left; }
+.tally td { font: 1rem/1.5 var(--plume); color: var(--encre); text-align: right; white-space: nowrap; }
+.cols.bon, .shop div { grid-template-columns: 1fr 3.6rem 5.2rem; }
+.shop div { display: grid; align-items: center; border-bottom: 1px solid var(--reglure); }
+.shop p { padding: .22rem .45rem; font-size: .88rem; line-height: 1.25; font-style: italic; }
+.shop p b { display: block; font-style: normal; font-size: .95rem; }
+.shop span { align-self: stretch; display: grid; place-items: center; border-left: 1px solid var(--noir); font-family: var(--grave); font-size: .9rem; }
+/* Case à remplir : une croix de plus par article commandé, une coche pour ce qui est acquis */
+.shop button { justify-self: center; width: 1.7rem; height: 1.7rem; border: 2px solid var(--noir); font: 700 1.05rem/1 var(--plume); color: var(--encre); }
+.shop button:hover:enabled { background: var(--reglure); }
+.shop button:disabled { opacity: .3; cursor: default; }
+.shop button.acquis { opacity: 1; border-style: dotted; }
+
+@media (max-width: 68rem) {
+  .card.double { flex-direction: column; }
+  .double .page + .page { border-left: 0; border-top: 2px solid #c3bba2; }
+}
+@media (max-width: 64rem) {
+  :root { --pupitre: 14.4rem; }
+}
+@media (max-width: 34rem) {
+  :root { --pupitre: 12.4rem; --cadran: 3.7rem; }
+  .pupitre { gap: .45rem .5rem; padding: 1rem .3rem .4rem; }
+  .plaque { padding: 0 .55rem; font-size: .62rem; }
+  #g-fire { min-width: 5.4rem; font-size: .88rem; }
+  .voyant { width: 1.9rem; height: 1.9rem; border-width: .3rem; }
+  .page { padding: .8rem .9rem 1rem; }
+  .tally th, .tally td { padding: .05rem .22rem; }
+  .tally th { font-size: .72rem; }
+  .tally td { font-size: .9rem; }
+  .signe { flex-wrap: wrap; gap: 0 .7rem; }
+  .signe button { flex-basis: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #view.step, .on .voyant { animation: none; }
+  .say { transition: none; }
+}
