@@ -113,6 +113,46 @@ impl App {
         });
     }
 
+    /// Clavier : ZQSD, WASD ou flèches pour se déplacer, Maj + flèches pour tourner, Page préc./suiv. pour le zoom.
+    fn keyboard(&mut self, ctx: &egui::Context) {
+        if ctx.egui_wants_keyboard_input() {
+            return;
+        }
+        use egui::Key;
+        let (dt, shift, ahead, side, zoom, recentre, pause) = ctx.input(|i| {
+            let axis = |plus: &[Key], minus: &[Key]| {
+                let held = |keys: &[Key]| keys.iter().any(|k| i.key_down(*k)) as i32 as f32;
+                held(plus) - held(minus)
+            };
+            (
+                i.stable_dt.min(0.1),
+                i.modifiers.shift,
+                axis(&[Key::ArrowUp, Key::W, Key::Z], &[Key::ArrowDown, Key::S]),
+                axis(&[Key::ArrowRight, Key::D], &[Key::ArrowLeft, Key::A, Key::Q]),
+                axis(&[Key::PageDown, Key::Minus], &[Key::PageUp, Key::Plus, Key::Equals]),
+                i.key_pressed(Key::R),
+                i.key_pressed(Key::Space),
+            )
+        });
+        if self.view_3d {
+            if shift {
+                self.cam.yaw += side * dt * 1.4;
+                self.cam.pitch = (self.cam.pitch + ahead * dt * 0.8).clamp(0.25, 1.25);
+            } else {
+                // Plus on est loin, plus on avance vite : la traversée de l'image prend le même temps
+                let speed = self.cam.dist * 0.6 * dt;
+                self.cam.pan(ahead * speed, side * speed);
+            }
+            self.cam.dist = (self.cam.dist * (1.0 + zoom * dt * 1.2)).clamp(180.0, 1300.0);
+            if recentre {
+                self.cam = Camera { exaggeration: self.cam.exaggeration, ..Camera::default() };
+            }
+        }
+        if pause {
+            self.paused = !self.paused;
+        }
+    }
+
     fn readouts(&mut self, ui: &mut egui::Ui) {
         let p = &self.params;
         let c = Climate::from(p);
@@ -149,6 +189,8 @@ impl App {
 
 impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        self.keyboard(ui.ctx());
+
         // Simulation : autant de pas que demandé, sans dépasser le temps d'une image
         if !self.paused {
             let start = Instant::now();
@@ -182,6 +224,7 @@ impl eframe::App for App {
                 });
                 if self.view_3d {
                     ui.add(Slider::new(&mut self.cam.exaggeration, 0.3..=2.5).text("Relief exagéré"));
+                    ui.weak("ZQSD ou flèches : se déplacer · Maj + flèches : tourner · Page préc./suiv. : zoom · R : recentrer · Espace : pause");
                 }
             });
         });
@@ -215,7 +258,7 @@ impl eframe::App for App {
                 self.cam.pitch = (self.cam.pitch + d.y * 0.004).clamp(0.25, 1.25);
                 if response.hovered() {
                     let scroll = ui.input(|i| i.smooth_scroll_delta.y);
-                    self.cam.dist = (self.cam.dist * (1.0 - scroll * 0.0015)).clamp(300.0, 1300.0);
+                    self.cam.dist = (self.cam.dist * (1.0 - scroll * 0.0015)).clamp(180.0, 1300.0);
                 }
             }
         });

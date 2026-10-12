@@ -42,6 +42,8 @@ impl ColorMode {
 }
 
 pub struct Camera {
+    /// Point du sol regardé, en cases.
+    pub target: Vec2,
     pub yaw: f32,
     pub pitch: f32,
     pub dist: f32,
@@ -50,7 +52,16 @@ pub struct Camera {
 
 impl Default for Camera {
     fn default() -> Self {
-        Camera { yaw: 0.9, pitch: 0.6, dist: 720.0, exaggeration: 1.6 }
+        Camera { target: Vec2::splat(N as f32 / 2.0), yaw: 0.9, pitch: 0.6, dist: 720.0, exaggeration: 1.6 }
+    }
+}
+
+impl Camera {
+    /// Déplace le point regardé : `ahead` vers le fond de l'image, `side` vers la droite.
+    pub fn pan(&mut self, ahead: f32, side: f32) {
+        let forward = Vec2::new(self.yaw.cos(), self.yaw.sin());
+        let right = Vec2::new(-forward.y, forward.x);
+        self.target = (self.target + forward * ahead + right * side).clamp(Vec2::ZERO, Vec2::splat((N - 1) as f32));
     }
 }
 
@@ -165,17 +176,17 @@ fn sky(p: &Params, c: &Climate, v: f32) -> Vec3 {
 /// Vue 3D en perspective : pour chaque colonne de l'écran, un rayon avance sur la carte et empile les reliefs rencontrés.
 pub fn render_3d(p: &Params, colors: &[[u8; 3]], height: &[f32], cam: &Camera, width: usize, h_px: usize) -> Vec<u8> {
     let c = Climate::from(p);
-    let centre = Vec2::splat(N as f32 / 2.0);
     let ground_dist = cam.dist * cam.pitch.cos();
     let cam_z = cam.dist * cam.pitch.sin();
     let forward = Vec2::new(cam.yaw.cos(), cam.yaw.sin());
     let right = Vec2::new(-forward.y, forward.x);
-    let eye = centre - forward * ground_dist;
+    let eye = cam.target - forward * ground_dist;
     let focal = (width as f32).min(h_px as f32 * 1.75) * 0.55;
-    // Le centre de la carte tombe un peu sous le milieu de l'image
+    // Le point regardé tombe un peu sous le milieu de l'image
     let horizon = h_px as f32 * 0.56 - cam.pitch.tan() * focal;
     let scale = H_MAX_M / CELL_M * cam.exaggeration;
-    let far = ground_dist + N as f32;
+    // Assez loin pour traverser la carte en diagonale, où que soit le point regardé
+    let far = ground_dist + N as f32 * 1.5;
     let haze = (p.pressure / 3.0).min(0.5);
     let fog = sky(p, &c, 1.0);
 
