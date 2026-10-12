@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Police Pixel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <h1>Police Pixel</h1>
+    <nav class="menus" id="menus"></nav>
+    <button type="button" class="enseigne" id="enseigne" data-act="infos" title="Nom, auteur, licence et repères de la police">
+      <canvas id="enseigneNom" width="1" height="1"></canvas>
+      <span id="enseigneNote"></span>
+    </button>
+  </header>
+
+  <div class="plan">
+    <aside class="outils" id="outils"></aside>
+
+    <main class="etabli">
+      <div class="options" id="options">
+        <strong id="nomOutil">Crayon</strong>
+        <label data-pour="rect"><input type="checkbox" id="oPlein"> Rectangle plein</label>
+        <span class="astuce" id="astuce"></span>
+        <span class="zoom">
+          <button type="button" class="btn mini" data-act="zoomMoins" title="Réduire (−)">−</button>
+          <output id="zoomVal">16×</output>
+          <button type="button" class="btn mini" data-act="zoomPlus" title="Agrandir (+)">+</button>
+          <button type="button" class="btn mini" data-act="ajuster" title="Ajuster le caractère à la vue (0)">Ajuster</button>
+        </span>
+        <label title="Lignes de base, d'x, des capitales, des ascendantes et des descendantes"><input type="checkbox" id="oReperes" checked> Repères</label>
+        <label title="Montre en gris les caractères voisins dans l'ordre de la casse"><input type="checkbox" id="oVoisins"> Voisins</label>
+      </div>
+
+      <section class="scene" id="scene">
+        <canvas id="toile"></canvas>
+      </section>
+
+      <div class="fiche" id="fiche">
+        <span class="fiche-car" id="ficheCar">A</span>
+        <span class="fiche-code" id="ficheCode">U+0041</span>
+        <label title="Largeur d'avance du caractère, en pixels">Chasse <input type="number" id="fChasse" min="0" max="48"></label>
+        <label title="Blanc à gauche du dessin : le modifier déplace le dessin">Approche gauche <input type="number" id="fGauche" min="-16" max="47"></label>
+        <label title="Blanc à droite du dessin : le modifier change la chasse">droite <input type="number" id="fDroite" min="-16" max="48"></label>
+        <span class="fiche-comp" id="ficheComp"></span>
+      </div>
+
+      <section class="epreuve" id="epreuve">
+        <div class="epreuve-tete">
+          <div class="onglets" role="tablist">
+            <button type="button" class="onglet actif" role="tab" data-onglet="epreuve" aria-selected="true">Épreuve</button>
+            <button type="button" class="onglet" role="tab" data-onglet="crenage" aria-selected="false">Crénage</button>
+          </div>
+          <div class="epreuve-cmd" data-vue="epreuve">
+            <select id="ePhrases" aria-label="Phrases d'essai"></select>
+            <span class="tailles" id="eTailles" role="group" aria-label="Taille de l'épreuve"></span>
+            <label><input type="checkbox" id="eSombre"> Fond sombre</label>
+            <label title="Compose l'épreuve avec le fichier TrueType tel qu'il serait exporté"><input type="checkbox" id="eVraie"> Composer avec la police exportée</label>
+          </div>
+          <div class="epreuve-cmd" data-vue="crenage" hidden>
+            <label>Paire <input type="text" id="kPaire" maxlength="4" spellcheck="false" autocomplete="off"></label>
+            <button type="button" class="btn mini" data-act="kMoins" title="Resserrer d'un pixel">− Resserrer</button>
+            <output id="kValeur">0</output>
+            <button type="button" class="btn mini" data-act="kPlus" title="Écarter d'un pixel">+ Écarter</button>
+            <button type="button" class="btn mini" data-act="kZero" title="Retirer le crénage de cette paire">Remettre à zéro</button>
+            <span class="sep"></span>
+            <button type="button" class="btn mini" data-act="kDetecter" title="Cherche les paires dont le blanc est trop grand">Détecter les paires</button>
+            <button type="button" class="btn mini" data-act="kToutAppliquer" id="kTout" hidden>Tout appliquer</button>
+          </div>
+        </div>
+        <div class="epreuve-corps" data-vue="epreuve">
+          <div class="copie">
+            <textarea id="eTexte" spellcheck="false" aria-label="Texte de l'épreuve"></textarea>
+            <div class="blancs">
+              <label title="Blanc ajouté après chaque caractère">Interlettrage <input type="number" id="eInterlettre" min="-4" max="16"></label>
+              <label title="Blanc entre deux lignes">Interlignage <input type="number" id="eInterligne" min="0" max="32"></label>
+              <label title="Chasse de l'espace">Espace <input type="number" id="eEspace" min="0" max="48"></label>
+            </div>
+          </div>
+          <div class="feuille" id="eFeuille"><canvas id="eToile" width="1" height="1"></canvas></div>
+        </div>
+        <div class="epreuve-corps" data-vue="crenage" hidden>
+          <div class="k-listes">
+            <div class="k-liste" id="kPaires"></div>
+          </div>
+          <div class="feuille" id="kFeuille"><canvas id="kToile" width="1" height="1"></canvas></div>
+          <div class="k-listes">
+            <div class="k-liste" id="kPropositions"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside class="casse">
+      <div class="casse-tete">
+        <h2>Casse</h2>
+        <span id="casseCompte"></span>
+        <input type="text" id="allerA" placeholder="Aller à…" spellcheck="false" autocomplete="off" title="Tapez un caractère pour y aller (Tab), ou un code comme U+0152 puis Entrée">
+        <button type="button" class="btn mini" data-act="ajouter" title="Ajouter des caractères à la police">+ Ajouter</button>
+      </div>
+      <div class="casse-corps" id="casse"></div>
+    </aside>
+  </div>
+
+  <div class="etat">
+    <span id="etatPos">–</span>
+    <span id="etatInfo"></span>
+    <span id="etatMsg" class="msg"></span>
+    <span id="etatSauve" class="sauve"></span>
+  </div>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="file" id="fichierProjet" accept=".json,application/json" hidden>
+  <input type="file" id="fichierImage" accept="image/png,image/gif,image/jpeg,image/webp,image/bmp" hidden>
+
+  <script src="js/noyau.js"></script>
+  <script src="js/dessin.js"></script>
+  <script src="js/ttf.js"></script>
+  <script src="js/exports.js"></script>
+  <script src="js/demos.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/casse.js"></script>
+  <script src="js/epreuve.js"></script>
+  <script src="js/fichiers.js"></script>
+  <script src="js/principal.js"></script>
+</body>
+</html>

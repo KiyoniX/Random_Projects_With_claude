@@ -21,7 +21,8 @@
         { id: 'plans', title: 'Plans de ville', dir: 'plans-de-ville', hash: town, kind: 'Générateur', w: 78, h: 290, text: 'Une ville médiévale sur parchemin : remparts, quartiers, parcelles, champs.' },
         { id: 'cachots', title: 'Cartes & Cachots', dir: 'cartes-et-cachots', hash: plain, kind: 'Jeu de dix minutes', w: 66, h: 276, text: 'Un donjon en caractères, des combats de cartes, un dragon au fond.' },
         { id: 'siege', title: 'Sièges de villes', dir: 'siege', hash: town, kind: 'Jeu', w: 72, h: 290, text: 'Les assaillants arrivent par les routes du plan : à toi de tenir les portes.' },
-        { id: 'riviere', title: 'Rivières et moulins', dir: 'riviere', hash: town, kind: 'Jeu', w: 72, h: 290, text: 'Un fleuve traverse la ville : pose ponts et moulins sans l\'inonder.' }
+        { id: 'riviere', title: 'Rivières et moulins', dir: 'riviere', hash: town, kind: 'Jeu', w: 72, h: 290, text: 'Un fleuve traverse la ville : pose ponts et moulins sans l\'inonder.' },
+        { id: 'visite', title: 'Visite de la ville', dir: 'visite', hash: town, kind: 'Promenade en 3D', w: 76, h: 302, text: 'La ville du plan montée en volumes, à parcourir à pied par les rues et les portes.' }
       ]
     },
     {
@@ -35,10 +36,14 @@
       ]
     },
     {
-      title: 'Outils et atelier', note: 'Pour dessiner, fabriquer, et un simulateur à lancer au terminal.',
+      title: 'Outils et atelier', note: 'Pour dessiner, composer, fabriquer, et un simulateur à lancer au terminal.',
       items: [
         { id: 'atelier', title: 'Atelier Pixel', dir: 'atelier-pixel', kind: 'Outil', w: 80, h: 300, text: 'Éditeur de pixel-art animé : calques, frise d\'images, pelure d\'oignon, export GIF.' },
         { id: 'textures', title: 'Textures répétables', dir: 'textures', kind: 'Outil', w: 76, h: 288, text: 'Pierre, bois, herbe, eau : des tuiles en pixel-art qui se raccordent sans couture.' },
+        { id: 'palettes', title: 'Palettes', dir: 'palettes', kind: 'Outil', w: 64, h: 280, text: 'Tirer une palette d\'une image, la réduire, vérifier ses contrastes, l\'envoyer vers Atelier Pixel et Textures.' },
+        { id: 'tuiles', title: 'Tuiles', dir: 'tuiles', kind: 'Outil', w: 70, h: 294, text: 'Éditeur de cartes en tuiles : calques, collisions, objets, et un personnage pour essayer le niveau.' },
+        { id: 'police', title: 'Police Pixel', dir: 'police-pixel', kind: 'Outil', w: 68, h: 284, text: 'Dessiner un alphabet case par case, accents français compris, et l\'exporter en vraie police.' },
+        { id: 'chiptune', title: 'La Puce à l\'oreille', dir: 'chiptune', kind: 'Outil', w: 82, h: 304, text: 'Séquenceur 8 bits à cinq voix : morceaux, bruitages, export WAV et lecteur pour les jeux.' },
         { id: 'erosion', title: 'Érosion', dir: 'erosion-rust', cmd: 'cargo run --release', link: 'https://github.com/KiyoniX/Random_Projects_With_claude/tree/main/erosion-rust', kind: 'Simulateur en Rust', w: 58, h: 262, text: 'Eau, gel, vent, glaciers et végétation sculptent un relief.' }
       ]
     }

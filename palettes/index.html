@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Palettes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-fond="1">
+  <header class="barre">
+    <h1>Palettes</h1>
+    <input type="text" id="nom" class="nom" maxlength="40" spellcheck="false" autocomplete="off" placeholder="Palette sans nom" aria-label="Nom de la palette">
+    <span class="compte" id="compte"></span>
+    <span class="pousse"></span>
+    <div class="rapides">
+      <button type="button" class="btn" id="bAnnuler" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+      <button type="button" class="btn" id="bRetablir" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
+      <button type="button" class="btn" id="bGarder" title="Ranger cette palette dans la bibliothèque de ce navigateur">Garder</button>
+      <button type="button" class="btn" id="bLien" title="Copier l'adresse de cette palette, avec ses réglages">Copier le lien</button>
+    </div>
+  </header>
+
+  <section class="nuancier" id="nuancier">
+    <div class="bande" id="bande" role="listbox" aria-label="Couleurs de la palette"></div>
+    <div class="valeurs" title="Chaque couleur à la hauteur de sa clarté : une palette bien étagée y pose des traits réguliers">
+      <span>sombre</span>
+      <div class="regle" id="valeurs"></div>
+      <span>clair</span>
+    </div>
+  </section>
+
+  <div class="plan">
+    <div class="travail">
+      <nav class="onglets" id="onglets">
+        <button type="button" data-onglet="extraire">Extraire d'une image</button>
+        <button type="button" data-onglet="construire">Construire</button>
+        <button type="button" data-onglet="verifier">Vérifier</button>
+        <button type="button" data-onglet="bibliotheque">Bibliothèque</button>
+        <button type="button" data-onglet="fichiers">Importer et exporter</button>
+        <span class="pousse"></span>
+        <label class="vision" title="Simule une vision des couleurs sur les images et dans l'onglet Vérifier">Vision <select id="vision"></select></label>
+        <div class="fonds" id="fonds" role="group" aria-label="Fond de travail">
+          <button type="button" data-fond="0" title="Fond noir"></button>
+          <button type="button" data-fond="1" title="Fond gris sombre"></button>
+          <button type="button" data-fond="2" title="Fond gris moyen"></button>
+          <button type="button" data-fond="3" title="Fond blanc"></button>
+        </div>
+      </nav>
+
+      <section class="page page-extraire" id="page-extraire">
+        <div class="reglages">
+          <div class="rang">
+            <button type="button" class="btn fort" id="bImage">Charger une image…</button>
+            <button type="button" class="btn" id="bExemple" title="Un lac de montagne dessiné par calcul, pour essayer">Paysage d'exemple</button>
+          </div>
+          <label class="reglage"><span>Couleurs</span><input type="range" id="rN" min="2" max="64" step="1"><input type="number" id="rNn" min="2" max="64" step="1" aria-label="Nombre de couleurs"></label>
+          <label class="reglage liste"><span>Méthode</span><select id="rMethode"></select></label>
+          <label class="reglage" title="Vers la gauche, une petite tache d'une teinte à part compte autant qu'une grande plage"><span>Priorité</span><input type="range" id="rEquilibre" min="0" max="100" step="1"><output id="rEquilibreVal"></output></label>
+          <p class="bouts"><span>teintes rares</span><span>grandes masses</span></p>
+          <label class="reglage liste"><span>Tramage</span><select id="rTrame"></select></label>
+          <label class="reglage" id="ligneForce"><span>Force</span><input type="range" id="rForce" min="0" max="100" step="1"><output id="rForceVal"></output></label>
+          <div class="rang">
+            <button type="button" class="btn" id="bExtraire" title="Tire de nouveau la palette de l'image, en gardant les couleurs verrouillées">Extraire de nouveau</button>
+            <button type="button" class="btn" id="bRendu" title="Télécharger l'image recalculée en PNG">Image en PNG</button>
+          </div>
+          <p class="note" id="infoImage"></p>
+        </div>
+        <div class="vues" id="vues">
+          <div class="vue" id="cadreOrigine"><canvas id="vueOrigine"></canvas><span class="legende">Image d'origine</span></div>
+          <div class="vue" id="cadreRendu"><canvas id="vueRendu"></canvas><span class="legende" id="legendeRendu">Avec la palette</span></div>
+          <div class="zoom" id="zoom">
+            <button type="button" class="btn mini" data-zoom="-1" title="Réduire">−</button>
+            <output id="zoomVal">100 %</output>
+            <button type="button" class="btn mini" data-zoom="1" title="Agrandir">+</button>
+            <button type="button" class="btn mini" data-zoom="0" title="Ajuster à la vue (double-clic)">Ajuster</button>
+          </div>
+          <div class="depot" id="depot">
+            <p class="titre">Dépose une image ici</p>
+            <p>ou colle-la avec Ctrl+V, ou charge-la avec le bouton. Elle est aussitôt réduite au nombre de couleurs choisi, et la palette obtenue prend la place de celle du haut.</p>
+            <p>Sans image, la palette du haut se travaille telle quelle dans les autres onglets.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="page page-construire" id="page-construire" hidden>
+        <div class="bloc base">
+          <h2>Couleur de départ</h2>
+          <div class="rang">
+            <input type="color" id="baseNuance" aria-label="Choisir la couleur de départ">
+            <input type="text" id="baseHex" class="hex" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Couleur de départ en hexadécimal">
+          </div>
+          <button type="button" class="btn" id="bBaseChoisie">Prendre la couleur choisie</button>
+          <p class="note">Rampe et harmonie partent de cette couleur. Rien ne touche à la palette avant « Ajouter » ou « Remplacer ».</p>
+          <h2>À la main</h2>
+          <button type="button" class="btn" id="bVierge" title="Repart d'une palette d'une seule couleur">Palette vierge</button>
+          <p class="note">Puis « + Ajouter » à droite, et le sélecteur pour régler chaque couleur.</p>
+        </div>
+        <div class="bloc">
+          <h2>Rampe</h2>
+          <p class="note">La couleur déclinée de l'ombre à la lumière. Les ombres tirent vers le bleu-violet, les lumières vers le jaune.</p>
+          <label class="reglage"><span>Tons</span><input type="range" id="raTons" min="2" max="12" step="1" value="5"><output id="raTonsVal"></output></label>
+          <label class="reglage"><span>Étendue de clarté</span><input type="range" id="raEtendue" min="10" max="95" step="1" value="62"><output id="raEtendueVal"></output></label>
+          <label class="reglage"><span>Décalage de teinte</span><input type="range" id="raDecalage" min="0" max="70" step="1" value="22"><output id="raDecalageVal"></output></label>
+          <label class="reglage"><span>Saturation aux bouts</span><input type="range" id="raSaturation" min="0" max="100" step="1" value="60"><output id="raSaturationVal"></output></label>
+          <div class="apercu" id="raApercu"></div>
+          <div class="rang">
+            <button type="button" class="btn fort" id="bRaAjouter">Ajouter à la palette</button>
+            <button type="button" class="btn" id="bRaRemplacer">Remplacer la palette</button>
+          </div>
+        </div>
+        <div class="bloc">
+          <h2>Harmonie</h2>
+          <p class="note">Des teintes réparties sur le cercle, à clarté et saturation égales, chacune déclinée ou non en rampe.</p>
+          <label class="reglage liste"><span>Accord</span><select id="haType"></select></label>
+          <label class="reglage"><span>Tons par teinte</span><input type="range" id="haTons" min="1" max="7" step="1" value="3"><output id="haTonsVal"></output></label>
+          <div class="apercu pile" id="haApercu"></div>
+          <div class="rang">
+            <button type="button" class="btn fort" id="bHaAjouter">Ajouter à la palette</button>
+            <button type="button" class="btn" id="bHaRemplacer">Remplacer la palette</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page page-verifier" id="page-verifier" hidden>
+        <div class="bloc matrice">
+          <h2>Contrastes
+            <label>lisible à partir de <select id="ratio"><option value="3">3 : 1</option><option value="4.5">4,5 : 1</option><option value="7">7 : 1</option></select></label>
+          </h2>
+          <div class="cadre-matrice" id="cadreMatrice"><canvas id="matrice"></canvas></div>
+          <p class="note" id="infoMatrice"></p>
+        </div>
+        <div class="bloc">
+          <h2>Étagement des valeurs</h2>
+          <div class="escalier" id="escalier"></div>
+          <p class="note" id="infoValeurs"></p>
+          <h2>Couleurs trop proches
+            <label>écart sous <input type="range" id="seuil" min="1" max="20" step="1"><output id="seuilVal"></output></label>
+          </h2>
+          <div class="proches" id="proches"></div>
+        </div>
+        <div class="bloc">
+          <h2>Daltonisme</h2>
+          <div class="visions" id="visions"></div>
+          <p class="note">Un trait sous deux couleurs : cette vision les confond, alors qu'elles se distinguent en vision normale. Un clic applique la vision aux images.</p>
+        </div>
+      </section>
+
+      <section class="page page-bibliotheque" id="page-bibliotheque" hidden>
+        <div class="bloc rayons" id="rayons"></div>
+        <div class="bloc comparaison" id="comparaison"></div>
+      </section>
+
+      <section class="page page-fichiers" id="page-fichiers" hidden>
+        <div class="bloc">
+          <h2>Importer</h2>
+          <div class="rang">
+            <button type="button" class="btn fort" id="bOuvrir">Ouvrir un fichier…</button>
+          </div>
+          <p class="note">.hex, .gpl de GIMP, .pal de JASC, CSS, JSON, ou une image PNG en bande de couleurs. Un fichier de palette déposé n'importe où sur la page est lu de même ; une image déposée dans cet onglet est lue comme une bande.</p>
+          <textarea id="collage" rows="3" spellcheck="false" placeholder="…ou colle ici une liste de couleurs, dans n'importe lequel de ces formats"></textarea>
+          <div class="rang">
+            <button type="button" class="btn" id="bLire">Lire ce texte</button>
+            <label><input type="checkbox" id="ajouterImport"> ajouter à la palette au lieu de la remplacer</label>
+          </div>
+          <h2>Exporter</h2>
+          <div class="rang">
+            <select id="format" aria-label="Format d'export"></select>
+            <button type="button" class="btn fort" id="bExporter">Télécharger</button>
+            <button type="button" class="btn" id="bCopier">Copier</button>
+          </div>
+          <div class="rang">
+            <button type="button" class="btn" id="bPng1" title="Une image d'un pixel de haut, un pixel par couleur">PNG, 1 px par couleur</button>
+            <button type="button" class="btn" id="bPngGrand" title="Des cases carrées, seize par ligne">PNG agrandi</button>
+            <select id="pngCote" aria-label="Taille d'une case du PNG agrandi"><option value="8">8 px</option><option value="16" selected>16 px</option><option value="32">32 px</option><option value="64">64 px</option></select>
+          </div>
+          <pre class="extrait" id="extrait"></pre>
+        </div>
+        <div class="bloc">
+          <h2>Vers Atelier Pixel</h2>
+          <p class="note">Un projet que l'éditeur ouvre tel quel, avec cette palette dans son panneau.</p>
+          <label class="reglage liste"><span>Contenu</span><select id="atelierContenu"></select></label>
+          <div class="rang">
+            <button type="button" class="btn fort" id="bAtelier">Télécharger le projet</button>
+            <a class="btn" href="../atelier-pixel/index.html" target="_blank" rel="noopener">Ouvrir Atelier Pixel</a>
+          </div>
+          <ol class="etapes">
+            <li>Dans Atelier Pixel : Fichier, puis « Ouvrir un projet… » (Ctrl+O), et choisir le fichier téléchargé.</li>
+            <li>Le projet remplace le sprite en cours : enregistre-le d'abord si tu y tiens.</li>
+          </ol>
+          <p class="note" id="noteAtelier"></p>
+          <p class="note">Pour garder le sprite en cours : exporte ici « PNG, 1 px par couleur », puis dans Atelier Pixel, Fichier, « Importer une image ou une planche… » comme nouveau calque, et le bouton « Du sprite » du panneau Palette. La palette devient alors toutes les couleurs du sprite, celles de la bande comprises, rangées par teinte à la façon d'Atelier Pixel et non plus dans l'ordre d'ici.</p>
+        </div>
+        <div class="bloc textures">
+          <h2>Vers Textures</h2>
+          <p class="note" id="noteTextures">Chaque matière est rhabillée avec cette palette : pour chaque ton d'origine, la couleur de la palette qui lui ressemble le plus. Un clic ouvre Textures sur ce réglage.</p>
+          <div class="matieres" id="matieres"></div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="cote" id="cote">
+      <div class="echantillon" id="echantillon"></div>
+      <canvas id="sv" width="244" height="112" aria-label="Saturation et valeur"></canvas>
+      <input type="range" id="teinte" class="glisse" min="0" max="360" step="1" aria-label="Teinte">
+      <div class="champs">
+        <label># <input type="text" id="hex" class="hex" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hexadécimal"></label>
+        <label title="Teinte, en degrés">T <input type="number" id="cT" min="0" max="360" step="1"></label>
+        <label title="Saturation, en pour cent">S <input type="number" id="cS" min="0" max="100" step="1"></label>
+        <label title="Valeur, en pour cent">V <input type="number" id="cV" min="0" max="100" step="1"></label>
+      </div>
+      <p class="mesures" id="mesures"></p>
+      <div class="rang">
+        <button type="button" class="btn mini" id="bAjouter" title="Nouvelle couleur après celle-ci, un ton plus clair">+ Ajouter</button>
+        <button type="button" class="btn mini" id="bDupliquer" title="Dupliquer (Ctrl+D)">Dupliquer</button>
+        <button type="button" class="btn mini" id="bRetirer" title="Retirer (Suppr)">Retirer</button>
+        <button type="button" class="btn mini" id="bVerrou" title="Une couleur verrouillée traverse telle quelle les réductions et les extractions (V, ou double-clic)">Verrouiller</button>
+      </div>
+      <div class="paire" id="paire"></div>
+      <div class="rang ligne">
+        <select id="tri" aria-label="Critère de tri"></select>
+        <button type="button" class="btn mini" id="bTrier">Trier</button>
+      </div>
+      <div class="rang">
+        <span>Réduire à</span>
+        <input type="number" id="reduireN" min="1" max="256" step="1" aria-label="Nombre de couleurs à garder">
+        <button type="button" class="btn mini" id="bReduire" title="Fond ensemble les couleurs les plus proches ; les verrouillées ne bougent pas">Réduire</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="etat">
+    <span id="etatInfo"></span>
+    <span id="etatMsg" class="msg" role="status"></span>
+    <span class="liens"><a href="../atelier-pixel/index.html">Atelier Pixel</a><a href="../textures/index.html">Textures</a></span>
+  </footer>
+
+  <input type="file" id="fichierImage" accept="image/png,image/gif,image/jpeg,image/webp,image/bmp" hidden>
+  <input type="file" id="fichierPalette" accept=".hex,.gpl,.pal,.css,.json,.txt,.png,text/plain,image/png" hidden>
+
+  <script src="js/couleur.js"></script>
+  <script src="js/quantif.js"></script>
+  <script src="js/formats.js"></script>
+  <script src="js/donnees.js"></script>
+  <script src="js/etat.js"></script>
+  <script src="js/nuancier.js"></script>
+  <script src="js/image.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/principal.js"></script>
+</body>
+</html>

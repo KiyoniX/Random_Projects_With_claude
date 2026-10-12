@@ -320,8 +320,12 @@
     function path(dd, fill, stroke, width, extra) {
       return dd ? '<path d="' + dd + '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + width + '" stroke-linejoin="round"' + (extra || '') + '/>' : '';
     }
-    function trees(poly, per) {
-      return path(scatter(poly, Math.round(area(poly) / per)).map(function (p) { return dot(p, 0.5 + rng() * 0.45); }).join(''), WOOD, INK, 0.6);
+    function trees(poly, per, c) {
+      return path(scatter(poly, Math.round(area(poly) / per)).map(function (p) {
+        var radius = 0.5 + rng() * 0.45;
+        built.trees.push({ x: p.x, y: p.y, r: radius, ward: c.i });
+        return dot(p, radius);
+      }).join(''), WOOD, INK, 0.6);
     }
     function hatch(poly, step) {
       var e = longest(poly), nx = -e.uy, ny = e.ux, lo = Infinity, hi = -Infinity, out = '', o, pts;
@@ -342,26 +346,33 @@
     function ward(title, body) { return body ? '<g class="ward"><title>' + title + '</title>' + body + '</g>' : ''; }
 
     var houses = 0, labels = '';
-    function buildings(block, min, keep) {
+    // Ce que le dessin pose sur le plan, gardé en données : ward est le numéro de la cellule (model.cells) qui le porte.
+    var built = { blocks: [], buildings: [], trees: [], fields: [], woods: [], parks: [], plaza: null, castle: null, church: null };
+    function buildings(block, min, keep, c) {
       var list = [];
       lots(block, min, 0.9, list, 0);
       list = list.filter(keep || function () { return rng() > 0.06; });
       houses += list.length;
+      list.forEach(function (lot) { built.buildings.push({ poly: lot, ward: c.i }); });
       return path(list.map(d).join(''), ROOF, INK, 0.9);
     }
 
     function innerWard(c) {
       var block = inset(c.poly, margin(c)), m = centroid(block.length ? block : c.poly), e, w, h, ca, sa, cross, keep, pit;
       if (!block.length) return '';
+      built.blocks.push({ poly: block, ward: c.i });
       if (c.type === 'plaza') {
+        built.plaza = { poly: block, ward: c.i, fountain: { x: m.x, y: m.y, r: 1.5 } };
         labels += label({ x: m.x, y: m.y + 3.2 }, 'Place du Marché', 15);
         return ward('Place du Marché', path(d(block), 'transparent', 'none', 0) + path(dot(m, 1.5), GROUND, INK, 1.2) + path(dot(m, 0.9), WATER, INK, 0.8));
       }
       if (c.type === 'park') {
-        return ward('Jardins', path(d(block), GRASS, INK, 0.8) + trees(block, 7));
+        built.parks.push({ poly: block, ward: c.i });
+        return ward('Jardins', path(d(block), GRASS, INK, 0.8) + trees(block, 7, c));
       }
       if (c.type === 'castle') {
         keep = inset(block, Math.sqrt(area(block)) * 0.27);
+        built.castle = { poly: block, keep: keep, ward: c.i };
         labels += label({ x: m.x, y: m.y + Math.sqrt(area(block)) * 0.5 }, 'Château', 15);
         return ward('Château', path(d(block), GROUND, INK, 3.5) + path(block.map(function (v) { return dot(v, 0.75); }).join(''), INK, INK, 1) + path(keep.length ? d(keep) : '', STONE, INK, 1.5));
       }
@@ -376,10 +387,11 @@
         labels += label({ x: m.x, y: m.y + h * 0.55 + 2.6 }, c.name, 13);
         // L'entrée des catacombes : un puits au chevet de l'église.
         pit = { x: m.x + h * 0.6 * ca + h * 0.75 * sa, y: m.y + h * 0.6 * sa - h * 0.75 * ca };
-        return ward(c.name, buildings(block, HOUSE * 1.4, function (lot) { return dist(centroid(lot), m) > h * 1.25; }) + path(d(cross), STONE, INK, 1.5)) +
+        built.church = { poly: cross, ward: c.i, name: c.name, x: m.x, y: m.y, ux: ca, uy: sa, h: h, w: w, pit: inside(block, pit) ? pit : null };
+        return ward(c.name, buildings(block, HOUSE * 1.4, function (lot) { return dist(centroid(lot), m) > h * 1.25; }, c) + path(d(cross), STONE, INK, 1.5)) +
           (inside(block, pit) ? ward('Entrée des catacombes', path(dot(pit, 0.7), INK, INK, 1) + path(dot(pit, 0.3), GROUND, 'none', 0)) : '');
       }
-      return ward(c.name, buildings(block, HOUSE * (0.8 + 0.9 * c.d / wallR)));
+      return ward(c.name, buildings(block, HOUSE * (0.8 + 0.9 * c.d / wallR), null, c));
     }
 
     function outerWard(c) {
@@ -393,16 +405,22 @@
       parts.forEach(function (part) {
         var block = part.length >= 3 ? inset(part, margin(c)) : [], sub = [];
         if (!block.length) return;
-        if (c.type === 'forest') out += path(d(block), pal.glade, 'none', 0, ' opacity=".6"') + trees(block, 6);
-        else if (c.type === 'plain') out += trees(block, pal.sparse);
+        if (c.type === 'forest') {
+          built.woods.push({ poly: block, ward: c.i });
+          out += path(d(block), pal.glade, 'none', 0, ' opacity=".6"') + trees(block, 6, c);
+        } else if (c.type === 'plain') out += trees(block, pal.sparse, c);
         else if (c.type === 'fields') {
           lots(block, area(block) / int(2, 4), 0, sub, 0);
           sub.forEach(function (f) {
+            var tint;
             f = inset(f, 0.3);
-            if (f.length) out += path(d(f), pick(pal.fields), INK, 0.7) + path(hatch(f, 1.5), 'none', INK, 0.35, ' opacity=".55"');
+            if (!f.length) return;
+            tint = pick(pal.fields);
+            built.fields.push({ poly: f, ward: c.i, color: tint });
+            out += path(d(f), tint, INK, 0.7) + path(hatch(f, 1.5), 'none', INK, 0.35, ' opacity=".55"');
           });
         } else {
-          out += buildings(block, HOUSE * 1.7, function (lot) { return dist(centroid(lot), c.gate) < 9 + rng() * 9 && rng() < 0.7; });
+          out += buildings(block, HOUSE * 1.7, function (lot) { return dist(centroid(lot), c.gate) < 9 + rng() * 9 && rng() < 0.7; }, c);
         }
       });
       return ward(c.type === 'faubourg' ? 'Faubourg' : c.type === 'fields' ? 'Champs' : c.type === 'forest' ? 'Bois' : 'Prés', out);
@@ -453,7 +471,12 @@
       svg: svg, name: name, size: kind, people: from.people || '', wards: size.wards, gates: gates.length, towers: wall.length - gates.length, houses: houses,
       pop: Math.round(houses * (5.5 + rng()) / 10) * 10,
       // La ville en données, pour les projets qui jouent sur le plan. Un point du plan se place à x * k + PX / 2 sur le dessin.
-      model: { k: k, px: PX, viewR: viewR, wallR: wallR, cells: cells, centre: centre, nodes: nodes, wall: wall, gates: gates, avenues: avenues, highways: highways }
+      model: {
+        k: k, px: PX, viewR: viewR, wallR: wallR, cells: cells, centre: centre, nodes: nodes, wall: wall, gates: gates, avenues: avenues, highways: highways,
+        // Les volumes : îlots bâtissables, maisons, arbres, champs, bois, jardins, place et fontaine, château et donjon, église et puits.
+        blocks: built.blocks, buildings: built.buildings, trees: built.trees, fields: built.fields, woods: built.woods, parks: built.parks,
+        plaza: built.plaza, castle: built.castle, church: built.church, milieu: MILIEUX[from.milieu] ? from.milieu : ''
+      }
     };
   }
 
@@ -509,6 +532,7 @@
     $('#toDungeon').href = '../cartes-et-cachots/index.html#' + encodeURIComponent(seed + '-' + size) + '?' + new URLSearchParams({ ville: current.name, plan: address });
     $('#toSiege').href = '../siege/index.html#' + address;
     $('#toRiver').href = '../riviere/index.html#' + address;
+    $('#toVisit').href = '../visite/index.html#' + address;
     $('#toAtlas').parentNode.hidden = !(from && from.atlas);
     if (from && from.atlas) $('#toAtlas').href = '../mondes/atlas-des-mondes/index.html#' + from.atlas;
     try { history.replaceState(null, '', '#' + address); } catch (e) { location.replace('#' + address); }   // Chrome refuse replaceState en file://

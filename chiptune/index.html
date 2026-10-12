@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>La Puce à l'oreille, séquenceur chiptune</title>
+<meta name="description" content="Séquenceur de musique 8 bits : cinq voix synthétisées, motifs, instruments, bruitages, export WAV et lecteur autonome pour les jeux.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="coque">
+
+  <header class="facade">
+    <div class="marque">
+      <h1>La Puce à l'oreille</h1>
+      <p>séquenceur de poche à cinq voix</p>
+    </div>
+
+    <div class="selecteur" role="tablist" aria-label="Atelier">
+      <button type="button" role="tab" id="mode-morceau" aria-selected="true" aria-controls="vue-morceau">Morceau</button>
+      <button type="button" role="tab" id="mode-instruments" aria-selected="false" aria-controls="vue-instruments">Instruments</button>
+      <button type="button" role="tab" id="mode-bruitages" aria-selected="false" aria-controls="vue-bruitages">Bruitages</button>
+    </div>
+
+    <div class="transport">
+      <div class="poussoir"><button type="button" class="rond" id="b-lire" title="Lire le morceau depuis la section affichée (Espace)"><span class="picto p-lire"></span></button><span>Morceau</span></div>
+      <div class="poussoir"><button type="button" class="rond" id="b-motif" title="Lire le motif affiché en boucle (Entrée)"><span class="picto p-boucle"></span></button><span>Motif</span></div>
+      <div class="poussoir"><button type="button" class="rond sombre" id="b-stop" title="Arrêter (Espace)"><span class="picto p-stop"></span></button><span>Arrêt</span></div>
+    </div>
+
+    <div class="reglages">
+      <label class="champ etroit"><span class="lib">Tempo</span><input type="number" id="r-tempo" min="40" max="300" step="1"></label>
+      <label class="champ etroit"><span class="lib">Pas par temps</span><select id="r-ppt"></select></label>
+      <label class="champ"><span class="lib">Balancement</span><input type="range" id="r-swing" min="0" max="60" step="1"><output id="o-swing"></output></label>
+      <label class="champ"><span class="lib">Gamme</span><select id="r-tonique" aria-label="Tonique"></select><select id="r-gamme" aria-label="Mode"></select></label>
+      <label class="coche"><input type="checkbox" id="r-contrainte"><span>Saisir dans la gamme</span></label>
+    </div>
+
+    <div class="fichiers">
+      <button type="button" class="touche" id="b-annuler" title="Annuler (Ctrl+Z)">Annuler</button>
+      <button type="button" class="touche" id="b-retablir" title="Rétablir (Ctrl+Y)">Rétablir</button>
+      <details class="deroulant" id="menu-fichier">
+        <summary class="touche">Fichier</summary>
+        <div class="menu droite">
+          <label class="champ titre"><span class="lib">Titre</span><input type="text" id="f-titre" maxlength="40"></label>
+          <button type="button" id="f-nouveau">Nouveau morceau</button>
+          <button type="button" id="f-ouvrir">Ouvrir un projet…</button>
+          <button type="button" id="f-enregistrer">Enregistrer le projet</button>
+          <p>Morceaux fournis</p>
+          <div id="f-demos"></div>
+          <p>Morceau tiré au sort</p>
+          <div class="rangee"><label class="champ etroit"><span class="lib">Graine</span><input type="number" id="f-graine" min="1" max="999999" value="1986"></label><button type="button" id="f-hasard">Composer</button></div>
+        </div>
+      </details>
+      <details class="deroulant" id="menu-export">
+        <summary class="touche">Exporter</summary>
+        <div class="menu droite">
+          <p>Son, en WAV 16 bits 44,1 kHz</p>
+          <button type="button" id="x-morceau">Le morceau entier</button>
+          <button type="button" id="x-boucle">Le morceau en boucle parfaite</button>
+          <button type="button" id="x-motif">Le motif affiché</button>
+          <button type="button" id="x-motif-boucle">Le motif en boucle parfaite</button>
+          <button type="button" id="x-bruitages">Tous les bruitages (ZIP)</button>
+          <label class="coche"><input type="checkbox" id="x-normaliser" checked><span>Normaliser le niveau</span></label>
+          <p>Pour un jeu</p>
+          <button type="button" id="x-lecteur">Fichier pour le lecteur (.js)</button>
+          <small>À charger après <code>lecteur.js</code> : la musique et les bruitages sont rejoués par la puce, sans fichier audio.</small>
+        </div>
+      </details>
+    </div>
+  </header>
+
+  <main>
+    <section class="vue" id="vue-morceau" role="tabpanel" aria-labelledby="mode-morceau">
+      <div class="lunette">
+        <p class="legende"><span>Matrice à points, son 4 bits</span></p>
+        <canvas id="arr" class="lcd" aria-label="Arrangement : cliquer une section pour l'afficher"></canvas>
+        <canvas id="grille" class="lcd" tabindex="0" aria-label="Grille du motif. Flèches pour se déplacer, clavier pour saisir les notes."></canvas>
+      </div>
+
+      <aside class="pupitre">
+        <section>
+          <h2>Voix</h2>
+          <div id="voix"></div>
+        </section>
+        <section>
+          <h2>Section et motif</h2>
+          <div class="rangee">
+            <label class="champ"><span class="lib">Motif joué</span><select id="a-motif"></select></label>
+            <label class="champ etroit"><span class="lib">Nom</span><input type="text" id="a-nom" maxlength="12"></label>
+          </div>
+          <div class="rangee">
+            <label class="champ etroit"><span class="lib">Longueur</span><select id="a-pas"></select></label>
+            <div class="champ"><span class="lib">Répéter</span><button type="button" class="touche mini" id="a-moins" aria-label="Une répétition de moins">−</button><output id="a-fois"></output><button type="button" class="touche mini" id="a-plus" aria-label="Une répétition de plus">+</button></div>
+          </div>
+          <div class="rangee">
+            <button type="button" class="touche" id="a-nouveau">Nouveau motif</button>
+            <button type="button" class="touche" id="a-dupliquer">Dupliquer</button>
+            <button type="button" class="touche" id="a-ajouter" title="Rejouer ce motif dans une nouvelle section">Rejouer</button>
+          </div>
+          <div class="rangee">
+            <button type="button" class="touche" id="a-gauche" aria-label="Déplacer la section vers la gauche">◀</button>
+            <button type="button" class="touche" id="a-droite" aria-label="Déplacer la section vers la droite">▶</button>
+            <button type="button" class="touche" id="a-boucle" title="Le morceau reprendra à cette section">Boucler d'ici</button>
+            <button type="button" class="touche" id="a-retirer">Retirer</button>
+          </div>
+        </section>
+        <section>
+          <h2>Saisie</h2>
+          <div class="rangee">
+            <label class="champ"><span class="lib">Instrument</span><select id="s-instr"></select></label>
+          </div>
+          <div class="rangee">
+            <div class="champ"><span class="lib">Octave</span><button type="button" class="touche mini" id="s-oct-moins" aria-label="Octave plus grave">−</button><output id="s-octave"></output><button type="button" class="touche mini" id="s-oct-plus" aria-label="Octave plus aiguë">+</button></div>
+            <label class="champ etroit"><span class="lib">Avance</span><select id="s-avance"></select></label>
+            <label class="coche"><input type="checkbox" id="s-suivre" checked><span>Suivre la lecture</span></label>
+          </div>
+          <p class="aide" id="aide-touches"></p>
+        </section>
+      </aside>
+    </section>
+
+    <section class="vue atelier" id="vue-instruments" role="tabpanel" aria-labelledby="mode-instruments" hidden>
+      <div class="rayon">
+        <h2>Banque du morceau</h2>
+        <ol class="liste" id="i-liste"></ol>
+        <div class="rangee">
+          <button type="button" class="touche" id="i-nouveau">Nouveau</button>
+          <button type="button" class="touche" id="i-dupliquer">Dupliquer</button>
+          <button type="button" class="touche" id="i-supprimer">Supprimer</button>
+        </div>
+      </div>
+      <div class="etabli">
+        <div class="editeur" id="i-editeur"></div>
+        <div class="essai">
+          <div class="piano" id="i-piano"></div>
+          <div class="temoin">
+            <canvas class="lcd" id="i-scope" aria-hidden="true"></canvas>
+            <div class="champ"><span class="lib">Octave</span><button type="button" class="touche mini" id="i-oct-moins" aria-label="Octave plus grave">−</button><output id="i-octave"></output><button type="button" class="touche mini" id="i-oct-plus" aria-label="Octave plus aiguë">+</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="vue atelier" id="vue-bruitages" role="tabpanel" aria-labelledby="mode-bruitages" hidden>
+      <div class="rayon">
+        <h2>Bruitages du projet</h2>
+        <ol class="liste" id="b-liste"></ol>
+        <div class="rangee">
+          <button type="button" class="touche" id="b-nouveau">Nouveau</button>
+          <button type="button" class="touche" id="b-dupliquer">Dupliquer</button>
+          <button type="button" class="touche" id="b-supprimer">Supprimer</button>
+        </div>
+      </div>
+      <div class="etabli">
+        <div class="fabrique">
+          <div class="poussoir"><button type="button" class="rond" id="b-ecouter" title="Écouter le bruitage (Espace)"><span class="picto p-lire"></span></button><span>Écouter</span></div>
+          <canvas class="lcd" id="b-onde" aria-label="Forme du bruitage rendu"></canvas>
+          <div class="tirage">
+            <p>Remplacer par un son tiré au sort</p>
+            <div class="rangee" id="b-familles"></div>
+            <div class="rangee">
+              <button type="button" class="touche" id="b-hasard">Au hasard</button>
+              <button type="button" class="touche" id="b-variation">Variation</button>
+              <button type="button" class="touche" id="b-wav">Exporter ce bruitage en WAV</button>
+              <label class="coche"><input type="checkbox" id="b-auto" checked><span>Écouter à chaque retouche</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="editeur" id="b-editeur"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="pied">
+    <p id="message" role="status" aria-live="polite"></p>
+    <p id="info"></p>
+  </footer>
+</div>
+
+<input type="file" id="fichier" accept=".json,.js,application/json" hidden>
+
+<script src="lecteur.js"></script>
+<script src="js/noyau.js"></script>
+<script src="js/banque.js"></script>
+<script src="js/export.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/ecran.js"></script>
+<script src="js/edition.js"></script>
+<script src="js/instrument.js"></script>
+<script src="js/principal.js"></script>
+</body>
+</html>

@@ -14,15 +14,20 @@ Pour tout parcourir, ouvrir `index.html` à la racine : c'est un portail qui pr�
 | `defense-ascii` | Tower defense en ASCII : carte générée, cinq tours améliorables, sept types d'ennemis, vingt vagues puis un mode sans fin. | Ouvrir `index.html` |
 | `enquete` | « Nuit blanche au manoir » : un crime généré par graine, des dépositions à recouper, des indices à trouver, une seule solution logique. | Ouvrir `index.html` |
 | `flux` | Jeu de réflexion sur une vraie simulation de fluide : dix niveaux où l'on creuse ou pose des parois pour obtenir le meilleur débit, plus un bac à sable. | Ouvrir `index.html` |
+| `visite` | La ville d'un plan montée en 3D, à parcourir à pied : maisons à toits, rempart, portes, église et château, avec le plan en parchemin comme carte. | Ouvrir `index.html` |
 | `usine` | Jeu d'automatisation : tapis roulants, séparateurs, ponts, filtres et machines à recettes, quatorze niveaux notés sur le débit, le coût et l'emprise, plus un bac à sable. | Ouvrir `index.html` |
 | `atelier-pixel` | Éditeur de pixel-art animé : outils de dessin, sélection, calques, frise d'images, pelure d'oignon, export PNG, planche et GIF. | Ouvrir `index.html` |
 | `textures` | Générateur de textures en pixel-art qui se répètent sans couture : vingt matières réglables, boucles animées, export PNG et vers Atelier Pixel. | Ouvrir `index.html` |
+| `palettes` | Générateur de palettes pour le pixel-art : extraction depuis une image, rampes et harmonies, contrastes et daltonisme, export vers Atelier Pixel et Textures. | Ouvrir `index.html` |
+| `tuiles` | Éditeur de cartes en tuiles : calques, collisions, objets, raccords automatiques, mode d'essai, export JSON et Tiled. Reprend les tuiles de Textures et les sprites d'Atelier Pixel. | Ouvrir `index.html` |
+| `police-pixel` | Éditeur de polices en pixels, accents français compris, qui exporte de vrais fichiers TTF et WOFF. | Ouvrir `index.html` |
+| `chiptune` | « La Puce à l'oreille » : séquenceur 8 bits à cinq voix, atelier de bruitages, export WAV, et un `lecteur.js` que les jeux peuvent charger pour avoir du son. | Ouvrir `index.html` |
 | `mondes` | Trois pages reliées qui construisent un univers à partir d'une graine (voir ci-dessous). | Ouvrir `atlas-des-mondes/index.html` |
 | `erosion-rust` | Simulateur d'érosion en Rust : eau, gel, chimie, vent, glaciers et végétation, avec vingt paramètres. | `cargo run --release` |
 
 Les projets web tournent sans installation ni connexion.
 
-Plusieurs projets se renvoient l'un à l'autre et partagent du code, ils doivent donc rester côte à côte : une cité de l'atlas (`mondes`) ouvre son plan (`plans-de-ville`), et un plan ouvre ses catacombes (`cartes-et-cachots`), son siège (`siege`) et sa rivière (`riviere`). `textures` exporte vers `atelier-pixel`. Le dossier `portail` contient la page d'accueil.
+Plusieurs projets se renvoient l'un à l'autre et partagent du code, ils doivent donc rester côte à côte : une cité de l'atlas (`mondes`) ouvre son plan (`plans-de-ville`), et un plan ouvre ses catacombes (`cartes-et-cachots`), son siège (`siege`), sa rivière (`riviere`) et sa visite à pied (`visite`). `textures` et `palettes` exportent vers `atelier-pixel` ; `palettes` et `tuiles` chargent le moteur de `textures`. Le dossier `portail` contient la page d'accueil.
 
 ## Le dossier `mondes`
 

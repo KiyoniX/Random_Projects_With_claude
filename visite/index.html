@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Visite de la ville</title>
+  <link rel="stylesheet" href="../plans-de-ville/planche.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <canvas class="vue" id="vue" tabindex="0" aria-label="La ville, vue à hauteur d'homme"></canvas>
+
+  <header class="cartouche enseigne" id="enseigne">
+    <p>Visite à pied de</p>
+    <h1 id="ville">…</h1>
+    <p id="genre"></p>
+  </header>
+
+  <p class="legende" id="quartier" aria-live="polite"></p>
+  <p class="etiquette invite" id="invite"></p>
+  <p class="etiquette cadence" id="cadence" hidden></p>
+
+  <section class="carnet" id="carnet" aria-label="Carnet de voyage">
+    <h2><button type="button" id="carnetTitre" aria-expanded="false" title="Touche C">Carnet de voyage</button><output id="compte"></output></h2>
+    <ol id="lieux" hidden></ol>
+  </section>
+
+  <details class="billet" id="billet" open>
+    <summary>Le soleil, la vue, le plan</summary>
+    <p class="choix" id="heures" role="group" aria-label="Heure du jour">
+      <button type="button" data-heure="7.4">matin</button><button type="button" data-heure="13">midi</button><button type="button" data-heure="18.6">soir</button><button type="button" data-heure="23">nuit</button>
+    </p>
+    <label class="cadran"><span>Tourner le soleil</span><input type="range" id="heure" min="0" max="24" step="0.1" value="9.5"></label>
+    <p><button type="button" class="mention" id="survol" title="Touche V">Prendre de la hauteur</button></p>
+    <p><button type="button" class="mention" id="image" title="Touche P">Garder cette vue en image</button></p>
+    <p class="choix" id="qualites" role="group" aria-label="Finesse de l'affichage">
+      <button type="button" data-qualite="basse">légère</button><button type="button" data-qualite="moyenne">soignée</button><button type="button" data-qualite="haute">belle</button>
+    </p>
+    <p><a class="mention" id="versPlan">Retour au plan</a></p>
+  </details>
+
+  <div class="plan" id="mini">
+    <button type="button" id="agrandir" title="Touche M" aria-label="Déplier le plan"><canvas id="miniToile" width="336" height="336"></canvas></button>
+    <svg class="rose" id="rose" viewBox="-30 -30 60 60" aria-hidden="true"><circle r="21" /><path class="croix" d="M-26 0L0 -4L26 0L0 4Z" /><path class="aiguille" d="M0 -29L5 0L0 29L-5 0Z" /><path class="nord" d="M0 -29L5 0L-5 0Z" /><text y="-17" text-anchor="middle">N</text></svg>
+  </div>
+
+  <div class="carte" id="carte" hidden>
+    <figure class="planche-depliee"><canvas id="carteToile" width="1400" height="1400" aria-label="Le plan de la ville"></canvas></figure>
+    <p class="note">Touche un endroit du plan : tu y seras porté aussitôt.</p>
+    <button type="button" class="mention" id="replier">Replier le plan</button>
+  </div>
+
+  <section class="seuil" id="seuil" aria-live="polite">
+    <div class="feuillet">
+      <header class="cartouche">
+        <p id="seuilAvant">Visite à pied de</p>
+        <h1 id="seuilVille">la ville</h1>
+        <p id="seuilGenre"></p>
+      </header>
+      <p class="note" id="chantier">On déroule le plan…</p>
+      <div class="entree" id="entree" hidden>
+        <p class="note" id="consignes">Marche avec ZQSD ou les flèches, regarde à la souris. Maj pour courir, Espace pour sauter. M déplie le plan, C ouvre le carnet, V te donne de la hauteur, Échap te rend le pointeur.</p>
+        <button type="button" class="sceau" id="entrer">Entrer<small>en ville</small></button>
+      </div>
+      <p class="retour"><a class="mention" id="seuilPlan">Retour au plan</a></p>
+    </div>
+  </section>
+
+  <div class="pouce" id="pouceG" hidden></div>
+  <div class="pouce" id="pouceD" hidden></div>
+  <div class="fondu" id="fondu"></div>
+
+  <script src="../plans-de-ville/plan.js"></script>
+  <script src="batir.js"></script>
+  <script src="monde.js"></script>
+  <script src="marche.js"></script>
+  <script src="rendu.js"></script>
+  <script src="jeu.js"></script>
+</body>
+</html>

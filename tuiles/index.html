@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tuiles</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <h1><svg viewBox="0 0 20 20" aria-hidden="true"><path class="plein" d="M2 2h7v7H2zM11 11h7v7h-7z"/><path d="M11.500 2.500h6v6h-6zM2.500 11.500h6v6h-6z"/></svg>Tuiles</h1>
+    <nav class="menus" id="menus"></nav>
+    <input type="text" id="nomCarte" class="nomCarte" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Nom de la carte" title="Nom de la carte (sert aux noms des fichiers)">
+    <div class="rapides">
+      <button type="button" class="b carre" data-act="annuler" data-ico="annuler" id="bAnnuler" title="Annuler (Ctrl+Z)" aria-label="Annuler"></button>
+      <button type="button" class="b carre" data-act="retablir" data-ico="retablir" id="bRetablir" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"></button>
+      <button type="button" class="b fort essayer" data-act="essayer" title="Essayer la carte avec un personnage (Ctrl+Entrée)"><span data-ico="jouer"></span>Essayer</button>
+    </div>
+  </header>
+
+  <div class="options">
+    <div class="optionsOutil" id="optionsOutil"></div>
+    <div class="reglagesVue">
+      <button type="button" class="b carre" data-act="grille" data-ico="grille" id="bGrille" title="Grille (Q)" aria-label="Grille"></button>
+      <button type="button" class="b carre" data-act="murs" data-ico="murs" id="bMurs" title="Montrer les collisions par-dessus la carte (C)" aria-label="Collisions visibles"></button>
+      <span class="grappe zoom">
+        <button type="button" class="b carre" data-act="zoomMoins" data-ico="moins" title="Zoom arrière (−)" aria-label="Zoom arrière"></button>
+        <output id="zoomVal" title="Zoom : la molette vise la case sous le curseur">100 %</output>
+        <button type="button" class="b carre" data-act="zoomPlus" data-ico="plus" title="Zoom avant (+)" aria-label="Zoom avant"></button>
+      </span>
+      <button type="button" class="b" data-act="zoomTout" title="Voir toute la carte (Ctrl+0)">Tout voir</button>
+    </div>
+  </div>
+
+  <div class="essaiBarre" id="essaiBarre">
+    <strong>Essai</strong>
+    <span id="essaiMode"></span>
+    <span><kbd>Flèches</kbd> ou <kbd>ZQSD</kbd> bouger</span>
+    <span id="essaiSaut"><kbd>Espace</kbd> sauter</span>
+    <span><kbd>C</kbd> collisions et objets</span>
+    <span><kbd>R</kbd> retour au départ</span>
+    <em id="essaiTouche"></em>
+    <button type="button" class="b fort" data-act="essayer">Revenir à l'éditeur (Échap)</button>
+  </div>
+
+  <div class="plan">
+    <aside class="outils" id="outils"></aside>
+
+    <section class="scene" id="scene">
+      <canvas id="toile"></canvas>
+      <div class="miniCadre" id="miniCadre" title="Mini-carte : clique ou glisse pour déplacer la vue"><canvas id="mini" width="1" height="1"></canvas><i id="miniVue"></i></div>
+    </section>
+
+    <aside class="cote">
+      <section class="volet calquesVolet">
+        <h2>Calques
+          <span class="grappe">
+            <button type="button" class="b carre" data-act="calAjouter" data-ico="plus" title="Nouveau calque de tuiles (Maj+N)" aria-label="Nouveau calque"></button>
+            <button type="button" class="b carre" data-act="calDupliquer" data-ico="copie" title="Dupliquer le calque" aria-label="Dupliquer le calque"></button>
+            <button type="button" class="b carre" data-act="calMonter" data-ico="haut" title="Monter le calque" aria-label="Monter le calque"></button>
+            <button type="button" class="b carre" data-act="calDescendre" data-ico="bas" title="Descendre le calque" aria-label="Descendre le calque"></button>
+            <button type="button" class="b carre" data-act="calSupprimer" data-ico="corbeille" title="Supprimer le calque" aria-label="Supprimer le calque"></button>
+          </span>
+        </h2>
+        <div class="calques" id="calques"></div>
+        <label class="rang opacite">Opacité
+          <input type="range" id="calOpacite" min="0" max="100" value="100">
+          <output id="calOpaciteVal">100 %</output>
+        </label>
+      </section>
+      <section class="volet source" id="source"></section>
+    </aside>
+  </div>
+
+  <footer class="etat">
+    <span id="etatPos" class="pos">–</span>
+    <span id="etatCase" class="case"></span>
+    <span id="etatMsg" class="msg" role="status"></span>
+    <span id="etatCarte"></span>
+    <span id="etatSauve" class="sauve"></span>
+  </footer>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="file" id="fichierProjet" accept=".json,application/json" hidden>
+  <input type="file" id="fichierImport" accept=".json,application/json,image/png,image/gif,image/jpeg,image/webp,image/bmp" multiple hidden>
+
+  <!-- Le moteur de Textures, sans son interface : il calcule des tuiles sur place. -->
+  <script src="../textures/js/moteur.js"></script>
+  <script src="../textures/js/matieres-nature.js"></script>
+  <script src="../textures/js/matieres-bati.js"></script>
+
+  <script src="js/modele.js"></script>
+  <script src="js/auto.js"></script>
+  <script src="js/jeux.js"></script>
+  <script src="js/formats.js"></script>
+  <script src="js/essai.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/outils.js"></script>
+  <script src="js/panneaux.js"></script>
+  <script src="js/fichiers.js"></script>
+  <script src="js/principal.js"></script>
+</body>
+</html>

@@ -81,6 +81,17 @@ a { color: inherit; text-decoration: none; }
 .b-atelier .name { font-family: Consolas, 'Lucida Console', monospace; font-weight: 700; background: #1d1e24; padding: 8px 3px; }
 .b-textures { background: linear-gradient(#5a5048 0 2px, transparent 2px) 0 0 / 100% 18px, linear-gradient(90deg, #5a5048 0 2px, transparent 2px) 0 0 / 38px 36px, #a8452f; color: #fff3e6; }
 .b-textures .name { font-family: var(--text); font-weight: 700; background: #5a5048; padding: 8px 3px; }
+.b-visite { background: linear-gradient(#e4d2aa 0 70%, #8a3f2c 70% 78%, #c9b28c 78% 90%, #6f6a55 90%); color: #3d2f21; }
+.b-visite .name { font-family: 'Palatino Linotype', 'Book Antiqua', Georgia, serif; font-style: italic; }
+.b-visite .dot { bottom: 34px; }
+.b-palettes { background: linear-gradient(#0c1620 0 9%, #21204e 9% 18%, #3b2e63 18% 27%, #5e406c 27% 36%, #815175 36% 45%, #a06074 45% 54%, #c46979 54% 63%, #de8a78 63% 72%, #a9927f 72% 81%, #cdc1b4 81% 90%, #ffe7a4 90%); color: #f4f4f6; }
+.b-palettes .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; background: #1d1e24; padding: 8px 3px; }
+.b-tuiles { background: linear-gradient(#1f5c22 0 1px, transparent 1px) 0 0 / 100% 16px, linear-gradient(90deg, #1f5c22 0 1px, transparent 1px) 0 0 / 16px 100%, linear-gradient(#3f9a3c 0 72%, #6b4a2e 72% 84%, #2f6fc0 84%); color: #f4f4f6; }
+.b-tuiles .name { font-family: var(--text); font-weight: 700; background: #1d1e24; padding: 8px 3px; }
+.b-police { background: linear-gradient(#16171a 0 26px, #ebe8e1 26px); color: #16171a; }
+.b-police .name { font-family: Consolas, 'Lucida Console', 'Courier New', monospace; font-weight: 700; margin-top: 22px; }
+.b-chiptune { background: linear-gradient(#cbc7ba 0 12%, #5a5c6e 12% 14%, #9bbc0f 14% 34%, #5a5c6e 34% 36%, #cbc7ba 36% 94%, #8b1d4f 94% 97%, #cbc7ba 97%); color: #1c2a5a; }
+.b-chiptune .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; font-style: italic; margin-top: 112px; }
 .b-erosion { background: linear-gradient(100deg, #7a3a16, #c2622a 45%, #8a4a22 70%, #5c2c12); color: #ffe9d2; }
 .b-erosion .name { font-family: var(--display); font-weight: 700; }
 
