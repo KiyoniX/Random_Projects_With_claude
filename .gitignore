@@ -4,6 +4,3 @@ target/
 # Dépendances et archives
 node_modules/
 *.zip
-
-# Maquette pour un proche : reste hors du dépôt public
-etiquette-francaise/
