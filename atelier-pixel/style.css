@@ -36,7 +36,7 @@ kbd { font: inherit; font-size: .92em; color: var(--muted); }
 /* ---------- Barre du haut ---------- */
 .barre { display: flex; align-items: center; gap: .9rem; padding: 0 .6rem; height: 34px; flex: none; background: var(--panel); border-bottom: 1px solid var(--line); }
 .barre h1 { font-size: 13px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
-.barre h1 em { font-style: normal; color: var(--accent); }
+.barre h1 em { font-style: normal; }
 .menus { display: flex; flex: 1; align-self: stretch; }
 .menu { position: relative; display: flex; }
 .menu-titre { padding: 0 .65rem; color: var(--text); }
@@ -74,8 +74,8 @@ svg .plein { fill: currentColor; stroke: none; }
 .cote { width: 240px; flex: none; display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
 .panneau { padding: 6px 11px 8px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .panneau.grand { flex: 1; min-height: 150px; border-bottom: 0; }
-.panneau h2 { display: flex; align-items: center; justify-content: space-between; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); min-height: 20px; }
-.panneau h2 select { font-size: 11.5px; text-transform: none; letter-spacing: 0; color: var(--text); max-width: 9.5rem; }
+.panneau h2 { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--muted); min-height: 20px; }
+.panneau h2 select { font-size: 11.5px; color: var(--text); max-width: 9.5rem; }
 .rang { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; color: var(--muted); }
 .rang input[type=range] { flex: 1; min-width: 0; }
 .rang output { min-width: 3.2em; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; }
@@ -160,7 +160,7 @@ svg .plein { fill: currentColor; stroke: none; }
 .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(8, 8, 9, .72); }
 .fen { max-width: min(62rem, 100%); max-height: 100%; overflow: auto; padding: 1rem 1.2rem; background: var(--panel); border: 1px solid var(--muted); border-radius: 6px; display: flex; flex-direction: column; gap: .8rem; box-shadow: 0 16px 48px rgba(0, 0, 0, .6); user-select: text; -webkit-user-select: text; }
 .fen h2 { font-size: 14px; color: var(--accent); }
-.fen h3 { font-size: 10.5px; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: .2rem 0 .3rem; }
+.fen h3 { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: .2rem 0 .3rem; }
 .fen .corps { display: flex; flex-direction: column; gap: .7rem; min-width: 19rem; }
 .fen .rang { gap: .8rem; color: var(--text); }
 .fen .pile { display: flex; flex-direction: column; gap: .3rem; }

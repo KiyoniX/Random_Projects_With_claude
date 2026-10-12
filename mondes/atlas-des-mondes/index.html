@@ -3,36 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Atlas des mondes</title>
+  <title>La planète · Guides de l’Écliptique</title>
+  <link rel="stylesheet" href="../guide.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <h1>Atlas <em>des mondes</em></h1>
-    <form class="seed" id="seedForm">
-      <label for="seed">Graine</label>
-      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-      <button type="submit" class="btn btn-ghost">Charger</button>
-      <button type="button" class="btn" id="newBtn">Nouvelle planète</button>
-    </form>
+  <header class="courant">
+    <div class="courant-in">
+      <p class="collection">
+        <svg viewBox="0 0 22 12" aria-hidden="true"><ellipse cx="11" cy="6" rx="10" ry="4.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="3" r="2.3" fill="currentColor"/></svg>
+        <b>Guides de l’Écliptique</b><span class="dest" id="gDest"></span>
+      </p>
+      <p class="folio"><span id="gSection">La planète</span><b id="gFolio">7</b></p>
+    </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <div class="globe-wrap">
-        <canvas id="globe" width="460" height="460" aria-label="Globe de la planète, faites glisser pour la tourner"></canvas>
-        <button type="button" class="pause" id="pause" aria-pressed="false">Pause</button>
-        <div class="busy" id="busy">Formation de la planète…</div>
-      </div>
+  <nav class="onglets" aria-label="Chapitres du guide">
+    <a data-ch="planete" href="index.html" aria-current="page"><b>1</b>La planète</a>
+    <a data-ch="histoire" href="../chroniques/index.html"><b>2</b>Un peu d’histoire</a>
+    <a data-ch="langue" href="../langues-inventees/index.html"><b>3</b>Conversation</a>
+  </nav>
 
-      <div class="sheet">
-        <p class="eyebrow" id="pStar"></p>
-        <h2 id="pName"></h2>
-        <p class="verdict" id="pVerdict"></p>
-        <dl class="facts" id="facts"></dl>
+  <div class="livre">
+    <aside class="marge">
+      <nav class="sommaire" aria-label="Dans ce chapitre">
+        <h2>Dans ce chapitre</h2>
+        <ul id="gSommaire"></ul>
+      </nav>
 
-        <div class="controls">
-          <div class="ctl">
+      <section class="barometre encadre" aria-labelledby="baroTitre">
+        <h2 class="etiquette" id="baroTitre">Baromètre du voyageur</h2>
+        <p class="baro-mode">Et si la planète était autre ? Déplacez une réglette : climat, milieux, faune et peuple sont recalculés, et le guide se réimprime.</p>
+        <div class="regles">
+          <div class="regle">
             <label for="cStar">Étoile</label>
             <select id="cStar">
               <option value="M">Naine rouge</option>
@@ -41,52 +44,117 @@
               <option value="F">Étoile blanche</option>
             </select>
           </div>
-          <div class="ctl"><label for="cS">Ensoleillement <output id="oS"></output></label><input id="cS" type="range" min="0.25" max="2.2" step="0.01"></div>
-          <div class="ctl"><label for="cWater">Eau <output id="oWater"></output></label><input id="cWater" type="range" min="0" max="1" step="0.01"></div>
-          <div class="ctl"><label for="cP">Atmosphère <output id="oP"></output></label><input id="cP" type="range" min="0" max="5" step="0.05"></div>
-          <div class="ctl"><label for="cR">Taille <output id="oR"></output></label><input id="cR" type="range" min="0.4" max="2.2" step="0.02"></div>
-          <div class="ctl"><label for="cTilt">Inclinaison <output id="oTilt"></output></label><input id="cTilt" type="range" min="0" max="60" step="1"></div>
+          <div class="regle"><label for="cS">Ensoleillement <output id="oS"></output></label><input id="cS" type="range" min="0.25" max="2.2" step="0.01"></div>
+          <div class="regle"><label for="cWater">Eau <output id="oWater"></output></label><input id="cWater" type="range" min="0" max="1" step="0.01"></div>
+          <div class="regle"><label for="cP">Atmosphère <output id="oP"></output></label><input id="cP" type="range" min="0" max="5" step="0.05"></div>
+          <div class="regle"><label for="cR">Taille <output id="oR"></output></label><input id="cR" type="range" min="0.4" max="2.2" step="0.02"></div>
+          <div class="regle"><label for="cTilt">Inclinaison <output id="oTilt"></output></label><input id="cTilt" type="range" min="0" max="60" step="1"></div>
         </div>
-        <p class="hint">Bougez un curseur : le climat, les biomes et tout le vivant se recalculent.</p>
-      </div>
-    </section>
+      </section>
+    </aside>
 
-    <section class="block">
-      <div class="block-head">
-        <h3>Carte</h3>
-        <div class="modes" role="group" aria-label="Type de carte">
-          <button type="button" class="mode" data-mode="natural" aria-pressed="true">Biomes</button>
-          <button type="button" class="mode" data-mode="relief" aria-pressed="false">Relief</button>
-          <button type="button" class="mode" data-mode="temp" aria-pressed="false">Température</button>
-          <button type="button" class="mode" data-mode="hum" aria-pressed="false">Humidité</button>
+    <main class="page">
+      <section class="couverture" id="couverture" data-folio="7" data-courant="La planète">
+        <div class="bandeau">
+          <p class="marque"><span><b>Guides de l’Écliptique</b>, destinations hors système</span><span>Chapitre 1, la planète</span></p>
+          <h1 id="pName"></h1>
+          <p class="sous-titre" id="pStar"></p>
         </div>
-      </div>
-      <div class="map-grid">
-        <div>
-          <canvas id="map" width="720" height="360" aria-label="Carte de la planète"></canvas>
-          <p class="probe" id="probe">Survolez la carte pour lire le climat d'un lieu.</p>
+        <form class="destination" id="seedForm">
+          <label for="seed" title="La graine dont tout le guide est tiré">Destination nº</label>
+          <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+          <button type="submit" class="bouton">Ouvrir ce guide</button>
+          <button type="button" class="bouton plein" id="newBtn">Une autre planète</button>
+        </form>
+
+        <div class="frontispice">
+          <figure class="vue">
+            <div class="ciel">
+              <canvas id="globe" width="460" height="460" aria-label="Globe de la planète, faites glisser ou utilisez les flèches pour la tourner"></canvas>
+              <div class="busy" id="busy">Formation de la planète…</div>
+              <button type="button" class="bouton" id="pause" aria-pressed="false">Arrêter la rotation</button>
+            </div>
+            <figcaption id="globeLegende"></figcaption>
+          </figure>
+          <div class="identite">
+            <h2>Fiche d’identité</h2>
+            <p class="verdict" id="pVerdict"></p>
+            <dl class="fiche" id="facts"></dl>
+          </div>
         </div>
-        <ul class="biomes" id="biomes"></ul>
-      </div>
-    </section>
+        <div id="baroSlot"></div>
+      </section>
 
-    <section class="block">
-      <div class="block-head"><h3>Le vivant</h3><p class="block-sub">Chaque espèce est déduite du climat de son biome, de la gravité, de l'air et de l'étoile.</p></div>
-      <p class="note" id="lifeNote" hidden></p>
-      <div id="life"></div>
-    </section>
+      <section class="rubrique" id="pratique" data-folio="9" data-titre="Avant de partir">
+        <div class="tete"><h2>Avant de partir</h2><p class="chapo">Ce qu’il faut savoir du ciel, de l’air et du sol avant de boucler son sac.</p></div>
+        <ul class="pratique" id="pratiqueListe"></ul>
+      </section>
 
-    <section class="block">
-      <div class="block-head"><h3>Peuple</h3></div>
-      <div id="people"></div>
-    </section>
-  </main>
+      <section class="rubrique" id="carte" data-folio="12" data-titre="Carte générale">
+        <div class="tete">
+          <h2>Carte générale</h2>
+          <div class="calques" role="group" aria-label="Calque de la carte">
+            <button type="button" class="bouton mode" data-mode="natural" aria-pressed="true">Milieux</button>
+            <button type="button" class="bouton mode" data-mode="relief" aria-pressed="false">Relief</button>
+            <button type="button" class="bouton mode" data-mode="temp" aria-pressed="false">Températures</button>
+            <button type="button" class="bouton mode" data-mode="hum" aria-pressed="false">Humidité</button>
+          </div>
+        </div>
+        <div class="carte-cadre">
+          <canvas id="map" width="720" height="360" tabindex="0" aria-label="Carte de la planète. Molette ou touches plus et moins pour zoomer, flèches pour déplacer, zéro pour revoir la carte entière." aria-describedby="carteAide"></canvas>
+          <div class="carte-outils" id="mapOutils">
+            <button type="button" class="bouton" data-zoom="plus" aria-label="Zoomer">+</button>
+            <button type="button" class="bouton" data-zoom="moins" aria-label="Dézoomer">−</button>
+            <button type="button" class="bouton" data-zoom="tout" disabled>Carte entière</button>
+          </div>
+        </div>
+        <p class="sonde lineale" id="probe">Survolez la carte pour lire le climat d’un lieu.</p>
+        <p class="note-ligne carte-aide" id="carteAide">Molette pour zoomer, glisser pour déplacer ; la carte boucle d’est en ouest. Touche 0 pour revoir la carte entière.</p>
 
-  <footer class="foot">Tout est calculé dans le navigateur à partir de la graine. Même graine, même monde.</footer>
+        <div class="sous-carte">
+          <div>
+            <h3>Légende</h3>
+            <div id="legende"></div>
+            <ul class="biomes" id="biomes"></ul>
+          </div>
+          <div>
+            <h3>Tableau climatique</h3>
+            <div class="defile"><table class="tableau" id="climat"></table></div>
+            <p class="note-ligne">Moyennes annuelles par bande de latitude, d’un pôle à l’autre.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="rubrique" id="milieux" data-folio="16" data-titre="Milieux naturels">
+        <div class="tete"><h2>Milieux naturels</h2><p class="chapo">Chaque espèce est déduite du climat de son milieu, de la gravité, de l’air et de l’étoile.</p></div>
+        <div class="encadre gris" id="lifeNote" hidden></div>
+        <div id="life"></div>
+      </section>
+
+      <section class="rubrique" id="peuple" data-folio="24" data-titre="Le peuple">
+        <div class="tete"><h2>Le peuple</h2><p class="chapo">Qui ils sont, où ils vivent, comment.</p></div>
+        <div id="people"></div>
+      </section>
+
+      <section class="rubrique" id="villes" data-folio="28" data-titre="Villes et étapes">
+        <div class="tete"><h2>Villes et étapes</h2><p class="chapo" id="villesChapo"></p></div>
+        <div id="cities"></div>
+      </section>
+
+      <nav class="suite" aria-label="Suite du guide">
+        <a data-ch="histoire" href="../chroniques/index.html">Chapitre 2, page 33<b>Un peu d’histoire</b>Mille ans de fondations, de guerres et de souverains.</a>
+        <a data-ch="langue" href="../langues-inventees/index.html">Chapitre 3, page 53<b>Petit guide de conversation</b>Prononciation, expressions utiles, écriture.</a>
+      </nav>
+    </main>
+  </div>
+
+  <footer class="acheve">Guide calculé dans le navigateur à partir du numéro de destination (la graine). Même numéro, même monde.</footer>
 
   <script src="../langues-inventees/lang.js"></script>
   <script src="planet.js"></script>
   <script src="life.js"></script>
+  <script src="../guide.js"></script>
   <script src="app.js"></script>
+  <script src="../../portail/site.js"></script>
 </body>
 </html>

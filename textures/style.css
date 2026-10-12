@@ -36,7 +36,7 @@ input[type=checkbox] { accent-color: var(--accent); vertical-align: -2px; }
 /* ---------- Barre du haut ---------- */
 .barre { display: flex; align-items: center; gap: .9rem; padding: 0 .6rem; height: 34px; flex: none; background: var(--panel); border-bottom: 1px solid var(--line); }
 .barre h1 { font-size: 13px; font-weight: 700; letter-spacing: .03em; white-space: nowrap; }
-.barre h1 em { font-style: normal; color: var(--accent); }
+.barre h1 em { font-style: normal; }
 .devise { flex: 1; min-width: 0; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rapides { display: flex; gap: .35rem; }
 
@@ -65,15 +65,15 @@ input[type=checkbox] { accent-color: var(--accent); vertical-align: -2px; }
 .vue { display: flex; flex-direction: column; min-width: 0; background: var(--bg); }
 .vue-tuile { flex: 2; }
 .vue-pavage { flex: 3; }
-.vue h2 { padding: 5px 10px 0; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--dim); }
+.vue h2 { padding: 5px 10px 0; font-size: 12.5px; font-weight: 700; color: var(--dim); }
 .cadre { flex: 1; min-height: 0; display: grid; place-items: safe center; overflow: auto; padding: 10px; }
 .cadre canvas { flex: none; box-shadow: 0 0 0 1px #000, 0 6px 24px rgba(0, 0, 0, .45); }
 
 .cote { width: 286px; flex: none; display: flex; flex-direction: column; background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; }
 .panneau { padding: 6px 11px 8px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
 .panneau.grand { flex: 1; border-bottom: 0; }
-.panneau h2 { display: flex; align-items: center; justify-content: space-between; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); min-height: 20px; }
-.panneau h2 select, .panneau h2 .btn { font-size: 11.5px; text-transform: none; letter-spacing: 0; color: var(--text); font-weight: 400; }
+.panneau h2 { display: flex; align-items: center; justify-content: space-between; font-size: 12.5px; font-weight: 700; color: var(--muted); min-height: 20px; }
+.panneau h2 select, .panneau h2 .btn { font-size: 11.5px; color: var(--text); font-weight: 400; }
 .rang { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; color: var(--muted); }
 .rang input[type=range] { flex: 1; min-width: 0; }
 .rang input[type=text], .rang select { flex: 1; min-width: 0; color: var(--text); }
@@ -102,7 +102,7 @@ button.nuance:hover { outline: 1px solid #fff; }
 /* ---------- Collection ---------- */
 .frise { flex: none; background: var(--panel); border-top: 1px solid var(--line); }
 .frise-cmd { display: flex; align-items: center; gap: 6px; padding: 5px 8px 3px; color: var(--muted); }
-.frise-cmd strong { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .09em; }
+.frise-cmd strong { font-size: 12.5px; font-weight: 700; }
 .images { display: flex; gap: 4px; padding: 2px 8px 7px; overflow-x: auto; min-height: 92px; align-items: stretch; }
 .images .vide { align-self: center; color: var(--dim); padding: 0 4px; }
 .image { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; min-width: 76px; max-width: 110px; padding: 4px 5px 2px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel2); color: var(--muted); font-size: 11px; }

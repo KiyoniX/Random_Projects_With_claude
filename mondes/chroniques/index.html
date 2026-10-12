@@ -3,78 +3,128 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chroniques d'un monde</title>
+  <title>Un peu d’histoire · Guides de l’Écliptique</title>
+  <link rel="stylesheet" href="../guide.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <h1>Chroniques <em>d'un monde</em></h1>
-    <form class="seed" id="seedForm">
-      <label for="seed">Graine</label>
-      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-      <button type="submit" class="btn btn-ghost">Charger</button>
-      <button type="button" class="btn" id="newBtn">Autre monde</button>
-    </form>
+  <header class="courant">
+    <div class="courant-in">
+      <p class="collection">
+        <svg viewBox="0 0 22 12" aria-hidden="true"><ellipse cx="11" cy="6" rx="10" ry="4.2" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="17.6" cy="3" r="2.3" fill="currentColor"/></svg>
+        <b>Guides de l’Écliptique</b><span class="dest" id="gDest"></span>
+      </p>
+      <p class="folio"><span id="gSection">Un peu d’histoire</span><b id="gFolio">33</b></p>
+    </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <p class="eyebrow" id="origin"></p>
-      <h2 id="name"></h2>
-      <div class="hero-script" id="heroScript"></div>
-      <p class="synopsis" id="synopsis"></p>
-      <p class="links">
-        <a class="btn btn-ghost" id="toAtlas">La planète</a>
-        <a class="btn btn-ghost" id="toLang">La langue</a>
-      </p>
-    </section>
+  <nav class="onglets" aria-label="Chapitres du guide">
+    <a data-ch="planete" href="../atlas-des-mondes/index.html" id="toAtlas"><b>1</b>La planète</a>
+    <a data-ch="histoire" href="index.html" aria-current="page"><b>2</b>Un peu d’histoire</a>
+    <a data-ch="langue" href="../langues-inventees/index.html" id="toLang"><b>3</b>Conversation</a>
+  </nav>
 
-    <div id="story">
-      <section class="block">
-        <div class="block-head">
-          <h3>La frise</h3>
-          <div class="play">
-            <button type="button" class="btn" id="play">▶ Dérouler</button>
-            <label for="year">An <output id="yearOut">1</output></label>
-            <input id="year" type="range" min="1" max="1000" step="1" value="1">
+  <div class="livre">
+    <aside class="marge">
+      <nav class="sommaire" aria-label="Dans ce chapitre">
+        <h2>Dans ce chapitre</h2>
+        <ul id="gSommaire"></ul>
+      </nav>
+      <div class="encadre gris marge-note" id="margeNote">
+        <p class="etiquette">Bon à savoir</p>
+        <p>Les années sont celles de la planète. Chaque fait est rapporté dans la langue de son époque : plus il est ancien, plus elle s’éloigne de celle d’aujourd’hui.</p>
+      </div>
+    </aside>
+
+    <main class="page">
+      <section class="couverture" id="couverture" data-folio="33" data-courant="Un peu d’histoire">
+        <div class="bandeau">
+          <p class="marque"><span><b>Guides de l’Écliptique</b>, destinations hors système</span><span>Chapitre 2, un peu d’histoire</span></p>
+          <h1>Un peu d’histoire</h1>
+          <p class="sous-titre"><span id="name"></span><span id="origin"></span></p>
+        </div>
+        <form class="destination" id="seedForm">
+          <label for="seed" title="La graine dont tout le guide est tiré">Destination nº</label>
+          <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+          <button type="submit" class="bouton">Ouvrir ce guide</button>
+          <button type="button" class="bouton plein" id="newBtn">Un autre monde</button>
+        </form>
+        <div class="entree" id="entree">
+          <p class="synopsis" id="synopsis"></p>
+          <figure class="specimen" id="heroFig">
+            <div id="heroScript"></div>
+            <figcaption><span class="indigene" id="heroRoman"></span><br>« Nous avons raconté notre histoire. »</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <div id="story">
+        <section class="rubrique" id="frise-rub" data-folio="36" data-titre="Repères chronologiques">
+          <div class="tete">
+            <h2>Repères chronologiques</h2>
+            <div class="play">
+              <button type="button" class="bouton plein" id="play">Dérouler les mille ans</button>
+              <label for="year" class="lineale">An <output id="yearOut">1</output></label>
+              <input id="year" type="range" min="1" max="1000" step="1" value="1">
+            </div>
           </div>
-        </div>
-        <div class="frise" id="frise"></div>
-        <ul class="legend" id="legend"></ul>
-      </section>
+          <div class="frise" id="frise"></div>
+          <ul class="legende-frise lineale" id="legend"></ul>
+        </section>
 
-      <section class="block now">
-        <div class="map-wrap">
-          <canvas id="map" width="720" height="360" aria-label="Carte du monde à l'année choisie"></canvas>
-          <p class="map-note" id="mapNote"></p>
-        </div>
-        <article class="detail" id="detail"></article>
-      </section>
+        <section class="rubrique" id="carte" data-folio="38" data-titre="La carte au fil des siècles">
+          <div class="tete"><h2>La carte au fil des siècles</h2><p class="chapo">Les numéros sont ceux de la carte générale du chapitre 1 ; une croix marque une cité disparue.</p></div>
+          <div class="now">
+            <div class="map-wrap">
+              <div class="carte-cadre">
+                <canvas id="map" width="720" height="360" tabindex="0" aria-label="Carte du monde à l’année choisie. Molette ou touches plus et moins pour zoomer, flèches pour déplacer, zéro pour revoir la carte entière." aria-describedby="carteAide"></canvas>
+                <div class="carte-outils" id="mapOutils">
+                  <button type="button" class="bouton" data-zoom="plus" aria-label="Zoomer">+</button>
+                  <button type="button" class="bouton" data-zoom="moins" aria-label="Dézoomer">−</button>
+                  <button type="button" class="bouton" data-zoom="tout" disabled>Carte entière</button>
+                </div>
+              </div>
+              <p class="sonde lineale" id="mapNote"></p>
+              <p class="note-ligne carte-aide" id="mapSonde">Survolez une cité pour savoir quand elle fut fondée ; un clic mène à sa fondation.</p>
+              <p class="note-ligne" id="carteAide">Molette pour zoomer, glisser pour déplacer ; la carte boucle d’est en ouest. Touche 0 pour revoir la carte entière.</p>
+            </div>
+            <article class="detail encadre" id="detail" aria-live="polite"></article>
+          </div>
+        </section>
 
-      <section class="block">
-        <div class="block-head"><h3>La chronique</h3><p class="block-sub">Chaque événement est raconté dans la langue de son époque. Plus un texte est ancien, plus sa langue s'éloigne de celle d'aujourd'hui.</p></div>
-        <div id="chronicle"></div>
-      </section>
+        <section class="rubrique" id="chronique-rub" data-folio="40" data-titre="Dates clés">
+          <div class="tete"><h2>Dates clés</h2><p class="chapo">Choisissez une date : la carte et la notice s’y reportent.</p></div>
+          <div id="chronicle"></div>
+        </section>
 
-      <section class="block">
-        <div class="block-head"><h3>Les pouvoirs</h3></div>
-        <div class="powers" id="powers"></div>
-      </section>
+        <section class="rubrique" id="pouvoirs" data-folio="46" data-titre="Souverains et guerres">
+          <div class="tete"><h2>Souverains et guerres</h2></div>
+          <div class="powers" id="powers"></div>
+          <div id="wars"></div>
+        </section>
 
-      <section class="block">
-        <div class="block-head"><h3>Aujourd'hui, an 1000</h3><p class="block-sub">L'état décrit par l'Atlas des mondes.</p></div>
-        <div class="table-wrap"><table id="today"></table></div>
-      </section>
-    </div>
-    <p class="note" id="noPeople" hidden></p>
-  </main>
+        <section class="rubrique" id="aujourdhui" data-folio="50" data-titre="Aujourd’hui, an 1000">
+          <div class="tete"><h2>Aujourd’hui, an 1000</h2><p class="chapo">L’état des lieux que décrit le chapitre 1.</p></div>
+          <div class="defile"><table class="tableau" id="today"></table></div>
+        </section>
+      </div>
+      <div class="encadre gris sans-histoire" id="noPeople" hidden></div>
 
-  <footer class="foot">Même graine, même histoire. Les années sont celles de la planète.</footer>
+      <nav class="suite" aria-label="Suite du guide">
+        <a data-ch="planete" href="../atlas-des-mondes/index.html">Chapitre 1, page 7<b>La planète</b>Climat, carte générale, milieux naturels, villes et étapes.</a>
+        <a data-ch="langue" href="../langues-inventees/index.html">Chapitre 3, page 53<b>Petit guide de conversation</b>Prononciation, expressions utiles, écriture.</a>
+      </nav>
+    </main>
+  </div>
+
+  <footer class="acheve">Même numéro de destination (la graine), même histoire. Les années sont celles de la planète.</footer>
 
   <script src="../langues-inventees/lang.js"></script>
   <script src="../atlas-des-mondes/planet.js"></script>
   <script src="../atlas-des-mondes/life.js"></script>
   <script src="hist.js"></script>
+  <script src="../guide.js"></script>
   <script src="app.js"></script>
+  <script src="../../portail/site.js"></script>
 </body>
 </html>

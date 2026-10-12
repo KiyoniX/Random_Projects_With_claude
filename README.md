@@ -22,10 +22,12 @@ Pour tout parcourir, ouvrir `index.html` à la racine : c'est un portail qui pr�
 | `tuiles` | Éditeur de cartes en tuiles : calques, collisions, objets, raccords automatiques, mode d'essai, export JSON et Tiled. Reprend les tuiles de Textures et les sprites d'Atelier Pixel. | Ouvrir `index.html` |
 | `police-pixel` | Éditeur de polices en pixels, accents français compris, qui exporte de vrais fichiers TTF et WOFF. | Ouvrir `index.html` |
 | `chiptune` | « La Puce à l'oreille » : séquenceur 8 bits à cinq voix, atelier de bruitages, export WAV, et un `lecteur.js` que les jeux peuvent charger pour avoir du son. | Ouvrir `index.html` |
-| `mondes` | Trois pages reliées qui construisent un univers à partir d'une graine (voir ci-dessous). | Ouvrir `atlas-des-mondes/index.html` |
+| `mondes` | Trois pages reliées qui construisent un univers à partir d'une graine, présentées comme les trois chapitres d'un guide de voyage (voir ci-dessous). | Ouvrir `atlas-des-mondes/index.html` |
 | `erosion-rust` | Simulateur d'érosion en Rust : eau, gel, chimie, vent, glaciers et végétation, avec vingt paramètres. | `cargo run --release` |
 
 Les projets web tournent sans installation ni connexion.
+
+Chaque projet a sa propre identité visuelle, tirée de son sujet. Le principe, les couleurs et les polices de chacun, et la marche à suivre pour en ajouter un sont décrits dans [`DIRECTION-ARTISTIQUE.md`](DIRECTION-ARTISTIQUE.md).
 
 Plusieurs projets se renvoient l'un à l'autre et partagent du code, ils doivent donc rester côte à côte : une cité de l'atlas (`mondes`) ouvre son plan (`plans-de-ville`), et un plan ouvre ses catacombes (`cartes-et-cachots`), son siège (`siege`), sa rivière (`riviere`) et sa visite à pied (`visite`). `textures` et `palettes` exportent vers `atelier-pixel` ; `palettes` et `tuiles` chargent le moteur de `textures`. Le dossier `portail` contient la page d'accueil.
 

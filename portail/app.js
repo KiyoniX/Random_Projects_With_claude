@@ -8,21 +8,22 @@
 
   // hash : ce que le projet attend après le « # » pour une graine donnée ; absent, il n'en utilise pas.
   // w, h : largeur et hauteur de la tranche, en pixels. cmd : projet à lancer en ligne de commande, sans page ; link : où mène alors sa boîte.
+  // lourd : la page calcule trop au chargement pour tourner en aperçu vivant ; sa boîte garde la vignette.
   function plain(s) { return encodeURIComponent(s); }
   function town(s) { return encodeURIComponent(s) + '/ville'; }
 
   var SHELVES = [
     {
-      title: 'Un même univers', note: 'La graine d\'une planète donne ses cités, chaque cité son plan, et chaque plan ses catacombes, son siège et sa rivière.',
+      title: 'Un même univers', note: 'La graine d\'une planète donne ses cités, chaque cité son plan, et chaque plan ses catacombes, son siège, sa rivière et sa visite à pied.',
       items: [
-        { id: 'atlas', title: 'Atlas des mondes', dir: 'mondes/atlas-des-mondes', hash: plain, kind: 'Générateur', w: 86, h: 318, text: 'Une planète entière : climat, biomes, espèces, peuple et cités.' },
-        { id: 'langues', title: 'Fabrique de langues', dir: 'mondes/langues-inventees', hash: plain, kind: 'Générateur', w: 62, h: 300, text: 'La langue du peuple : sons, grammaire, écriture, traduction du français.' },
-        { id: 'chroniques', title: 'Chroniques d\'un monde', dir: 'mondes/chroniques', hash: plain, kind: 'Générateur', w: 70, h: 310, text: 'Mille ans d\'histoire : guerres, cités et souverains sur une carte animée.' },
+        { id: 'atlas', title: 'Atlas des mondes', dir: 'mondes/atlas-des-mondes', hash: plain, kind: 'Générateur', w: 86, h: 318, text: 'Le guide de voyage d\'une planète entière : climat, milieux naturels, espèces, peuple, villes et étapes.' },
+        { id: 'chroniques', title: 'Chroniques d\'un monde', dir: 'mondes/chroniques', hash: plain, kind: 'Générateur', w: 70, h: 310, text: 'Le chapitre d\'histoire : mille ans de guerres, de cités et de souverains sur une carte animée.' },
+        { id: 'langues', title: 'Fabrique de langues', dir: 'mondes/langues-inventees', hash: plain, kind: 'Générateur', w: 62, h: 300, text: 'Le guide de conversation : prononciation, expressions utiles, grammaire, écriture, traduction du français.' },
         { id: 'plans', title: 'Plans de ville', dir: 'plans-de-ville', hash: town, kind: 'Générateur', w: 78, h: 290, text: 'Une ville médiévale sur parchemin : remparts, quartiers, parcelles, champs.' },
         { id: 'cachots', title: 'Cartes & Cachots', dir: 'cartes-et-cachots', hash: plain, kind: 'Jeu de dix minutes', w: 66, h: 276, text: 'Un donjon en caractères, des combats de cartes, un dragon au fond.' },
         { id: 'siege', title: 'Sièges de villes', dir: 'siege', hash: town, kind: 'Jeu', w: 72, h: 290, text: 'Les assaillants arrivent par les routes du plan : à toi de tenir les portes.' },
-        { id: 'riviere', title: 'Rivières et moulins', dir: 'riviere', hash: town, kind: 'Jeu', w: 72, h: 290, text: 'Un fleuve traverse la ville : pose ponts et moulins sans l\'inonder.' },
-        { id: 'visite', title: 'Visite de la ville', dir: 'visite', hash: town, kind: 'Promenade en 3D', w: 76, h: 302, text: 'La ville du plan montée en volumes, à parcourir à pied par les rues et les portes.' }
+        { id: 'riviere', title: 'Rivières et moulins', dir: 'riviere', hash: town, lourd: true, kind: 'Jeu', w: 72, h: 290, text: 'Un fleuve traverse la ville : pose ponts et moulins sans l\'inonder.' },
+        { id: 'visite', title: 'Visite de la ville', dir: 'visite', hash: town, lourd: true, kind: 'Promenade en 3D', w: 76, h: 302, text: 'La ville du plan montée en volumes, à parcourir à pied par les rues et les portes.' }
       ]
     },
     {
@@ -72,7 +73,7 @@
   // ---------- Étagères ----------
   // Le titre court sur toute la hauteur de la tranche : son corps s'ajuste à sa longueur.
   function spine(it) {
-    var size = Math.max(13, Math.min(21, (it.h - (it.id === 'enquete' || it.id === 'tycoon' ? 110 : 74)) / (it.title.length * 0.6)));
+    var size = Math.max(13, Math.min(21, (it.h - (it.id === 'enquete' || it.id === 'tycoon' ? 110 : it.dir.indexOf('mondes/') === 0 ? 130 : 74)) / (it.title.length * 0.6)));
     var inner = '<span class="name">' + esc(it.title) + '</span>' + (it.hash ? '<span class="dot" title="Suit la graine commune"></span>' : '');
     var attrs = ' class="box b-' + it.id + '" data-id="' + it.id + '" style="--w:' + it.w + 'px;--h:' + it.h + 'px;--fs:' + size.toFixed(1) + 'px"';
     return '<a' + attrs + ' href="' + esc(url(it)) + '">' + inner + '</a>';
@@ -99,7 +100,7 @@
   // La vraie page du projet remplace la vignette, réduite à la taille du couvercle.
   function wake() {
     var cover = $('#table .cover'), frame;
-    if (!cover || current.cmd || cover.querySelector('iframe')) return;
+    if (!cover || current.cmd || current.lourd || cover.querySelector('iframe')) return;
     frame = document.createElement('iframe');
     frame.src = url(current);
     frame.tabIndex = -1;
