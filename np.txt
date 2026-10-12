@@ -1,0 +1,18 @@
+Questions en attente
+====================
+
+1. Clavier français
+   Sur un clavier AZERTY, les chiffres de la rangée du haut tapés sans Maj
+   envoient « & é " ' ( » et non « 1 2 3 4 5 ». Dans cartes-et-cachots, les
+   touches 1 à 9 ne jouent donc aucune carte, sauf avec Maj ou au pavé
+   numérique. D'autres jeux à raccourcis chiffrés sont probablement concernés
+   (defense-ascii, chiptune), ce qui n'a pas été vérifié.
+   Faut-il corriger cela partout, en lisant la position de la touche plutôt
+   que le caractère ?
+
+2. Ville à règles
+   Le commit 49f3284 embarque dans city.js ses propres sin, cos et atan2 pour
+   que la même graine donne la même ville dans tous les navigateurs. Prix
+   mesuré dans Chrome : 3 villes sur 120 changent visiblement (par exemple
+   moulin-382 en radial passe de 257 à 260 parcelles).
+   Faut-il garder ce bloc, ou le retirer ?
