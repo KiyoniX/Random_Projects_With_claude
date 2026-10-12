@@ -116,9 +116,30 @@
       '<ul class="adapt" style="margin-top:1rem">' + b.adapt.map(function (a) { return '<li><span>' + esc(a.cause) + '</span>' + esc(a.effect) + '</li>'; }).join('') + '</ul>' +
       '</div><div class="cities"><h5>Ses ' + p.tech.word + ' · points blancs sur la carte</h5><ul>' +
       p.cities.map(function (c, r) {
-        return '<li><span class="rank">' + (r + 1) + '</span><span class="cname">' + esc(c.name) + '<small>' + PG.BIOMES[c.biome].name + '</small></span><span class="cpop">' + PG.count(c.pop, 'habitants') + '</span></li>';
+        var plan = planLink(c, r);
+        return '<li><span class="rank">' + (r + 1) + '</span><span class="cname">' + (plan ? '<a href="' + esc(plan) + '" title="Voir le plan de la ville">' + esc(c.name) + '</a>' : esc(c.name)) +
+          '<small>' + PG.BIOMES[c.biome].name + '</small></span><span class="cpop">' + PG.count(c.pop, 'habitants') + '</span></li>';
       }).join('') +
-      '</ul></div></div>' + languageCard(p);
+      '</ul>' + (p.aquatic ? '' : '<p class="cities-hint">Cliquez sur un nom, ou sur un point de la carte, pour ouvrir le plan de la ville.</p>') + '</div></div>' + languageCard(p);
+  }
+
+  // Plan d'une ville, tracé par le projet « plans-de-ville » : la graine, la taille et la campagne viennent de la planète.
+  function planLink(c, r) {
+    var p = state.life.people, b = c.biome;
+    if (p.aquatic) return '';
+    var size = p.level === 0 ? 'bourg' : p.level === 1 ? (r === 0 ? 'ville' : 'bourg') : r === 0 ? 'cite' : r < 3 ? 'ville' : 'bourg';
+    var milieu = b === B.ICE || b === B.TUNDRA || b === B.COLD_STEPPE ? 'froid' : b === B.TAIGA || b === B.FOREST || b === B.JUNGLE ? 'foret' : b === B.ARID || b === B.DESERT ? 'aride' : '';
+    return '../../plans-de-ville/index.html#' + encodeURIComponent(state.seed + '-' + c.name) + '/' + size + '?' +
+      new URLSearchParams({ nom: c.name, peuple: p.name, milieu: milieu, ancienne: p.level >= 3 ? '1' : '0', atlas: address() });
+  }
+  function cityAt(e, canvas) {
+    var people = state.life && state.life.people, r = canvas.getBoundingClientRect(), found = -1;
+    if (!people || people.aquatic) return -1;
+    var x = (e.clientX - r.left) / r.width * W, y = (e.clientY - r.top) / r.height * H;
+    people.cities.forEach(function (c, n) {
+      if (found < 0 && (c.i - x) * (c.i - x) + (c.j - y) * (c.j - y) < 81) found = n;
+    });
+    return found;
   }
 
   function languageCard(p) {
@@ -221,6 +242,11 @@
     $('#probe').textContent = PG.BIOMES[pl.biome[k]].name + ' · ' + fr(pl.T[k], 0) + ' °C · ' +
       (a < 0 ? 'profondeur ' + fr(-a * 1000, 0) + ' m' : 'altitude ' + fr(a * 1000, 0) + ' m · humidité ' + fr(pl.M[k] * 100, 0) + ' %') +
       ' · latitude ' + fr(Math.abs(lat), 0) + '° ' + (lat >= 0 ? 'N' : 'S');
+    this.style.cursor = cityAt(e, this) < 0 ? '' : 'pointer';
+  });
+  $('#map').addEventListener('click', function (e) {
+    var n = cityAt(e, this);
+    if (n >= 0) location.href = planLink(state.life.people.cities[n], n);
   });
 
   // Rotation du globe à la souris ou au doigt

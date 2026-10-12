@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Usine à la chaîne</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bandeau">
+    <h1>Usine <span>à la chaîne</span></h1>
+    <p class="titre"><span id="num"></span><b id="nom"></b><span id="record" class="etoiles"></span></p>
+    <nav>
+      <button type="button" class="btn" data-act="niveaux">Niveaux</button>
+      <button type="button" class="btn" data-act="bac">Bac à sable</button>
+      <button type="button" class="btn" data-act="aide">Aide</button>
+    </nav>
+  </header>
+
+  <main class="atelier">
+    <section class="scene">
+      <div class="cadre" id="cadre">
+        <canvas id="vue" aria-label="Plan de l'usine"></canvas>
+        <div class="bulle" id="bulle" hidden></div>
+        <div class="coin">
+          <button type="button" class="btn" data-act="zoomMoins" title="Dézoomer (molette)">−</button>
+          <button type="button" class="btn" data-act="cadrer" title="Recadrer (touche C)">Cadrer</button>
+          <button type="button" class="btn" data-act="zoomPlus" title="Zoomer (molette)">+</button>
+        </div>
+      </div>
+      <div class="etabli">
+        <div class="palette" id="palette" role="toolbar" aria-label="Pièces"></div>
+        <div class="choix" id="choix" hidden></div>
+        <div class="gestes">
+          <button type="button" class="btn" data-act="pipette" title="Copier la pièce survolée (touche Q)">Pipette</button>
+          <button type="button" class="btn" data-act="gomme" title="Enlever en glissant (touche G, ou clic droit)">Gomme</button>
+          <button type="button" class="btn" data-act="tourner" title="Tourner (touche R)">Tourner <b id="fleche">→</b></button>
+          <button type="button" class="btn" data-act="annuler" title="Ctrl+Z">Annuler</button>
+          <button type="button" class="btn" data-act="retablir" title="Ctrl+Y">Rétablir</button>
+          <button type="button" class="btn" data-act="vider">Tout enlever</button>
+          <button type="button" class="btn" data-act="meilleur" id="meilleur" hidden>Reprendre ma meilleure solution</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="tableau">
+      <section class="bloc consigne">
+        <h2 id="idee"></h2>
+        <p id="texte"></p>
+      </section>
+
+      <section class="bloc" id="blocObjectifs">
+        <h2>Objectifs <span id="etat" class="etat"></span></h2>
+        <ul class="objectifs" id="objectifs"></ul>
+        <div class="jauge" title="Le débit doit tenir 30 secondes de jeu"><i id="tenue"></i></div>
+        <p class="bravo" id="bravo" hidden></p>
+        <button type="button" class="btn fort" id="suivant" data-act="suivant" hidden>Niveau suivant →</button>
+      </section>
+
+      <section class="bloc">
+        <h2>Mesures</h2>
+        <dl class="mesures">
+          <div id="mDebit"><dt>Débit</dt><dd><b id="vDebit">0</b><span>/min</span></dd><dd class="rec" id="rDebit"></dd></div>
+          <div><dt>Coût</dt><dd><b id="vCout">0</b></dd><dd class="rec" id="rCout"></dd></div>
+          <div><dt>Emprise</dt><dd><b id="vEmprise">0</b><span>cases</span></dd><dd class="rec" id="rEmprise"></dd></div>
+        </dl>
+        <ul class="sorties" id="sorties"></ul>
+      </section>
+
+      <section class="bloc">
+        <h2>Simulation <span class="etat" id="horloge"></span></h2>
+        <div class="groupe">
+          <button type="button" class="btn" data-act="pause" id="pause" title="Espace">Pause</button>
+          <button type="button" class="btn" data-act="pas" title="Touche N">Pas à pas</button>
+          <button type="button" class="btn" data-act="relancer" title="Vide les tapis et repart de zéro">Relancer</button>
+        </div>
+        <div class="groupe" id="vitesses">
+          <button type="button" class="btn" data-vit="0">×1</button>
+          <button type="button" class="btn" data-vit="1">×2</button>
+          <button type="button" class="btn" data-vit="2">×4</button>
+          <button type="button" class="btn" data-vit="3" title="Avance rapide">×16</button>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Recettes</h2>
+        <ul class="recettes" id="recettes"></ul>
+      </section>
+    </aside>
+  </main>
+
+  <div class="voile" id="niveaux" hidden>
+    <div class="fenetre">
+      <header><h2>Carnet de commandes</h2><button type="button" class="btn" data-act="fermer">Fermer</button></header>
+      <div class="grille" id="grille"></div>
+    </div>
+  </div>
+
+  <div class="voile" id="aide" hidden>
+    <div class="fenetre etroite">
+      <header><h2>Comment ça marche</h2><button type="button" class="btn" data-act="fermer">Fermer</button></header>
+      <p><b>Le but.</b> Les sources déversent des matières, les caisses en attendent d'autres. Entre les deux, tu poses des tapis et des machines. Quand le débit demandé tient trente secondes de jeu, le niveau est réussi. Deux étoiles de plus récompensent une usine plus rapide, moins chère ou plus ramassée&nbsp;: rarement tout à la fois.</p>
+      <p><b>Poser.</b> Choisis une pièce (<kbd>1</kbd> à <kbd>9</kbd>), tourne-la avec <kbd>R</kbd>, clique. Les tapis se tracent en glissant la souris. Clic droit (ou la gomme, <kbd>G</kbd>) pour enlever, <kbd>Q</kbd> pour copier la pièce survolée, <kbd>Échap</kbd> pour lâcher l'outil, <kbd>Ctrl</kbd>+<kbd>Z</kbd> et <kbd>Ctrl</kbd>+<kbd>Y</kbd> pour annuler et rétablir. Chaque retouche relance la chaîne à vide.</p>
+      <p><b>Les règles.</b> Une case de tapis porte un objet. Quand ça ne peut plus avancer, toute la file attend. Une machine prend par l'arrière et les côtés, rend par l'avant (la flèche cuivrée) et n'accepte que ce qui entre dans une de ses recettes. Sur un tapis, l'arrière passe avant la gauche, la gauche avant la droite.</p>
+      <p><b>Le diagnostic.</b> Un triangle orange marque une machine qui attend un ingrédient, un carré rouge une machine ou une source qui ne peut plus rien sortir. Survole une pièce pour le détail. Pause <kbd>Espace</kbd>, pas à pas <kbd>N</kbd>.</p>
+      <p><b>La vue.</b> Molette pour zoomer, clic du milieu ou <kbd>Maj</kbd>+glisser pour déplacer, <kbd>C</kbd> pour recadrer.</p>
+      <button type="button" class="btn fort" data-act="fermer">Au travail</button>
+    </div>
+  </div>
+
+  <script src="donnees.js"></script>
+  <script src="sim.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

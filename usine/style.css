@@ -1,0 +1,127 @@
+:root {
+  --fond: #10181e;
+  --tole: #1a242c;
+  --tole2: #222f39;
+  --rivet: #33434f;
+  --texte: #dfe6ea;
+  --sourd: #8b9aa5;
+  --cuivre: #d98a4e;
+  --laiton: #e6bd5a;
+  --vert: #7fd08a;
+  --rouge: #e8695a;
+  --orange: #f0a13c;
+  font-family: Bahnschrift, 'DIN Alternate', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--fond); color: var(--texte); font-size: 14px; line-height: 1.45; display: flex; flex-direction: column; overflow: hidden; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+ul { list-style: none; }
+:focus-visible { outline: 2px solid var(--laiton); outline-offset: 2px; }
+[hidden] { display: none !important; }
+kbd { font: inherit; font-size: .85em; padding: 0 .35em; border: 1px solid var(--rivet); border-bottom-width: 2px; border-radius: 3px; background: var(--fond); }
+
+.btn { padding: .3rem .7rem; border: 1px solid var(--rivet); border-radius: 3px; background: var(--tole2); color: var(--texte); white-space: nowrap; }
+.btn:hover { border-color: var(--cuivre); }
+.btn.actif { background: var(--cuivre); border-color: var(--cuivre); color: #1a120a; font-weight: 600; }
+.btn.fort { background: var(--laiton); border-color: var(--laiton); color: #1c1606; font-weight: 700; padding: .45rem 1rem; }
+.btn:disabled { opacity: .4; cursor: default; }
+
+/* ---------- Bandeau ---------- */
+.bandeau { display: flex; align-items: center; gap: 1.25rem; padding: .5rem 1rem; background: var(--tole); border-bottom: 2px solid var(--cuivre); flex-wrap: wrap; }
+.bandeau h1 { font-size: 1.2rem; letter-spacing: .08em; text-transform: uppercase; }
+.bandeau h1 span { color: var(--cuivre); font-weight: 400; }
+.titre { flex: 1; display: flex; align-items: baseline; gap: .6rem; min-width: 12rem; }
+.titre span { color: var(--sourd); font-size: .8rem; text-transform: uppercase; letter-spacing: .08em; }
+.titre b { font-size: 1.05rem; }
+.bandeau nav { display: flex; gap: .4rem; }
+.etoiles { color: var(--laiton); letter-spacing: .1em; }
+.titre .etoiles { font-size: 1rem; color: var(--laiton); }
+
+/* ---------- Atelier ---------- */
+.atelier { flex: 1; display: flex; min-height: 0; }
+.scene { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.cadre { flex: 1; position: relative; min-height: 0; background: var(--fond); }
+#vue { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.coin { position: absolute; right: .6rem; top: .6rem; display: flex; gap: .25rem; opacity: .85; }
+.coin .btn { padding: .15rem .55rem; }
+.bulle { position: absolute; max-width: 17rem; padding: .45rem .6rem; background: #0b1116f2; border: 1px solid var(--cuivre); border-radius: 3px; font-size: .82rem; pointer-events: none; z-index: 2; }
+.bulle b { color: var(--laiton); }
+.bulle .alerte { color: var(--orange); }
+.bulle .bloque { color: var(--rouge); }
+
+.etabli { background: var(--tole); border-top: 1px solid var(--rivet); padding: .5rem .75rem; display: flex; flex-direction: column; gap: .45rem; }
+.palette { display: flex; flex-wrap: wrap; gap: .35rem; }
+.piece { display: flex; flex-direction: column; align-items: center; gap: .1rem; width: 4.5rem; padding: .3rem .2rem .25rem; border: 1px solid var(--rivet); border-radius: 3px; background: var(--tole2); position: relative; font-size: .78rem; }
+.piece:hover { border-color: var(--cuivre); }
+.piece.actif { border-color: var(--laiton); background: #3a3320; box-shadow: inset 0 0 0 1px var(--laiton); }
+.piece canvas { width: 40px; height: 40px; }
+.piece i { position: absolute; left: .3rem; top: .15rem; font-style: normal; color: var(--sourd); font-size: .7rem; }
+.piece u { position: absolute; right: .3rem; top: .15rem; text-decoration: none; color: var(--laiton); font-size: .72rem; }
+.choix, .gestes { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+.choix span { color: var(--sourd); font-size: .78rem; margin-right: .2rem; }
+.choix .sep { width: 1rem; }
+.puce { display: inline-flex; align-items: center; gap: .3rem; padding: .15rem .45rem .15rem .25rem; border: 1px solid var(--rivet); border-radius: 3px; background: var(--tole2); font-size: .78rem; }
+.puce.actif { border-color: var(--laiton); background: #3a3320; }
+.puce canvas, .ico { width: 20px; height: 20px; vertical-align: middle; }
+#fleche { color: var(--laiton); display: inline-block; width: 1em; text-align: center; }
+
+/* ---------- Tableau ---------- */
+.tableau { width: 21rem; flex: none; overflow-y: auto; background: var(--tole); border-left: 1px solid var(--rivet); padding: .6rem; display: flex; flex-direction: column; gap: .6rem; }
+.bloc { background: var(--tole2); border: 1px solid var(--rivet); border-radius: 3px; padding: .6rem .7rem; }
+.bloc h2 { font-size: .74rem; text-transform: uppercase; letter-spacing: .1em; color: var(--sourd); margin-bottom: .4rem; display: flex; justify-content: space-between; gap: .5rem; }
+.consigne h2 { color: var(--cuivre); font-size: .85rem; }
+.consigne p { font-size: .9rem; }
+.etat { text-transform: none; letter-spacing: 0; color: var(--texte); }
+.objectifs li { display: flex; gap: .5rem; align-items: baseline; padding: .15rem 0; color: var(--sourd); }
+.objectifs li b { color: var(--rivet); font-size: 1.05rem; flex: none; width: 3.2em; letter-spacing: .05em; }
+.objectifs li.ok { color: var(--texte); }
+.objectifs li.ok b { color: var(--laiton); }
+.jauge { height: 6px; background: var(--fond); border-radius: 3px; margin-top: .45rem; overflow: hidden; }
+.jauge i { display: block; height: 100%; width: 0; background: var(--vert); }
+.bravo { margin-top: .5rem; color: var(--vert); }
+#suivant { margin-top: .5rem; width: 100%; }
+.mesures { display: flex; gap: .5rem; }
+.mesures > div { flex: 1; }
+.mesures dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--sourd); }
+.mesures dd b { font-size: 1.35rem; }
+.mesures dd span { color: var(--sourd); font-size: .75rem; margin-left: .2rem; }
+.mesures dd.rec { font-size: .72rem; color: var(--laiton); min-height: 1.1em; }
+.sorties { margin-top: .4rem; }
+.sorties li { display: flex; align-items: center; gap: .4rem; font-size: .85rem; padding: .1rem 0; }
+.sorties li b { margin-left: auto; }
+.sorties li.ok b { color: var(--vert); }
+.sorties li.ko b { color: var(--orange); }
+.groupe { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .35rem; }
+.groupe .btn { flex: 1; padding: .3rem .4rem; }
+.recettes li { display: flex; align-items: center; gap: .25rem; font-size: .8rem; padding: .12rem 0; flex-wrap: wrap; }
+.recettes li em { font-style: normal; color: var(--cuivre); width: 5.2rem; flex: none; }
+.recettes li span { color: var(--sourd); }
+.recettes li small { margin-left: auto; color: var(--sourd); }
+
+/* ---------- Fenêtres ---------- */
+.voile { position: fixed; inset: 0; background: #070b0ed9; display: flex; align-items: center; justify-content: center; padding: 1rem; z-index: 5; }
+.fenetre { background: var(--tole); border: 1px solid var(--rivet); border-top: 3px solid var(--cuivre); border-radius: 4px; padding: 1rem 1.2rem 1.2rem; width: min(64rem, 100%); max-height: 100%; overflow-y: auto; }
+.fenetre.etroite { width: min(38rem, 100%); }
+.fenetre header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .8rem; }
+.fenetre h2 { font-size: 1.1rem; letter-spacing: .06em; text-transform: uppercase; }
+.fenetre p { margin-bottom: .7rem; }
+.fenetre p b { color: var(--laiton); }
+.grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: .6rem; }
+.carte { text-align: left; padding: .6rem .7rem; background: var(--tole2); border: 1px solid var(--rivet); border-radius: 3px; display: flex; flex-direction: column; gap: .15rem; }
+.carte:hover:not(:disabled) { border-color: var(--cuivre); }
+.carte.ici { border-color: var(--laiton); }
+.carte:disabled { opacity: .45; cursor: default; }
+.carte small { color: var(--sourd); text-transform: uppercase; letter-spacing: .08em; font-size: .7rem; display: flex; justify-content: space-between; }
+.carte b { font-size: 1rem; }
+.carte span { color: var(--sourd); font-size: .85rem; }
+.carte .etoiles { color: var(--laiton); font-size: 1.1rem; }
+.carte .rec { font-size: .72rem; color: var(--sourd); }
+
+@media (max-width: 860px) {
+  body { overflow: auto; }
+  .atelier { flex-direction: column; }
+  .cadre { min-height: 60vh; }
+  .tableau { width: auto; border-left: 0; }
+}

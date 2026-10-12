@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Siège</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Siège <em id="city"></em></h1>
+    <form class="controls" id="setup">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <label for="size">Taille</label>
+      <select id="size">
+        <option value="bourg">Bourg</option>
+        <option value="ville" selected>Ville</option>
+        <option value="cite">Cité</option>
+      </select>
+      <button type="submit" class="btn main">Lancer</button>
+      <button type="button" class="btn" id="random">Au hasard</button>
+    </form>
+    <nav class="links">
+      <a class="btn" id="toPlan" href="../plans-de-ville/index.html">Retour au plan</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="stage">
+      <figure>
+        <div class="board" id="board">
+          <div class="map" id="plan"></div>
+          <canvas id="fx" aria-label="Champ de bataille"></canvas>
+          <div class="modal" id="modal" hidden></div>
+        </div>
+        <p class="hint" id="hint"> </p>
+        <figcaption id="caption"></figcaption>
+      </figure>
+
+      <aside class="side">
+        <dl class="hud">
+          <div><dt>Place</dt><dd id="lives"></dd></div>
+          <div><dt>Or</dt><dd id="gold"></dd></div>
+          <div><dt>Vague</dt><dd id="waveNo"></dd></div>
+          <div><dt>Score</dt><dd id="score"></dd></div>
+          <div><dt>Record</dt><dd id="best"></dd></div>
+        </dl>
+        <p class="msg" id="msg" aria-live="polite"></p>
+        <section>
+          <h2>Défenses</h2>
+          <div class="shop" id="shop"></div>
+          <div class="info" id="info"></div>
+        </section>
+        <section>
+          <h2>Portes</h2>
+          <div class="gates" id="gates"></div>
+        </section>
+        <section>
+          <h2>Prochain assaut</h2>
+          <div class="info wave" id="wave"></div>
+          <div class="ctl" id="ctl"></div>
+        </section>
+      </aside>
+    </div>
+    <p class="help">Les assaillants suivent les routes jusqu'aux portes ; une porte qui cède leur ouvre l'avenue, et la ville tombe quand douze d'entre eux atteignent la place. L'encre rouge montre la route de la prochaine vague. Souris : choisis une défense, clique un emplacement ; clic droit pour annuler. Clavier : 1 à 5 défenses, flèches et Entrée pour viser un emplacement, A améliorer, X vendre, R réparer la porte, H herse, N vague suivante, Espace pause, V vitesse, Échap annuler.</p>
+  </main>
+
+  <script src="../plans-de-ville/plan.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

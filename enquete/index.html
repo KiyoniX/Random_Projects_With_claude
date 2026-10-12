@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nuit blanche au manoir</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Nuit blanche <em>au manoir</em></h1>
+    <dl class="stats">
+      <div class="stat"><dt>Actions</dt><dd id="actions">0</dd></div>
+      <div class="stat"><dt>Heure</dt><dd id="horloge">minuit</dd></div>
+      <div class="stat"><dt>Fausses accusations</dt><dd id="fausses">0</dd></div>
+    </dl>
+    <form class="seed" id="seedForm">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <label for="niveau">Difficulté</label>
+      <select id="niveau">
+        <option value="facile">Facile</option>
+        <option value="normal">Normal</option>
+        <option value="difficile">Difficile</option>
+      </select>
+      <button type="submit" class="btn">Lancer</button>
+      <button type="button" class="btn" data-act="hasard">Au hasard</button>
+    </form>
+  </header>
+
+  <nav class="onglets" id="onglets"></nav>
+  <main id="screen"></main>
+
+  <footer class="help">
+    <h2>Règles de l'enquête</h2>
+    <ul>
+      <li>Chaque heure citée couvre la demi-heure qui suit : « 22 h » veut dire de 22 h à 22 h 30. Pendant une demi-heure, personne ne change de pièce.</li>
+      <li>Un innocent ne dit jamais rien de faux. Quand il nomme ceux qui étaient avec lui, il n'oublie personne. Il peut en revanche taire un moment de sa soirée, pour une raison sans rapport avec le crime.</li>
+      <li>Seul le coupable ment. Pendant la demi-heure du crime, il était seul avec la victime, dans une pièce où personne d'autre n'est entré. Rien de ce qu'il déclare n'est sûr.</li>
+      <li>Tant qu'un innocent voit la victime, elle est en vie : le crime n'a eu lieu ni pendant cette demi-heure ni avant.</li>
+      <li>Si deux récits se contredisent, le coupable est donc l'un des deux.</li>
+      <li>L'arme a été prise à l'endroit où elle est rangée : le coupable s'y trouvait au moment du crime, ou y est passé avant. Une arme que quelqu'un a vue à sa place n'a été prise qu'après ; une arme dont on a remarqué l'absence l'avait été avant.</li>
+      <li>Le crime a laissé du désordre dans la pièce. Une pièce fouillée où tout est en ordre est hors de cause, de même qu'une pièce dont un innocent explique le désordre.</li>
+      <li>Les indices matériels ne mentent pas.</li>
+      <li>Interroger, fouiller, examiner le corps ou confronter un suspect à une pièce du dossier coûte une action. Relire ne coûte rien. Une fausse accusation coûte deux actions. Quand il n'en reste plus, l'aube se lève : tu n'as plus droit qu'à une accusation.</li>
+    </ul>
+  </footer>
+
+  <div class="modal" id="modal" hidden></div>
+  <script src="game.js"></script>
+</body>
+</html>

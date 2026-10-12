@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Random Projects</title>
+  <link rel="stylesheet" href="portail/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="intro">
+      <h1>Random <em>Projects</em></h1>
+      <p>Des jeux, des outils et des mondes générés, tous jouables ici sans installation.</p>
+    </div>
+    <form class="seed" id="seedForm">
+      <label for="seed">Graine commune</label>
+      <div class="seed-row">
+        <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+        <button type="button" class="btn" id="random">Au hasard</button>
+      </div>
+      <p class="seed-help">Elle te suit d'un projet à l'autre : même graine, même planète, même ville, même donjon.</p>
+    </form>
+  </header>
+
+  <main id="shelves"></main>
+
+  <footer class="foot">Survole une carte pour voir le projet tourner. Tout fonctionne hors connexion.</footer>
+
+  <script src="portail/app.js"></script>
+</body>
+</html>

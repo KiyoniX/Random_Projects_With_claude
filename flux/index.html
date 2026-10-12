@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flux</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="cartouche">
+    <h1>Flux <span>banc d'essai hydraulique</span></h1>
+    <p class="titre"><span id="num">Niveau 1</span><b id="nom"></b></p>
+    <nav>
+      <button type="button" class="btn" data-act="niveaux">Niveaux</button>
+      <button type="button" class="btn" data-act="bac">Bac à sable</button>
+      <button type="button" class="btn" data-act="aide">Aide</button>
+    </nav>
+  </header>
+
+  <main class="banc">
+    <section class="scene">
+      <canvas id="vue" width="1000" height="500" aria-label="Plan du conduit et écoulement"></canvas>
+      <div class="reglages">
+        <div class="groupe" role="group" aria-label="Vue">
+          <span class="etiq">Vue</span>
+          <button type="button" class="btn" data-vue="vitesse">Vitesse</button>
+          <button type="button" class="btn" data-vue="pression">Pression</button>
+          <button type="button" class="btn" data-vue="tourbillon">Tourbillons</button>
+        </div>
+        <div class="groupe" role="group" aria-label="Simulation">
+          <span class="etiq">Simulation</span>
+          <button type="button" class="btn" data-act="pause">Pause</button>
+          <button type="button" class="btn" data-act="pas">Pas à pas</button>
+          <button type="button" class="btn" data-vit="0">Lente</button>
+          <button type="button" class="btn" data-vit="1">Normale</button>
+          <button type="button" class="btn" data-vit="2">Rapide</button>
+        </div>
+      </div>
+    </section>
+
+    <aside class="tableau">
+      <section class="bloc consigne">
+        <h2 id="idee"></h2>
+        <p id="texte"></p>
+      </section>
+
+      <section class="bloc mesure">
+        <h2>Débit utile <span id="etat" class="etat">Mesure en cours…</span></h2>
+        <p class="grand"><b id="debit">0,0</b><span id="etoiles" class="etoiles attente">☆☆☆</span></p>
+        <div class="jauge" id="jauge">
+          <i id="fill"></i>
+          <span class="seuil" id="seuil0"></span><span class="seuil" id="seuil1"></span><span class="seuil" id="seuil2"></span>
+        </div>
+        <div id="verdict">
+          <p class="seuils" id="seuils"></p>
+          <p class="record" id="record"></p>
+        </div>
+        <p class="regle" id="regle"></p>
+        <ul class="bouches" id="bouches"></ul>
+        <p class="bravo" id="bravo" hidden></p>
+        <button type="button" class="btn fort" id="suivant" data-act="suivant" hidden>Niveau suivant →</button>
+      </section>
+
+      <section class="bloc outils">
+        <h2>Outils</h2>
+        <div class="groupe">
+          <button type="button" class="btn outil" data-act="pinceau" title="Raccourci&nbsp;: B">Pinceau</button>
+          <button type="button" class="btn outil" data-act="gomme" title="Raccourci&nbsp;: G, ou clic droit">Gomme</button>
+        </div>
+        <label class="taille">Taille <b id="tailleVal">4</b>
+          <input id="taille" type="range" min="1" max="12" value="4">
+        </label>
+        <div class="budget" id="bPinceau"><span>Paroi à poser</span><b></b><div><i></i></div></div>
+        <div class="budget" id="bGomme"><span>Argile à retirer</span><b></b><div><i></i></div></div>
+        <div class="groupe">
+          <button type="button" class="btn" data-act="annuler" title="Ctrl+Z">Annuler</button>
+          <button type="button" class="btn" data-act="retablir" title="Ctrl+Y">Rétablir</button>
+          <button type="button" class="btn" data-act="zero">Remise à zéro</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div class="voile" id="niveaux" hidden>
+    <div class="fenetre">
+      <header><h2>Choisis un banc d'essai</h2><button type="button" class="btn" data-act="fermer">Fermer</button></header>
+      <div class="grille" id="grille"></div>
+    </div>
+  </div>
+
+  <div class="voile" id="aide" hidden>
+    <div class="fenetre etroite">
+      <header><h2>Comment ça marche</h2><button type="button" class="btn" data-act="fermer">Fermer</button></header>
+      <p><b>Le but.</b> Le fluide entre sous pression par la bouche bleue et cherche la sortie verte. Modifie le conduit pour faire passer le plus de débit possible. Dès que la mesure est stable, ton débit utile te vaut de une à trois étoiles&nbsp;; une étoile ouvre le niveau suivant.</p>
+      <p><b>Les matériaux.</b> L'acier (bleu hachuré) ne bouge pas. L'argile (ocre) s'efface à la gomme et se pose au pinceau. Rien ne se pose dans les zones rayées de rouge.</p>
+      <p><b>Les outils.</b> Pinceau <kbd>B</kbd>, gomme <kbd>G</kbd> ou clic droit, taille <kbd>+</kbd> <kbd>−</kbd>, annuler <kbd>Ctrl</kbd>+<kbd>Z</kbd>, rétablir <kbd>Ctrl</kbd>+<kbd>Y</kbd>. Le budget se compte par rapport au plan de départ&nbsp;: remettre une case comme elle était te la rembourse.</p>
+      <p><b>Le score.</b> Une bouche rouge est une fuite&nbsp;: ce qui y passe est retiré de ton débit. Quand il y a deux sorties A et B, seule la plus faible compte.</p>
+      <p><b>La simulation.</b> Pause <kbd>Espace</kbd>, pas à pas <kbd>N</kbd>, trois vitesses. Vues <kbd>1</kbd> vitesse, <kbd>2</kbd> pression, <kbd>3</kbd> tourbillons. L'écoulement met quelques secondes à s'établir après chaque retouche&nbsp;: regarde les traceurs, ils montrent où le fluide perd son élan.</p>
+      <button type="button" class="btn fort" data-act="fermer">Au travail</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

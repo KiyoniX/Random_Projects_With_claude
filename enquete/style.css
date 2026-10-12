@@ -1,0 +1,130 @@
+:root {
+  --bureau: #26221d;
+  --cuir: #33291f;
+  --kraft: #c9a56a;
+  --kraft-sombre: #a8834c;
+  --papier: #f2ead6;
+  --papier-2: #e9dfc6;
+  --encre: #2b2620;
+  --pale: #6d6252;
+  --trait: #cbbd9c;
+  --rouge: #a02a1e;
+  --vert: #3d6b45;
+  --ocre: #a5701a;
+  font-family: Georgia, 'Palatino Linotype', 'Book Antiqua', serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bureau); color: var(--papier); font-size: 16px; line-height: 1.5; min-height: 100vh; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: .45; }
+:focus-visible { outline: 2px solid var(--kraft); outline-offset: 2px; }
+
+/* ---------- Barre ---------- */
+.bar { display: flex; align-items: center; gap: 1.5rem; padding: .7rem 1.25rem; background: var(--cuir); border-bottom: 1px solid #000; flex-wrap: wrap; }
+.bar h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: .01em; }
+.bar h1 em { color: var(--kraft); }
+.stats { display: flex; gap: 1.5rem; flex: 1; flex-wrap: wrap; }
+.stat dt { font-size: .68rem; text-transform: uppercase; letter-spacing: .09em; color: var(--kraft); }
+.stat dd { font-family: 'Courier New', Courier, monospace; font-size: 1.1rem; font-weight: 700; }
+.seed { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.seed label { font-size: .68rem; text-transform: uppercase; letter-spacing: .09em; color: var(--kraft); }
+.seed input, .seed select { padding: .3rem .5rem; background: var(--bureau); border: 1px solid #5c4c39; border-radius: 3px; }
+.seed input { width: 9ch; }
+.seed .btn { color: var(--papier); border-color: #5c4c39; background: none; }
+.seed .btn:hover { border-color: var(--kraft); }
+
+/* ---------- Onglets ---------- */
+.onglets { display: flex; gap: .3rem; padding: 1rem 1.25rem 0; max-width: 76rem; margin: 0 auto; }
+.onglet { padding: .45rem 1.1rem; background: var(--kraft-sombre); color: var(--encre); border: 0; border-radius: 6px 6px 0 0; font-weight: 700; font-size: .95rem; }
+.onglet.on { background: var(--kraft); padding-bottom: .6rem; margin-top: -.15rem; }
+
+/* ---------- Chemise et feuilles ---------- */
+#screen { max-width: 76rem; margin: 0 auto; padding: 1.1rem 1.25rem 1.5rem; background: var(--kraft); color: var(--encre); border-radius: 0 6px 6px 6px; box-shadow: 0 12px 40px rgba(0, 0, 0, .5); }
+.feuille { position: relative; background: var(--papier); padding: 1.1rem 1.3rem; margin-bottom: 1rem; box-shadow: 1px 2px 5px rgba(60, 40, 10, .35); font-family: 'Courier New', Courier, monospace; font-size: .95rem; }
+.feuille h2 { font-size: .95rem; text-transform: uppercase; letter-spacing: .12em; border-bottom: 2px solid var(--encre); padding-bottom: .3rem; margin-bottom: .7rem; }
+.feuille h3 { font-size: .9rem; text-transform: uppercase; letter-spacing: .06em; margin: 1rem 0 .3rem; color: var(--rouge); }
+.feuille h4 { font-size: .9rem; margin: .8rem 0 .2rem; }
+.feuille ul { padding-left: 1.2rem; }
+.feuille li { margin-bottom: .25rem; }
+.feuille > p { margin-bottom: .6rem; }
+.tampon { position: absolute; top: .7rem; right: .9rem; padding: .1rem .5rem; border: 2px solid var(--rouge); color: var(--rouge); font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; transform: rotate(4deg); opacity: .85; }
+.piece { margin-bottom: .5rem; padding-left: .7rem; border-left: 3px solid var(--trait); }
+.piece.dit { border-left-color: var(--kraft-sombre); }
+.piece.tu { color: var(--pale); font-style: italic; }
+.mode { font-family: Georgia, serif; font-size: .88rem; color: var(--pale); }
+.rappel { font-size: .88rem; color: var(--pale); }
+.geste { font-family: Georgia, serif; font-style: italic; }
+.alerte { background: var(--rouge); color: #fff; padding: .6rem .9rem; margin-bottom: 1rem; font-weight: 700; }
+
+.haut { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; align-items: start; }
+.note { background: var(--papier-2); }
+.rubrique { font-size: .8rem; text-transform: uppercase; letter-spacing: .14em; margin: .4rem 0 .6rem; }
+
+/* ---------- Fiches ---------- */
+.fiches { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: .8rem; margin-bottom: 1.2rem; }
+.fiches.lieux { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); margin-bottom: 0; }
+.fiche { display: flex; flex-direction: column; gap: .35rem; background: var(--papier); padding: .8rem .9rem; border-top: 4px solid var(--encre); box-shadow: 1px 2px 4px rgba(60, 40, 10, .3); font-size: .88rem; line-height: 1.4; }
+.fiche h3 { font-family: 'Courier New', Courier, monospace; font-size: 1rem; }
+.fiche .etat { color: var(--pale); font-style: italic; }
+.gestes { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: auto; padding-top: .5rem; }
+.btn { padding: .32rem .8rem; background: none; border: 1px solid var(--pale); border-radius: 3px; color: var(--encre); font-family: Georgia, serif; font-size: .9rem; }
+.btn:hover:not(:disabled) { border-color: var(--encre); background: rgba(0, 0, 0, .06); }
+.btn.main, .btn.on { background: var(--encre); border-color: var(--encre); color: var(--papier); }
+.btn.main:hover:not(:disabled) { background: var(--rouge); border-color: var(--rouge); }
+
+/* ---------- Carnet ---------- */
+.carnet { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.carnet > div:last-child { position: sticky; top: 1rem; }
+.heures { display: flex; gap: .3rem; flex-wrap: wrap; margin: .6rem 0; }
+.heure { padding: .25rem .7rem; background: none; border: 1px solid var(--pale); border-radius: 3px; font-family: 'Courier New', Courier, monospace; font-weight: 700; }
+.heure.on { background: var(--encre); color: var(--papier); border-color: var(--encre); }
+.defile { overflow-x: auto; margin-bottom: .6rem; }
+.grille { border-collapse: collapse; width: 100%; font-size: .8rem; }
+.grille th { padding: .25rem .35rem; font-weight: 700; text-align: left; white-space: nowrap; }
+.grille thead th { text-align: center; font-size: .72rem; border-bottom: 2px solid var(--encre); }
+.grille td { border: 1px solid var(--trait); padding: 0; text-align: center; }
+.case { display: block; width: 100%; min-width: 2.2rem; height: 2.1rem; background: none; border: 0; font-size: 1.05rem; font-weight: 700; color: var(--trait); }
+.case:hover { background: rgba(0, 0, 0, .06); }
+.m-p { color: var(--vert); }
+.m-a { color: var(--rouge); }
+.m-d { color: var(--ocre); }
+.case.m-p { background: rgba(61, 107, 69, .14); }
+.case.m-a { background: rgba(160, 42, 30, .1); }
+.case.m-d { background: rgba(165, 112, 26, .14); }
+textarea { display: block; width: 100%; padding: .6rem; background: #fbf6e8; border: 1px solid var(--trait); resize: vertical; line-height: 1.5; }
+
+/* ---------- Accusation et dénouement ---------- */
+.acte { max-width: 54rem; margin-left: auto; margin-right: auto; }
+.choix { border: 0; margin: .9rem 0; display: flex; flex-wrap: wrap; gap: .4rem; }
+.choix legend { font-weight: 700; text-transform: uppercase; letter-spacing: .08em; font-size: .82rem; margin-bottom: .4rem; }
+.verdict { font-family: Georgia, serif; }
+.verdict b { font-family: 'Courier New', Courier, monospace; font-size: 1.4rem; color: var(--rouge); }
+
+/* ---------- Confrontation ---------- */
+.modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(15, 12, 8, .8); }
+.modal[hidden] { display: none; }
+.win { width: min(100%, 46rem); max-height: 100%; overflow: auto; padding: 1.2rem 1.4rem; background: var(--papier); color: var(--encre); box-shadow: 0 10px 40px #000; font-family: 'Courier New', Courier, monospace; font-size: .9rem; }
+.win h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: .1em; border-bottom: 2px solid var(--encre); padding-bottom: .3rem; margin-bottom: .5rem; }
+.win h3 { font-size: .82rem; text-transform: uppercase; letter-spacing: .06em; color: var(--rouge); margin: .9rem 0 .3rem; }
+.preuve { display: block; width: 100%; text-align: left; padding: .4rem .6rem; margin-bottom: .25rem; background: none; border: 1px solid var(--trait); border-left: 3px solid var(--kraft-sombre); }
+.preuve:hover { background: var(--papier-2); border-color: var(--encre); }
+
+/* ---------- Aide ---------- */
+.help { max-width: 76rem; margin: 0 auto; padding: 1.5rem 1.25rem 2.5rem; color: #b5a487; font-size: .88rem; }
+.help h2 { font-size: .75rem; text-transform: uppercase; letter-spacing: .14em; color: var(--kraft); margin-bottom: .5rem; }
+.help ul { padding-left: 1.2rem; columns: 2; column-gap: 2.5rem; }
+.help li { margin-bottom: .4rem; break-inside: avoid; }
+
+@media (max-width: 760px) {
+  .bar { gap: .8rem; padding: .6rem .8rem; }
+  .onglets { padding: .8rem .5rem 0; }
+  .onglet { padding: .45rem .7rem; }
+  #screen { padding: .8rem .6rem 1rem; border-radius: 0; }
+  .haut, .carnet { grid-template-columns: minmax(0, 1fr); }
+  .carnet > div:last-child { position: static; }
+  .feuille { padding: .9rem; }
+  .tampon { position: static; display: inline-block; margin-bottom: .5rem; }
+  .help ul { columns: 1; }
+}

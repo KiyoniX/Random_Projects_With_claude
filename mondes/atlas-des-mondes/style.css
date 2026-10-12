@@ -144,3 +144,6 @@ main { max-width: 1180px; margin: 0 auto; padding: 0 1.25rem 3rem; }
   .people-top, .group { grid-template-columns: 1fr; }
   .seed input { width: 8rem; }
 }
+.cities .cname a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: .2em; }
+.cities .cname a:hover { color: var(--accent); text-decoration-color: var(--accent); }
+.cities-hint { margin-top: .8rem; font-size: .78rem; color: var(--muted); }

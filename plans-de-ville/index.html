@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plans de ville</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Plans <em>de ville</em></h1>
+    <form class="controls" id="form">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <label for="size">Taille</label>
+      <select id="size">
+        <option value="bourg">Bourg</option>
+        <option value="ville" selected>Ville</option>
+        <option value="cite">Cité</option>
+      </select>
+      <button type="submit" class="btn main">Tracer</button>
+      <button type="button" class="btn" id="random">Au hasard</button>
+      <button type="button" class="btn" id="svg">SVG</button>
+      <button type="button" class="btn" id="png">PNG</button>
+    </form>
+    <nav class="links">
+      <a class="btn" id="toDungeon">Explorer les catacombes</a>
+      <a class="btn" id="toSiege">Soutenir un siège</a>
+      <a class="btn" id="toRiver">Aménager la rivière</a>
+      <a class="btn" id="toAtlas" hidden>Retour à la planète</a>
+    </nav>
+  </header>
+
+  <main>
+    <figure>
+      <div class="map" id="map"></div>
+      <figcaption id="caption"></figcaption>
+    </figure>
+    <p class="help">Une même graine redonne toujours la même ville. Survole un quartier pour lire son nom. Les boutons SVG et PNG enregistrent le plan. Sous chaque ville, des catacombes : leur entrée est le puits noir près de l'église. La même ville peut aussi subir un siège ou voir sa rivière aménagée.</p>
+  </main>
+
+  <script src="plan.js"></script>
+</body>
+</html>

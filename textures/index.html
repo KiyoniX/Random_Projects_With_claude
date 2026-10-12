@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Textures répétables</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <h1>Textures <em>répétables</em></h1>
+    <span class="devise">Tuiles de pixel-art procédurales, sans raccord visible</span>
+    <div class="rapides">
+      <button type="button" class="btn" id="bHasard" title="Nouvelle graine au hasard (R)">⚄ Au hasard</button>
+      <button type="button" class="btn" id="bVariantes" title="Proposer plusieurs variantes de cette matière (V)">▦ Variantes…</button>
+      <button type="button" class="btn fort" id="bGarder" title="Ajouter cette texture à la collection (G)">★ Garder</button>
+      <a class="btn" href="../atelier-pixel/index.html" title="Ouvrir l'éditeur de pixel-art">Atelier Pixel ↗</a>
+    </div>
+  </header>
+
+  <div class="options">
+    <strong id="nomMatiere">–</strong>
+    <label>Pavage
+      <select id="oRep">
+        <option value="2">2 × 2</option>
+        <option value="3" selected>3 × 3</option>
+        <option value="4">4 × 4</option>
+        <option value="6">6 × 6</option>
+      </select>
+    </label>
+    <label>Zoom
+      <select id="oZoom">
+        <option value="0" selected>Ajusté</option>
+        <option value="1">×1</option>
+        <option value="2">×2</option>
+        <option value="3">×3</option>
+        <option value="4">×4</option>
+        <option value="6">×6</option>
+        <option value="8">×8</option>
+      </select>
+    </label>
+    <label title="Trace les limites de la tuile sur le pavage, pour repérer une couture"><input type="checkbox" id="oBords"> Bords de la tuile</label>
+    <span class="sep"></span>
+    <span class="groupe" id="animation">
+      <button type="button" class="btn mini lire" id="bLire" title="Lire ou arrêter l'animation (Espace)">▶ Lire</button>
+      <label>Images <select id="oImages"></select></label>
+      <label>Cadence <input type="number" id="oCadence" min="1" max="30" value="8"> i/s</label>
+      <output id="oImage"></output>
+    </span>
+    <span class="astuce" id="astuce"></span>
+  </div>
+
+  <div class="plan">
+    <aside class="matieres" id="matieres"></aside>
+
+    <section class="scene">
+      <div class="vue vue-tuile">
+        <h2>Tuile seule</h2>
+        <div class="cadre" id="cadreTuile"><canvas id="tuile" width="1" height="1"></canvas></div>
+      </div>
+      <div class="vue vue-pavage">
+        <h2>Pavage</h2>
+        <div class="cadre" id="cadrePavage"><canvas id="pavage" width="1" height="1"></canvas></div>
+      </div>
+    </section>
+
+    <aside class="cote">
+      <section class="panneau">
+        <h2>Texture</h2>
+        <div class="rang" id="tailles"></div>
+        <label class="rang">Graine
+          <input type="text" id="graine" maxlength="40" spellcheck="false" autocomplete="off">
+        </label>
+      </section>
+
+      <section class="panneau">
+        <h2><span id="titreReglages">Réglages</span>
+          <button type="button" class="btn mini" id="bDefauts" title="Revenir aux réglages d'origine de la matière">Réinitialiser</button>
+        </h2>
+        <div class="reglages" id="reglages"></div>
+      </section>
+
+      <section class="panneau">
+        <h2>Rendu</h2>
+        <label class="rang">Couleurs
+          <input type="range" id="couleurs" min="2" max="8" step="1">
+          <output id="couleursVal"></output>
+        </label>
+        <label class="rang">Contraste
+          <input type="range" id="contraste" min="0.4" max="1.8" step="0.05">
+          <output id="contrasteVal"></output>
+        </label>
+        <label class="rang">Tramage
+          <select id="trame">
+            <option value="0">Aucun</option>
+            <option value="1">Léger</option>
+            <option value="2">Marqué</option>
+          </select>
+        </label>
+        <label class="rang">Palette
+          <select id="palette"></select>
+        </label>
+        <div class="teintes" id="teintes"></div>
+        <div class="rang">
+          <span class="note" id="notePalette"></span>
+          <button type="button" class="btn mini" id="bTeintes" title="Revenir aux couleurs d'origine de la matière">Teintes d'origine</button>
+        </div>
+      </section>
+
+      <section class="panneau grand">
+        <h2>Export
+          <select id="echelle" aria-label="Agrandissement à l'export"></select>
+        </h2>
+        <div class="rang">
+          <button type="button" class="btn mini" data-export="tuile1" title="La tuile à sa taille réelle">PNG ×1</button>
+          <button type="button" class="btn mini" data-export="tuile" title="La tuile agrandie sans lissage">PNG agrandi</button>
+          <button type="button" class="btn mini" data-export="pavage" title="Le pavage affiché, à l'agrandissement choisi">PNG du pavage</button>
+          <button type="button" class="btn mini" data-export="planche" id="bPlanche" title="Toutes les images de l'animation côte à côte">Planche d'animation</button>
+        </div>
+        <div class="rang">
+          <button type="button" class="btn mini fort" data-export="atelier" title="Un projet que l'éditeur Atelier Pixel sait ouvrir (Fichier › Ouvrir un projet)">Projet pour Atelier Pixel</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="frise">
+    <div class="frise-cmd">
+      <strong>Collection</strong>
+      <span id="collCompte" class="note"></span>
+      <span class="sep"></span>
+      <button type="button" class="btn mini" id="bAtlas" title="Toutes les textures gardées sur une seule planche, avec un fichier JSON des positions">Exporter l'atlas</button>
+      <button type="button" class="btn mini" id="bVider">Vider</button>
+    </div>
+    <div class="images" id="collection"></div>
+  </footer>
+
+  <div class="etat">
+    <span id="etatInfo">–</span>
+    <span id="etatMsg" class="msg"></span>
+    <span id="etatTemps" class="sauve"></span>
+  </div>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="color" id="pipette" class="pipette" tabindex="-1" aria-hidden="true">
+
+  <script src="js/moteur.js"></script>
+  <script src="js/matieres-nature.js"></script>
+  <script src="js/matieres-bati.js"></script>
+  <script src="js/interface.js"></script>
+</body>
+</html>

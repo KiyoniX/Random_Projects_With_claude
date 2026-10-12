@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atelier Pixel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <h1>Atelier <em>Pixel</em></h1>
+    <nav class="menus" id="menus"></nav>
+    <div class="rapides">
+      <button type="button" class="btn" data-act="annuler" id="bAnnuler" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+      <button type="button" class="btn" data-act="retablir" id="bRetablir" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
+    </div>
+  </header>
+
+  <div class="options" id="options">
+    <strong id="nomOutil">Crayon</strong>
+    <label data-pour="crayon gomme trame eclaircir ligne rect ellipse">Taille
+      <input type="range" id="oTaille" min="1" max="32" value="1">
+      <output id="oTailleVal">1</output>
+    </label>
+    <label data-pour="crayon gomme trame eclaircir"><input type="checkbox" id="oParfait"> Pixel parfait</label>
+    <label data-pour="rect ellipse"><input type="checkbox" id="oPlein"> Forme pleine</label>
+    <label data-pour="pot baguette"><input type="checkbox" id="oContigu" checked> Zone contiguë</label>
+    <label data-pour="degrade"><input type="checkbox" id="oTrame" checked> Tramé</label>
+    <label data-pour="crayon gomme trame eclaircir ligne rect ellipse pot">Symétrie
+      <select id="oSym">
+        <option value="">Aucune</option>
+        <option value="h">Gauche ↔ droite</option>
+        <option value="v">Haut ↕ bas</option>
+        <option value="hv">Les deux</option>
+      </select>
+    </label>
+    <span class="astuce" id="astuce"></span>
+  </div>
+
+  <div class="plan">
+    <aside class="outils" id="outils"></aside>
+
+    <section class="scene" id="scene">
+      <canvas id="toile"></canvas>
+    </section>
+
+    <aside class="cote">
+      <section class="panneau">
+        <h2>Couleur</h2>
+        <div class="couleur">
+          <canvas id="sv" width="216" height="96"></canvas>
+          <input type="range" id="teinte" class="glisse teinte" min="0" max="360" value="0" aria-label="Teinte">
+          <input type="range" id="alpha" class="glisse alpha" min="0" max="255" value="255" aria-label="Opacité de la couleur">
+          <div class="couleur-bas">
+            <div class="paire">
+              <button type="button" class="pastille p2" id="pastille2" title="Couleur secondaire (clic droit)"><i></i></button>
+              <button type="button" class="pastille p1" id="pastille1" title="Couleur principale (clic gauche)"><i></i></button>
+            </div>
+            <button type="button" class="btn mini" data-act="echanger" title="Échanger les couleurs (X)">⇄</button>
+            <input type="text" id="hex" maxlength="9" spellcheck="false" autocomplete="off" aria-label="Couleur en hexadécimal">
+          </div>
+        </div>
+      </section>
+
+      <section class="panneau">
+        <h2>Palette
+          <select id="palettes" aria-label="Palettes fournies"></select>
+        </h2>
+        <div class="palette" id="palette"></div>
+        <div class="rang">
+          <button type="button" class="btn mini" data-act="palAjouter" title="Ajouter la couleur courante à la palette">+ Ajouter</button>
+          <button type="button" class="btn mini" data-act="palRetirer" title="Retirer la couleur courante de la palette">− Retirer</button>
+          <button type="button" class="btn mini" data-act="palExtraire" title="Remplacer la palette par les couleurs du sprite">Du sprite</button>
+        </div>
+      </section>
+
+      <section class="panneau grand">
+        <h2>Calques</h2>
+        <div class="rang">
+          <button type="button" class="btn mini" data-act="calAjouter" title="Nouveau calque (Maj+N)">+</button>
+          <button type="button" class="btn mini" data-act="calDupliquer" title="Dupliquer le calque">⧉</button>
+          <button type="button" class="btn mini" data-act="calMonter" title="Monter le calque">▲</button>
+          <button type="button" class="btn mini" data-act="calDescendre" title="Descendre le calque">▼</button>
+          <button type="button" class="btn mini" data-act="calFusionner" title="Fusionner avec le calque du dessous">⤓</button>
+          <button type="button" class="btn mini" data-act="calSupprimer" title="Supprimer le calque">✕</button>
+        </div>
+        <label class="rang">Opacité
+          <input type="range" id="calOpacite" min="0" max="100" value="100">
+          <output id="calOpaciteVal">100 %</output>
+        </label>
+        <div class="calques" id="calques"></div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="frise">
+    <div class="frise-corps">
+    <div class="frise-cmd">
+      <button type="button" class="btn mini" data-act="imgPremiere" title="Première image (Début)">⏮</button>
+      <button type="button" class="btn mini" data-act="imgPrecedente" title="Image précédente (←)">◀</button>
+      <button type="button" class="btn mini lire" data-act="lire" id="bLire" title="Lire / arrêter (Entrée ou Espace)">▶ Lire</button>
+      <button type="button" class="btn mini" data-act="imgSuivante" title="Image suivante (→)">▶</button>
+      <button type="button" class="btn mini" data-act="imgDerniere" title="Dernière image (Fin)">⏭</button>
+      <span class="sep"></span>
+      <button type="button" class="btn mini" data-act="imgAjouter" title="Nouvelle image vide (N)">+ Image</button>
+      <button type="button" class="btn mini" data-act="imgDupliquer" title="Dupliquer l'image (Maj+D)">⧉ Copie</button>
+      <button type="button" class="btn mini" data-act="imgGauche" title="Avancer l'image dans l'ordre">⇤</button>
+      <button type="button" class="btn mini" data-act="imgDroite" title="Reculer l'image dans l'ordre">⇥</button>
+      <button type="button" class="btn mini" data-act="imgSupprimer" title="Supprimer l'image">✕</button>
+      <span class="sep"></span>
+      <label>Durée <input type="number" id="duree" min="10" max="60000" step="10"> ms</label>
+      <label>Cadence <input type="number" id="cadence" min="1" max="60" value="10"> i/s</label>
+      <button type="button" class="btn mini" data-act="cadence" title="Donner cette cadence à toutes les images">→ toutes</button>
+      <span class="sep"></span>
+      <span class="groupe">
+        <label title="Montre en transparence les images voisines (Maj+O)"><input type="checkbox" id="oignon"> Pelure d'oignon</label>
+        <label title="Nombre d'images précédentes montrées, en rouge">avant <input type="number" id="oignonAvant" min="0" max="3" value="1"></label>
+        <label title="Nombre d'images suivantes montrées, en bleu">après <input type="number" id="oignonApres" min="0" max="3" value="1"></label>
+        <input type="range" id="oignonOpacite" min="5" max="90" value="45" title="Opacité de la pelure d'oignon" aria-label="Opacité de la pelure d'oignon">
+      </span>
+    </div>
+    <div class="images" id="images"></div>
+    </div>
+    <section class="panneau apercu-zone">
+      <h2>Aperçu
+        <select id="apercuTaille" aria-label="Taille de l'aperçu">
+          <option value="1">×1 (taille réelle)</option>
+          <option value="2">×2</option>
+          <option value="4">×4</option>
+          <option value="0" selected>Ajusté</option>
+        </select>
+      </h2>
+      <div class="apercu"><canvas id="apercu" width="1" height="1"></canvas></div>
+    </section>
+  </footer>
+
+  <div class="etat">
+    <span id="etatPos">–</span>
+    <span id="etatInfo"></span>
+    <span id="etatMsg" class="msg"></span>
+    <span id="etatSauve" class="sauve"></span>
+  </div>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="file" id="fichierProjet" accept=".json,application/json" hidden>
+  <input type="file" id="fichierImage" accept="image/png,image/gif,image/jpeg,image/webp,image/bmp" hidden>
+
+  <script src="js/noyau.js"></script>
+  <script src="js/dessin.js"></script>
+  <script src="js/selection.js"></script>
+  <script src="js/gif.js"></script>
+  <script src="js/donnees.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/panneaux.js"></script>
+  <script src="js/fichiers.js"></script>
+  <script src="js/principal.js"></script>
+</body>
+</html>

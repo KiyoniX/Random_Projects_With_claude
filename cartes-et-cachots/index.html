@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cartes &amp; Cachots</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hud">
+    <h1>Cartes <em>&amp;</em> Cachots</h1>
+    <dl class="stats">
+      <div class="stat stat-hp"><dt>PV</dt><dd id="hp">0</dd></div>
+      <div class="stat stat-gold"><dt>Or</dt><dd id="gold">0</dd></div>
+      <div class="stat"><dt>Potions</dt><dd id="potions">0</dd></div>
+      <div class="stat"><dt>Étage</dt><dd id="floor">1</dd></div>
+    </dl>
+    <a class="btn" id="back" hidden></a>
+    <button type="button" class="btn" id="deck" data-act="deck">Deck</button>
+    <form class="seed" id="seedForm">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <button type="submit" class="btn">Lancer</button>
+      <button type="button" class="btn" data-act="random">Au hasard</button>
+    </form>
+  </header>
+
+  <main id="screen"></main>
+
+  <footer class="help">
+    <p class="legend">
+      <span class="me">@</span> toi
+      <span class="foe">r g s</span> ennemis
+      <span class="boss">D</span> dragon
+      <span class="it-exit">&gt;</span> escalier
+      <span class="it-gold">*</span> or
+      <span class="it-potion">!</span> potion
+      <span class="it-altar">?</span> autel
+      <span class="it-camp">&amp;</span> feu de camp
+      <span class="it-shop">$</span> marchand
+    </p>
+    <p><b>Donjon :</b> flèches ou ZQSD pour marcher, Espace pour attendre, P pour boire une potion. Fonce dans un ennemi pour l'attaquer : celui qui frappe le premier rend l'autre vulnérable.</p>
+    <p><b>Combat :</b> 1 à 9 pour jouer une carte, E pour finir le tour. L'armure disparaît au début de ton tour suivant.</p>
+    <p><b>États :</b> Vulnérable, +50 % de dégâts subis. Faible, −25 % de dégâts infligés. Poison, autant de PV perdus au début du tour, puis il baisse de 1. Une carte épuisée ne revient pas avant le combat suivant.</p>
+  </footer>
+
+  <div class="modal" id="modal" hidden></div>
+  <script src="game.js"></script>
+</body>
+</html>

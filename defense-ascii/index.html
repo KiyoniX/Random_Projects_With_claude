@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Défense ASCII</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="hud">
+    <h1>Défense <em>ASCII</em></h1>
+    <dl class="stats">
+      <div class="stat stat-hp"><dt>Vies</dt><dd id="lives">0</dd></div>
+      <div class="stat stat-gold"><dt>Or</dt><dd id="gold">0</dd></div>
+      <div class="stat"><dt>Vague</dt><dd id="waveNo">0</dd></div>
+      <div class="stat"><dt>Score</dt><dd id="score">0</dd></div>
+      <div class="stat"><dt>Record</dt><dd id="best">0</dd></div>
+    </dl>
+    <form class="seed" id="seedForm">
+      <label for="seed">Graine</label>
+      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <button type="submit" class="btn">Lancer</button>
+      <button type="button" class="btn" data-act="random">Au hasard</button>
+    </form>
+  </header>
+
+  <main id="screen">
+    <section class="field">
+      <div class="frame"><pre class="map" id="map" aria-label="Carte du champ de bataille"></pre></div>
+      <p class="hint" id="hint"></p>
+      <p class="msg" id="msg" aria-live="polite"></p>
+      <div class="ctl" id="ctl"></div>
+    </section>
+    <aside class="side">
+      <section>
+        <h2>Tours</h2>
+        <div class="shop" id="shop"></div>
+        <div class="info" id="info"></div>
+      </section>
+      <section>
+        <h2>Prochaine vague</h2>
+        <div class="wave" id="wave"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="help">
+    <p class="legend">
+      <span class="gate">&gt;</span> entrée
+      <span class="home">@</span> ta base
+      <span class="soil">.</span> terrain libre
+      <span class="rock">^ %</span> rochers
+      <span class="foe">r g w c s o</span> ennemis
+      <span class="foe boss">T</span> troll
+      <span class="foe cold">g</span> ralenti
+      <span class="foe sick">g</span> empoisonné
+    </p>
+    <p><b>But :</b> empêche les ennemis d'atteindre ta base. Chaque ennemi abattu rapporte de l'or, chaque ennemi qui passe coûte une vie (cinq pour un troll). Tiens 20 vagues pour gagner.</p>
+    <p><b>Souris :</b> choisis une tour, clique une case libre pour la poser. Clique une tour posée pour voir sa portée, l'améliorer (3 niveaux) ou la revendre à 70 %. Clic droit pour annuler.</p>
+    <p><b>Clavier :</b> 1 à 5 pour choisir une tour, flèches et Entrée pour viser et poser, A pour améliorer, X pour vendre, N pour appeler la vague suivante en avance (un or par seconde gagnée), Espace pour la pause, V pour la vitesse.</p>
+    <p><b>Astuces :</b> les flèches rebondissent sur les orques, le canon ignore les chauves-souris, le poison ne fait rien aux squelettes. La tour de glace ne tue presque rien mais laisse aux autres le temps de tirer.</p>
+  </footer>
+
+  <div class="modal" id="modal" hidden></div>
+  <script src="game.js"></script>
+</body>
+</html>

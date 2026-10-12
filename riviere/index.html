@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rivières et moulins</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <h1>Rivières <em>et moulins</em><span id="ville"></span></h1>
+    <form class="controls" id="depart">
+      <label for="graine">Graine</label>
+      <input id="graine" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+      <label for="taille">Taille</label>
+      <select id="taille">
+        <option value="bourg">Bourg</option>
+        <option value="ville" selected>Ville</option>
+        <option value="cite">Cité</option>
+      </select>
+      <button type="submit" class="btn main">Lancer</button>
+      <button type="button" class="btn" id="hasard">Au hasard</button>
+    </form>
+    <nav class="links">
+      <a class="btn" id="versPlan">Retour au plan</a>
+    </nav>
+  </header>
+
+  <main>
+    <figure>
+      <div class="map" id="carte">
+        <div id="plan"></div>
+        <canvas id="vue" width="1000" height="1000"></canvas>
+        <div class="attente" id="attente"><b>Le fleuve prend son cours…</b><span id="etape"></span><i><u id="avance"></u></i></div>
+      </div>
+      <figcaption id="legende"></figcaption>
+    </figure>
+
+    <aside class="panel">
+      <section>
+        <div class="tete"><span class="etoiles" id="etoiles">☆☆☆</span><span class="etat" id="etat">Étalonnage…</span></div>
+        <p class="record" id="record"></p>
+        <ul class="buts">
+          <li id="butPonts"></li>
+          <li id="butCrue"></li>
+          <li id="butBudget"></li>
+        </ul>
+        <p class="conseil" id="conseil"></p>
+      </section>
+
+      <section class="jauges">
+        <div class="jauge">
+          <div class="nom"><span>Farine</span><b id="prod">0,0</b><small>sacs par jour</small></div>
+          <div class="barre"><i id="prodBarre"></i><em id="seuil0">★</em><em id="seuil1">★</em><em id="seuil2">★</em></div>
+          <div class="pied" id="seuils"></div>
+        </div>
+        <div class="jauge">
+          <div class="nom"><span>Niveau amont</span><b id="niveau">0</b><small>% des quais</small></div>
+          <div class="barre niveau"><i id="niveauBarre"></i><em class="quai" id="repere"></em></div>
+          <div class="pied" id="menaces"></div>
+        </div>
+        <div class="jauge">
+          <div class="nom"><span>Budget</span><b id="budget">0</b><small id="budgetSur">écus</small></div>
+          <div class="barre budget"><i id="budgetBarre"></i></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Ouvrages</h2>
+        <div class="outils">
+          <button type="button" class="btn" data-outil="pont" title="Touche P">Pont</button>
+          <button type="button" class="btn" data-outil="moulin" title="Touche M">Moulin</button>
+          <button type="button" class="btn" data-outil="digue" title="Touche D">Digue</button>
+          <button type="button" class="btn" data-outil="quai" title="Touche Q">Quai</button>
+          <button type="button" class="btn" data-outil="deplacer" title="Touche V">Déplacer</button>
+          <button type="button" class="btn" data-outil="retirer" title="Touche R, ou clic droit">Retirer</button>
+        </div>
+        <div class="piles" id="piles">
+          <span>Piles du pont</span>
+          <button type="button" class="btn" data-piles="0">0</button>
+          <button type="button" class="btn" data-piles="1">1</button>
+          <button type="button" class="btn" data-piles="2">2</button>
+          <button type="button" class="btn" data-piles="3">3</button>
+        </div>
+        <p class="mode" id="mode"></p>
+        <div class="rang">
+          <button type="button" class="btn" data-act="annuler" title="Ctrl+Z">Annuler</button>
+          <button type="button" class="btn" data-act="retablir" title="Ctrl+Y">Rétablir</button>
+          <button type="button" class="btn" data-act="zero">Remise à zéro</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Fleuve</h2>
+        <div class="rang">
+          <button type="button" class="btn crue" data-act="crue" title="Touche C">Crue décennale</button>
+          <span class="verdict" id="crue"></span>
+        </div>
+        <div class="rang">
+          <button type="button" class="btn" data-act="pause" title="Espace">Pause</button>
+          <span class="sep">Vitesse</span>
+          <button type="button" class="btn" data-vit="0">×1</button>
+          <button type="button" class="btn" data-vit="1">×3</button>
+          <button type="button" class="btn" data-vit="2">×6</button>
+        </div>
+        <div class="rang">
+          <span class="sep">Vue</span>
+          <button type="button" class="btn" data-vue="plan" title="Touche 1">Plan</button>
+          <button type="button" class="btn" data-vue="courant" title="Touche 2">Courant</button>
+          <button type="button" class="btn" data-vue="niveau" title="Touche 3">Niveau d'eau</button>
+        </div>
+        <p class="info" id="info"></p>
+      </section>
+
+      <p class="help">L'eau coule vraiment : chaque pile, roue ou digue la freine et fait monter le niveau en amont. Ce niveau est la surpression mesurée dans le courant par rapport au fleuve nu ; un quartier est inondé dès qu'elle dépasse la hauteur de ses quais le long de ses berges. Une roue rend d'autant plus de farine que le courant qui la traverse est vif.</p>
+    </aside>
+  </main>
+
+  <script src="../plans-de-ville/plan.js"></script>
+  <script src="fleuve.js"></script>
+  <script src="solveur.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
