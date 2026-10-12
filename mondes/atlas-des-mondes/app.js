@@ -298,10 +298,10 @@
     Guide.sommaire();
   }
 
-  // L'adresse retient la graine et les réglages : « graine;étoile;ensoleillement;eau;air;taille;inclinaison »
+  // L'adresse retient la graine, et les réglages s'ils s'écartent des siens : « graine;étoile;ensoleillement;eau;air;taille;inclinaison »
   function address() {
-    var p = state.prm;
-    return encodeURIComponent(state.seed) + ';' + [p.star, p.S, p.water, p.P, p.R, p.tilt].join(';');
+    var p = state.prm, o = PG.randomParams(state.seed), reg = [p.star, p.S, p.water, p.P, p.R, p.tilt].join(';');
+    return encodeURIComponent(state.seed) + (reg === [o.star, o.S, o.water, o.P, o.R, o.tilt].join(';') ? '' : ';' + reg);
   }
   function saveAddress() {
     try { history.replaceState(null, '', '#' + address()); } catch (e) { /* adresse non modifiable en local sur certains navigateurs */ }

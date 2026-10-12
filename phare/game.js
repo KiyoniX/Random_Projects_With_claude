@@ -7,7 +7,7 @@
   var ITEM = { b: 'bidon', a: 'ampoule', u: 'fusible' }, UN = { bidon: 'un bidon', ampoule: 'une ampoule', fusible: 'un fusible' }, LE = { bidon: 'le bidon', ampoule: 'l\'ampoule', fusible: 'le fusible' };
   var PANES = ['nord', 'est', 'sud', 'ouest'], TITLES = { journal: 'Journal de bord', radio: 'Cahier de veille radio', carte: 'Carte du secteur' }, COLS = { journal: 'Observations du gardien', radio: 'Messages reçus' };
   // Tant qu'on est à l'accueil, S est une carrière de démonstration : la mer tourne derrière le titre
-  var S = P.newCareer(1907), N, mode = 'title', tm = 0, last = 0, panel = '', shown = -1, keys = {}, turn = 0, tilt = 0, tapped = false, wasLit = true, hints = {}, sayUntil = 0, nextClick = 0, nextTick = 0, shownText = {};
+  var S = P.newCareer(1907), N, mode = 'title', tm = 0, last = 0, panel = '', shown = -1, keys = {}, turn = 0, tilt = 0, tapped = false, wasLit = true, hints = {}, sayUntil = 0, nextClick = 0, nextTick = 0, pausedAt = 0, shownText = {};
   var pl = { x: 9.5, y: 5.5, a: 0, pitch: -14, level: 2 };
   S.night = 4; S.up.lentille = true;
   N = P.startNight(S);
@@ -271,7 +271,7 @@
       '<li>Au volant, tu braques le feu toi-même sur un navire perdu ou en détresse.</li>' +
       '<li><b>J</b> ouvre le journal de bord. Il s\'écrit seul.</li></ol>' +
       sign('start', 'Le gardien', 'Je prends le quart') + (saved ? sign('resume', 'ou bien', 'Je reprends à la nuit ' + saved.night, true) : '') +
-      '<p class="hint">Échap rend la souris. Mets le son.</p></div>');
+      '<p class="hint">Échap met en pause et rend la souris. Mets le son.</p></div>');
     $('#start').onclick = function () { S = P.newCareer(seed); save(); begin(); };
     if (saved) $('#resume').onclick = function () { S = saved; begin(); };
   }
@@ -285,10 +285,12 @@
     grab();
   }
   function pause() {
-    mode = 'pause'; keys = {};
+    mode = 'pause'; keys = {}; pausedAt = performance.now();
+    if (document.pointerLockElement === canvas) document.exitPointerLock();
     card('<div class="page">' + head('Feu n° ' + S.seed) + '<h1>Le feu attend</h1><p class="lead">Nuit ' + S.night + ', ' + P.clock(N.t) + '. La mer ne bouge plus tant que tu n\'es pas revenu.</p>' + sign('back', 'Le gardien', 'Je reprends le quart') + '</div>', 'billet');
-    $('#back').onclick = function () { mode = 'play'; $('#veil').hidden = true; grab(); };
+    $('#back').onclick = function () { resume(); grab(); };
   }
+  function resume() { mode = 'play'; $('#veil').hidden = true; }
   function relief() {
     var night = S.night, rep = P.endNight(N, S), c;
     mode = 'report'; closePanel(); $('#hud').hidden = true;
@@ -351,6 +353,9 @@
   }
 
   document.addEventListener('keydown', function (e) {
+    // Échap met en pause et reprend, que la souris soit capturée ou non ; le délai écarte l'Échap qui vient de rendre la souris.
+    // La reprise au clavier ne redemande pas la souris, que ce même Échap ferait relâcher aussitôt : un clic sur la vue la reprend
+    if (e.code === 'Escape' && !e.repeat) { if (mode === 'play') pause(); else if (mode === 'pause' && performance.now() - pausedAt > 300) resume(); return; }
     if (mode !== 'play') return;
     if (e.code === 'KeyE' && !e.repeat) tapped = true;
     if (e.code === 'KeyJ' && !e.repeat) { if (panel === 'journal') closePanel(); else openPanel('journal'); }
@@ -358,7 +363,8 @@
     if (e.code.indexOf('Arrow') === 0 || e.code === 'Space') e.preventDefault();
   });
   document.addEventListener('keyup', function (e) { keys[e.code] = false; });
-  document.addEventListener('mousemove', function (e) { if (document.pointerLockElement === canvas) { turn += e.movementX * 0.0023; tilt -= e.movementY * 0.8; } });
+  // Capture refusée : on regarde en glissant la souris sur la vue, bouton enfoncé
+  document.addEventListener('mousemove', function (e) { if (document.pointerLockElement === canvas || mode === 'play' && e.target === canvas && e.buttons & 1) { turn += e.movementX * 0.0023; tilt -= e.movementY * 0.8; } });
   document.addEventListener('pointerlockchange', function () { if (document.pointerLockElement !== canvas && mode === 'play') pause(); });
   canvas.addEventListener('click', function () { if (mode === 'play') grab(); });
 

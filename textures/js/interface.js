@@ -453,6 +453,11 @@
     window.addEventListener('hashchange', function () {
       if (location.hash && location.hash !== adresse) { memoire = {}; charger(location.hash); }
     });
+    // Un bouton cliqué à la souris ne garde pas le clavier : Espace reste à la lecture.
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('button') : null;
+      if (b && e.detail !== 0 && !b.closest('#modal')) b.blur();
+    });
     document.addEventListener('keydown', function (e) {
       var cible = e.target.tagName, texte = cible === 'SELECT' || (cible === 'INPUT' && e.target.type !== 'range' && e.target.type !== 'checkbox');
       if (e.key === 'Escape' && !$('#modal').hidden) { fermer(); return; }
@@ -460,11 +465,12 @@
       if (e.key === 'r' || e.key === 'R') $('#bHasard').click();
       else if (e.key === 'v' || e.key === 'V') variantes();
       else if (e.key === 'g' || e.key === 'G') garder();
-      else if (e.key === ' ' && cible !== 'BUTTON') { e.preventDefault(); basculerLecture(); }
+      else if (e.key === ' ' && cible !== 'BUTTON' && e.target.type !== 'checkbox' && !$('#animation').classList.contains('inerte')) { e.preventDefault(); basculerLecture(); }
     });
   }
 
   function basculerLecture() {
+    if ($('#animation').classList.contains('inerte')) return;   // bloc grisé, mais le bouton reste atteignable par Tab
     lecture = !lecture;
     $('#bLire').textContent = lecture ? '❚❚ Arrêter' : '▶ Lire';
   }

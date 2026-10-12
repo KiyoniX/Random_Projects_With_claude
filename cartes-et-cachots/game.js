@@ -12,7 +12,7 @@
   var COLS = 64, ROWS = 30; // l'écran, en cases
   var MX = 4, MY = 3;       // coin de la carte du donjon dans l'écran
   var BOX = 10, CARD_H = 10; // largeur intérieure et hauteur d'une carte, en cases
-  var PER_ROW = 5, PER_PAGE = 10;
+  var PER_ROW = 5, PER_PAGE = 9;
   var LINE = 1.2, STRETCH = 1.25, SQUEEZE = 0.75;   // hauteur de rangée, étirement et resserrement extrêmes des caractères
   var Z_MIN = 0.5, Z_MAX = 4, Z_STEP = 1.15;
   var NOIR = 0, ROUGE = 1, VERT = 2, JAUNE = 3, BLEU = 4, MAGENTA = 5, CYAN = 6, BLANC = 7;
@@ -733,11 +733,11 @@
     y += two ? 1 : 2;
     C.hand.forEach(function (id, i) {
       var row = i / PER_ROW | 0;
-      card(slot(i % PER_ROW, Math.min(PER_ROW, n - row * PER_ROW)), y + row * CARD_H, id, { act: 'card', i: i, off: CARDS[id].cost > C.energy, key: i < 9 ? i + 1 : '' });
+      card(slot(i % PER_ROW, Math.min(PER_ROW, n - row * PER_ROW)), y + row * CARD_H, id, { act: 'card', i: i, off: CARDS[id].cost > C.energy, key: i < 9 ? i + 1 : '0' });
     });
     if (two) journal(ROWS - 2, 1); else journal(y + CARD_H + 1, 3);
     keys([
-      n ? { k: n > 1 ? '1-' + Math.min(9, n) : '1', label: 'jouer' } : null,
+      n ? { k: n > 9 ? '1-9 0' : n > 1 ? '1-' + n : '1', label: 'jouer' } : null,
       { k: 'E', label: 'fin du tour', act: 'end' },
       { k: 'P', label: 'potion ×' + S.potions, act: 'potion', off: !S.potions },
       { k: 'C', label: 'deck', act: 'deck' },
@@ -745,7 +745,7 @@
     ]);
   }
 
-  // Une fenêtre de choix occupe toute la page. Au-delà de dix options, on feuillette avec Suite et Retour.
+  // Une fenêtre de choix occupe toute la page. Au-delà de neuf options, une par touche de 1 à 9, on feuillette avec Suite et Retour.
   function choicePage() {
     var pages = Math.max(1, Math.ceil(modal.opts.length / PER_PAGE)), p = modal.page = Math.max(0, Math.min(pages - 1, modal.page || 0)), base = p * PER_PAGE;
     var list = modal.opts.slice(base, base + PER_PAGE), count = list.filter(function (o) { return o.card; }).length, tall = count > PER_ROW;
@@ -1042,6 +1042,7 @@
       else return false;
     } else if (C) {
       if (n >= 1) playCard(n - 1);
+      else if (k === '0' && C.hand.length > 9) playCard(9);
       else if (k === 'e' || k === 'Enter' || k === ' ') endTurn();
       else if (k === 'p') quaff();
       else if (k === 'c') showDeck();
@@ -1058,7 +1059,8 @@
     var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
     if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT') return;
     if (tag === 'BUTTON' && (k === 'Enter' || k === ' ')) return;
-    if (k === '+' || k === '=' || k === '-' || (k === '0' && !modal)) {
+    // En combat, main pleine, 0 joue la dixième carte au lieu de recadrer.
+    if (k === '+' || k === '=' || k === '-' || (k === '0' && !modal && !(C && !page && C.hand.length > 9))) {
       zoomAt(k === '0' ? 1 : view.z * (k === '-' ? 1 / Z_STEP : Z_STEP));
       e.preventDefault();
       return;

@@ -57,14 +57,29 @@
     return out;
   }
 
+  // Les codes d'une ligne qui ne porte que des codes, avec ou sans « # » ; null si elle porte autre chose.
+  // Huit chiffres : la transparence de fin est ignorée.
+  function codes(l) {
+    var out = [];
+    // Trois nombres : un triplet rouge, vert, bleu plutôt que trois codes.
+    if (/^\s*\d{1,3}(?:[\s,;]+\d{1,3}){2}\s*$/.test(l)) return null;
+    return l.split(/[\s,;]+/).every(function (mot) {
+      var m = /^(?:#|0x)?([0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})$/i.exec(mot);
+      if (m) out.push(m[1].slice(0, 6));
+      return m || !mot;
+    }) && out.length ? out : null;
+  }
+
   var lire = {
     hex: function (t) {
       var out = [];
       t.split(/\r?\n/).forEach(function (l) {
-        l = l.replace(/(;|\/\/).*$/, '').trim();
-        // Huit chiffres : la transparence de fin est ignorée.
-        var m = /^(?:#|0x)?([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(l);
-        if (m) out.push(m[1]);
+        var re = /(?:^|[^\w&])#([0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3})\b/gi, c, m;
+        l = l.replace(/\/\/.*$/, '');
+        // « ; » sépare des codes, ou ouvre un commentaire. Dans une ligne de texte, seuls les codes en « # » comptent.
+        c = codes(l) || codes(l.replace(/;.*$/, ''));
+        if (!c && !/^\s*;/.test(l)) { c = []; while ((m = re.exec(l))) c.push(m[1].slice(0, 6)); }
+        if (c) out = out.concat(c);
       });
       return { nom: '', couleurs: out };
     },

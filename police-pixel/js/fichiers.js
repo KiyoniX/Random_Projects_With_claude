@@ -219,6 +219,8 @@
   function telecharger(nom, donnees, type) {
     var a = document.createElement('a'), url = URL.createObjectURL(new Blob([donnees], { type: type }));
     a.href = url; a.download = nom;
+    // Ce clic-là ne regarde pas la page : il refermerait un menu ouvert entre-temps.
+    a.addEventListener('click', function (e) { e.stopPropagation(); });
     document.body.appendChild(a);
     a.click();
     a.remove();

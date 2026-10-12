@@ -45,10 +45,27 @@
 
   // ---------- Progression ----------
   function address() { return encodeURIComponent(state.seed) + (state.tuned.length ? ';' + state.tuned.join(';') : ''); }
-  function persist() { try { localStorage.setItem('steles:' + address(), JSON.stringify(state.save)); } catch (e) { /* stockage indisponible : la partie reste en mémoire */ } }
+  // Un monde, une sauvegarde : les réglages n'entrent dans la clé que s'ils s'écartent de ceux de la graine.
+  // Les anciennes clés reprenaient l'adresse telle quelle, avec ou sans réglages : elles viennent après, pour être relues puis effacées.
+  function saveKeys() {
+    var p = state.world.prm, o = PG.randomParams(state.seed), seed = 'steles:' + encodeURIComponent(state.seed);
+    var full = seed + ';' + [p.star, p.S, p.water, p.P, p.R, p.tilt].join(';');
+    return [full === seed + ';' + [o.star, o.S, o.water, o.P, o.R, o.tilt].join(';') ? seed : full, full, 'steles:' + address()];
+  }
+  function persist() {
+    try {
+      var keys = saveKeys();
+      localStorage.setItem(keys[0], JSON.stringify(state.save));
+      keys.forEach(function (k) { if (k !== keys[0]) localStorage.removeItem(k); });
+    } catch (e) { /* stockage indisponible : la partie reste en mémoire */ }
+  }
   function restore() {
-    try { var s = JSON.parse(localStorage.getItem('steles:' + address())); if (s && s.v === 1) return s; } catch (e) { /* sauvegarde illisible : nouvelle partie */ }
-    return null;
+    var best = null, n = function (s) { return Object.keys(s.solved).length; };
+    saveKeys().forEach(function (k) {
+      // Deux parties pour un même monde : la plus avancée l'emporte
+      try { var s = JSON.parse(localStorage.getItem(k)); if (s && s.v === 1 && (!best || n(s) > n(best))) best = s; } catch (e) { /* sauvegarde illisible : nouvelle partie */ }
+    });
+    return best;
   }
   function fresh() {
     var g = state.game;
@@ -138,9 +155,10 @@
     g.sites.forEach(function (site) { if (state.site === site.idx) draw(site); });
   }
   function renderMap() {
-    var s = state.save;
+    var s = state.save, g = state.game, left = g.steles.length - Object.keys(s.solved).length;
     carte.demande();
-    if (!state.mapWarn) $('#mapNote').textContent = typo(s.camp ? plural(s.camp, 'campagne de fouilles disponible', 'campagnes de fouilles disponibles') + ' : désignez un site à fouiller.' : 'Aucune campagne disponible : traduisez une stèle pour en financer une.');
+    if (!state.mapWarn) $('#mapNote').textContent = typo(g.sites.every(function (x) { return s.open[x.idx]; }) ? (left ? 'Tous les sites sont ouverts : ' + plural(left, 'stèle reste', 'stèles restent') + ' à traduire.' : 'Tous les sites sont fouillés, toutes les stèles sont traduites.')
+      : s.camp ? plural(s.camp, 'campagne de fouilles disponible', 'campagnes de fouilles disponibles') + ' : désignez un site à fouiller.' : 'Aucune campagne disponible : traduisez une stèle pour en financer une.');
   }
   function renderSites() {
     var s = state.save;

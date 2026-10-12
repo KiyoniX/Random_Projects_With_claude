@@ -4,6 +4,7 @@
   var P = window.Puce, el = P.el;
   var DELAI_SAUVEGARDE = 700;
   var LONGUEURS = [8, 12, 16, 24, 32, 48, 64, 96, 128];
+  var MENUS = ['menu-fichier', 'menu-export'];
 
   function $(id) { return document.getElementById(id); }
 
@@ -199,8 +200,19 @@
     return c && (c.tagName === 'SELECT' || c.tagName === 'TEXTAREA' || (c.tagName === 'INPUT' && /^(text|number)$/.test(c.type)));
   }
 
+  // Referme les menus ouverts ; rend vrai s'il y en avait un.
+  function fermerMenus() {
+    var ouverts = MENUS.map($).filter(function (d) { return d.open; });
+    ouverts.forEach(function (d) {
+      if (d.contains(document.activeElement)) document.activeElement.blur();
+      d.open = false;
+    });
+    return ouverts.length > 0;
+  }
+
   function touche(e) {
     var ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase(), cible = e.target, x;
+    if (e.key === 'Escape' && fermerMenus()) { e.preventDefault(); return; }
     if (ctrl && !e.altKey && (k === 'z' || k === 'y')) {
       if (champTexte(cible) && cible.tagName !== 'SELECT') return;
       x = (k === 'y' || e.shiftKey) ? P.retablir() : P.annuler();
@@ -266,9 +278,10 @@
 
     // menus : se referment après un choix ou un clic ailleurs
     document.addEventListener('click', function (e) {
-      ['menu-fichier', 'menu-export'].forEach(function (id) {
+      var b = e.target.closest ? e.target.closest('button') : null;
+      MENUS.forEach(function (id) {
         var d = $(id);
-        if (d.open && (!d.contains(e.target) || (e.target.tagName === 'BUTTON' && e.target.id !== 'f-hasard'))) d.open = false;
+        if (d.open && (!d.contains(e.target) || (b && b.id !== 'f-hasard'))) d.open = false;
       });
     });
     $('f-titre').addEventListener('input', function () { P.regler('titre', $('f-titre').value.slice(0, 40) || 'Sans titre'); });
