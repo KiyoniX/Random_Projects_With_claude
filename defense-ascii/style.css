@@ -6,6 +6,7 @@
   --encre: #1b1a1f;
   --use: #5b5d55;      /* ruban fatigué : mentions secondaires */
   --pale: #83867c;     /* frappe légère : trame du terrain, règles */
+  --trame: #d6d8cf;    /* gris que donne la trame serrée du terrain */
   --rouge: #c0211a;
   --table: #43464a;    /* ce qu'on voit par les trous d'entraînement */
   --bande: 34px;       /* largeur de la bande Carol */
@@ -38,8 +39,8 @@ h2, h3 { font-size: inherit; text-transform: uppercase; }
 .papier::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; z-index: 5;
   background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, .16) 90px, rgba(255, 255, 255, 0) 210px, rgba(255, 255, 255, .09) 330px, rgba(255, 255, 255, 0) 470px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0) 0 3px, rgba(255, 255, 255, .07) 3px 4px);
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, .07) 90px, rgba(255, 255, 255, 0) 210px, rgba(255, 255, 255, .04) 330px, rgba(255, 255, 255, 0) 470px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0) 0 3px, rgba(255, 255, 255, .03) 3px 4px);
 }
 .page { padding: var(--lh) 0; }
 .pli { height: 0; margin: 0 calc(-1 * var(--bande) - 14px); border-top: 1px dashed #9c9e92; }
@@ -84,7 +85,7 @@ kbd::after { content: '>'; }
 .regle-v { grid-column: 1; width: 1.5em; color: var(--pale); }
 .regle-v div { height: 1.17em; line-height: 1.17em; }
 .regle-h small, .regle-v small { font-size: .6em; vertical-align: top; }
-.carte { grid-column: 2; background: repeating-linear-gradient(to bottom, var(--vert) 0 3.51em, var(--papier) 3.51em 7.02em); box-shadow: 0 0 0 1px var(--vert-trait); }
+.carte { grid-column: 2; background: var(--papier); box-shadow: 0 0 0 1px var(--use); }
 
 /* Une case = un caractère et son interlettrage ; la largeur suit la police réellement chargée. */
 .g .ln { height: 1.17em; line-height: 1.17em; white-space: pre; }
@@ -94,11 +95,12 @@ kbd::after { content: '>'; }
 }
 .g .regle-h .c { letter-spacing: 0; text-indent: 0; text-align: center; height: 1em; line-height: 1em; }
 
-.g .soil { color: var(--use); }
-.g .rock { color: var(--encre); }
-/* Le terrain est tramé, le chemin reste en papier nu. */
+.g .soil { color: var(--pale); }
+.g .rock { color: var(--encre); font-weight: 700; }
+/* Le terrain est tramé serré, donc gris ; le chemin reste en papier nu et se lit d'un coup d'œil. */
 .g .soil, .g .rock {
-  background-image: radial-gradient(circle, rgba(27, 26, 31, .3) .032em, transparent .05em);
+  background-color: var(--trame);
+  background-image: radial-gradient(circle, rgba(27, 26, 31, .2) .028em, transparent .045em);
   background-size: calc((1ch + .6em) / 4) .2925em;
 }
 .g .gate, .g .home { font-weight: 700; }
@@ -186,7 +188,7 @@ kbd::after { content: '>'; }
 .consignes h3:not(:first-child) { margin-top: var(--lh); }
 .signes ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(29ch, 1fr)); gap: 4px 2ch; margin-top: 4px; }
 .signes .s { display: inline-block; width: 3.2em; font-size: 16px; }
-.signes .road { background-color: var(--papier); }
+.signes .road { background-color: var(--papier); box-shadow: inset 0 0 0 1px var(--pale); }
 
 @media (max-width: 720px) {
   :root { --bande: 20px; }

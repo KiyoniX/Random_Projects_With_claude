@@ -110,10 +110,11 @@ L'opposé du Minitel : fond clair, deux encres. Le champ de bataille est imprim�
 | --- | --- |
 | Papier | `#fbfbf5`, bandes `#d8e9d3` |
 | Encre | `#1b1a1f`, ruban usé `#5b5d55` et `#83867c` |
+| Trame serrée du terrain | `#d6d8cf` |
 | Ruban rouge (ennemis, alertes) | `#c0211a` |
 | Caractères | Courier New, puis Consolas, Lucida Console |
 
-Niveau d'une tour : lettre grasse, puis soulignée, puis en vidéo inverse.
+Niveau d'une tour : lettre grasse, puis soulignée, puis en vidéo inverse. Sur la carte, les bandes vertes s'arrêtent : le terrain est un aplat tramé gris et le chemin reste en papier nu, pour que le trajet des ennemis se lise d'un coup d'œil.
 
 ### `enquete` : le dossier de la Sûreté, 1924
 

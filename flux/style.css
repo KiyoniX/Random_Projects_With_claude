@@ -153,13 +153,13 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .3em; border: 1px soli
 .seuils { display: flex; gap: 12px; margin-top: 1px; font-size: 13px; white-space: nowrap; color: var(--rouge); }
 .seuils b { display: inline; color: var(--encre); }
 .record, .libre { font-size: 12px; white-space: nowrap; }
-.tampon { margin-left: auto; padding: 2px 8px 1px; border: 2px solid var(--rouge); color: var(--rouge); text-align: center; transform: rotate(-4deg); animation: tampon .22s ease-out; }
+/* Le tampon est frappé à cheval sur le bord du visa : il ne prend pas la place du bouton. */
+.tampon { position: absolute; right: 12px; bottom: calc(100% - 9px); padding: 2px 8px 1px; background: var(--papier); border: 2px solid var(--rouge); color: var(--rouge); text-align: center; transform: rotate(-4deg); animation: tampon .22s ease-out; pointer-events: none; }
 .tampon b { font-size: 13px; font-stretch: 75%; text-transform: uppercase; letter-spacing: .04em; }
 .tampon span { display: block; font-size: 14px; line-height: 1; letter-spacing: .08em; }
 .tampon small { display: block; font-size: 10px; white-space: nowrap; }
 @keyframes tampon { from { transform: rotate(-4deg) scale(1.5); opacity: 0; } }
-.suivant { margin-left: auto; padding: 6px 12px; background: var(--encre); color: var(--papier); font-weight: 600; white-space: nowrap; }
-.tampon + .suivant { margin-left: 0; }
+.suivant { position: relative; z-index: 1; margin-left: auto; padding: 6px 12px; background: var(--encre); color: var(--papier); font-weight: 600; white-space: nowrap; }
 .suivant:hover { background: var(--rouge); }
 
 /* ---------- Meuble à plans et notice ---------- */
@@ -205,6 +205,8 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .3em; border: 1px soli
   .cartouche > div { border-bottom: 0; }
   .cartouche > .c-case:nth-child(3), .cartouche > .c-visa { border-left: 1px solid var(--encre); }
   .cartouche > .c-visa { grid-column: auto; flex-wrap: wrap; }
+  .tampon { position: static; margin-left: auto; }
+  .tampon + .suivant { margin-left: 0; }
   .table { height: auto; min-height: 100vh; }
   .plan { min-height: 46vw; }
 }
