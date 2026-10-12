@@ -473,6 +473,14 @@
 
   // ---------- Interface ----------
   var current = null, link = null;   // link : la cité d'où l'on vient, tant qu'on ne change pas de graine
+  var vue = window.VuePlanche.create({
+    cadre: $('#table'), feuille: $('#feuille'), px: PX, loupe: $('#loupe'), mention: $('#grossi'),
+    marge: function () {
+      var wide = $('#table').clientWidth > 620;
+      return { l: wide ? 104 : 8, t: wide ? 10 : 44, r: 14, b: 10 };
+    },
+    glisse: function (e) { return e.button === 0; }
+  });
 
   function readAddress() {
     var a = parse(location.hash.slice(1));
@@ -481,22 +489,38 @@
     link = a.from;
   }
 
+  function entry(label, value, unit) { return '<li>' + label + '<b>' + value + '</b>' + (unit ? '<small>' + unit + '</small>' : '') + '</li>'; }
+
   function show() {
     var seed = $('#seed').value.trim() || Math.random().toString(36).slice(2, 8), size = SIZES[$('#size').value] ? $('#size').value : 'ville';
     var from = link && link.seed === seed ? link : null, address = encodeURIComponent(seed) + '/' + size + (from ? '?' + from.query : '');
     $('#seed').value = seed;
     current = plan(seed, size, from);
     $('#map').innerHTML = current.svg;
-    $('#caption').textContent = current.name + ', ' + current.size + (current.people ? ' des ' + current.people : '') + ' · ' + current.wards + ' quartiers · ' + current.gates + ' portes · ' + current.towers + ' tours · ' +
-      current.houses + ' maisons · environ ' + current.pop.toLocaleString('fr-FR') + ' habitants';
-    document.title = current.name + ' · Plans de ville';
+    // Les noms des quartiers se lisent sur l'étiquette de la table plutôt que dans une infobulle.
+    Array.prototype.forEach.call($('#map').querySelectorAll('title'), function (t) {
+      t.parentNode.setAttribute('data-nom', t.textContent);
+      t.parentNode.removeChild(t);
+    });
+    $('#caption').textContent = current.name + ', ' + current.size + (current.people ? ' des ' + current.people : '');
+    $('#count').innerHTML = entry('Quartiers dans les murs', current.wards) + entry('Portes', current.gates) + entry('Tours du rempart', current.towers) +
+      entry('Maisons', current.houses.toLocaleString('fr-FR')) + entry('Habitants, environ', current.pop.toLocaleString('fr-FR'));
+    document.title = 'Plan ' + elide(current.name) + (elide(current.name) === 'de' ? ' ' : '') + current.name;
     $('#toDungeon').href = '../cartes-et-cachots/index.html#' + encodeURIComponent(seed + '-' + size) + '?' + new URLSearchParams({ ville: current.name, plan: address });
     $('#toSiege').href = '../siege/index.html#' + address;
     $('#toRiver').href = '../riviere/index.html#' + address;
-    $('#toAtlas').hidden = !(from && from.atlas);
+    $('#toAtlas').parentNode.hidden = !(from && from.atlas);
     if (from && from.atlas) $('#toAtlas').href = '../mondes/atlas-des-mondes/index.html#' + from.atlas;
     try { history.replaceState(null, '', '#' + address); } catch (e) { location.replace('#' + address); }   // Chrome refuse replaceState en file://
+    vue.entier();
   }
+
+  function nameUnder(e) {
+    var w = e.target.closest ? e.target.closest('[data-nom]') : null;
+    $('#hint').textContent = w ? w.getAttribute('data-nom') : '';
+  }
+  $('#map').addEventListener('pointermove', nameUnder);
+  $('#map').addEventListener('pointerleave', function () { $('#hint').textContent = ''; });
 
   function save(blob, ext) {
     var a = document.createElement('a'), url = URL.createObjectURL(blob);
@@ -524,6 +548,8 @@
     };
     img.src = url;
   });
+
+  window.PlanVille.vue = vue;
 
   readAddress();
   show();

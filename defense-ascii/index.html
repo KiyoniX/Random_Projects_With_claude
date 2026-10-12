@@ -7,61 +7,109 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hud">
-    <h1>Défense <em>ASCII</em></h1>
-    <dl class="stats">
-      <div class="stat stat-hp"><dt>Vies</dt><dd id="lives">0</dd></div>
-      <div class="stat stat-gold"><dt>Or</dt><dd id="gold">0</dd></div>
-      <div class="stat"><dt>Vague</dt><dd id="waveNo">0</dd></div>
-      <div class="stat"><dt>Score</dt><dd id="score">0</dd></div>
-      <div class="stat"><dt>Record</dt><dd id="best">0</dd></div>
-    </dl>
-    <form class="seed" id="seedForm">
-      <label for="seed">Graine</label>
-      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-      <button type="submit" class="btn">Lancer</button>
-      <button type="button" class="btn" data-act="random">Au hasard</button>
-    </form>
-  </header>
+  <div class="papier">
+    <section class="page rapport" id="modal" aria-live="polite" hidden></section>
 
-  <main id="screen">
-    <section class="field">
-      <div class="frame"><pre class="map" id="map" aria-label="Carte du champ de bataille"></pre></div>
-      <p class="hint" id="hint"></p>
-      <p class="msg" id="msg" aria-live="polite"></p>
-      <div class="ctl" id="ctl"></div>
+    <section class="page">
+      <header class="entete">
+        <h1 class="titre" aria-label="Défense ASCII"><pre class="banniere" id="banner" aria-hidden="true"></pre></h1>
+        <div class="edition">
+          <p id="folio"></p>
+          <form class="graine" id="seedForm">
+            <label for="seed">Graine de la carte :</label>
+            <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
+            <button type="submit" class="case">Lancer</button>
+            <button type="button" class="case" data-act="random">Au hasard</button>
+          </form>
+        </div>
+      </header>
+      <div class="filet" aria-hidden="true"></div>
+
+      <main id="screen" class="corps">
+        <section class="terrain">
+          <div class="haut">
+            <p class="etat" id="etat"></p>
+            <div class="ctl ctl-vue" id="viewCtl"></div>
+          </div>
+          <div class="vue" id="view">
+            <div class="feuille g" id="sheet">
+              <div class="regle-h" id="rulH" aria-hidden="true"></div>
+              <div class="regle-v" id="rulV" aria-hidden="true"></div>
+              <div class="carte" id="map" aria-label="Carte du champ de bataille"></div>
+            </div>
+          </div>
+          <p class="hint" id="hint"></p>
+          <p class="msg" id="msg" aria-live="polite"></p>
+          <div class="suite">
+            <div class="ctl" id="ctl"></div>
+            <div class="bloc vague" id="wave"></div>
+          </div>
+        </section>
+
+        <aside class="marge">
+          <section>
+            <h2>Catalogue des tours</h2>
+            <div class="bloc" id="shop"></div>
+          </section>
+          <section>
+            <h2>Fiche de tour</h2>
+            <div class="bloc fiche" id="info"></div>
+          </section>
+        </aside>
+      </main>
     </section>
-    <aside class="side">
-      <section>
-        <h2>Tours</h2>
-        <div class="shop" id="shop"></div>
-        <div class="info" id="info"></div>
-      </section>
-      <section>
-        <h2>Prochaine vague</h2>
-        <div class="wave" id="wave"></div>
-      </section>
-    </aside>
-  </main>
 
-  <footer class="help">
-    <p class="legend">
-      <span class="gate">&gt;</span> entrée
-      <span class="home">@</span> ta base
-      <span class="soil">.</span> terrain libre
-      <span class="rock">^ %</span> rochers
-      <span class="foe">r g w c s o</span> ennemis
-      <span class="foe boss">T</span> troll
-      <span class="foe cold">g</span> ralenti
-      <span class="foe sick">g</span> empoisonné
-    </p>
-    <p><b>But :</b> empêche les ennemis d'atteindre ta base. Chaque ennemi abattu rapporte de l'or, chaque ennemi qui passe coûte une vie (cinq pour un troll). Tiens 20 vagues pour gagner.</p>
-    <p><b>Souris :</b> choisis une tour, clique une case libre pour la poser. Clique une tour posée pour voir sa portée, l'améliorer (3 niveaux) ou la revendre à 70 %. Clic droit pour annuler.</p>
-    <p><b>Clavier :</b> 1 à 5 pour choisir une tour, flèches et Entrée pour viser et poser, A pour améliorer, X pour vendre, N pour appeler la vague suivante en avance (un or par seconde gagnée), Espace pour la pause, V pour la vitesse.</p>
-    <p><b>Astuces :</b> les flèches rebondissent sur les orques, le canon ignore les chauves-souris, le poison ne fait rien aux squelettes. La tour de glace ne tue presque rien mais laisse aux autres le temps de tirer.</p>
-  </footer>
+    <div class="pli" aria-hidden="true"></div>
 
-  <div class="modal" id="modal" hidden></div>
+    <section class="page consignes">
+      <header class="entete">
+        <h2>Consignes permanentes</h2>
+        <p>Folio 2/2</p>
+      </header>
+      <div class="filet" aria-hidden="true"></div>
+
+      <div class="colonnes">
+        <div class="signes g">
+          <h3>Lecture des signes</h3>
+          <ul>
+            <li><span class="s"><span class="c gate">&gt;</span></span>entrée des ennemis</li>
+            <li><span class="s"><span class="c home">@</span></span>ta base</li>
+            <li><span class="s"><span class="c soil">.</span><span class="c soil">,</span></span>terrain libre, tramé</li>
+            <li><span class="s"><span class="c rock">^</span><span class="c rock">%</span></span>rochers</li>
+            <li><span class="s"><span class="c road"> </span><span class="c road"> </span></span>chemin, en papier nu</li>
+            <li><span class="s"><span class="c soil rng">.</span><span class="c road rng"> </span></span>portée, en hachures</li>
+            <li><span class="s"><span class="c tw l0">A</span></span>tour de niveau 1</li>
+            <li><span class="s"><span class="c tw l1">A</span></span>niveau 2, soulignée</li>
+            <li><span class="s"><span class="c tw l2">A</span></span>niveau 3, en plein</li>
+            <li><span class="s"><span class="c tw l1 sel">C</span></span>tour désignée, encadrée</li>
+            <li><span class="s"><span class="c foe">g</span></span>ennemi, au ruban rouge</li>
+            <li><span class="s"><span class="c foe hurt">g</span></span>blessé, frappe légère</li>
+            <li><span class="s"><span class="c foe cold">g</span></span>ralenti par le givre</li>
+            <li><span class="s"><span class="c foe sick">g</span></span>empoisonné</li>
+            <li><span class="s"><span class="c foe boss">T</span></span>troll</li>
+            <li><span class="s"><span class="c shot-archer">-</span></span>flèche</li>
+            <li><span class="s"><span class="c shot-canon">o</span></span>boulet</li>
+            <li><span class="s"><span class="c fx-boom">*</span></span>éclat de boulet</li>
+            <li><span class="s"><span class="c shot-poison">~</span></span>fiole de poison</li>
+            <li><span class="s"><span class="c fx-bolt">/</span></span>trait de baliste</li>
+            <li><span class="s"><span class="c fx-ice">\</span><span class="c fx-ice">|</span></span>onde de givre</li>
+          </ul>
+        </div>
+
+        <div class="ordres">
+          <h3>Mission</h3>
+          <p>Empêche les ennemis d'atteindre ta base. Chaque ennemi abattu rapporte de l'or, chaque ennemi qui passe coûte une vie, cinq pour un troll. Tiens 20 vagues et la place est sauvée.</p>
+          <h3>À la souris</h3>
+          <p>Coche un modèle au catalogue, puis clique une case libre pour le poser. Clique une tour posée pour lire sa portée, l'améliorer (3 niveaux) ou la revendre à 70 %. Clic droit pour annuler.</p>
+          <p>La molette agrandit ou réduit la carte autour du pointeur. Pour déplacer la vue, glisse en tenant le bouton du milieu ou le bouton droit.</p>
+          <h3>Au clavier</h3>
+          <p>1 à 5 pour choisir un modèle, flèches et Entrée pour viser et poser, A pour améliorer, X pour vendre, N pour appeler la vague suivante en avance (un or par seconde gagnée), Espace pour la pause, V pour la cadence. + et - règlent le grossissement, R recadre la carte entière.</p>
+          <h3>Renseignements</h3>
+          <p>Les flèches rebondissent sur les orques, le canon ignore les chauves-souris, le poison ne fait rien aux squelettes. La tour de glace ne tue presque rien mais laisse aux autres le temps de tirer.</p>
+        </div>
+      </div>
+    </section>
+  </div>
   <script src="game.js"></script>
 </body>
 </html>

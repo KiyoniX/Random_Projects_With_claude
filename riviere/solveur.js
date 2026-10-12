@@ -541,6 +541,9 @@
     setWorks: setWorks, works: function () { return works; }, costOf: costOf, totalCost: totalCost, spans: spans, evenPiles: evenPiles, waterSpan: waterSpan,
     simpleBridges: simpleBridges, canMill: canMill, canDike: canDike, pilePoint: pilePoint, courseAt: courseAt, bridged: bridged, flooded: flooded, starsFor: starsFor,
     level: level, phi: phi,
+    // Empreintes sur la grille, pour le dessin : cases d'une roue, d'une digue, d'une pile.
+    millCells: millFootprint, dikeCells: dikeCells,
+    pileCells: function (o, p, fn) { var pt = pilePoint(o, p); eachCell(pt.x, pt.y, pt.ux, pt.uy, PILE_W, PILE_L, fn); },
     fields: function () { return { rho: RHO, ux: UX, uy: UY, solid: solid, drag: drag, wk: wk, lv: LV, ref0: REF0, ref1: REF1, f: F }; },
     wards: function () { return { level: wardLevel, limit: wardLimit }; },
     mills: function () { return { index: mills, p: millP, u: millU }; }

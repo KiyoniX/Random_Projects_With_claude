@@ -4,69 +4,84 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Siège</title>
+  <link rel="stylesheet" href="../plans-de-ville/planche.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="bar">
-    <h1>Siège <em id="city"></em></h1>
-    <form class="controls" id="setup">
-      <label for="seed">Graine</label>
-      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-      <label for="size">Taille</label>
-      <select id="size">
-        <option value="bourg">Bourg</option>
-        <option value="ville" selected>Ville</option>
-        <option value="cite">Cité</option>
-      </select>
-      <button type="submit" class="btn main">Lancer</button>
-      <button type="button" class="btn" id="random">Au hasard</button>
-    </form>
-    <nav class="links">
-      <a class="btn" id="toPlan" href="../plans-de-ville/index.html">Retour au plan</a>
-    </nav>
-  </header>
+  <main class="atelier">
+    <section class="table" id="board" aria-label="Le plan de la place">
+      <figure class="planche" id="feuille"><div class="map" id="plan"></div></figure>
+      <canvas id="fx" aria-label="Champ de bataille"></canvas>
+      <div class="jetons" id="shop" aria-label="Défenses à poser"></div>
+      <p class="etiquette" id="hint"></p>
+      <div class="loupe" id="loupe">
+        <p><button type="button" data-loupe="moins" aria-label="Regarder de plus loin">−</button><output id="grossi">×1</output><button type="button" data-loupe="plus" aria-label="Regarder de plus près">+</button></p>
+        <button type="button" data-loupe="entier" title="Touche 0">Planche entière</button>
+        <small>molette pour grossir, Maj + glisser pour déplacer</small>
+      </div>
+      <div class="modal" id="modal" hidden></div>
+    </section>
 
-  <main>
-    <div class="stage">
-      <figure>
-        <div class="board" id="board">
-          <div class="map" id="plan"></div>
-          <canvas id="fx" aria-label="Champ de bataille"></canvas>
-          <div class="modal" id="modal" hidden></div>
-        </div>
-        <p class="hint" id="hint"> </p>
-        <figcaption id="caption"></figcaption>
-      </figure>
+    <aside class="annexe">
+      <header class="cartouche">
+        <p id="lead">Journal du siège de</p>
+        <h1 id="city"></h1>
+      </header>
+      <p class="soustitre" id="caption"></p>
 
-      <aside class="side">
-        <dl class="hud">
-          <div><dt>Place</dt><dd id="lives"></dd></div>
-          <div><dt>Or</dt><dd id="gold"></dd></div>
-          <div><dt>Vague</dt><dd id="waveNo"></dd></div>
-          <div><dt>Score</dt><dd id="score"></dd></div>
-          <div><dt>Record</dt><dd id="best"></dd></div>
-        </dl>
-        <p class="msg" id="msg" aria-live="polite"></p>
-        <section>
-          <h2>Défenses</h2>
-          <div class="shop" id="shop"></div>
-          <div class="info" id="info"></div>
-        </section>
-        <section>
-          <h2>Portes</h2>
-          <div class="gates" id="gates"></div>
-        </section>
-        <section>
-          <h2>Prochain assaut</h2>
-          <div class="info wave" id="wave"></div>
+      <ul class="ecritures">
+        <li>La place peut encore encaisser <b id="lives"></b><small>assaillants</small></li>
+        <li>Or au trésor <b id="gold"></b></li>
+        <li>Vague <b id="waveNo"></b><small id="waves"></small></li>
+        <li>Score <b id="score"></b><small>record <span id="best"></span></small></li>
+      </ul>
+
+      <p class="note" id="msg" aria-live="polite"></p>
+
+      <section>
+        <h2>Ordres</h2>
+        <div class="fiche" id="info"></div>
+      </section>
+
+      <section>
+        <h2>État des portes</h2>
+        <div class="portes" id="gates"></div>
+      </section>
+
+      <section>
+        <h2>Prochain assaut</h2>
+        <div class="assaut">
+          <div class="fiche" id="wave"></div>
           <div class="ctl" id="ctl"></div>
-        </section>
-      </aside>
-    </div>
-    <p class="help">Les assaillants suivent les routes jusqu'aux portes ; une porte qui cède leur ouvre l'avenue, et la ville tombe quand douze d'entre eux atteignent la place. L'encre rouge montre la route de la prochaine vague. Souris : choisis une défense, clique un emplacement ; clic droit pour annuler. Clavier : 1 à 5 défenses, flèches et Entrée pour viser un emplacement, A améliorer, X vendre, R réparer la porte, H herse, N vague suivante, Espace pause, V vitesse, Échap annuler.</p>
+        </div>
+      </section>
+
+      <form class="levee" id="setup">
+        <label for="seed">Place levée sur la graine</label>
+        <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">,
+        <label for="size">de la taille d'</label><select id="size">
+          <option value="bourg">un bourg</option>
+          <option value="ville" selected>une ville</option>
+          <option value="cite">une cité</option>
+        </select>.
+        <div class="mentions">
+          <button type="submit" class="mention">Assiéger cette place</button>
+          <button type="button" class="mention" id="random">Une autre, au hasard</button>
+          <a class="mention" id="toPlan" href="../plans-de-ville/index.html">Retour au plan</a>
+        </div>
+      </form>
+
+      <details class="instruction">
+        <summary>Instruction pour la défense</summary>
+        <p>Les assaillants suivent les routes jusqu'aux portes ; une porte qui cède leur ouvre l'avenue, et la ville tombe quand douze d'entre eux atteignent la place. L'encre rouge est celle de l'ennemi : elle pointe la route de la prochaine vague et plante un fanion là d'où elle viendra.</p>
+        <p>À la souris : prends un jeton, clique un emplacement ; clic droit pour reposer le jeton. Au clavier : <kbd>1</kbd> à <kbd>5</kbd> les défenses, les flèches et <kbd>Entrée</kbd> pour viser un emplacement, <kbd>A</kbd> améliorer, <kbd>X</kbd> vendre, <kbd>R</kbd> réparer la porte, <kbd>H</kbd> herse, <kbd>N</kbd> lancer la vague, <kbd>Espace</kbd> pause, <kbd>V</kbd> allure, <kbd>Échap</kbd> annuler.</p>
+        <p>La loupe : molette pour grossir sous le pointeur ; pour déplacer la planche, glisse depuis un endroit vide, ou tiens <kbd>Maj</kbd> ou le bouton du milieu ; <kbd>0</kbd> remet la planche entière.</p>
+      </details>
+    </aside>
   </main>
 
   <script src="../plans-de-ville/plan.js"></script>
+  <script src="../plans-de-ville/vue.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

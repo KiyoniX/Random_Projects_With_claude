@@ -4,41 +4,70 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Plans de ville</title>
+  <link rel="stylesheet" href="planche.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="bar">
-    <h1>Plans <em>de ville</em></h1>
-    <form class="controls" id="form">
-      <label for="seed">Graine</label>
-      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-      <label for="size">Taille</label>
-      <select id="size">
-        <option value="bourg">Bourg</option>
-        <option value="ville" selected>Ville</option>
-        <option value="cite">Cité</option>
-      </select>
-      <button type="submit" class="btn main">Tracer</button>
-      <button type="button" class="btn" id="random">Au hasard</button>
-      <button type="button" class="btn" id="svg">SVG</button>
-      <button type="button" class="btn" id="png">PNG</button>
-    </form>
-    <nav class="links">
-      <a class="btn" id="toDungeon">Explorer les catacombes</a>
-      <a class="btn" id="toSiege">Soutenir un siège</a>
-      <a class="btn" id="toRiver">Aménager la rivière</a>
-      <a class="btn" id="toAtlas" hidden>Retour à la planète</a>
-    </nav>
-  </header>
+  <main class="atelier">
+    <section class="table" id="table" aria-label="Le plan">
+      <figure class="planche" id="feuille"><div class="map" id="map"></div></figure>
+      <p class="etiquette" id="hint"></p>
+      <div class="loupe" id="loupe">
+        <p><button type="button" data-loupe="moins" aria-label="Regarder de plus loin">−</button><output id="grossi">×1</output><button type="button" data-loupe="plus" aria-label="Regarder de plus près">+</button></p>
+        <button type="button" data-loupe="entier" title="Touche 0">Planche entière</button>
+        <small>molette pour grossir, glisser pour déplacer</small>
+      </div>
+    </section>
 
-  <main>
-    <figure>
-      <div class="map" id="map"></div>
-      <figcaption id="caption"></figcaption>
-    </figure>
-    <p class="help">Une même graine redonne toujours la même ville. Survole un quartier pour lire son nom. Les boutons SVG et PNG enregistrent le plan. Sous chaque ville, des catacombes : leur entrée est le puits noir près de l'église. La même ville peut aussi subir un siège ou voir sa rivière aménagée.</p>
+    <aside class="annexe">
+      <header class="cartouche">
+        <p>Recueil des</p>
+        <h1>Plans de ville</h1>
+        <p>levés chacun sur sa graine</p>
+      </header>
+      <p class="soustitre" id="caption"></p>
+
+      <section>
+        <h2>Dénombrement</h2>
+        <ul class="ecritures" id="count"></ul>
+      </section>
+
+      <section>
+        <h2>Renvois aux autres planches</h2>
+        <ol class="renvois">
+          <li><a class="mention" id="toDungeon">Explorer les catacombes</a>, <span>par le puits noir, au chevet de l'église</span></li>
+          <li><a class="mention" id="toSiege">Soutenir un siège</a>, <span>un front par porte</span></li>
+          <li><a class="mention" id="toRiver">Aménager la rivière</a>, <span>ponts, moulins et digues</span></li>
+          <li hidden><a class="mention" id="toAtlas">Retour à la planète</a></li>
+        </ol>
+      </section>
+
+      <section>
+        <h2>Tirages</h2>
+        <p class="tirages">Enregistrer la planche entière
+          <button type="button" class="mention" id="svg">en SVG</button> ou
+          <button type="button" class="mention" id="png">en PNG</button></p>
+      </section>
+
+      <form class="levee" id="form">
+        <label for="seed">Ville levée sur la graine</label>
+        <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">,
+        <label for="size">de la taille d'</label><select id="size">
+          <option value="bourg">un bourg</option>
+          <option value="ville" selected>une ville</option>
+          <option value="cite">une cité</option>
+        </select>.
+        <div class="mentions">
+          <button type="submit" class="mention">Tracer cette ville</button>
+          <button type="button" class="mention" id="random">En tirer une au hasard</button>
+        </div>
+      </form>
+
+      <p class="note">Une même graine redonne toujours la même ville. Promène le pointeur sur le plan pour lire le nom des quartiers.</p>
+    </aside>
   </main>
 
+  <script src="vue.js"></script>
   <script src="plan.js"></script>
 </body>
 </html>

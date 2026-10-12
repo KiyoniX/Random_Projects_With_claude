@@ -1,100 +1,133 @@
 :root {
-  --bg: #0d0e0b;
-  --panel: #17180f;
-  --line: #2e2f22;
-  --text: #dcd8c2;
-  --muted: #7d7b68;
-  --dim: #4a493d;
-  --amber: #e8b04a;
-  --red: #e2665a;
-  --green: #8fce6b;
-  --blue: #6fb3e0;
-  --violet: #c08be8;
-  font-family: Consolas, 'Cascadia Mono', 'DejaVu Sans Mono', Menlo, monospace;
+  /* Les huit couleurs du vidéotex. */
+  --noir: #000;
+  --rouge: #f00;
+  --vert: #0f0;
+  --jaune: #ff0;
+  --bleu: #00f;
+  --magenta: #f0f;
+  --cyan: #0ff;
+  --blanc: #fff;
+  /* Le poste : coque de plastique, lunette sombre, touches. */
+  --coque: #b7ab94;
+  --coque-clair: #cfc5b0;
+  --coque-ombre: #91866f;
+  --lunette: #2b2622;
+  --touche: #4d4238;
+  --encre: #3d342a;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
-body { background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.45; display: flex; flex-direction: column; min-height: 100%; -webkit-tap-highlight-color: transparent; }
-button, input { font: inherit; color: inherit; }
-button { cursor: pointer; border: 0; background: none; }
-pre { font: inherit; }
-:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+body { background: var(--coque); color: var(--encre); font-family: 'Segoe UI', Verdana, Geneva, sans-serif; font-size: 13px; -webkit-tap-highlight-color: transparent; }
 
-/* ---------- HUD ---------- */
-.hud { display: flex; align-items: center; gap: 1.25rem; padding: .7rem 1rem; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-.hud h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: .02em; }
-.hud h1 em { font-style: normal; color: var(--amber); }
-.stats { display: flex; gap: 1.5rem; flex: 1; flex-wrap: wrap; }
-.stat dt { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-.stat dd { font-size: 1.1rem; font-weight: 700; }
-.stat-hp dd { color: var(--red); }
-.stat-gold dd { color: var(--amber); }
-.btn { padding: .3rem .65rem; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); }
-.btn:hover { color: var(--text); border-color: var(--muted); }
-a.btn { text-decoration: none; }
-a.btn[hidden] { display: none; }
-.seed { display: flex; align-items: center; gap: .4rem; }
-.seed label { font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-.seed input { width: 9ch; padding: .3rem .45rem; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; }
+/* ---------- Poste ---------- */
+.poste { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 300px; padding: 12px 12px 0; background: linear-gradient(var(--coque-clair), var(--coque) 30%, var(--coque) 80%, var(--coque-ombre)); }
+.scene { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.lunette { padding: 14px; background: var(--lunette); border-radius: 34px; box-shadow: inset 0 3px 8px rgba(0, 0, 0, .7), 0 1px 0 rgba(255, 255, 255, .45), 0 -1px 0 rgba(0, 0, 0, .25); }
+.tube { display: block; position: relative; overflow: hidden; background: var(--noir); border-radius: 26px / 30px; touch-action: none; }
+/* Le verre : trame, coins qui s'assombrissent, reflet du haut. */
+.tube::after { content: ''; position: absolute; inset: 0; pointer-events: none; border-radius: inherit;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0, 0, 0, .16) 0 1px, transparent 1px 3px),
+    radial-gradient(ellipse at 50% 50%, transparent 78%, rgba(0, 0, 0, .32) 100%);
+  box-shadow: inset 0 0 26px rgba(120, 170, 255, .13), inset 0 10px 22px -12px rgba(255, 255, 255, .2); }
+.tube.large { cursor: grab; }
+.tube.prise { cursor: grabbing; }
+.etalon { position: absolute; left: 0; top: 0; visibility: hidden; font: 100px/1 Consolas, 'Cascadia Mono', 'Lucida Console', 'Courier New', monospace; white-space: pre; }
 
-/* ---------- Donjon ---------- */
-#screen { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 1rem; gap: .75rem; }
-.map { font-size: clamp(10px, 2.6vw, 20px); line-height: 1.15; padding: .5rem .75rem; background: #08090700; border: 1px solid var(--line); border-radius: 6px; user-select: none; }
-.wall { color: #6f6a55; }
-.dim { color: var(--dim); }
-.me { color: #fff; font-weight: 700; }
-.foe { color: var(--red); }
-.boss { color: var(--violet); font-weight: 700; }
-.it-exit { color: var(--green); font-weight: 700; }
-.it-gold { color: var(--amber); }
-.it-potion { color: #f08fb0; }
-.it-altar { color: var(--blue); }
-.it-camp { color: #f0854a; }
-.it-shop { color: var(--green); }
+.plaque { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 7px 22px 9px; color: var(--encre); text-shadow: 0 1px 0 rgba(255, 255, 255, .35); }
+.plaque h1 { font-size: 13px; font-weight: 600; }
+.plaque p { font-size: 12px; opacity: .8; }
 
-.log { width: min(100%, 46rem); min-height: 7.5em; color: var(--muted); white-space: pre-wrap; }
-.log b { color: var(--text); font-weight: 400; }
+.annonce { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.pad { display: none; grid-template-columns: repeat(3, 3rem); gap: .3rem; }
-.pad button { height: 3rem; border: 1px solid var(--line); border-radius: 6px; font-size: 1.2rem; }
-.pad .up { grid-column: 2; }
-.pad .left { grid-column: 1; }
-@media (hover: none) { .pad { display: grid; } }
+/* ---------- Écran de caractères ---------- */
+.ecran { position: absolute; left: 0; top: 0; transform-origin: 0 0; --rh: 18px; font: 15px/18px Consolas, 'Cascadia Mono', 'Lucida Console', 'Courier New', monospace; color: var(--blanc); white-space: pre; user-select: none; -webkit-user-select: none; text-shadow: 0 0 .25em; text-shadow: 0 0 .25em color-mix(in srgb, currentColor 40%, transparent); }
+.r { display: block; width: 64ch; height: var(--rh); }
+.r > * { display: inline-block; height: var(--rh); vertical-align: top; overflow: hidden; }
+:where(.ecran) button { font: inherit; color: inherit; text-shadow: inherit; white-space: pre; text-align: left; background-color: transparent; border: 0; border-radius: 0; cursor: pointer; }
+:where(.ecran) button:disabled { cursor: default; }
+.ecran button:focus-visible, .ecran a:focus-visible { outline: 2px solid var(--blanc); outline-offset: -2px; }
+:where(.ecran) a { color: inherit; text-decoration: underline; text-underline-offset: .15em; }
+.ecran a:hover { color: var(--blanc); }
 
-/* ---------- Combat ---------- */
-.fight { width: min(100%, 60rem); display: flex; flex-direction: column; align-items: center; gap: .9rem; }
-.duel { text-align: center; font-size: 1rem; }
-.duel .face { display: block; font-size: 2.2rem; line-height: 1.6; color: var(--red); font-weight: 400; }
-.duel .face.boss { color: var(--violet); }
-.duel i { font-style: normal; color: var(--amber); }
-.duel .st { color: var(--blue); }
-.duel .self { display: block; margin-top: .9rem; padding-top: .9rem; border-top: 1px dashed var(--line); }
-.hand { display: flex; flex-wrap: wrap; justify-content: center; gap: .5rem; min-height: 10em; }
-.card { display: flex; flex-direction: column; align-items: center; font-size: 13px; line-height: 1.25; border-radius: 4px; transition: transform .08s; }
-.card .box { display: block; white-space: pre; text-align: left; }
-.card .note { color: var(--muted); }
-button.card:hover:not(:disabled) { transform: translateY(-4px); }
-button.card:disabled { opacity: .35; cursor: default; }
-.t-att .box { color: #f0a097; }
-.t-tec .box { color: #9fcdea; }
-.t-pou .box { color: #f0cf8a; }
-.label .box { color: var(--text); text-align: center; padding: .6rem 1rem; border: 1px solid var(--muted); border-radius: 4px; }
-.actions { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: center; color: var(--muted); }
-.actions .btn { color: var(--text); border-color: var(--muted); }
-.actions .btn:disabled { opacity: .35; cursor: default; }
+.f0 { color: var(--noir); }
+.f1 { color: var(--rouge); }
+.f2 { color: var(--vert); }
+.f3 { color: var(--jaune); }
+.f4 { color: var(--bleu); }
+.f5 { color: var(--magenta); }
+.f6 { color: var(--cyan); }
+.f7 { color: var(--blanc); }
+.b1 { background-color: var(--rouge); }
+.b2 { background-color: var(--vert); }
+.b3 { background-color: var(--jaune); }
+.b4 { background-color: var(--bleu); }
+.b5 { background-color: var(--magenta); }
+.b6 { background-color: var(--cyan); }
+.b7 { background-color: var(--blanc); }
+.f0 { text-shadow: none; }
 
-/* ---------- Fenêtre de choix ---------- */
-.modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(5, 5, 4, .8); overflow: auto; }
-.modal[hidden] { display: none; }
-.modal .win { max-width: 62rem; max-height: 100%; overflow: auto; padding: 1.25rem 1.5rem; background: var(--panel); border: 1px solid var(--muted); border-radius: 6px; text-align: center; }
-.modal h2 { font-size: 1.1rem; color: var(--amber); margin-bottom: .4rem; }
-.modal p { color: var(--muted); margin-bottom: 1rem; }
-.modal .opts { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; margin-bottom: 1rem; }
+/* Mosaïque : chaque case est découpée en 2 × 3 pavés. --a, --b, --c sont ses trois rangées. */
+.m {
+  --L: linear-gradient(90deg, currentColor 50%, transparent 0);
+  --R: linear-gradient(90deg, transparent 50%, currentColor 0);
+  --F: linear-gradient(currentColor, currentColor);
+  background-image: var(--a, none), var(--b, none), var(--c, none);
+  background-size: 1ch calc(var(--rh) / 3 + .4px);
+  background-position: 0 0, 0 calc(var(--rh) / 3), 0 calc(var(--rh) * 2 / 3);
+  background-repeat: repeat-x;
+}
+.m.sp {
+  --L: linear-gradient(90deg, currentColor 0 38%, transparent 38%);
+  --R: linear-gradient(90deg, transparent 50%, currentColor 50% 88%, transparent 88%);
+  --F: linear-gradient(90deg, currentColor 0 38%, transparent 38% 50%, currentColor 50% 88%, transparent 88%);
+  background-size: 1ch calc(var(--rh) / 3 - 1px);
+}
+.a1 { --a: var(--L); } .a2 { --a: var(--R); } .a3 { --a: var(--F); }
+.b1m { --b: var(--L); } .b2m { --b: var(--R); } .b3m { --b: var(--F); }
+.c1 { --c: var(--L); } .c2 { --c: var(--R); } .c3 { --c: var(--F); }
 
-/* ---------- Aide ---------- */
-.help { padding: .75rem 1rem 1rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
-.help p { max-width: 62rem; margin: 0 auto .3rem; }
-.help b { color: var(--text); font-weight: 400; }
-.legend span { margin-left: .9rem; }
-.legend span:first-child { margin-left: 0; }
+/* Caractères en double largeur, double hauteur, double taille. */
+.r > .g { overflow: visible; }
+.g > span { display: inline-block; height: var(--rh); transform-origin: 0 100%; }
+.g.w2 > span { transform: scale(2, 1); }
+.g.h2 > span { transform: scale(1, 2); }
+.g.s2 > span { transform: scale(2, 2); }
+
+.cl { animation: clignote 1s steps(1) infinite; }
+@keyframes clignote { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cl { animation: none; } }
+
+/* Survol : la zone pointée passe en blanc, comme un curseur. */
+.hot.bar, .hot.cap { background-color: var(--blanc); }
+.hot.fr, .hot.lib { color: var(--blanc); }
+.hot.lib { text-decoration: underline; }
+
+.ecran input { width: 24ch; font: inherit; color: var(--jaune); text-shadow: inherit; border: 0; border-radius: 0; outline: 0; caret-color: var(--blanc); user-select: text; -webkit-user-select: text;
+  background: radial-gradient(circle at 50% 86%, var(--cyan) 1px, transparent 1.6px) 0 0 / 1ch 100% repeat-x; }
+.ecran input:focus { background-color: var(--bleu); }
+
+/* ---------- Clavier tactile ---------- */
+.clavier { display: none; align-items: center; justify-content: center; gap: 18px; padding: 4px 0 14px; }
+.clavier button { min-width: 46px; height: 42px; padding: 0 9px; font: 600 13px/1 'Segoe UI', Verdana, sans-serif; color: #efe7d6; background: var(--touche); border: 0; border-radius: 5px; box-shadow: 0 3px 0 #2f2822, 0 4px 3px rgba(0, 0, 0, .3); cursor: pointer; }
+.clavier button:active { transform: translateY(2px); box-shadow: 0 1px 0 #2f2822; }
+.clavier .verte { background: #3f6b3a; box-shadow: 0 3px 0 #27452a, 0 4px 3px rgba(0, 0, 0, .3); }
+.clavier :focus-visible { outline: 2px solid var(--encre); outline-offset: 2px; }
+.croix { display: grid; grid-template-columns: repeat(3, 46px); gap: 6px; font-size: 18px; }
+.croix .haut, .croix .bas { grid-column: 2; }
+.croix .gauche { grid-column: 1; }
+.fonctions { display: grid; grid-template-columns: repeat(3, auto); gap: 6px; }
+.poste:not([data-mode="donjon"]) .croix { visibility: hidden; }
+@media (hover: none) {
+  .clavier { display: flex; }
+  .plaque p { display: none; }
+}
+@media (max-width: 520px) {
+  .poste { padding: 6px 6px 0; }
+  .scene { align-items: flex-start; }
+  .lunette { padding: 7px; border-radius: 20px; }
+  .tube { border-radius: 14px / 16px; }
+  .plaque { padding: 5px 12px; }
+}

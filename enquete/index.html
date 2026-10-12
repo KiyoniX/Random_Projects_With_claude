@@ -7,44 +7,76 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="bar">
-    <h1>Nuit blanche <em>au manoir</em></h1>
-    <dl class="stats">
-      <div class="stat"><dt>Actions</dt><dd id="actions">0</dd></div>
-      <div class="stat"><dt>Heure</dt><dd id="horloge">minuit</dd></div>
-      <div class="stat"><dt>Fausses accusations</dt><dd id="fausses">0</dd></div>
-    </dl>
-    <form class="seed" id="seedForm">
-      <label for="seed">Graine</label>
-      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-      <label for="niveau">Difficulté</label>
-      <select id="niveau">
-        <option value="facile">Facile</option>
-        <option value="normal">Normal</option>
-        <option value="difficile">Difficile</option>
-      </select>
-      <button type="submit" class="btn">Lancer</button>
-      <button type="button" class="btn" data-act="hasard">Au hasard</button>
-    </form>
-  </header>
+  <div class="chemise">
+    <header class="couverture">
+      <div class="etiquette">
+        <div class="intitule">
+          <p class="service">Sûreté générale<br>Dossier d’instruction</p>
+          <h1>Nuit blanche au manoir</h1>
+        </div>
+        <form class="cote" id="seedForm">
+          <p class="champ"><label for="seed">Cote (graine)</label><input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false"></p>
+          <p class="champ"><label for="niveau">Difficulté</label>
+            <select id="niveau">
+              <option value="facile">Facile</option>
+              <option value="normal">Normal</option>
+              <option value="difficile">Difficile</option>
+            </select></p>
+          <p class="envoi"><button type="submit" class="btn">Lancer</button><button type="button" class="btn" data-act="hasard">Au hasard</button></p>
+        </form>
+      </div>
+      <p class="manuscrit main"><b id="affaire"></b><span id="lieu"></span></p>
+      <svg class="cachet" viewBox="0 0 120 120" aria-hidden="true">
+        <defs><path id="rond" d="M16 60a44 44 0 1 1 88 0a44 44 0 1 1-88 0"/></defs>
+        <circle cx="60" cy="60" r="56"/><circle cx="60" cy="60" r="34" class="fin"/>
+        <text class="tour"><textPath href="#rond" textLength="268" lengthAdjust="spacing">SÛRETÉ GÉNÉRALE ✶ BRIGADE MOBILE ✶</textPath></text>
+        <text x="60" y="58" text-anchor="middle" class="rf">R. F.</text>
+        <text x="60" y="74" text-anchor="middle" class="ville">Police judiciaire</text>
+      </svg>
+      <span class="sangle" aria-hidden="true"></span>
+    </header>
 
-  <nav class="onglets" id="onglets"></nav>
-  <main id="screen"></main>
+    <div class="reperes">
+      <nav class="onglets" id="onglets" aria-label="Parties du dossier"></nav>
+      <div class="montre" role="status" aria-live="polite">
+        <svg class="gousset" viewBox="0 0 100 120" aria-hidden="true">
+          <circle cx="50" cy="12" r="8" class="beliere"/>
+          <rect x="44" y="18" width="12" height="10" rx="2" class="couronne"/>
+          <circle cx="50" cy="72" r="46" class="boitier"/>
+          <circle cx="50" cy="72" r="39.5" class="cadran"/>
+          <circle cx="50" cy="72" r="36" class="minutes" transform="rotate(-90 50 72)"/>
+          <circle cx="50" cy="72" r="35" class="quarts" transform="rotate(-90 50 72)"/>
+          <path d="M50 105v6" class="aube"/>
+          <text x="50" y="50" text-anchor="middle">XII</text>
+          <text x="77" y="75.5" text-anchor="middle">III</text>
+          <text x="50" y="101" text-anchor="middle">VI</text>
+          <text x="23" y="75.5" text-anchor="middle">IX</text>
+          <path id="aigH" d="M50 76V52" class="aiguille h"/>
+          <path id="aigM" d="M50 79V41" class="aiguille m"/>
+          <circle cx="50" cy="72" r="2.4" class="axe"/>
+        </svg>
+        <p class="cadranTxt"><b id="horloge">minuit</b><span id="actions"></span><span id="fausses"></span></p>
+      </div>
+    </div>
 
-  <footer class="help">
-    <h2>Règles de l'enquête</h2>
-    <ul>
-      <li>Chaque heure citée couvre la demi-heure qui suit : « 22 h » veut dire de 22 h à 22 h 30. Pendant une demi-heure, personne ne change de pièce.</li>
-      <li>Un innocent ne dit jamais rien de faux. Quand il nomme ceux qui étaient avec lui, il n'oublie personne. Il peut en revanche taire un moment de sa soirée, pour une raison sans rapport avec le crime.</li>
-      <li>Seul le coupable ment. Pendant la demi-heure du crime, il était seul avec la victime, dans une pièce où personne d'autre n'est entré. Rien de ce qu'il déclare n'est sûr.</li>
-      <li>Tant qu'un innocent voit la victime, elle est en vie : le crime n'a eu lieu ni pendant cette demi-heure ni avant.</li>
-      <li>Si deux récits se contredisent, le coupable est donc l'un des deux.</li>
-      <li>L'arme a été prise à l'endroit où elle est rangée : le coupable s'y trouvait au moment du crime, ou y est passé avant. Une arme que quelqu'un a vue à sa place n'a été prise qu'après ; une arme dont on a remarqué l'absence l'avait été avant.</li>
-      <li>Le crime a laissé du désordre dans la pièce. Une pièce fouillée où tout est en ordre est hors de cause, de même qu'une pièce dont un innocent explique le désordre.</li>
-      <li>Les indices matériels ne mentent pas.</li>
-      <li>Interroger, fouiller, examiner le corps ou confronter un suspect à une pièce du dossier coûte une action. Relire ne coûte rien. Une fausse accusation coûte deux actions. Quand il n'en reste plus, l'aube se lève : tu n'as plus droit qu'à une accusation.</li>
-    </ul>
-  </footer>
+    <main id="screen"></main>
+
+    <footer class="help">
+      <p class="service">Sûreté générale<br>Note de service</p>
+      <h2>Règles de l’enquête</h2>
+      <ul>
+        <li>Chaque heure citée couvre la demi-heure qui suit : « 22 h » veut dire de 22 h à 22 h 30. Pendant une demi-heure, personne ne change de pièce.</li>
+        <li>Un innocent ne dit jamais rien de faux. Quand il nomme ceux qui étaient avec lui, il n'oublie personne. Il peut en revanche taire un moment de sa soirée, pour une raison sans rapport avec le crime.</li>
+        <li>Seul le coupable ment. Pendant la demi-heure du crime, il était seul avec la victime, dans une pièce où personne d'autre n'est entré. Rien de ce qu'il déclare n'est sûr.</li>
+        <li>Tant qu'un innocent voit la victime, elle est en vie : le crime n'a eu lieu ni pendant cette demi-heure ni avant.</li>
+        <li>Si deux récits se contredisent, le coupable est donc l'un des deux.</li>
+        <li>L'arme a été prise à l'endroit où elle est rangée : le coupable s'y trouvait au moment du crime, ou y est passé avant. Une arme que quelqu'un a vue à sa place n'a été prise qu'après ; une arme dont on a remarqué l'absence l'avait été avant.</li>
+        <li>Le crime a laissé du désordre dans la pièce. Une pièce fouillée où tout est en ordre est hors de cause, de même qu'une pièce dont un innocent explique le désordre.</li>
+        <li>Les indices matériels ne mentent pas.</li>
+        <li>Interroger, fouiller, examiner le corps ou confronter un suspect à une pièce du dossier coûte une action. Relire ne coûte rien. Une fausse accusation coûte deux actions. Quand il n'en reste plus, l'aube se lève : tu n'as plus droit qu'à une accusation.</li>
+      </ul>
+    </footer>
+  </div>
 
   <div class="modal" id="modal" hidden></div>
   <script src="game.js"></script>

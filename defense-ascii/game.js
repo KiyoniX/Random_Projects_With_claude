@@ -402,6 +402,21 @@
 
   // ---------- Affichage ----------
   var shown = {};
+  var COLS = 40;             // largeur des blocs imprimés en marge, en caractères
+  var ZOOM_KEY = 'defense-ascii:vue', ZMIN = 0.5, ZMAX = 4;
+  // V : la vue sur la carte. fit = corps de police qui montre la carte entière, z = grossissement, x et y = décalage en pixels.
+  var V = { fit: 15, z: 1, x: 0, y: 0, uw: 0, uh: 0, drag: null, moved: false, said: null, saidAt: 0, edited: '', closed: '' };
+  var PLAIN = /^(road|soil|rock)( rng)?$/;
+
+  // Lettres 5 × 7 des bannières, façon page de garde de listing.
+  var GLYPHS = {
+    A: '01110 10001 10001 11111 10001 10001 10001', C: '01111 10000 10000 10000 10000 10000 01111',
+    D: '11110 10001 10001 10001 10001 10001 11110', E: '11111 10000 10000 11110 10000 10000 11111',
+    F: '11111 10000 10000 11110 10000 10000 10000', I: '11111 00100 00100 00100 00100 00100 11111',
+    N: '10001 11001 10101 10101 10011 10001 10001', O: '01110 10001 10001 10001 10001 10001 01110',
+    R: '11110 10001 10001 11110 10100 10010 10001', S: '01111 10000 10000 01110 00001 00001 11110',
+    T: '11111 00100 00100 00100 00100 00100 00100', V: '10001 10001 10001 10001 10001 01010 00100'
+  };
 
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
   // N'écrit dans la page que ce qui a changé : un bouton recréé sous le curseur perdrait son clic.
@@ -409,6 +424,33 @@
     if (shown[sel] === html) return;
     shown[sel] = html;
     $(sel).innerHTML = html;
+  }
+
+  function pad(s, n) { s = String(s); while (s.length < n) s += ' '; return s; }
+  function lpad(s, n, c) { s = String(s); while (s.length < n) s = (c || ' ') + s; return s; }
+  // « Libellé ......... valeur » sur n colonnes.
+  function dots(label, value, n) {
+    var k = n - label.length - String(value).length - 2, out = label + ' ';
+    while (k-- > 0) out += '.';
+    return out + ' ' + value;
+  }
+  function spot(x, y) { return lpad(x, 2, '0') + '-' + lpad(y, 2, '0'); }
+  function clock(ticks) {
+    var s = Math.floor(ticks * DT);
+    return 'T+' + lpad(Math.floor(s / 60), 2, '0') + ':' + lpad(s % 60, 2, '0');
+  }
+  function stamp() {
+    var d = new Date();
+    return lpad(d.getDate(), 2, '0') + '/' + lpad(d.getMonth() + 1, 2, '0') + '/' + d.getFullYear() + ' à ' + lpad(d.getHours(), 2, '0') + ' h ' + lpad(d.getMinutes(), 2, '0');
+  }
+
+  function banner(text) {
+    var rows = ['', '', '', '', '', '', ''];
+    text.split('').forEach(function (ch) {
+      var g = GLYPHS[ch] ? GLYPHS[ch].split(' ') : null;
+      rows.forEach(function (r, i) { rows[i] = r + (g ? g[i].replace(/0/g, ' ').replace(/1/g, '#') + ' ' : '   '); });
+    });
+    return rows.join('\n');
   }
 
   function foeAt(x, y) {
@@ -425,6 +467,10 @@
     return null;
   }
 
+  function cell(k, run) {
+    return '<span class="' + k + '"' + (run.length > 1 ? ' style="--n:' + run.length + '"' : '') + '>' + esc(run) + '</span>';
+  }
+
   function mapView() {
     var ch = S.base.slice(), cls = S.look.slice(), z = zone(), out = '', i, x, y, f, run, k;
     function mark(px, py, c, name) {
@@ -434,17 +480,19 @@
       j = at(px, py);
       ch[j] = c; cls[j] = (S.road[j] ? 'road ' : '') + name;
     }
+    function ills(f) { return (f.slowT > 0 ? ' cold' : '') + (f.poisT > 0 ? ' sick' : ''); }
     S.towers.forEach(function (t) { mark(t.x, t.y, t.def.ch, 'tw tw-' + t.def.id + ' l' + t.lvl + (t === U.sel ? ' sel' : '')); });
     S.fx.forEach(function (e) { mark(e.x, e.y, e.ch, e.cls); });
     for (i = 0; i < S.foes.length; i++) {
       f = S.foes[i];
-      if (!f.def.boss) mark(f.x, f.y, f.ch, 'foe' + (f.slowT > 0 ? ' cold' : f.poisT > 0 ? ' sick' : '') + (f.hp * 2 < f.max ? ' hurt' : ''));
+      if (!f.def.boss) mark(f.x, f.y, f.ch, 'foe' + ills(f) + (f.hp * 2 < f.max ? ' hurt' : ''));
     }
     for (i = 0; i < S.foes.length; i++) {
       f = S.foes[i];
-      if (f.def.boss) mark(f.x, f.y, f.ch, 'foe boss' + (f.slowT > 0 ? ' cold' : f.poisT > 0 ? ' sick' : ''));
+      if (f.def.boss) mark(f.x, f.y, f.ch, 'foe boss' + ills(f));
     }
-    S.shots.forEach(function (s) { if (s.ch) mark(s.x, s.y, s.ch, 'shot-' + s.def.id); });
+    // Un projectile qui quitte à peine sa tour ne doit pas la masquer.
+    S.shots.forEach(function (s) { if (s.ch && !towerAt(Math.round(s.x), Math.round(s.y))) mark(s.x, s.y, s.ch, 'shot-' + s.def.id); });
     if (U.cur && U.pick && free(U.cur.x, U.cur.y)) mark(U.cur.x, U.cur.y, TOWER[U.pick].ch, 'ghost');
     if (z) {
       for (y = Math.max(0, Math.ceil(z.y - z.r)); y <= Math.min(H - 1, Math.floor(z.y + z.r)); y++) {
@@ -455,112 +503,234 @@
     }
     if (U.cur) cls[at(U.cur.x, U.cur.y)] += U.pick && !free(U.cur.x, U.cur.y) && !towerAt(U.cur.x, U.cur.y) ? ' cur bad' : ' cur';
 
+    // Les cases ordinaires voisines sont imprimées d'un trait ; tout le reste a sa propre case.
     for (y = 0; y < H; y++) {
-      run = ''; k = cls[at(0, y)];
+      out += '<div class="ln">';
+      run = ''; k = '';
       for (x = 0; x < W; x++) {
         i = at(x, y);
-        if (cls[i] !== k) { out += '<span class="' + k + '">' + esc(run) + '</span>'; run = ''; k = cls[i]; }
-        run += ch[i];
+        if (run && (cls[i] !== k || !PLAIN.test(k))) { out += cell(k, run); run = ''; }
+        k = cls[i]; run += ch[i];
       }
-      out += '<span class="' + k + '">' + esc(run) + '</span>' + (y < H - 1 ? '\n' : '');
+      out += cell(k, run) + '</div>';
     }
     return out;
   }
 
-  function stats(def, L) {
+  function statRows(def, L) {
     var out = [];
-    if (def.dmg) out.push('Dégâts ' + def.dmg[L]);
-    if (def.dps) out.push('Poison ' + def.dps[L] + '/s pendant ' + POISON_TIME + ' s');
-    if (def.area) out.push('Zone ' + def.area[L]);
-    if (def.slow) out.push('Ralentit de ' + Math.round(def.slow[L] * 100) + ' %');
-    out.push('Portée ' + def.range[L]);
-    out.push('Recharge ' + def.cd[L] + ' s');
-    return out.join(' · ');
+    if (def.dmg) out.push(['Dégâts', def.dmg[L]]);
+    if (def.dps) out.push(['Poison par seconde', def.dps[L]], ['Durée du poison (s)', POISON_TIME]);
+    if (def.area) out.push(['Rayon de zone', def.area[L]]);
+    if (def.slow) out.push(['Ralentissement', Math.round(def.slow[L] * 100) + ' %']);
+    out.push(['Portée', def.range[L]], ['Recharge (s)', def.cd[L]]);
+    return out;
+  }
+  function statLine(def, L) {
+    return statRows(def, L).map(function (r) { return r[0].toLowerCase() + ' ' + r[1]; }).join(', ');
+  }
+  function statTable(def, L, next) {
+    var a = statRows(def, L), b = next ? statRows(def, L + 1) : null;
+    return (b ? '<div class="tr">' + lpad('ACTUEL', COLS - 8) + lpad('NIV. ' + (L + 2), 8) + '</div>' : '') +
+      a.map(function (r, i) { return '<div>' + esc(dots(r[0], r[1], b ? COLS - 8 : COLS) + (b ? lpad(b[i][1], 8) : '')) + '</div>'; }).join('');
+  }
+
+  function etatView() {
+    var low = S.lives <= 5, sep = '<span>|</span>';
+    return '<b' + (low ? ' class="alerte"' : '') + '>VIES ' + lpad(Math.max(0, S.lives), 2, '0') + (low ? ' !' : '') + '</b>' + sep +
+      '<b>OR ' + lpad(S.gold, 4, '0') + '</b>' + sep +
+      '<b>VAGUE ' + lpad(S.wave, 2, '0') + (S.endless ? '' : '/' + WAVES) + '</b>' + sep +
+      '<b>SCORE ' + lpad(S.score, 5, '0') + '</b>' + sep +
+      '<b>RECORD ' + lpad(Math.max(S.best, S.score), 5, '0') + '</b>' +
+      (U.paused ? sep + '<b class="alerte">*** PAUSE ***</b>' : '');
   }
 
   function shopView() {
-    return TOWERS.map(function (def, i) {
-      return '<button type="button" class="buy' + (U.pick === def.id ? ' on' : '') + (S.gold < def.cost[0] ? ' poor' : '') + '" data-act="pick" data-i="' + i + '">' +
-        '<span class="key">' + (i + 1) + '</span><span class="tw-' + def.id + '">' + def.ch + '</span> ' + esc(def.name) + '<span class="price">' + def.cost[0] + ' or</span></button>';
-    }).join('');
+    var rule = '<div class="tr">+-------+---+----------+--------+------+</div>';
+    return rule + '<div class="tr">| CHOIX | S | MODÈLE   | PORTÉE | PRIX |</div>' + rule +
+      TOWERS.map(function (def, i) {
+        var on = U.pick === def.id;
+        return '<button type="button" class="ligne' + (on ? ' on' : '') + (S.gold < def.cost[0] ? ' poor' : '') + '" data-act="pick" data-i="' + i + '"' +
+          ' aria-pressed="' + on + '">| ' + (i + 1) + ' [' + (on ? 'X' : ' ') + '] | <b>' + def.ch + '</b> | ' + pad(def.name, 8) + ' | ' +
+          lpad(def.range[0].toFixed(1), 6) + ' | ' + lpad(def.cost[0], 4) + ' |</button>';
+      }).join('') + rule;
   }
 
   function infoView() {
     var t = U.sel, def, cost;
     if (t) {
       def = t.def; cost = upgradeCost(t);
-      return '<b>' + esc(def.name) + ' · niveau ' + (t.lvl + 1) + '/3</b>\n' + esc(stats(def, t.lvl)) +
-        (cost ? '\n<i>Niveau ' + (t.lvl + 2) + ' :</i> ' + esc(stats(def, t.lvl + 1)) : '') +
-        '<div class="row">' +
-        '<button type="button" class="btn" data-act="up"' + (cost && S.gold >= cost ? '' : ' disabled') + '>' + (cost ? 'Améliorer [A] ' + cost + ' or' : 'Niveau maximal') + '</button>' +
-        '<button type="button" class="btn" data-act="sell">Vendre [X] +' + resale(t) + ' or</button></div>';
+      return '<b>' + esc(def.name) + ', niveau ' + (t.lvl + 1) + '/3, case ' + spot(t.x, t.y) + '</b>\n' + statTable(def, t.lvl, cost > 0) + '\n' +
+        (cost ? '<button type="button" class="ligne" data-act="up"' + (S.gold >= cost ? '' : ' disabled') + '>[ ] ' + esc(dots('Améliorer', cost + ' or', COLS - 8) + ' <A>') + '</button>'
+          : '<div class="tr">Niveau maximal atteint.</div>') +
+        '<button type="button" class="ligne" data-act="sell">[ ] ' + esc(dots('Vendre', '+' + resale(t) + ' or', COLS - 8) + ' <X>') + '</button>';
     }
     if (U.pick) {
       def = TOWER[U.pick];
-      return '<b>' + esc(def.name) + ' · ' + def.cost[0] + ' or</b>\n' + esc(def.desc) + '\n' + esc(stats(def, 0)) + '\n<i>Clique une case libre pour la poser. Échap pour annuler.</i>';
+      return '<b>' + esc(def.name) + ', ' + def.cost[0] + ' or, à poser</b>\n<div class="wrap">' + esc(def.desc) + '</div>' + statTable(def, 0, false) +
+        '<div class="wrap tr">Désigne une case libre. Échap annule.</div>';
     }
-    return 'Choisis une tour (1 à 5), puis clique une case libre. Clique une tour posée pour l\'améliorer ou la vendre.';
+    return '<div class="wrap">Aucune tour désignée. Choisis un modèle (1 à 5), puis clique une case libre. Clique une tour posée pour l\'améliorer ou la vendre.</div>';
   }
 
   function waveView() {
     var w = S.next, head;
-    if (S.wave >= WAVES && !S.endless) return 'C\'est la dernière vague. Tiens bon.';
+    if (S.wave >= WAVES && !S.endless) return '<h2>Prochaine vague</h2>  <b>C\'est la dernière vague. Tiens bon.</b>';
     if (!S.wave) head = 'Vague 1 : quand tu veux.';
     else if (S.queue.length) head = 'Vague ' + w.n + ' : après celle-ci.';
     else head = 'Vague ' + w.n + ' dans ' + Math.ceil(S.timer) + ' s.';
-    return '<b>' + head + '</b>\n' + w.groups.map(function (g) {
+    return '<h2>Prochaine vague</h2>  <b>' + head + '</b>\n' + w.groups.map(function (g) {
       var def = FOES[g.ch];
-      return (g.count < 10 ? ' ' : '') + g.count + ' × <span class="foe' + (def.boss ? ' boss' : '') + '">' + g.ch + '</span> ' + esc(def.name) + ' <i>' + esc(def.tag) + '</i>';
+      return lpad(g.count, 3) + '  <span class="foe">' + g.ch + '</span>  ' + pad(def.name, 14) + 'PV ' + lpad(Math.round(def.hp * w.mul), 4) + '  <i>' + esc(def.tag) + '</i>';
     }).join('\n');
   }
 
   function hintView() {
-    var c = U.cur, t, f, i;
+    var c = U.cur, t, f, i, at0;
     if (!c) return ' ';
-    i = at(c.x, c.y);
-    if ((f = foeAt(c.x, c.y))) return f.ch + ' ' + f.def.name + ' · ' + Math.ceil(f.hp) + '/' + f.max + ' PV · ' + f.def.tag;
-    if ((t = towerAt(c.x, c.y))) return t.def.name + ' niveau ' + (t.lvl + 1) + ' · ' + stats(t.def, t.lvl);
-    if (S.road[i]) return 'Chemin : les ennemis passent ici.';
-    if (S.rock[i]) return 'Rocher : rien à bâtir ici.';
-    return U.pick ? 'Case libre : ' + TOWER[U.pick].name + ' pour ' + TOWER[U.pick].cost[0] + ' or.' : 'Case libre.';
+    i = at(c.x, c.y); at0 = 'Case ' + spot(c.x, c.y) + ' : ';
+    if ((f = foeAt(c.x, c.y))) return at0 + f.ch + ', ' + f.def.name + ', ' + Math.ceil(f.hp) + '/' + f.max + ' PV, ' + f.def.tag + '.';
+    if ((t = towerAt(c.x, c.y))) return at0 + t.def.name + ' niveau ' + (t.lvl + 1) + ', ' + statLine(t.def, t.lvl) + '.';
+    if (S.road[i]) return at0 + 'chemin, les ennemis passent ici.';
+    if (S.rock[i]) return at0 + 'rocher, rien à bâtir ici.';
+    return at0 + (U.pick ? 'libre, ' + TOWER[U.pick].name + ' pour ' + TOWER[U.pick].cost[0] + ' or.' : 'libre.');
   }
 
-  function modalView() {
-    var won = S.over === 'won';
-    return '<div class="win" role="dialog" aria-modal="true"><h2>' + (won ? 'Victoire' : 'Défaite') + '</h2><p>' +
-      (won ? 'Les ' + WAVES + ' vagues sont repoussées et il te reste ' + S.lives + ' vies.' : 'Ta base tombe à la vague ' + S.wave + '.') +
-      ' Ennemis abattus : ' + S.kills + ' · Score : ' + S.score + (S.record ? ' · nouveau record pour cette graine !' : ' · Record : ' + S.best) + '</p><div class="opts">' +
-      (won ? '<button type="button" class="btn" data-act="endless">Mode sans fin</button>' : '') +
-      '<button type="button" class="btn" data-act="retry">Revanche (graine ' + esc(S.seed) + ')</button>' +
-      '<button type="button" class="btn" data-act="random">Nouvelle carte</button></div></div>';
+  function ctlView() {
+    return '<button type="button" class="case" data-act="next"' + (canCall() ? '' : ' disabled') + '>Vague suivante <kbd>N</kbd></button>' +
+      '<button type="button" class="case' + (U.paused ? ' on' : '') + '" data-act="pause" aria-pressed="' + U.paused + '">Pause <kbd>Espace</kbd></button>' +
+      '<span class="groupe">Cadence' + [1, 2, 3].map(function (n) {
+        return '<button type="button" class="case' + (U.speed === n ? ' on' : '') + '" data-act="speed" data-i="' + n + '">×' + n + '</button>';
+      }).join('') + '<kbd>V</kbd></span>';
+  }
+  function viewCtlView() {
+    return '<span class="groupe">Vue ' + Math.round(V.z * 100) + ' %' +
+      '<button type="button" class="case" data-act="zin"' + (V.z < ZMAX ? '' : ' disabled') + '>Agrandir <kbd>+</kbd></button>' +
+      '<button type="button" class="case" data-act="zout"' + (V.z > ZMIN ? '' : ' disabled') + '>Réduire <kbd>-</kbd></button>' +
+      '<button type="button" class="case" data-act="fit"' + (V.z !== 1 ? '' : ' disabled') + '>Recadrer <kbd>R</kbd></button></span>';
+  }
+
+  function reportView() {
+    var won = S.over === 'won', kinds = {}, list;
+    S.towers.forEach(function (t) { kinds[t.def.ch] = (kinds[t.def.ch] || 0) + 1; });
+    list = TOWERS.filter(function (d) { return kinds[d.ch]; }).map(function (d) { return kinds[d.ch] + ' ' + d.ch; }).join(', ');
+    function row(label, value) { return esc(dots(label, value, 46)) + '\n'; }
+    return '<header class="entete"><h2>Compte rendu d\'opération</h2><p>Carte ' + esc(S.seed) + ', clos le ' + V.closed + '</p></header>' +
+      '<div class="filet" aria-hidden="true"></div>' +
+      '<pre class="banniere" aria-hidden="true">' + banner(won ? 'VICTOIRE' : 'DEFAITE') + '</pre>' +
+      '<p class="texte"><b>' + (won ? 'Victoire. ' : 'Défaite. ') + '</b>' +
+      (won ? 'Les ' + WAVES + ' vagues sont repoussées et il te reste ' + S.lives + ' vies.' : 'Ta base tombe à la vague ' + S.wave + '.') + '</p>' +
+      '<div class="releve">' + row('Vague atteinte', S.wave + (S.endless ? '' : '/' + WAVES)) + row('Vies restantes', Math.max(0, S.lives)) +
+      row('Ennemis abattus', S.kills) + row('Tours en ligne', S.towers.length + (list ? ' (' + list + ')' : '')) + row('Or en caisse', S.gold) +
+      '<b>' + row('Score', S.score) + '</b>' + row('Record de la graine', S.best) +
+      (S.record ? '<b class="alerte">*** Nouveau record pour cette graine ***</b>' : '') + '</div>' +
+      '<h3>Suite à donner</h3><div class="opts">' +
+      (won ? '<button type="button" class="case" data-act="endless">Poursuivre en mode sans fin</button>' : '') +
+      '<button type="button" class="case" data-act="retry">Revanche sur la même carte (graine ' + esc(S.seed) + ')</button>' +
+      '<button type="button" class="case" data-act="random">Nouvelle carte</button></div>' +
+      '<div class="pli" aria-hidden="true"></div>';
   }
 
   function render() {
-    put('#lives', String(Math.max(0, S.lives)));
-    put('#gold', String(S.gold));
-    put('#waveNo', S.wave + (S.endless ? '' : '/' + WAVES));
-    put('#score', String(S.score));
-    put('#best', String(Math.max(S.best, S.score)));
+    var page = $('#modal');
+    put('#folio', 'État de situation, folio 1/2, édité le ' + V.edited);
+    put('#etat', etatView());
     put('#map', mapView());
+    if (!V.uw) layout();
     put('#hint', esc(hintView()));
-    put('#msg', esc(S.msg));
+    if (V.said !== S.msg) { V.said = S.msg; V.saidAt = S.tick; }
+    put('#msg', '<span>' + clock(V.saidAt) + '</span>  ' + esc(S.msg));
     put('#shop', shopView());
     put('#info', infoView());
     put('#wave', waveView());
-    put('#ctl',
-      '<button type="button" class="btn" data-act="next"' + (canCall() ? '' : ' disabled') + '>Vague suivante [N]</button>' +
-      '<button type="button" class="btn' + (U.paused ? ' on' : '') + '" data-act="pause">' + (U.paused ? 'Reprendre' : 'Pause') + ' [Espace]</button>' +
-      '<span class="speeds">' + [1, 2, 3].map(function (n) {
-        return '<button type="button" class="btn' + (U.speed === n ? ' on' : '') + '" data-act="speed" data-i="' + n + '">×' + n + '</button>';
-      }).join('') + ' [V]</span>');
-    put('#modal', S.over ? modalView() : '');
-    $('#modal').hidden = !S.over;
+    put('#ctl', ctlView());
+    put('#viewCtl', viewCtlView());
+    if (S.over && !V.closed) {
+      V.closed = stamp();
+      try { window.scrollTo(0, 0); } catch (e) { /* hors navigateur */ }
+    }
+    if (!S.over) V.closed = '';
+    put('#modal', S.over ? reportView() : '');
+    page.className = 'page rapport' + (S.over === 'lost' ? ' perdu' : '');
+    page.hidden = !S.over;
+  }
+
+  // ---------- Vue : zoom et déplacement ----------
+  function saveZoom() {
+    try { localStorage.setItem(ZOOM_KEY, String(V.z)); } catch (e) { /* stockage indisponible */ }
+  }
+  function loadZoom() {
+    var z;
+    try { z = parseFloat(localStorage.getItem(ZOOM_KEY)); } catch (e) { z = 0; }
+    if (z >= ZMIN && z <= ZMAX) V.z = z;
+  }
+
+  // Place la feuille dans son cadre : centrée si elle est plus petite, sinon bornée à ses bords.
+  function applyView() {
+    var view = $('#view'), sheet = $('#sheet'), vw = view.clientWidth, vh = view.clientHeight, w, h;
+    sheet.style.fontSize = V.fit * V.z + 'px';
+    w = sheet.offsetWidth; h = sheet.offsetHeight;
+    V.x = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, V.x));
+    V.y = h <= vh ? (vh - h) / 2 : Math.min(0, Math.max(vh - h, V.y));
+    sheet.style.transform = 'translate(' + Math.round(V.x) + 'px,' + Math.round(V.y) + 'px)';
+    view.classList.toggle('zoom', V.z > 1);
+  }
+
+  // Mesure la feuille pour en déduire le corps qui la fait tenir dans la largeur disponible.
+  function layout() {
+    var view = $('#view'), sheet = $('#sheet'), first = !V.uw, probe = 20, vw, room;
+    sheet.style.fontSize = probe + 'px';
+    V.uw = sheet.offsetWidth / probe; V.uh = sheet.offsetHeight / probe;
+    if (!V.uw || !V.uh) { V.uw = 0; return; }
+    vw = view.clientWidth;
+    room = Math.max(200, window.innerHeight - 250);
+    V.fit = Math.max(4, Math.min(vw / V.uw, room / V.uh, 24));
+    // En fenêtre étroite la carte entière est minuscule : le cadre garde de la hauteur pour qu'on puisse grossir.
+    sheet.style.fontSize = V.fit + 'px';
+    view.style.height = Math.max(sheet.offsetHeight, V.fit < 10 ? Math.min(300, room) : 0) + 2 + 'px';
+    if (first) { V.x = (vw - V.uw * V.fit * V.z) / 2; V.y = (V.uh * V.fit - V.uh * V.fit * V.z) / 2; }
+    applyView();
+  }
+
+  // Grossit autour du point (cx, cy) du cadre : la case sous le pointeur reste sous le pointeur.
+  function zoomTo(z, cx, cy) {
+    var view = $('#view'), sheet = $('#sheet'), w = sheet.offsetWidth, h = sheet.offsetHeight, fx, fy;
+    if (!V.uw || !w || !h) return;
+    if (cx === undefined) { cx = view.clientWidth / 2; cy = view.clientHeight / 2; }
+    z = Math.max(ZMIN, Math.min(ZMAX, z));
+    fx = (cx - V.x) / w; fy = (cy - V.y) / h;
+    V.z = z;
+    sheet.style.fontSize = V.fit * V.z + 'px';
+    V.x = cx - fx * sheet.offsetWidth; V.y = cy - fy * sheet.offsetHeight;
+    applyView();
+    saveZoom();
+  }
+  function fitView() { V.z = 1; applyView(); saveZoom(); }
+
+  // Garde la case visée au clavier dans le cadre.
+  function follow(c) {
+    var m = $('#map').getBoundingClientRect(), v = $('#view'), r = v.getBoundingClientRect(), cw = m.width / W, chh = m.height / H;
+    var l = m.left - r.left - v.clientLeft + c.x * cw, t = m.top - r.top - v.clientTop + c.y * chh;
+    if (!V.uw || !cw) return;
+    if (l < 0) V.x -= l; else if (l + cw > v.clientWidth) V.x -= l + cw - v.clientWidth;
+    if (t < 0) V.y -= t; else if (t + chh > v.clientHeight) V.y -= t + chh - v.clientHeight;
+    applyView();
+  }
+
+  function rulers() {
+    var h = '', v = '', i;
+    for (i = 0; i < W; i++) h += '<span class="c"><small>' + (i % 5 ? '.' : lpad(i, 2, '0')) + '</small></span>';
+    for (i = 0; i < H; i++) v += '<div><small>' + lpad(i, 2, '0') + '</small></div>';
+    $('#rulH').innerHTML = h;
+    $('#rulV').innerHTML = v;
+    $('#banner').textContent = banner('DEFENSE ASCII');
   }
 
   // ---------- Commandes ----------
   function start(seed) {
     newGame(seed);
     U.pick = null; U.sel = null; U.cur = null; U.paused = false; U.acc = 0;
+    V.edited = stamp(); V.said = null;
     $('#seed').value = S.seed;
     // location.replace plutôt que history.replaceState, que Chrome refuse sur une page ouverte en file://.
     try { location.replace(location.href.split('#')[0] + '#' + encodeURIComponent(S.seed)); } catch (e) { /* page ouverte hors navigateur */ }
@@ -590,19 +760,63 @@
     return inside(x, y) ? { x: x, y: y } : null;
   }
 
-  $('#map').addEventListener('pointermove', function (e) { U.cur = cellOf(e); });
-  $('#map').addEventListener('pointerleave', function () { U.cur = null; });
-  $('#map').addEventListener('pointerdown', function (e) {
-    var c = cellOf(e);
+  function endDrag() {
+    V.drag = null;
+    $('#view').classList.remove('glisse');
+  }
+
+  $('#view').addEventListener('pointermove', function (e) {
+    var d = V.drag;
+    if (!d) { U.cur = cellOf(e); return; }
+    if (e.pointerId !== d.id) return;
+    if (Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y) > 4) { V.moved = true; $('#view').classList.add('glisse'); }
+    if (!V.moved) return;
+    V.x = d.sx + e.clientX - d.x; V.y = d.sy + e.clientY - d.y;
+    applyView();
+  });
+  $('#view').addEventListener('pointerleave', function () { if (!V.drag) U.cur = null; });
+  // Clic gauche : poser ou désigner, tout de suite. Bouton du milieu ou droit, ou doigt : on glisse la vue.
+  $('#view').addEventListener('pointerdown', function (e) {
+    var c;
+    V.moved = false;
+    if (e.button === 1 || e.button === 2 || e.pointerType === 'touch') {
+      V.drag = { id: e.pointerId, x: e.clientX, y: e.clientY, sx: V.x, sy: V.y, tap: e.pointerType === 'touch' && !e.button };
+      try { $('#view').setPointerCapture(e.pointerId); } catch (err) { /* pointeur déjà relâché */ }
+      return;
+    }
+    c = cellOf(e);
     if (!c || e.button) return;
     U.cur = c;
     act(c.x, c.y);
     render();
   });
-  $('#map').addEventListener('contextmenu', function (e) {
+  $('#view').addEventListener('pointerup', function (e) {
+    var d = V.drag, c;
+    if (!d || e.pointerId !== d.id) return;
+    endDrag();
+    if (!d.tap || V.moved) return;
+    c = cellOf(e);
+    if (!c) return;
+    U.cur = c;
+    act(c.x, c.y);
+    render();
+  });
+  $('#view').addEventListener('pointercancel', endDrag);
+  // Sans cela, le bouton du milieu lance le défilement automatique du navigateur.
+  $('#view').addEventListener('mousedown', function (e) { if (e.button === 1) e.preventDefault(); });
+  // Le clic droit annule, sauf s'il vient de servir à déplacer la vue.
+  $('#view').addEventListener('contextmenu', function (e) {
     e.preventDefault();
+    if (V.moved) { V.moved = false; return; }
     U.pick = null; U.sel = null;
   });
+  $('#view').addEventListener('wheel', function (e) {
+    var v = $('#view'), r = v.getBoundingClientRect(), d = e.deltaY * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 300 : 1);
+    e.preventDefault();
+    zoomTo(V.z * Math.exp(-Math.max(-300, Math.min(300, d)) * 0.0015), e.clientX - r.left - v.clientLeft, e.clientY - r.top - v.clientTop);
+    U.cur = cellOf(e);
+    render();
+  }, { passive: false });
 
   document.addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]'), i;
@@ -618,6 +832,9 @@
       case 'endless': goEndless(); break;
       case 'retry': start(S.seed); break;
       case 'random': start(''); break;
+      case 'zin': zoomTo(V.z * 1.25); break;
+      case 'zout': zoomTo(V.z / 1.25); break;
+      case 'fit': fitView(); break;
     }
     // Un bouton cliqué à la souris ne doit pas garder le focus, sinon Espace le réactiverait au lieu de mettre en pause.
     if (e.detail) b.blur();
@@ -635,6 +852,7 @@
     else if (ARROWS[k]) {
       c = U.cur || { x: W >> 1, y: H >> 1 };
       U.cur = { x: Math.max(0, Math.min(W - 1, c.x + ARROWS[k][0])), y: Math.max(0, Math.min(H - 1, c.y + ARROWS[k][1])) };
+      follow(U.cur);
     } else if (k === 'Enter') { if (U.cur) act(U.cur.x, U.cur.y); }
     else if (k === 'Escape') { U.pick = null; U.sel = null; }
     else if (k === ' ' || k === 'p') U.paused = !U.paused;
@@ -642,6 +860,9 @@
     else if (k === 'n') callWave();
     else if (k === 'a') { if (U.sel) upgrade(U.sel); }
     else if (k === 'x' || k === 'Delete') sellSel();
+    else if (k === '+' || k === '=') zoomTo(V.z * 1.25);
+    else if (k === '-') zoomTo(V.z / 1.25);
+    else if (k === 'r') fitView();
     else return;
     e.preventDefault();
     render();
@@ -657,15 +878,18 @@
   window.addEventListener('hashchange', function () {
     if (hashSeed() !== S.seed) { start(hashSeed()); render(); }
   });
+  window.addEventListener('resize', function () { if (V.uw) layout(); });
 
   // Prise pour les essais et la console : toute la logique tourne sans affichage.
   window.defenseAscii = {
     W: W, H: H, DT: DT, WAVES: WAVES, TOWERS: TOWERS, FOES: FOES,
-    state: function () { return S; }, ui: U,
+    state: function () { return S; }, ui: U, view: V,
     newGame: newGame, tick: tick, build: build, upgrade: upgrade, upgradeCost: upgradeCost, sell: sell,
-    free: free, callWave: callWave, canCall: canCall, goEndless: goEndless, render: render
+    free: free, callWave: callWave, canCall: canCall, goEndless: goEndless, render: render, layout: layout
   };
 
+  loadZoom();
+  rulers();
   start(hashSeed());
   render();
   requestAnimationFrame(function (now) { U.last = now; frame(now); });

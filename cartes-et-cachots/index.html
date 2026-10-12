@@ -7,44 +7,41 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="hud">
-    <h1>Cartes <em>&amp;</em> Cachots</h1>
-    <dl class="stats">
-      <div class="stat stat-hp"><dt>PV</dt><dd id="hp">0</dd></div>
-      <div class="stat stat-gold"><dt>Or</dt><dd id="gold">0</dd></div>
-      <div class="stat"><dt>Potions</dt><dd id="potions">0</dd></div>
-      <div class="stat"><dt>Étage</dt><dd id="floor">1</dd></div>
-    </dl>
-    <a class="btn" id="back" hidden></a>
-    <button type="button" class="btn" id="deck" data-act="deck">Deck</button>
-    <form class="seed" id="seedForm">
-      <label for="seed">Graine</label>
-      <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-      <button type="submit" class="btn">Lancer</button>
-      <button type="button" class="btn" data-act="random">Au hasard</button>
-    </form>
-  </header>
+  <div class="poste" id="poste" data-mode="donjon">
+    <div class="scene" id="scene">
+      <div class="lunette">
+        <main class="tube" id="tube" aria-label="Écran du jeu">
+          <div class="ecran" id="ecran"></div>
+          <span class="etalon" id="etalon" aria-hidden="true">0000000000</span>
+        </main>
+      </div>
+    </div>
 
-  <main id="screen"></main>
+    <div class="plaque">
+      <h1>Cartes &amp; Cachots</h1>
+      <p>Molette : zoom. Glisser : déplacer la vue. Double-clic : taille ajustée.</p>
+    </div>
 
-  <footer class="help">
-    <p class="legend">
-      <span class="me">@</span> toi
-      <span class="foe">r g s</span> ennemis
-      <span class="boss">D</span> dragon
-      <span class="it-exit">&gt;</span> escalier
-      <span class="it-gold">*</span> or
-      <span class="it-potion">!</span> potion
-      <span class="it-altar">?</span> autel
-      <span class="it-camp">&amp;</span> feu de camp
-      <span class="it-shop">$</span> marchand
-    </p>
-    <p><b>Donjon :</b> flèches ou ZQSD pour marcher, Espace pour attendre, P pour boire une potion. Fonce dans un ennemi pour l'attaquer : celui qui frappe le premier rend l'autre vulnérable.</p>
-    <p><b>Combat :</b> 1 à 9 pour jouer une carte, E pour finir le tour. L'armure disparaît au début de ton tour suivant.</p>
-    <p><b>États :</b> Vulnérable, +50 % de dégâts subis. Faible, −25 % de dégâts infligés. Poison, autant de PV perdus au début du tour, puis il baisse de 1. Une carte épuisée ne revient pas avant le combat suivant.</p>
-  </footer>
+    <div class="clavier">
+      <div class="croix">
+        <button type="button" class="haut" data-act="move" data-i="0" aria-label="Haut">^</button>
+        <button type="button" class="gauche" data-act="move" data-i="2" aria-label="Gauche">&lt;</button>
+        <button type="button" data-act="wait" aria-label="Attendre">.</button>
+        <button type="button" data-act="move" data-i="3" aria-label="Droite">&gt;</button>
+        <button type="button" class="bas" data-act="move" data-i="1" aria-label="Bas">v</button>
+      </div>
+      <div class="fonctions">
+        <button type="button" data-act="potion">Potion</button>
+        <button type="button" data-act="deck">Deck</button>
+        <button type="button" class="verte" data-act="guide">Guide</button>
+        <button type="button" data-act="zout" aria-label="Réduire l'affichage">−</button>
+        <button type="button" data-act="zfit" aria-label="Taille ajustée">1:1</button>
+        <button type="button" data-act="zin" aria-label="Agrandir l'affichage">+</button>
+      </div>
+    </div>
+  </div>
 
-  <div class="modal" id="modal" hidden></div>
+  <p class="annonce" id="annonce" aria-live="polite"></p>
   <script src="game.js"></script>
 </body>
 </html>

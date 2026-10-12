@@ -7,96 +7,169 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="cartouche">
-    <h1>Flux <span>banc d'essai hydraulique</span></h1>
-    <p class="titre"><span id="num">Niveau 1</span><b id="nom"></b></p>
-    <nav>
-      <button type="button" class="btn" data-act="niveaux">Niveaux</button>
-      <button type="button" class="btn" data-act="bac">Bac à sable</button>
-      <button type="button" class="btn" data-act="aide">Aide</button>
-    </nav>
-  </header>
+  <div class="table">
+    <aside class="bord" aria-label="Instruments">
+      <nav class="rangement">
+        <button type="button" class="lien" data-act="niveaux">Meuble à plans</button>
+        <button type="button" class="lien" data-act="bac">Brouillon</button>
+        <button type="button" class="lien" data-act="aide">Notice</button>
+      </nav>
 
-  <main class="banc">
-    <section class="scene">
-      <canvas id="vue" width="1000" height="500" aria-label="Plan du conduit et écoulement"></canvas>
-      <div class="reglages">
-        <div class="groupe" role="group" aria-label="Vue">
-          <span class="etiq">Vue</span>
-          <button type="button" class="btn" data-vue="vitesse">Vitesse</button>
-          <button type="button" class="btn" data-vue="pression">Pression</button>
-          <button type="button" class="btn" data-vue="tourbillon">Tourbillons</button>
+      <div class="instruments" role="group" aria-label="Outil">
+        <button type="button" class="instr" data-act="pinceau" title="Poser de la matière (B)">
+          <svg viewBox="0 0 120 22" aria-hidden="true"><path class="pointe" d="M3 11 15 6v10z"/><path class="fut" d="M15 5h70v12H15z"/><path class="bague" d="M85 4h8v14h-8z"/><path class="capuchon" d="M93 5h22q3 0 3 3v6q0 3-3 3H93z"/></svg>
+          <span>Feutre</span><kbd>B</kbd>
+        </button>
+        <button type="button" class="instr" data-act="gomme" title="Retirer de la matière (G, ou clic droit)">
+          <svg viewBox="0 0 120 22" aria-hidden="true"><path class="bloc" d="M24 3h74l-6 16H18z"/><path class="fourreau" d="M48 3h34l-6 16H42z"/></svg>
+          <span>Gomme</span><kbd>G</kbd>
+        </button>
+      </div>
+
+      <div class="gabarit" id="gabarit" role="group" aria-label="Taille du tracé"></div>
+
+      <div class="reglette" id="bPinceau"><span></span><b></b><div class="gradue"><i></i></div></div>
+      <div class="reglette" id="bGomme"><span></span><b></b><div class="gradue"><i></i></div></div>
+
+      <div class="rang">
+        <button type="button" class="lien" data-act="annuler" title="Ctrl+Z">Annuler</button>
+        <button type="button" class="lien" data-act="retablir" title="Ctrl+Y">Rétablir</button>
+        <button type="button" class="lien" data-act="zero">Plan d'origine</button>
+      </div>
+
+      <div class="soufflerie" role="group" aria-label="Soufflerie">
+        <p>Soufflerie</p>
+        <div class="rang">
+          <button type="button" class="lien" data-act="pause" title="Espace">Arrêter</button>
+          <button type="button" class="lien" data-act="pas" title="N">Pas à pas</button>
         </div>
-        <div class="groupe" role="group" aria-label="Simulation">
-          <span class="etiq">Simulation</span>
-          <button type="button" class="btn" data-act="pause">Pause</button>
-          <button type="button" class="btn" data-act="pas">Pas à pas</button>
-          <button type="button" class="btn" data-vit="0">Lente</button>
-          <button type="button" class="btn" data-vit="1">Normale</button>
-          <button type="button" class="btn" data-vit="2">Rapide</button>
+        <div class="crans">
+          <button type="button" data-vit="0">Lente</button><button type="button" data-vit="1">Normale</button><button type="button" data-vit="2">Rapide</button>
         </div>
       </div>
-    </section>
-
-    <aside class="tableau">
-      <section class="bloc consigne">
-        <h2 id="idee"></h2>
-        <p id="texte"></p>
-      </section>
-
-      <section class="bloc mesure">
-        <h2>Débit utile <span id="etat" class="etat">Mesure en cours…</span></h2>
-        <p class="grand"><b id="debit">0,0</b><span id="etoiles" class="etoiles attente">☆☆☆</span></p>
-        <div class="jauge" id="jauge">
-          <i id="fill"></i>
-          <span class="seuil" id="seuil0"></span><span class="seuil" id="seuil1"></span><span class="seuil" id="seuil2"></span>
-        </div>
-        <div id="verdict">
-          <p class="seuils" id="seuils"></p>
-          <p class="record" id="record"></p>
-        </div>
-        <p class="regle" id="regle"></p>
-        <ul class="bouches" id="bouches"></ul>
-        <p class="bravo" id="bravo" hidden></p>
-        <button type="button" class="btn fort" id="suivant" data-act="suivant" hidden>Niveau suivant →</button>
-      </section>
-
-      <section class="bloc outils">
-        <h2>Outils</h2>
-        <div class="groupe">
-          <button type="button" class="btn outil" data-act="pinceau" title="Raccourci&nbsp;: B">Pinceau</button>
-          <button type="button" class="btn outil" data-act="gomme" title="Raccourci&nbsp;: G, ou clic droit">Gomme</button>
-        </div>
-        <label class="taille">Taille <b id="tailleVal">4</b>
-          <input id="taille" type="range" min="1" max="12" value="4">
-        </label>
-        <div class="budget" id="bPinceau"><span>Paroi à poser</span><b></b><div><i></i></div></div>
-        <div class="budget" id="bGomme"><span>Argile à retirer</span><b></b><div><i></i></div></div>
-        <div class="groupe">
-          <button type="button" class="btn" data-act="annuler" title="Ctrl+Z">Annuler</button>
-          <button type="button" class="btn" data-act="retablir" title="Ctrl+Y">Rétablir</button>
-          <button type="button" class="btn" data-act="zero">Remise à zéro</button>
-        </div>
-      </section>
     </aside>
-  </main>
+
+    <main class="feuille">
+      <div class="cadre">
+        <div class="plan">
+          <canvas id="vue" width="1000" height="500" aria-label="Plan de la gaine et écoulement de l'air"></canvas>
+          <canvas id="carte" width="200" height="100" aria-label="Plan entier, clique pour déplacer la vue" hidden></canvas>
+          <p class="repere" id="coord"></p>
+          <div class="loupe" role="group" aria-label="Zoom">
+            <button type="button" data-act="dezoom" title="Dézoomer" aria-label="Dézoomer">−</button>
+            <button type="button" data-act="zoom" title="Zoomer" aria-label="Zoomer">+</button>
+            <button type="button" data-act="ensemble" title="Vue d'ensemble (0)">Vue d'ensemble</button>
+          </div>
+        </div>
+
+        <div class="bandeau">
+          <section class="nota">
+            <h2 id="idee"></h2>
+            <p id="texte"></p>
+          </section>
+
+          <section class="legende">
+            <div class="vues" role="group" aria-label="Grandeur représentée">
+              <button type="button" data-vue="vitesse" title="1">Vitesse</button>
+              <button type="button" data-vue="pression" title="2">Pression</button>
+              <button type="button" data-vue="tourbillon" title="3">Tourbillons</button>
+            </div>
+            <div class="echelleTeinte">
+              <div class="teinte" id="teinte"></div>
+              <div class="grads" id="grads"></div>
+              <p class="unite" id="unite"></p>
+            </div>
+            <ul class="matieres">
+              <li><i class="m-beton"></i>Béton, fixe</li>
+              <li><i class="m-platre"></i>Plâtre, se gomme</li>
+              <li><i class="m-ajout"></i>Ta retouche</li>
+              <li><i class="m-interdit"></i>Zone interdite</li>
+            </ul>
+          </section>
+
+          <section class="mesures">
+            <div class="cadran" id="cadran"></div>
+            <div class="releve">
+              <p class="etoiles attente" id="etoiles">☆☆☆</p>
+              <p class="etat" id="etat"></p>
+              <ul class="bouches" id="bouches"></ul>
+            </div>
+            <p class="regle" id="regle"></p>
+          </section>
+
+          <section class="cartouche">
+            <div class="c-titre">
+              <span class="mention">Flux, réseau de ventilation. Essai de débit</span>
+              <b id="nom"></b>
+            </div>
+            <div class="c-num"><span class="mention">Planche</span><b id="num"></b></div>
+            <div class="c-case"><span class="mention">Échelle</span><b id="echelle"></b></div>
+            <div class="c-case"><span class="mention">Indice</span><b id="indice"></b></div>
+            <div class="c-case"><span class="mention">Dessiné par</span><b>B.E. et toi</b></div>
+            <div class="c-case"><span class="mention">Date</span><b id="date"></b></div>
+            <div class="c-visa">
+              <div id="verdict">
+                <span class="mention">Débit à atteindre</span>
+                <p class="seuils" id="seuils"></p>
+                <p class="record" id="record"></p>
+              </div>
+              <p class="libre" id="libre" hidden>Feuille de brouillon, sans objectif.</p>
+              <div class="tampon" id="tampon" hidden><b id="tamponTitre"></b><span id="tamponEtoiles"></span><small id="bravo"></small></div>
+              <button type="button" class="suivant" id="suivant" data-act="suivant" hidden>Planche suivante</button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
 
   <div class="voile" id="niveaux" hidden>
-    <div class="fenetre">
-      <header><h2>Choisis un banc d'essai</h2><button type="button" class="btn" data-act="fermer">Fermer</button></header>
-      <div class="grille" id="grille"></div>
+    <div class="meuble">
+      <header><h2>Meuble à plans</h2><button type="button" class="fermer" data-act="fermer">Refermer</button></header>
+      <div class="tiroirs" id="tiroirs"></div>
     </div>
   </div>
 
   <div class="voile" id="aide" hidden>
-    <div class="fenetre etroite">
-      <header><h2>Comment ça marche</h2><button type="button" class="btn" data-act="fermer">Fermer</button></header>
-      <p><b>Le but.</b> Le fluide entre sous pression par la bouche bleue et cherche la sortie verte. Modifie le conduit pour faire passer le plus de débit possible. Dès que la mesure est stable, ton débit utile te vaut de une à trois étoiles&nbsp;; une étoile ouvre le niveau suivant.</p>
-      <p><b>Les matériaux.</b> L'acier (bleu hachuré) ne bouge pas. L'argile (ocre) s'efface à la gomme et se pose au pinceau. Rien ne se pose dans les zones rayées de rouge.</p>
-      <p><b>Les outils.</b> Pinceau <kbd>B</kbd>, gomme <kbd>G</kbd> ou clic droit, taille <kbd>+</kbd> <kbd>−</kbd>, annuler <kbd>Ctrl</kbd>+<kbd>Z</kbd>, rétablir <kbd>Ctrl</kbd>+<kbd>Y</kbd>. Le budget se compte par rapport au plan de départ&nbsp;: remettre une case comme elle était te la rembourse.</p>
-      <p><b>Le score.</b> Une bouche rouge est une fuite&nbsp;: ce qui y passe est retiré de ton débit. Quand il y a deux sorties A et B, seule la plus faible compte.</p>
-      <p><b>La simulation.</b> Pause <kbd>Espace</kbd>, pas à pas <kbd>N</kbd>, trois vitesses. Vues <kbd>1</kbd> vitesse, <kbd>2</kbd> pression, <kbd>3</kbd> tourbillons. L'écoulement met quelques secondes à s'établir après chaque retouche&nbsp;: regarde les traceurs, ils montrent où le fluide perd son élan.</p>
-      <button type="button" class="btn fort" data-act="fermer">Au travail</button>
+    <div class="notice">
+      <header><h2>Notice</h2><button type="button" class="fermer" data-act="fermer">Fermer</button></header>
+      <div class="colonnes">
+        <div>
+          <h3>Le but</h3>
+          <p>L'air entre sous pression par la bouche bleue et cherche la sortie. Retouche la gaine pour faire passer le plus de débit possible. Dès que la mesure est stable, ton débit utile te vaut de une à trois étoiles&nbsp;; une étoile ouvre la planche suivante.</p>
+          <h3>Les matières</h3>
+          <p>Le béton, hachuré à l'encre, ne bouge pas. Le plâtre, hachuré en sépia, se retire à la gomme. Ce que tu poses au feutre apparaît en rouge, comme une correction portée sur le plan. Rien ne se pose dans une zone à hachures croisées.</p>
+          <p>Le budget se compte par rapport au plan d'origine&nbsp;: remettre une case comme elle était te la rembourse.</p>
+          <h3>Le débit utile</h3>
+          <p>Une bouche marquée «&nbsp;fuite&nbsp;» retire de ton débit tout ce qui y passe. Quand il y a deux sorties A et B, seule la plus faible compte.</p>
+          <p>L'écoulement met quelques secondes à s'établir après chaque retouche&nbsp;: regarde les filets d'air, ils montrent où l'air perd son élan.</p>
+        </div>
+        <div>
+          <h3>Voir de près</h3>
+          <table>
+            <tr><th>Molette</th><td>zoomer sur la case visée</td></tr>
+            <tr><th>Clic milieu, ou <kbd>Espace</kbd> maintenu</th><td>glisser pour déplacer la vue</td></tr>
+            <tr><th><kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd></th><td>déplacer la vue</td></tr>
+            <tr><th><kbd>0</kbd></th><td>vue d'ensemble</td></tr>
+            <tr><th>Deux doigts</th><td>pincer pour zoomer, glisser pour déplacer</td></tr>
+          </table>
+          <h3>Dessiner</h3>
+          <table>
+            <tr><th><kbd>B</kbd></th><td>feutre&nbsp;: poser de la matière</td></tr>
+            <tr><th><kbd>G</kbd> ou clic droit</th><td>gomme&nbsp;: en retirer</td></tr>
+            <tr><th><kbd>+</kbd> <kbd>−</kbd></th><td>taille du tracé</td></tr>
+            <tr><th><kbd>Maj</kbd> + glisser</th><td>trait droit, posé au relâchement</td></tr>
+            <tr><th><kbd>Ctrl</kbd>+<kbd>Z</kbd>, <kbd>Ctrl</kbd>+<kbd>Y</kbd></th><td>annuler, rétablir</td></tr>
+          </table>
+          <h3>Soufflerie et lecture</h3>
+          <table>
+            <tr><th><kbd>Espace</kbd></th><td>arrêter ou relancer</td></tr>
+            <tr><th><kbd>N</kbd></th><td>avancer pas à pas</td></tr>
+            <tr><th><kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></th><td>vitesse, pression, tourbillons</td></tr>
+          </table>
+        </div>
+      </div>
+      <button type="button" class="suivant" data-act="fermer">Au travail</button>
     </div>
   </div>
 

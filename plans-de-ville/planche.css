@@ -1,0 +1,121 @@
+/* La table du cartographe : commun à Plans de ville, au Siège et à Rivières et moulins. */
+:root {
+  --encre: #3d2f21;
+  --encre-pale: #6b5a47;
+  --papier: #f1e5c6;
+  --feuille: #ece0bf;
+  --vermillon: #b3341f;
+  --gutte: #d9b24a;
+  --table: #47331f;
+  --trait: rgba(61, 47, 33, .55);
+  --imprime: 'Palatino Linotype', 'Book Antiqua', Palatino, Constantia, Georgia, serif;
+  --plume: Gabriola, 'Segoe Script', 'Ink Free', 'Palatino Linotype', cursive;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .3  0 0 0 0 .2  0 0 0 0 .08  .55 0 0 0 -.17'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23g)'/%3E%3C/svg%3E");
+  --motif: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='500'%3E%3Cfilter id='b'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.003 .11' numOctaves='4' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .07  0 0 0 0 .04  0 0 0 0 .01  1.5 0 0 0 -.42'/%3E%3C/filter%3E%3Crect width='700' height='500' filter='url(%23b)'/%3E%3C/svg%3E");
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--table) var(--motif); color: var(--encre); font: 16px/1.4 var(--imprime); overflow: hidden; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; }
+button:disabled { cursor: default; opacity: .38; }
+a { color: inherit; }
+:focus-visible { outline: 2px dotted var(--encre); outline-offset: 2px; }
+[hidden] { display: none !important; }
+
+/* ---------- Table et planche ---------- */
+.atelier { display: grid; grid-template-columns: minmax(0, 1fr) auto; height: 100vh; height: 100dvh; }
+.table { position: relative; container-type: size; overflow: hidden; min-width: 0; min-height: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+.table.glisse, .table.glisse canvas { cursor: grabbing !important; }
+.table.maj canvas { cursor: grab; }
+.planche { position: absolute; left: 0; top: 0; width: 10px; height: 10px; will-change: transform; background: #e4d2aa; box-shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 34px rgba(0, 0, 0, .5); }
+.planche svg { display: block; width: 100%; height: 100%; }
+.table canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* La loupe : un billet au coin de la table. */
+.loupe { position: absolute; left: .7rem; bottom: .7rem; z-index: 3; display: grid; justify-items: center; width: 5.6rem; padding: .2rem .2rem .35rem; background: var(--feuille) var(--grain); box-shadow: 0 2px 7px rgba(0, 0, 0, .45); font-size: .88rem; text-align: center; transform: rotate(-.8deg); }
+.loupe p { display: flex; align-items: baseline; }
+.loupe p button { padding: 0 .4rem; font-size: 1.05rem; }
+.loupe button:hover { color: var(--vermillon); }
+.loupe [data-loupe="entier"] { font-size: .82rem; font-style: italic; line-height: 1.15; white-space: nowrap; border-bottom: 1px solid var(--trait); }
+.loupe output { min-width: 3.4ch; font-variant-numeric: tabular-nums; }
+.loupe small { margin-top: .3rem; font-size: .7rem; font-style: italic; line-height: 1.15; color: var(--encre-pale); }
+.table:not(.de-pres) .loupe [data-loupe="entier"] { opacity: .45; }
+
+/* L'étiquette : ce que désigne le pointeur. */
+.etiquette { position: absolute; left: calc(50% + 3rem); bottom: .6rem; z-index: 3; transform: translateX(-50%); max-width: min(44rem, 100% - 15rem); padding: .12rem .8rem .16rem; background: var(--papier) var(--grain); box-shadow: 0 2px 7px rgba(0, 0, 0, .45); font-size: .9rem; font-style: italic; text-align: center; pointer-events: none; }
+.etiquette:empty { display: none; }
+
+/* ---------- Feuille annexe ---------- */
+/* La feuille prend la place que la planche, carrée, laisse libre en largeur. */
+.annexe { position: relative; z-index: 2; width: clamp(23.5rem, 100vw - 100vh - 7.5rem, 28rem); margin: .7rem .7rem .7rem 0; padding: 1.05rem 1.3rem .9rem; overflow-y: auto; align-self: start; max-height: calc(100% - 1.4rem); background: var(--feuille) var(--grain); box-shadow: -1px 1px 2px rgba(0, 0, 0, .5), -6px 8px 26px rgba(0, 0, 0, .5); outline: 1px solid var(--trait); outline-offset: -7px; scrollbar-width: thin; scrollbar-color: rgba(61, 47, 33, .35) transparent; }
+.annexe section { margin-top: .6rem; }
+.annexe h2 { display: flex; align-items: center; gap: .6rem; margin-bottom: .3rem; font-size: 1.02rem; font-weight: 400; font-style: italic; white-space: nowrap; }
+.annexe h2::before, .annexe h2::after { content: ''; flex: 1; height: 3px; border-top: 1px solid var(--encre); border-bottom: 1px solid var(--trait); opacity: .7; }
+
+/* Titre gravé, comme le cartouche du plan. */
+.cartouche { text-align: center; padding: .45rem .5rem .5rem; border: 2px solid var(--encre); outline: 1px solid var(--trait); outline-offset: -5px; background: rgba(241, 229, 198, .6); }
+.cartouche p { font-size: .84rem; font-style: italic; line-height: 1.25; }
+.cartouche h1 { font-size: 1.32rem; font-weight: 400; font-variant: small-caps; letter-spacing: .09em; line-height: 1.15; }
+.soustitre { margin-top: .3rem; text-align: center; font-size: .86rem; font-style: italic; color: var(--encre-pale); line-height: 1.3; }
+
+/* Les écritures : une ligne, des points de conduite, un chiffre. */
+.ecritures { margin-top: .4rem; list-style: none; }
+.ecritures li { display: flex; align-items: baseline; gap: .35rem; line-height: 1.4; }
+.ecritures li::before { content: ''; order: 2; flex: 1; border-bottom: 1px dotted var(--encre-pale); transform: translateY(-.22em); }
+.ecritures b { order: 3; font-size: 1.18rem; font-weight: 700; font-variant-numeric: oldstyle-nums tabular-nums; }
+.ecritures small { order: 4; font-size: .82rem; font-style: italic; color: var(--encre-pale); }
+
+/* Note à la plume. */
+.note { font-family: var(--plume); font-size: 1.42rem; line-height: 1.02; color: #2c3f5a; }
+
+/* Mentions cliquables : soulignées à la plume. */
+.mention { display: inline-block; padding: 0 .05rem; font-style: italic; line-height: 1.2; text-decoration: none; border-bottom: 1px solid var(--encre); cursor: pointer; }
+.mention:hover:not(:disabled) { border-bottom-width: 2px; margin-bottom: -1px; }
+.mentions { display: flex; flex-wrap: wrap; align-items: baseline; gap: .15rem .9rem; }
+
+/* Un choix parmi plusieurs : entouré d'un trait de plume. */
+.choix { display: inline-flex; align-items: baseline; gap: .1rem; }
+.choix button, .cerne { padding: 0 .42rem; line-height: 1.35; border: 1.5px solid transparent; border-radius: 50% 46% 52% 44% / 58% 50% 56% 48%; }
+.choix button:hover:not(:disabled) { border-color: var(--trait); }
+.choix button[aria-pressed="true"], .choix button.on, .cerne.on { border-color: var(--plume-vive, var(--encre)); transform: rotate(-2deg); }
+
+/* Le cachet de cire : l'ordre qui compte. */
+.sceau { --cire: #a12c19; --cire-claire: #d2533a; --cire-sombre: #7b1d0f; position: relative; display: grid; place-content: center; flex: none; width: 4.9rem; height: 4.9rem; border-radius: 48% 52% 50% 50% / 53% 47% 54% 46%; background: radial-gradient(circle at 36% 30%, var(--cire-claire), var(--cire) 58%, var(--cire-sombre)); box-shadow: inset 0 0 0 .34rem rgba(0, 0, 0, .16), inset 0 0 0 .4rem rgba(255, 255, 255, .16), 1px 3px 5px rgba(0, 0, 0, .4); color: #f6ecd8; text-align: center; font-size: .78rem; font-variant: small-caps; letter-spacing: .04em; line-height: 1.05; transform: rotate(-7deg); text-shadow: 0 1px 0 rgba(0, 0, 0, .45); }
+.sceau small { display: block; margin-top: .1rem; font-size: .72rem; font-style: italic; font-variant: normal; opacity: .85; }
+.sceau:hover:not(:disabled) { filter: brightness(1.1); }
+.sceau:active:not(:disabled) { transform: rotate(-7deg) scale(.96); }
+.sceau:disabled { filter: grayscale(.75); opacity: .5; }
+
+/* La ligne de levée : un imprimé à blancs, rempli à la main. */
+.levee { margin-top: .7rem; padding-top: .35rem; border-top: 3px double var(--encre); font-size: .92rem; line-height: 1.6; }
+.levee label { font-style: italic; }
+.levee input, .levee select { height: 1.5rem; padding: 0 .25rem; background: transparent; border: 0; border-bottom: 1px dotted var(--encre); border-radius: 0; font-family: var(--plume); font-size: 1.3rem; line-height: 1; color: #2c3f5a; vertical-align: baseline; }
+.levee input { width: 7.2ch; }
+.levee select { cursor: pointer; }
+.levee select option { font-family: var(--imprime); font-size: 1rem; color: var(--encre); background: var(--papier); }
+.levee .mentions { margin-top: .15rem; }
+
+.instruction { margin-top: .35rem; font-size: .84rem; line-height: 1.38; color: var(--encre-pale); }
+.instruction summary { cursor: pointer; font-style: italic; color: var(--encre); }
+.instruction p { margin-top: .3rem; }
+.instruction kbd { font: inherit; font-style: italic; color: var(--encre); }
+
+/* ---------- Fenêtre étroite ---------- */
+@media (max-width: 58rem) {
+  html, body { height: auto; }
+  body { overflow: auto; }
+  .atelier { display: block; height: auto; }
+  .table { height: min(100vw + 7rem, 84vh); }
+  .annexe { width: auto; max-width: 34rem; max-height: none; margin: .7rem auto; }
+}
+/* Table étroite : les jetons passent en rang sous la planche, la loupe remonte au coin. */
+@container (max-width: 620px) {
+  .loupe { top: .5rem; bottom: auto; left: .5rem; width: auto; display: flex; align-items: baseline; gap: .4rem; padding: .1rem .4rem .15rem; }
+  .loupe small { display: none; }
+  .etiquette { left: 50%; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mention, .choix button { transition: border-color .12s; }
+}

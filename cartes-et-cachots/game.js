@@ -9,7 +9,13 @@
   var HAND = 5, ENERGY = 3, HAND_MAX = 10;
   var POTION_HEAL = 10, POTION_PRICE = 30;
   var REST_HEAL = 12;
-  var BOX = 16;            // largeur intérieure d'une carte, en caractères
+  var COLS = 64, ROWS = 30; // l'écran, en cases
+  var MX = 4, MY = 3;       // coin de la carte du donjon dans l'écran
+  var BOX = 10, CARD_H = 10; // largeur intérieure et hauteur d'une carte, en cases
+  var PER_ROW = 5, PER_PAGE = 10;
+  var LINE = 1.2, STRETCH = 1.25;   // hauteur de rangée, étirement maximal des caractères
+  var Z_MIN = 0.5, Z_MAX = 4, Z_STEP = 1.15;
+  var NOIR = 0, ROUGE = 1, VERT = 2, JAUNE = 3, BLEU = 4, MAGENTA = 5, CYAN = 6, BLANC = 7;
 
   var STATUS = { vuln: 'Vulnérable', weak: 'Faible', poison: 'Poison', force: 'Force' };
   var KEYS = {
@@ -88,7 +94,8 @@
 
   // ---------- État ----------
   // S : la partie. C : le combat en cours. modal : la fenêtre de choix ouverte. vis : cases visibles.
-  var S, C = null, modal = null, vis = [];
+  // page : la page de service affichée par-dessus le jeu (le guide), ou rien.
+  var S, C = null, modal = null, vis = [], page = null;
   var link = null;   // la ville dont on explore les catacombes, tant qu'on ne change pas de graine
 
   function of(name) { return (/^[aeiouyàâäéèêëîïôöûü]/i.test(name) ? 'd\'' : 'de ') + name; }
@@ -103,9 +110,6 @@
       deck: START.slice()
     };
     C = null; modal = null;
-    $('#seed').value = seed;
-    $('#back').hidden = !from;
-    if (from) { $('#back').href = '../plans-de-ville/index.html#' + from.plan; $('#back').textContent = 'Plan ' + of(from.name); }
     try { history.replaceState(null, '', '#' + encodeURIComponent(seed) + (from ? '?' + from.query : '')); } catch (e) { location.replace('#' + encodeURIComponent(seed) + (from ? '?' + from.query : '')); }   // Chrome refuse replaceState en file://
     say(from ? 'Tu descends dans les catacombes ' + of(from.name) + '. Un dragon dort au troisième étage.' : 'Tu entres dans le donjon. Le dragon dort au troisième étage.');
     descend();
@@ -428,11 +432,12 @@
     S.over = true;
     C = null;
     ask(won ? 'Le dragon est mort' : 'Tu es mort',
-      (won ? (S.city ? 'Tu remontes dans les rues ' + of(S.city) : 'Tu ressors du donjon') + ', les poches pleines.' : 'Ta descente s\'arrête à l\'étage ' + S.floor + '.') +
-      ' Ennemis vaincus : ' + S.kills + ' · Or : ' + S.gold + ' · Deck : ' + S.deck.length + ' cartes · ' + mins + ' min.', [
+      (won ? (S.city ? 'Tu remontes dans les rues ' + of(S.city) : 'Tu ressors du donjon') + ', les poches pleines.' : 'Ta descente s\'arrête à l\'étage ' + S.floor + '.'), [
         { label: 'Rejouer', note: 'nouveau donjon', fn: function () { newRun(''); } },
         { label: 'Revanche', note: 'graine ' + seed, fn: function () { newRun(seed); } }
       ], null);
+    modal.won = won;
+    modal.stats = [['Ennemis vaincus', S.kills], ['Or', S.gold], ['Deck', S.deck.length + ' cartes'], ['Durée', mins + ' min']];
   }
 
   // ---------- Fenêtre de choix ----------
@@ -450,167 +455,633 @@
     if (modal.skip) modal = null;
   }
 
-  // ---------- Affichage ----------
-  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-  function span(cls, ch) { return '<span class="' + cls + '">' + esc(ch) + '</span>'; }
+  // ---------- Écran ----------
+  // Une grille de cases fixes, comme une page vidéotex : chaque case porte un caractère et un attribut.
+  var grid, tags;
+  var PLAIN = { cls: '' }, SKIP = { skip: true }, mosaics = {};
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function pad(s, w) { while (s.length < w) s += ' '; return s; }
   function rep(ch, n) { return n > 0 ? new Array(n + 1).join(ch) : ''; }
-  function bar(n, max, w) {
-    var full = Math.max(0, Math.min(w, Math.ceil(n / max * w)));
-    return '[' + rep('#', full) + rep('.', w - full) + ']';
+
+  // at(encre, fond, classes en plus) : un attribut de case. Encre noire sur fond de couleur = vidéo inverse.
+  function at(fg, bg, x) { return { cls: 'f' + fg + (bg ? ' b' + bg : '') + (x ? ' ' + x : '') }; }
+  // Rend un attribut cliquable.
+  function on(a, o) {
+    if (!o || !o.act) return a;
+    return { cls: a.cls, m: a.m, act: o.act, i: o.i, off: o.off, label: o.label };
   }
+  // Mosaïque : trois chiffres, un par rangée de pavés (0 vide, 1 gauche, 2 droite, 3 les deux).
+  function mo(pat, fg, sp, x) {
+    var key = pat + fg + (sp ? 's' : '') + (x || ''), cls = 'm' + (sp ? ' sp' : ''), i;
+    if (mosaics[key]) return mosaics[key];
+    for (i = 0; i < 3; i++) if (pat.charAt(i) !== '0') cls += ' ' + 'abc'.charAt(i) + pat.charAt(i) + (i === 1 ? 'm' : '');
+    return (mosaics[key] = { cls: cls + ' f' + fg + (x ? ' ' + x : ''), m: true });
+  }
+
+  function clear() {
+    grid = []; tags = [];
+    for (var y = 0; y < ROWS; y++) grid.push(new Array(COLS));
+  }
+  function put(x, y, text, a) {
+    text = String(text);
+    for (var i = 0; i < text.length; i++) if (y >= 0 && y < ROWS && x + i >= 0 && x + i < COLS) grid[y][x + i] = { ch: text.charAt(i), a: a || PLAIN };
+    return x + text.length;
+  }
+  function fill(x, y, w, a) { put(x, y, rep(' ', w), a); }
+  function raw(x, y, w, html) {
+    grid[y][x] = { raw: html, w: w };
+    for (var i = 1; i < w; i++) grid[y][x + i] = SKIP;
+  }
+  // Texte agrandi : sx et sy valent 1 ou 2. Posé sur sa rangée du bas, il déborde vers le haut.
+  function big(x, y, text, a, sx, sy) {
+    raw(x, y, text.length * sx, '<span class="g ' + (sx > 1 ? sy > 1 ? 's2' : 'w2' : 'h2') + ' ' + a.cls + '" style="width:' + text.length * sx + 'ch"><span>' + esc(text) + '</span></span>');
+  }
+  function rule(y) { fill(0, y, COLS, mo('030', BLEU)); }
+  function crenel(y, fg) {
+    for (var x = 0; x < COLS; x++) put(x, y, ' ', mo(x % 4 < 2 ? '330' : '300', fg));
+  }
+  function gauge(x, y, n, max, w, fg) {
+    var units = Math.max(0, Math.min(w * 2, Math.ceil(n / max * w * 2))), i;
+    for (i = 0; i < w; i++) put(x + i, y, ' ', units >= 2 * i + 2 ? mo('333', fg, true) : units === 2 * i + 1 ? mo('111', fg, true) : mo('030', BLEU));
+  }
+  // Dessin en pavés : chaque ligne de texte est une rangée de pavés, X = allumé.
+  function picture(x, y, rows, fg) {
+    var cx, cy, r, pat, l;
+    for (cy = 0; cy * 3 < rows.length; cy++) {
+      for (cx = 0; cx * 2 < rows[0].length; cx++) {
+        pat = '';
+        for (r = 0; r < 3; r++) {
+          l = rows[cy * 3 + r] || '';
+          pat += (l.charAt(cx * 2) === 'X' ? 1 : 0) + (l.charAt(cx * 2 + 1) === 'X' ? 2 : 0);
+        }
+        if (pat !== '000') put(x + cx, y + cy, ' ', mo(pat, fg));
+      }
+    }
+  }
+
+  function open(a, n, seen) {
+    var tag = a.act ? 'button' : a.href ? 'a' : 'span', g, s;
+    s = '<' + tag + ' class="' + a.cls + '" style="width:' + n + 'ch"';
+    if (a.href) s += ' href="' + esc(a.href) + '"';
+    if (a.act) {
+      g = a.act + (a.i == null ? '' : '-' + a.i);
+      s += ' type="button" data-act="' + a.act + '" data-g="' + g + '"' + (a.i == null ? '' : ' data-i="' + a.i + '"') + (a.off ? ' disabled' : '');
+      // Un bouton s'étale sur plusieurs morceaux : seul le premier reçoit le focus.
+      if (seen[g]) s += ' tabindex="-1" aria-hidden="true"';
+      else if (a.label) s += ' aria-label="' + esc(a.label) + '"';
+      seen[g] = true;
+    }
+    return s + '>';
+  }
+  function flush() {
+    var out = '', seen = {}, x, y, c, a, n, text, tag;
+    for (y = 0; y < ROWS; y++) {
+      tag = tags[y] || 'div';
+      out += '<' + tag + ' class="r">';
+      x = 0;
+      while (x < COLS) {
+        c = grid[y][x];
+        if (c && c.raw) { out += c.raw; x += c.w; continue; }
+        a = c && c.a || PLAIN; text = ''; n = 0;
+        while (x < COLS && (c = grid[y][x], !(c && c.raw) && (c && c.a || PLAIN) === a)) { text += c && c.ch || ' '; n++; x++; }
+        out += open(a, n, seen) + (a.m ? '' : esc(text)) + (a.act ? '</button>' : a.href ? '</a>' : '</span>');
+      }
+      out += '</' + tag.split(' ')[0] + '>';
+    }
+    return out;
+  }
+
+  // ---------- Affichage ----------
+  var TYPES = {
+    att: { fg: ROUGE, sign: '♠', name: 'attaque' },
+    tec: { fg: CYAN, sign: '♦', name: 'technique' },
+    pou: { fg: JAUNE, sign: '♥', name: 'pouvoir' }
+  };
+  var INK = {
+    me: at(NOIR, BLANC), foe: at(ROUGE), boss: at(NOIR, MAGENTA, 'cl'), dim: at(BLEU), floor: at(CYAN),
+    wall: mo('333', BLEU, true), wallDim: mo('121', BLEU),
+    exit: at(NOIR, VERT), gold: at(JAUNE), potion: at(MAGENTA), altar: at(NOIR, CYAN), camp: at(NOIR, ROUGE), shop: at(NOIR, JAUNE)
+  };
+  var SKULL = [
+    '....XXXXXXXXXXXX....',
+    '..XXXXXXXXXXXXXXXX..',
+    '.XXXXXXXXXXXXXXXXXX.',
+    'XXXXXXXXXXXXXXXXXXXX',
+    'XXX.....XXXX.....XXX',
+    'XXX.....XXXX.....XXX',
+    'XXX.....XXXX.....XXX',
+    'XXXX...XXXXXX...XXXX',
+    'XXXXXXXXX..XXXXXXXXX',
+    '.XXXXXXX....XXXXXXX.',
+    '..XXXXXXXXXXXXXXXX..',
+    '....XXXXXXXXXXXX....',
+    '....XX.XX..XX.XX....',
+    '....XX.XX..XX.XX....',
+    '.....XXXXXXXXXX.....'
+  ];
+  var CROWN = [
+    'XX.......XX.......XX',
+    'XX.......XX.......XX',
+    'XXX.....XXXX.....XXX',
+    'XXX.....XXXX.....XXX',
+    'XXXX...XXXXXX...XXXX',
+    'XXXXX.XXXXXXXX.XXXXX',
+    'XXXXXXXXXXXXXXXXXXXX',
+    'XXXXXXXXXXXXXXXXXXXX',
+    'XXXX.XXXX..XXXX.XXXX',
+    'XXXXXXXXXXXXXXXXXXXX',
+    '....................',
+    'XXXXXXXXXXXXXXXXXXXX'
+  ];
+
+  // Coupe aux espaces, et après un trait d'union quand un mot dépasse.
   function wrap(text, w) {
-    var lines = [], line = '';
+    var lines = [], line = '', cut;
     text.split(' ').forEach(function (word) {
-      if (line && (line + ' ' + word).length > w) { lines.push(line); line = word; }
-      else line = line ? line + ' ' + word : word;
+      if (line && (line + ' ' + word).length > w) { lines.push(line); line = ''; }
+      line = line ? line + ' ' + word : word;
+      while (line.length > w && (cut = line.lastIndexOf('-', w - 1) + 1) > 0) { lines.push(line.slice(0, cut)); line = line.slice(cut); }
     });
     if (line) lines.push(line);
     return lines;
   }
-  function cardBox(id) {
-    var c = CARDS[id], rule = '+' + rep('-', BOX + 2) + '+', body = wrap(c.desc, BOX);
-    while (body.length < 4) body.push('');
-    return [rule, '| ' + pad(c.name, BOX - 2) + ' ' + c.cost + ' |', rule]
-      .concat(body.map(function (l) { return '| ' + pad(l, BOX) + ' |'; }), [rule]).join('\n');
-  }
   function states(st) {
-    return Object.keys(STATUS).filter(function (k) { return st[k]; }).map(function (k) { return STATUS[k] + ' ' + st[k]; }).join(' · ');
+    return Object.keys(STATUS).filter(function (k) { return st[k]; }).map(function (k) { return STATUS[k] + ' ' + st[k]; }).join('  ');
+  }
+  function lead(label, w) { return label + ' ' + rep('.', w - label.length - 1); }
+  function clip(s, w) { return s.length > w ? s.slice(0, w - 1) + '…' : s; }
+
+  // Rangée 0 : le service, le plan d'où l'on vient, la graine, le zoom, le témoin de connexion.
+  function header() {
+    var from = link && link.seed === S.seed ? link : null, seed = 'graine ' + clip(S.seed, 14);
+    put(0, 0, '3615 CACHOTS', at(JAUNE));
+    if (from) put(14, 0, clip('Plan ' + of(from.name), 20), { cls: 'f6', href: '../plans-de-ville/index.html#' + from.plan });
+    put(55 - seed.length, 0, seed);
+    raw(56, 0, 6, '<span class="f6" id="zoomtag" style="width:6ch">' + esc(zoomTag()) + '</span>');
+    put(63, 0, 'C', at(NOIR, BLANC));
+  }
+  function hud(fighting) {
+    var x = 1;
+    if (!fighting) {
+      put(1, 1, 'PV');
+      gauge(4, 1, S.me.hp, S.me.max, 14, VERT);
+      put(19, 1, Math.max(0, S.me.hp) + '/' + S.me.max);
+      x = 26;
+    }
+    put(put(x, 1, 'Or ') , 1, S.gold, at(JAUNE));
+    put(put(x + 7, 1, 'Potions '), 1, S.potions, at(MAGENTA));
+    put(put(x + 19, 1, 'Deck '), 1, S.deck.length, at(CYAN));
+    put(put(COLS - 10, 1, 'Étage '), 1, S.floor + '/' + FLOORS, at(VERT));
+  }
+  function journal(y, n) {
+    var lines = [];
+    S.log.slice(-n).forEach(function (l, i, all) {
+      wrap(l, COLS - 4).forEach(function (part) { lines.push({ text: part, fresh: i === all.length - 1 }); });
+    });
+    lines.slice(-n).forEach(function (l, i) {
+      put(2, y + i, l.text, at(l.fresh ? BLANC : CYAN));
+    });
+  }
+  // Bandeau du bas : la touche en vidéo inverse, puis ce qu'elle fait.
+  function keys(items) {
+    var x = 1;
+    items.forEach(function (it) {
+      if (!it) return;
+      x = put(x, ROWS - 1, it.k, on(at(NOIR, it.off ? BLEU : BLANC, 'cap'), it));
+      x = put(x, ROWS - 1, ' ' + it.label, on(at(it.off ? BLEU : BLANC, 0, 'lib'), it)) + 2;
+    });
+    return x;
   }
 
   function cell(x, y) {
     var i = y * W + x, t = S.map[y][x], f, it;
-    if (!S.seen[i]) return ' ';
+    if (!S.seen[i]) return null;
     if (vis[i]) {
-      if (x === S.x && y === S.y) return span('me', '@');
-      if ((f = foeAt(x, y))) return span(f.boss ? 'boss' : 'foe', f.ch);
+      if (x === S.x && y === S.y) return ['@', INK.me];
+      if ((f = foeAt(x, y))) return [f.ch, f.boss ? INK.boss : INK.foe];
     }
-    if ((it = itemAt(x, y))) return span(vis[i] ? 'it-' + it.kind : 'dim', it.ch);
-    if (!vis[i]) return span('dim', t);
-    return t === '#' ? span('wall', t) : t;
+    if ((it = itemAt(x, y))) return [it.ch, vis[i] ? INK[it.kind] : INK.dim];
+    if (t === '#') return [' ', vis[i] ? INK.wall : INK.wallDim];
+    return [t, vis[i] ? INK.floor : INK.dim];
   }
-  function logView() {
-    var lines = S.log.slice(-5);
-    return '<pre class="log" aria-live="polite">' + lines.map(function (l, i) {
-      return i === lines.length - 1 ? '<b>' + esc(l) + '</b>' : esc(l);
-    }).join('\n') + '</pre>';
-  }
-  function mapView() {
-    var out = '', x, y;
+  function mapPage() {
+    var x, y, c;
+    hud(false);
+    rule(2);
     for (y = 0; y < H; y++) {
-      for (x = 0; x < W; x++) out += cell(x, y);
-      out += '\n';
+      for (x = 0; x < W; x++) if ((c = cell(x, y))) put(MX + x, MY + y, c[0], c[1]);
     }
-    return '<pre class="map">' + out + '</pre>' + logView() +
-      '<div class="pad">' +
-      '<button type="button" class="up" data-act="move" data-i="0" aria-label="Haut">^</button>' +
-      '<button type="button" class="left" data-act="move" data-i="2" aria-label="Gauche">&lt;</button>' +
-      '<button type="button" data-act="wait" aria-label="Attendre">.</button>' +
-      '<button type="button" data-act="move" data-i="3" aria-label="Droite">&gt;</button>' +
-      '<button type="button" class="up" data-act="move" data-i="1" aria-label="Bas">v</button>' +
-      '</div>';
+    rule(MY + H);
+    journal(MY + H + 1, 3);
+    keys([
+      { k: '←↑↓→', label: 'marcher' },
+      { k: 'Espace', label: 'attendre', act: 'wait' },
+      { k: 'P', label: 'potion ×' + S.potions, act: 'potion', off: !S.potions },
+      { k: 'C', label: 'deck', act: 'deck' },
+      { k: 'G', label: 'guide', act: 'guide' }
+    ]);
   }
 
-  function option(o, i, act) {
-    var cls = o.card ? 'card t-' + CARDS[o.card].type : 'card label';
-    var note = (act && i < 9 ? '[' + (i + 1) + '] ' : '') + (o.note || '');
-    var inner = '<span class="box">' + esc(o.card ? cardBox(o.card) : o.label) + '</span><span class="note">' + esc(note) + '</span>';
-    if (!act) return '<div class="' + cls + '">' + inner + '</div>';
-    return '<button type="button" class="' + cls + '" data-act="' + act + '" data-i="' + i + '"' + (o.off ? ' disabled' : '') + '>' + inner + '</button>';
+  // Une carte : bandeau à la couleur du type (touche, signe, coût), nom, texte, le tout dans un cadre de pavés.
+  // o : { act, i, off, key }.
+  function card(x, y, id, o) {
+    var c = CARDS[id], t = TYPES[c.type], tone = o.off ? BLEU : t.fg, name = wrap(c.name, BOX), body = name.concat(wrap(c.desc, BOX)), i;
+    var hit = { act: o.act, i: o.i, off: o.off, label: c.name + ', ' + t.name + ', coût ' + c.cost + '. ' + c.desc };
+    var left = on(mo('111', tone, false, 'fr'), hit), right = on(mo('222', tone, false, 'fr'), hit);
+    var title = on(at(t.fg), hit), text = on(at(BLANC), hit);
+    put(x, y, pad('  ' + t.sign, BOX - 1) + c.cost + '● ', on(at(o.off ? BLANC : NOIR, tone, 'bar'), hit));
+    if (o.key) put(x, y, o.key, on(at(BLANC), hit));
+    for (i = 0; i < CARD_H - 2; i++) {
+      put(x, y + 1 + i, ' ', left);
+      put(x + 1, y + 1 + i, pad(body[i] || '', BOX), i < name.length ? title : text);
+      put(x + BOX + 1, y + 1 + i, ' ', right);
+    }
+    put(x, y + CARD_H - 1, ' ', on(mo('113', tone, false, 'fr'), hit));
+    put(x + 1, y + CARD_H - 1, rep(' ', BOX), on(mo('003', tone, false, 'fr'), hit));
+    put(x + BOX + 1, y + CARD_H - 1, ' ', on(mo('223', tone, false, 'fr'), hit));
+  }
+  // Abscisse de la n-ième carte d'une rangée qui en compte « count », centrée.
+  function slot(n, count) { return ((COLS - count * (BOX + 3) + 1) >> 1) + n * (BOX + 3); }
+
+  function fightPage() {
+    var f = C.foe, me = S.me, n = C.hand.length, two = n > PER_ROW, tone = f.ref.boss ? MAGENTA : ROUGE, face = f.def.face, y = two ? 2 : 5, x, i;
+    var pile = 'Pioche ' + C.draw.length + '  Défausse ' + C.discard.length;
+    if (!two) { hud(true); rule(2); }
+    big((COLS - face.length * 2) >> 1, y, face, at(tone), 2, 2);
+    y += two ? 1 : 2;
+    put(4, y, f.def.name);
+    gauge(20, y, f.hp, f.max, 20, tone);
+    put(41, y, Math.max(0, f.hp) + '/' + f.max);
+    if (f.block) put(50, y, 'Armure ' + f.block, at(CYAN));
+    y++;
+    put(4, y, 'Prépare', at(NOIR, JAUNE));
+    x = put(20, y, intent(), at(JAUNE));
+    if (two) put(x + 2, y, states(f.st), at(MAGENTA)); else put(20, y + 1, states(f.st), at(MAGENTA));
+    y += two ? 1 : 2;
+    if (!two) rule(y++);
+    put(4, y, 'Toi');
+    gauge(20, y, me.hp, me.max, 20, VERT);
+    put(41, y, Math.max(0, me.hp) + '/' + me.max);
+    put(50, y, 'Armure ' + me.block, at(CYAN));
+    y++;
+    put(4, y, 'Énergie');
+    for (i = 0; i < Math.max(ENERGY, C.energy); i++) put(20 + i * 2, y, i < C.energy ? '●' : '○', at(JAUNE));
+    put(COLS - 2 - pile.length, y, pile, at(CYAN));
+    y++;
+    put(20, y, states(me.st), at(MAGENTA));
+    y += two ? 1 : 2;
+    C.hand.forEach(function (id, i) {
+      var row = i / PER_ROW | 0;
+      card(slot(i % PER_ROW, Math.min(PER_ROW, n - row * PER_ROW)), y + row * CARD_H, id, { act: 'card', i: i, off: CARDS[id].cost > C.energy, key: i < 9 ? i + 1 : '' });
+    });
+    if (two) journal(ROWS - 2, 1); else journal(y + CARD_H + 1, 3);
+    keys([
+      n ? { k: n > 1 ? '1-' + Math.min(9, n) : '1', label: 'jouer' } : null,
+      { k: 'E', label: 'fin du tour', act: 'end' },
+      { k: 'P', label: 'potion ×' + S.potions, act: 'potion', off: !S.potions },
+      { k: 'C', label: 'deck', act: 'deck' },
+      { k: 'G', label: 'guide', act: 'guide' }
+    ]);
   }
 
-  function fightView() {
-    var f = C.foe, me = S.me;
-    var hand = C.hand.map(function (id, i) {
-      return option({ card: id, off: CARDS[id].cost > C.energy }, i, 'card');
-    }).join('');
-    return '<section class="fight">' +
-      '<pre class="duel">' +
-      '<b class="face' + (f.ref.boss ? ' boss' : '') + '">' + esc(f.def.face) + '</b>' +
-      esc(f.def.name + '  ' + bar(f.hp, f.max, 20) + ' ' + f.hp + '/' + f.max + (f.block ? '  Armure ' + f.block : '')) + '\n' +
-      '<span class="st">' + esc(states(f.st) || ' ') + '</span>\n' +
-      '<i>' + esc('Prépare : ' + intent()) + '</i>' +
-      '<span class="self">' + esc('Toi  ' + bar(me.hp, me.max, 20) + ' ' + me.hp + '/' + me.max + '  Armure ' + me.block + '  Énergie ' + C.energy) + '\n' +
-      '<span class="st">' + esc(states(me.st) || ' ') + '</span></span>' +
-      '</pre>' +
-      '<div class="hand">' + hand + '</div>' +
-      '<div class="actions">' +
-      '<button type="button" class="btn" data-act="end">Fin du tour [E]</button>' +
-      '<button type="button" class="btn" data-act="potion"' + (S.potions ? '' : ' disabled') + '>Potion [P] ×' + S.potions + '</button>' +
-      '<span>Pioche ' + C.draw.length + ' · Défausse ' + C.discard.length + '</span>' +
-      '</div>' + logView() + '</section>';
+  // Une fenêtre de choix occupe toute la page. Au-delà de dix options, on feuillette avec Suite et Retour.
+  function choicePage() {
+    var pages = Math.max(1, Math.ceil(modal.opts.length / PER_PAGE)), p = modal.page = Math.max(0, Math.min(pages - 1, modal.page || 0)), base = p * PER_PAGE;
+    var list = modal.opts.slice(base, base + PER_PAGE), count = list.filter(function (o) { return o.card; }).length, tall = count > PER_ROW;
+    var band = S.over ? modal.won ? at(NOIR, JAUNE) : at(BLANC, ROUGE) : at(BLANC, BLEU), tone = S.over ? modal.won ? JAUNE : ROUGE : BLEU;
+    var y = tall ? 4 : 6, k = 0, top = 0, x;
+    if (!S.over) hud(false);
+    fill(0, 2, COLS, band); fill(0, 3, COLS, band);
+    big(2, 3, modal.title, band, 2, 2);
+    if (pages > 1) put(COLS - 10, 3, 'page ' + (p + 1) + '/' + pages, band);
+    if (!tall) crenel(4, tone);
+    wrap(modal.text, S.over ? 38 : COLS - 4).forEach(function (l) { put(2, y++, l); });
+    if (modal.stats) {
+      y++;
+      modal.stats.forEach(function (s) {
+        put(2, y, lead(s[0], 26) + ' ' + s[1]);
+        y++;
+      });
+      picture(46, 7, modal.won ? CROWN : SKULL, modal.won ? JAUNE : BLANC);
+    }
+    y++;
+    list.forEach(function (o, j) {
+      var row, cx, cy;
+      if (!o.card) return;
+      row = k / PER_ROW | 0;
+      cx = slot(k % PER_ROW, Math.min(PER_ROW, count - row * PER_ROW)); cy = y + row * (CARD_H + 1);
+      card(cx, cy, o.card, { act: o.fn ? 'opt' : '', i: base + j, off: o.off, key: o.fn && j < 9 ? j + 1 : '' });
+      if (o.note) put(cx + ((BOX + 2 - o.note.length) >> 1), cy + CARD_H, o.note, at(o.off ? ROUGE : JAUNE));
+      k++;
+    });
+    if (k) y += Math.ceil(k / PER_ROW) * (CARD_H + 1) + 1;
+    list.forEach(function (o, j) {
+      var hit, ink;
+      if (o.card) return;
+      hit = { act: o.fn ? 'opt' : '', i: base + j, off: o.off, label: o.label + (o.note ? ', ' + o.note : '') };
+      ink = on(at(o.off ? BLEU : BLANC, 0, 'lib'), hit);
+      put(4, y, ' ' + (j < 9 ? j + 1 : ' ') + ' ', on(at(NOIR, o.off ? BLEU : BLANC, 'cap'), hit));
+      put(7, y, ' ' + (o.note ? lead(o.label, 26) + ' ' + o.note : o.label), ink);
+      y += 2;
+    });
+    list.forEach(function (o, j) { if (o.fn && !o.off && j < 9) top = j + 1; });
+    x = 1;
+    if (top) {
+      x = put(1, ROWS - 1, top > 1 ? 'Tapez 1 à ' + top : 'Tapez 1') + 1;
+      put(x, ROWS - 1, ' ', at(NOIR, BLANC, 'cl'));
+    }
+    x = Math.max(x + 3, 16);
+    [
+      modal.skip ? { k: 'Échap', label: modal.skip, act: 'skip' } : null,
+      pages > 1 ? { k: '←', label: 'retour', act: 'turn', i: -1, off: !p } : null,
+      pages > 1 ? { k: '→', label: 'suite', act: 'turn', i: 1, off: p === pages - 1 } : null,
+      { k: 'G', label: 'guide', act: 'guide' }
+    ].forEach(function (it) {
+      if (!it) return;
+      x = put(x, ROWS - 1, it.k, on(at(NOIR, it.off ? BLEU : BLANC, 'cap'), it));
+      x = put(x, ROWS - 1, ' ' + it.label, on(at(it.off ? BLEU : BLANC, 0, 'lib'), it)) + 2;
+    });
   }
 
-  function modalView() {
-    return '<div class="win" role="dialog" aria-modal="true"><h2>' + esc(modal.title) + '</h2><p>' + esc(modal.text) + '</p>' +
-      '<div class="opts">' + modal.opts.map(function (o, i) { return option(o, i, o.fn ? 'opt' : ''); }).join('') + '</div>' +
-      (modal.skip ? '<button type="button" class="btn" data-act="skip">' + esc(modal.skip) + ' [Échap]</button>' : '') + '</div>';
+  var GUIDE = [
+    ['Donjon', 'Flèches ou ZQSD pour marcher, Espace pour attendre, P pour boire une potion. Fonce dans un ennemi pour l\'attaquer : celui qui frappe le premier rend l\'autre vulnérable.'],
+    ['Combat', '1 à 9 pour jouer une carte, E ou Entrée pour finir le tour. L\'armure disparaît au début de ton tour suivant.'],
+    ['États', 'Vulnérable, +50 % de dégâts subis. Faible, −25 % de dégâts infligés. Poison, autant de PV perdus au début du tour, puis il baisse de 1. Une carte épuisée ne revient pas avant le combat suivant.'],
+    ['Écran', 'La molette agrandit ou réduit l\'affichage, les touches + et − aussi. Glisse pour déplacer la vue (ou clic du milieu, ou Espace maintenu). 0 ou double-clic : taille ajustée.']
+  ];
+  function guidePage() {
+    var y = 9, x, band = at(BLANC, BLEU);
+    function sample(x, y, ch, ink, label) { return put(put(x, y, ch, ink), y, ' ' + label) + 2; }
+    fill(0, 1, COLS, band); fill(0, 2, COLS, band);
+    big(2, 2, 'Cartes & Cachots', band, 2, 2);
+    put(COLS - 21, 2, 'un donjon aux cartes', band);
+    crenel(3, BLEU);
+    x = sample(2, 5, '@', INK.me, 'toi');
+    x = put(x, 5, 'r g s', INK.foe); x = put(x, 5, ' ennemis') + 2;
+    x = sample(x, 5, 'D', at(NOIR, MAGENTA), 'dragon');
+    x = sample(x, 5, '>', INK.exit, 'escalier');
+    sample(x, 5, '*', INK.gold, 'or');
+    x = sample(2, 6, '!', INK.potion, 'potion');
+    x = sample(x, 6, '?', INK.altar, 'autel');
+    x = sample(x, 6, '&', INK.camp, 'feu de camp');
+    sample(x, 6, '$', INK.shop, 'marchand');
+    x = 2;
+    ['att', 'tec', 'pou'].forEach(function (k) { x = sample(x, 7, TYPES[k].sign, at(TYPES[k].fg), TYPES[k].name); });
+    sample(x, 7, '●', at(JAUNE), 'énergie');
+    GUIDE.forEach(function (g) {
+      put(2, y, g[0], at(NOIR, CYAN));
+      wrap(g[1], COLS - 13).forEach(function (l) { put(10, y++, l); });
+    });
+    y = ROWS - 4;
+    tags[y] = 'form id="seedForm"';
+    put(2, y, 'Graine');
+    raw(10, y, 24, '<input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false" aria-label="Graine du donjon" value="' + esc(S.seed) + '">');
+    x = put(36, y, 'Entrée', on(at(NOIR, BLANC, 'cap'), { act: 'launch' }));
+    x = put(x, y, ' lancer', on(at(BLANC, 0, 'lib'), { act: 'launch' })) + 2;
+    put(x, y, 'au hasard', on(at(NOIR, BLANC, 'cap'), { act: 'random' }));
+    put(1, ROWS - 1, 'Guide', at(NOIR, CYAN));
+    x = 9;
+    [{ k: 'G', label: S.over ? 'retour' : 'retour au jeu', act: 'guide' }, { k: '+ −', label: 'zoom' }, { k: '0', label: 'taille ajustée', act: 'zfit' }].forEach(function (it) {
+      x = put(x, ROWS - 1, it.k, on(at(NOIR, BLANC, 'cap'), it));
+      x = put(x, ROWS - 1, ' ' + it.label, on(at(BLANC, 0, 'lib'), it)) + 2;
+    });
   }
 
   function render() {
-    $('#hp').textContent = Math.max(0, S.me.hp) + '/' + S.me.max;
-    $('#gold').textContent = S.gold;
-    $('#potions').textContent = S.potions;
-    $('#floor').textContent = S.floor + '/' + FLOORS;
-    $('#deck').textContent = 'Deck (' + S.deck.length + ')';
-    $('#screen').innerHTML = C ? fightView() : mapView();
-    $('#modal').hidden = !modal;
-    $('#modal').innerHTML = modal ? modalView() : '';
+    clear();
+    header();
+    if (page) guidePage();
+    else if (modal) choicePage();
+    else if (C) fightPage();
+    else mapPage();
+    ecran.innerHTML = flush();
+    $('#poste').dataset.mode = page || modal ? 'page' : C ? 'combat' : 'donjon';
+    $('#annonce').textContent = modal ? modal.title + '. ' + modal.text : S.log[S.log.length - 1] || '';
+    follow();
+    light(view.hot);
   }
+
+  // ---------- Vue ----------
+  // La molette change la taille des caractères ; quand la grille dépasse le tube, on la déplace en glissant.
+  var ecran = $('#ecran'), tube = $('#tube');
+  var view = { z: 1, x: 0, y: 0, base: null, hot: '', drag: null, space: false, moved: false, inside: false, eat: false };
+  try { view.z = Math.max(Z_MIN, Math.min(Z_MAX, +localStorage.getItem('cachots-zoom') || 1)); } catch (e) { /* pas de mémoire : taille ajustée */ }
+
+  function zoomTag() { return view.z === 1 ? '' : '×' + view.z.toFixed(2).replace('.', ','); }
+  function loose() { return !!view.base && (view.gw > view.tw || view.gh > view.th); }
+
+  // Taille ajustée : la grille entière tient dans la place libre. Tant qu'il y a la place, une rangée fait un multiple de trois pavés.
+  function fit() {
+    var scene = $('#scene'), w = scene.clientWidth - 28, h = scene.clientHeight - 28, ratio, rh, cw, k = 1;
+    if (!(w > 100 && h > 100)) return;
+    ratio = $('#etalon').getBoundingClientRect().width / 1000 || 0.55;
+    rh = Math.max(9, Math.floor(h / (ROWS + 2) / 3) * 3);
+    cw = rh / LINE * ratio;
+    if (cw * (COLS + 4) > w) {
+      cw = w / (COLS + 4);
+      rh = Math.max(8, Math.floor(cw / ratio * LINE));
+      if (rh >= 15) rh -= rh % 3;
+    } else k = Math.min(STRETCH, w / (cw * (COLS + 4)));   // les caractères d'un Minitel sont larges
+    view.ratio = ratio;
+    view.base = { rh: rh, k: k };
+    view.tw = Math.round(rh / LINE * ratio * k * (COLS + 4));
+    view.th = Math.round(rh * (ROWS + 2));
+    tube.style.width = view.tw + 'px';
+    tube.style.height = view.th + 'px';
+    scale();
+    view.x = (view.tw - view.gw) / 2; view.y = (view.th - view.gh) / 2;
+    place();
+    follow();
+  }
+  function scale() {
+    var rh = Math.max(6, Math.round(view.base.rh * view.z)), size = rh / LINE;
+    view.rh = rh; view.cw = size * view.ratio * view.base.k;
+    view.gw = COLS * view.cw; view.gh = ROWS * rh;
+    ecran.style.fontSize = size + 'px';
+    ecran.style.lineHeight = rh + 'px';
+    ecran.style.setProperty('--rh', rh + 'px');
+  }
+  function place() {
+    var mx = (view.tw - view.gw) / 2, my = (view.th - view.gh) / 2, edge = view.base.rh;
+    view.x = mx >= 0 ? mx : Math.max(view.tw - view.gw - edge, Math.min(edge, view.x));
+    view.y = my >= 0 ? my : Math.max(view.th - view.gh - edge, Math.min(edge, view.y));
+    ecran.style.transform = 'translate(' + Math.round(view.x) + 'px,' + Math.round(view.y) + 'px) scale(' + view.base.k + ',1)';
+    tube.classList.toggle('large', loose());
+  }
+  // Le point (cx, cy) du tube reste sous le curseur pendant que la taille change.
+  function zoomAt(z, cx, cy) {
+    var u, v, tag;
+    if (!view.base) return;
+    z = Math.max(Z_MIN, Math.min(Z_MAX, z));
+    if (Math.abs(z - 1) < 0.04) z = 1;
+    if (cx == null) { cx = view.tw / 2; cy = view.th / 2; }
+    u = (cx - view.x) / view.gw; v = (cy - view.y) / view.gh;
+    view.z = z;
+    scale();
+    view.x = cx - u * view.gw; view.y = cy - v * view.gh;
+    place();
+    try { localStorage.setItem('cachots-zoom', z); } catch (e) { /* tant pis */ }
+    tag = $('#zoomtag');
+    if (tag) tag.textContent = zoomTag();
+  }
+  // Dans le donjon, la vue agrandie suit le joueur.
+  function follow() {
+    var px, py, mx, my;
+    if (!loose() || C || modal || page) return;
+    px = view.x + (MX + S.x + 0.5) * view.cw; py = view.y + (MY + S.y + 0.5) * view.rh;
+    mx = Math.min(view.tw / 2, view.cw * 9); my = Math.min(view.th / 2, view.rh * 5);
+    if (px < mx) view.x += mx - px; else if (px > view.tw - mx) view.x -= px - (view.tw - mx);
+    if (py < my) view.y += my - py; else if (py > view.th - my) view.y -= py - (view.th - my);
+    place();
+  }
+  function light(g) {
+    var old = ecran.querySelectorAll('.hot'), now = g ? ecran.querySelectorAll('[data-g="' + g + '"]:not(:disabled)') : [], i;
+    for (i = 0; i < old.length; i++) old[i].classList.remove('hot');
+    for (i = 0; i < now.length; i++) now[i].classList.add('hot');
+    view.hot = g;
+  }
+
+  tube.addEventListener('wheel', function (e) {
+    var r = tube.getBoundingClientRect();
+    e.preventDefault();
+    zoomAt(view.z * (e.deltaY < 0 ? Z_STEP : 1 / Z_STEP), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+  tube.addEventListener('mousedown', function (e) { if (e.button === 1) e.preventDefault(); });   // pas de défilement automatique
+  tube.addEventListener('pointerdown', function (e) {
+    if (e.button !== 1 && !(e.button === 0 && (view.space || loose()))) return;
+    if (e.target.tagName === 'INPUT') return;
+    view.drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, x: view.x, y: view.y, live: false, now: e.button === 1 || view.space, left: e.button === 0 };
+  });
+  tube.addEventListener('pointermove', function (e) {
+    var d = view.drag, dx, dy;
+    if (!d || d.id !== e.pointerId) return;
+    dx = e.clientX - d.sx; dy = e.clientY - d.sy;
+    if (!d.live) {
+      if (!d.now && dx * dx + dy * dy < 36) return;
+      d.live = true; view.moved = true;
+      try { tube.setPointerCapture(d.id); } catch (err) { /* pointeur déjà relâché */ }
+      tube.classList.add('prise');
+    }
+    view.x = d.x + dx; view.y = d.y + dy;
+    place();
+  });
+  function release(e) {
+    var d = view.drag;
+    if (!d || d.id !== e.pointerId) return;
+    view.drag = null;
+    tube.classList.remove('prise');
+    if (d.live && d.left) { view.eat = true; setTimeout(function () { view.eat = false; }, 0); }   // le clic qui suit un glisser ne compte pas
+  }
+  tube.addEventListener('pointerup', release);
+  tube.addEventListener('pointercancel', release);
+  tube.addEventListener('pointerenter', function () { view.inside = true; });
+  tube.addEventListener('pointerleave', function () { view.inside = false; });
+  tube.addEventListener('dblclick', function (e) {
+    if (e.target.closest('[data-act], a, input')) return;
+    zoomAt(1);
+  });
+  tube.addEventListener('mouseover', function (e) {
+    var b = e.target.closest('[data-g]'), g = b ? b.dataset.g : '';
+    if (g !== view.hot) light(g);
+  });
+  tube.addEventListener('mouseleave', function () { light(''); });
+  window.addEventListener('resize', fit);
 
   // ---------- Commandes ----------
   var DIRS = [[0, -1], [0, 1], [-1, 0], [1, 0]];
 
+  function turn(d) { modal.page = (modal.page || 0) + d; }
+  function launch(seed) { page = null; newRun(seed); }
+
   document.addEventListener('click', function (e) {
-    var b = e.target.closest('[data-act]'), i;
-    if (!b) return;
+    var b = e.target.closest('[data-act]'), i, free = !modal && !page;
+    if (!b || view.eat) return;
     i = +b.dataset.i;
     switch (b.dataset.act) {
       case 'opt': choose(i); break;
       case 'skip': skip(); break;
-      case 'card': playCard(i); break;
-      case 'end': endTurn(); break;
-      case 'potion': quaff(); break;
-      case 'move': step(DIRS[i][0], DIRS[i][1]); break;
-      case 'wait': tick(); break;
-      case 'deck': if (!modal) showDeck(); break;
-      case 'random': newRun(''); break;
+      case 'turn': turn(i); break;
+      case 'card': if (C && free) playCard(i); break;
+      case 'end': if (C && free) endTurn(); break;
+      case 'potion': if (free) quaff(); break;
+      case 'move': if (free && !C) step(DIRS[i][0], DIRS[i][1]); break;
+      case 'wait': if (free && !C) tick(); break;
+      case 'deck': if (free) showDeck(); break;
+      case 'guide': page = page ? null : 'guide'; break;
+      case 'launch': launch($('#seed').value.trim()); break;
+      case 'random': launch(''); break;
+      case 'zin': zoomAt(view.z * Z_STEP); return;
+      case 'zout': zoomAt(view.z / Z_STEP); return;
+      case 'zfit': zoomAt(1); return;
     }
     render();
   });
 
-  document.addEventListener('keydown', function (e) {
-    var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key, n = parseInt(k, 10);
-    if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT') return;
-    if (tag === 'BUTTON' && (k === 'Enter' || k === ' ')) return;
-    if (modal) {
-      if (n >= 1) choose(n - 1);
+  // Renvoie vrai si la touche a servi.
+  function press(k) {
+    var n = parseInt(k, 10);
+    if (page) {
+      if (k === 'Escape' || k === 'Enter' || k === ' ' || k === 'g') page = null;
+      else return false;
+    } else if (k === 'g') page = 'guide';
+    else if (modal) {
+      if (n >= 1) choose((modal.page || 0) * PER_PAGE + n - 1);
       else if (k === 'Escape' || k === '0') skip();
-      else return;
+      else if (k === 'ArrowRight' || k === 'PageDown') turn(1);
+      else if (k === 'ArrowLeft' || k === 'PageUp') turn(-1);
+      else return false;
     } else if (C) {
       if (n >= 1) playCard(n - 1);
       else if (k === 'e' || k === 'Enter' || k === ' ') endTurn();
       else if (k === 'p') quaff();
-      else return;
+      else if (k === 'c') showDeck();
+      else return false;
     } else if (KEYS[k]) step(KEYS[k][0], KEYS[k][1]);
     else if (k === ' ' || k === '.') tick();
     else if (k === 'p') quaff();
-    else return;
+    else if (k === 'c') showDeck();
+    else return false;
+    return true;
+  }
+
+  document.addEventListener('keydown', function (e) {
+    var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT') return;
+    if (tag === 'BUTTON' && (k === 'Enter' || k === ' ')) return;
+    if (k === '+' || k === '=' || k === '-' || (k === '0' && !modal)) {
+      zoomAt(k === '0' ? 1 : view.z * (k === '-' ? 1 / Z_STEP : Z_STEP));
+      e.preventDefault();
+      return;
+    }
+    // Vue agrandie, curseur sur l'écran : Espace maintenu sert à glisser, et n'agit qu'au relâchement s'il n'a pas servi.
+    if (k === ' ' && !modal && !page && view.inside && loose()) {
+      if (!e.repeat) { view.space = true; view.moved = false; }
+      e.preventDefault();
+      return;
+    }
+    if (!press(k)) return;
     e.preventDefault();
     render();
   });
+  document.addEventListener('keyup', function (e) {
+    if (e.key !== ' ' || !view.space) return;
+    view.space = false;
+    if (!view.moved && press(' ')) render();
+  });
 
-  $('#seedForm').addEventListener('submit', function (e) {
+  document.addEventListener('submit', function (e) {
     e.preventDefault();
-    newRun($('#seed').value.trim());
-    $('#seed').blur();
+    launch($('#seed').value.trim());
     render();
   });
 
   // Adresse : « graine » ou, venu d'un plan de ville, « graine?ville=Nom&plan=adresse du plan ».
-  var raw = location.hash.slice(1), cutAt = raw.indexOf('?'), prm = new URLSearchParams(cutAt < 0 ? '' : raw.slice(cutAt + 1)), first = '';
-  try { first = decodeURIComponent(cutAt < 0 ? raw : raw.slice(0, cutAt)); } catch (e) { /* adresse illisible : graine au hasard */ }
-  if (first && prm.get('ville')) link = { seed: first, name: prm.get('ville'), plan: prm.get('plan') || '', query: raw.slice(cutAt + 1) };
+  var raw0 = location.hash.slice(1), cutAt = raw0.indexOf('?'), prm = new URLSearchParams(cutAt < 0 ? '' : raw0.slice(cutAt + 1)), first = '';
+  try { first = decodeURIComponent(cutAt < 0 ? raw0 : raw0.slice(0, cutAt)); } catch (e) { /* adresse illisible : graine au hasard */ }
+  if (first && prm.get('ville')) link = { seed: first, name: prm.get('ville'), plan: prm.get('plan') || '', query: raw0.slice(cutAt + 1) };
+  if (!first) page = 'guide';   // première visite : la page de garde
   newRun(first);
   render();
+  fit();
 })();

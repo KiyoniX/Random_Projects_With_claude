@@ -135,7 +135,6 @@
     lettres: 'de vieilles lettres brûlées en cachette',
     tiroir: 'un coffret forcé pour y reprendre une lettre'
   };
-  var MARQUES = { '': '·', p: '●', a: '✕', d: '?' };
   var SUIVANT = { '': 'p', p: 'a', a: 'd', d: '' };
 
   var $ = function (s) { return document.querySelector(s); };
@@ -794,114 +793,267 @@
     return m ? Math.floor(m / 60) + ' h ' + (m % 60 < 10 ? '0' : '') + m % 60 : 'minuit';
   }
 
-  // ---------- Affichage ----------
+  // ---------- Affichage : outils ----------
+  var ETATS = { '': 'case vide', p: 'présent', a: 'absent', d: 'douteux' };
+  var TRAITS = {
+    '': '',
+    p: '<svg class="m-p" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13c2 2 4 5 6 8C13 13 17 7 21 3"/></svg>',
+    a: '<svg class="m-a" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4c4 5 9 11 14 16M19 5C14 9 9 15 5 20"/></svg>',
+    d: '<span class="m-d" aria-hidden="true">?</span>'
+  };
+  var PARAPHE = '<svg class="paraphe" viewBox="0 0 60 30" aria-hidden="true"><path d="M4 22c8-14 14-16 12-6s8 2 12-4s2 14 8 6s8-10 20-8"/></svg>';
+  var FICELLE = '<svg class="ficelle" viewBox="0 0 60 44" aria-hidden="true"><path d="M57 24C44 6 30 40 16 22S4 6 1 3"/></svg>';
+
+  // Silhouettes des fiches : coiffure, pilosité, lunettes, col.
+  var PORTRAITS = {
+    delmas: ['chignon', '', 'pincenez', 'montant'], vasseur: ['raie', 'moustache', '', 'papillon'],
+    brossard: ['degarni', 'bacchantes', '', 'officier'], aubert: ['carre', '', '', 'claudine'],
+    carbonnel: ['chauve', 'barbiche', 'pincenez', 'cravate'], rochefort: ['ondule', '', '', 'perles'],
+    perrin: ['canotier', 'moustache', '', 'papillon'], castel: ['cloche', '', '', 'foulard'],
+    morel: ['calotte', '', 'rondes', 'romain'], verdier: ['bandeaux', '', '', 'montant'],
+    hartmann: ['bataille', 'barbe', 'rondes', 'cravate'], fontaine: ['garconne', '', '', 'sautoir']
+  };
+  var BUSTE = '<path d="M3 96C5 80 17 75 33 71V62M77 96C75 80 63 75 47 71V62"/>' +
+    '<path class="plein" d="M25 38C25 22 55 22 55 38C55 50 48 60 40 60C32 60 25 50 25 38Z"/><path d="M25 37c-3-1-3 6 1 7M55 37c3-1 3 6-1 7"/>';
+  var VISAGE = '<path d="M32.5 39h4M43.5 39h4M32 35.5q2.5-1.5 5 0M43 35.5q2.5-1.5 5 0M40 39.5l-1.6 7.5h3M36.5 52.5q3.5 1.6 7 0"/>';
+  var COIFFES = {
+    chignon: '<circle class="plein" cx="40" cy="13.5" r="6.5"/><path class="plein" d="M25 37C23 23 31 19 40 19s17 4 15 18c-2-6-7-9-15-9s-13 3-15 9Z"/>',
+    raie: '<path class="plein" d="M25 37C23 24 30 18 41 18c9 0 15 6 14 19c-1-5-4-8-8-10c-7 3-15 3-22 10Z"/><path d="M34 20l3 6"/>',
+    degarni: '<path d="M25 36c-3-4-2-9 1-11M55 36c3-4 2-9-1-11M27 27l2 3M53 27l-2 3"/>',
+    chauve: '<path d="M32 28q4-3 8-3"/>',
+    carre: '<path class="plein" d="M22 52C18 32 25 17 40 17s22 15 18 35h-4c2-10 0-18-5-23c-6 3-15 4-22 3c-2 5-2 13-1 20Z"/>',
+    garconne: '<path class="plein" d="M22 52C18 32 25 17 40 17s22 15 18 35h-4c2-10 0-18-5-23c-6 3-15 4-22 3c-2 5-2 13-1 20Z"/><path d="M24 27q16-6 32 0"/><circle class="plein" cx="40" cy="23" r="1.8"/>',
+    ondule: '<path class="plein" d="M23 49c-7-3-7-12-3-17c-3-7 3-14 9-14c3-5 11-6 14-2c6-3 13 2 13 9c5 4 5 13-1 18c2-7 0-15-6-20c-6 4-16 5-23 3c-3 5-4 13-3 23Z"/><path d="M30 21q4 2 5 6M47 19q-1 4 2 7"/>',
+    canotier: '<path d="M25 36v-7M55 36v-7"/><path class="plein" d="M26 28V15h28v13Z"/><path d="M26 23h28"/><path class="bord" d="M12 28h56"/>',
+    cloche: '<path d="M24 40c-2 5-1 9 2 12M56 40c2 5 1 9-2 12"/><path class="plein" d="M21 39C18 22 28 12 40 12s22 10 19 27c-6-4-13-5-19-5s-13 1-19 5Z"/><path d="M22 30c6-4 30-4 36 0"/>',
+    calotte: '<path d="M25 36c-1-6 1-10 4-12M55 36c1-6-1-10-4-12"/><path class="plein" d="M29 26c3-8 19-8 22 0Z"/>',
+    bandeaux: '<path class="plein" d="M25 38C22 24 31 18 40 18s18 6 15 20c-1-7-6-12-15-13c-9 1-14 6-15 13Z"/><path d="M40 18v7"/>',
+    bataille: '<path class="plein" d="M24 37l-3-8l5 2l-2-8l6 4v-8l5 6l3-8l3 8l5-6v8l6-4l-2 8l5-2l-3 8c-2-6-7-10-16-10s-13 4-15 10Z"/>'
+  };
+  // Pilosité : ce qui passe sous les traits du visage, puis ce qui passe dessus.
+  var POILS = {
+    moustache: ['', '<path class="plein" d="M33.5 49.5q3.5-3 6.5 0q3-3 6.5 0q-3.5 1.6-6.5.6q-3 1-6.5-.6Z"/>'],
+    bacchantes: ['', '<path class="plein" d="M29 47c3-2 8-2 11 1c3-3 8-3 11-1c1 2 3 2 4 0c0 5-5 6-9 4c-2-1-4-1-6 0c-2-1-4-1-6 0c-4 2-9 1-9-4c1 2 3 2 4 0Z"/><path d="M26 42v7M54 42v7"/>'],
+    barbiche: ['', '<path class="plein" d="M33.5 49.5q3.5-3 6.5 0q3-3 6.5 0q-3.5 1.6-6.5.6q-3 1-6.5-.6Z"/><path class="plein" d="M36.5 56q3.5 1.5 7 0l-3.5 9Z"/>'],
+    barbe: ['<path class="plein" d="M26 44c0 16 6 25 14 25s14-9 14-25c-2 6-5 8-8 8c-2-2-10-2-12 0c-3 0-6-2-8-8Z"/><path d="M33 58v6M37 59v8M41.5 59v8M46 58v6"/>', '']
+  };
+  var VERRES = {
+    rondes: '<circle cx="34.5" cy="39.5" r="4.6"/><circle cx="45.5" cy="39.5" r="4.6"/><path d="M39.1 39h1.8M29.9 39l-4.5-1.5M50.1 39l4.5-1.5"/>',
+    pincenez: '<ellipse cx="34.5" cy="39.5" rx="4" ry="3.2"/><ellipse cx="45.5" cy="39.5" rx="4" ry="3.2"/><path d="M38.5 38.6q1.5-1.6 3 0M49.5 40c5 7 4 20 1 30"/>'
+  };
+  var COLS = {
+    cravate: '<path d="M33 70l7 7l7-7M40 77l-3 19M40 77l3 19M24 74l13 22M56 74L43 96"/>',
+    papillon: '<path d="M33 70l7 6l7-6M24 74l12 22M56 74L44 96"/><path class="plein" d="M40 76l-7-4v8ZM40 76l7-4v8Z"/>',
+    officier: '<path class="plein" d="M32 68h16v7H32Z"/><path d="M40 68v7M8 83l13-6M72 83l-13-6"/><circle cx="40" cy="82" r="1.3"/><circle cx="40" cy="90" r="1.3"/>',
+    romain: '<path class="plein" d="M32 68h16v6H32Z"/><path d="M37 68v6M43 68v6M40 74v22"/>',
+    claudine: '<path class="plein" d="M40 72c-5-3-10-2-12 3c3 3 9 3 12-3ZM40 72c5-3 10-2 12 3c-3 3-9 3-12-3Z"/>',
+    montant: '<path class="plein" d="M32 66c5 3 11 3 16 0v6c-5 3-11 3-16 0Z"/><ellipse cx="40" cy="76.5" rx="2.4" ry="3"/>',
+    perles: '<path d="M27 74q13 15 26 0"/><path class="perles" d="M31 70q9 10 18 0"/>',
+    sautoir: '<path d="M27 74q13 11 26 0"/><path class="perles" d="M34 69c-2 14 1 22 6 27M46 69c2 14-1 22-6 27"/>',
+    foulard: '<path d="M32 70q8 7 16 0M40 77l-5 12M40 77l4 11"/><path class="plein" d="M36 73h8v4h-8Z"/>'
+  };
+
   function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function bouton(act, label, attrs, cls, off) {
     return '<button type="button" class="btn ' + (cls || '') + '" data-act="' + act + '"' + (attrs || '') + (off ? ' disabled' : '') + '>' + label + '</button>';
   }
   function parole(el) { return el.src.charAt(0) === 't' || el.src.charAt(0) === 'a'; }
-  function ligne(el) {
-    return '<p class="piece' + (parole(el) ? ' dit' : '') + (el.tu ? ' tu' : '') + '">' + (parole(el) ? '« ' + esc(el.texte) + ' »' : esc(el.texte)) + '</p>';
+  // Pas de retour à la ligne avant une ponctuation haute ni après un guillemet ouvrant.
+  function txt(s) { return esc(s).replace(/ ([;:?!»])/g, '&nbsp;$1').replace(/« /g, '«&nbsp;'); }
+  function pluriel(n, mot) { return n + ' ' + mot.replace(/\*/g, n > 1 ? 's' : ''); }
+
+  // Frappe de machine : quelques lettres pâles, grasses ou descendues, toujours les mêmes pour un même texte.
+  function frappe(s) {
+    var h = 2166136261 ^ s.length, out = '', i, c, r;
+    for (i = 0; i < s.length; i++) {
+      c = s.charAt(i);
+      h ^= h << 13; h ^= h >>> 17; h ^= h << 5;
+      h = h + s.charCodeAt(i) | 0;
+      r = (h >>> 4) % 100;
+      if (r < 8 && /[A-Za-zÀ-ÿ0-9]/.test(c)) out += '<span class="' + (r < 3 ? 'pale' : r < 6 ? 'gras' : 'bas') + '">' + c + '</span>';
+      else if (c === ' ' && (/[;:?!»]/.test(s.charAt(i + 1)) || s.charAt(i - 1) === '«')) out += '&nbsp;';
+      else out += esc(c);
+    }
+    return out;
   }
 
-  function vueDernier() {
-    var d = S.dernier, html;
-    if (!d) return '<section class="feuille note"><h2>Par où commencer</h2><p>Interroge les invités, fouille les pièces, examine le corps. Tout ce que tu apprends est rangé dans le carnet, où une grille t’aide à recouper qui était où.</p><p>Tu as ' + A.budget + ' actions avant l’aube.</p></section>';
-    html = '<section class="feuille note"><h2>' + esc(d.titre) + '</h2>';
-    if (d.intro) html += '<p class="piece dit">« ' + esc(d.intro) + ' »</p>';
-    if (d.rappel) html += '<p class="rappel">Tu lui mets sous les yeux — ' + esc(origine(d.rappel.src)) + ' : ' + esc(d.rappel.texte) + '</p>';
-    if (d.geste) html += '<p class="geste">' + esc(d.geste) + '</p>';
-    if (d.parole) html += '<p class="piece dit">« ' + esc(d.parole) + ' »</p>';
-    if (d.src) html += connus().filter(function (el) { return d.src.indexOf(el.src) >= 0; }).map(ligne).join('');
-    return html + '</section>';
+  function portrait(p) {
+    var t = PORTRAITS[p.id] || ['raie', '', '', 'cravate'], poils = POILS[t[1]] || ['', ''];
+    return '<svg class="portrait" viewBox="0 0 80 96" aria-hidden="true">' + BUSTE + poils[0] + VISAGE + poils[1] + COIFFES[t[0]] + (VERRES[t[2]] || '') + COLS[t[3]] + '</svg>';
   }
 
-  function vueEnquete() {
-    var bloque = S.actions <= 0 || !!S.fini, dossier = pieces('dossier');
-    return '<div class="haut">' +
-      '<section class="feuille pv"><span class="tampon">Affaire ' + esc(A.graine) + '</span><h2>Procès-verbal</h2>' + dossier.map(ligne).join('') + '</section>' +
-      vueDernier() + '</div>' +
-      '<h2 class="rubrique">Les suspects</h2><div class="fiches">' + A.suspects.map(function (p) {
-        var vu = S.fait['i:' + p.id];
-        return '<article class="fiche"><h3>' + esc(complet(p)) + '</h3>' +
-          '<p class="etat">' + esc(cap(p.metier)) + ' — ' + esc(p.caractere) + '.</p>' +
-          '<p><b>Lien :</b> ' + esc(p.lien(A.victime)) + '.</p>' +
-          '<p><b>Mobile possible :</b> ' + esc(p.mobile(A.victime)) + '</p>' +
-          '<p><b>Signalement :</b> cheveux ' + p.cheveux + ', ' + fume(p) + ', ' + manuel(p) + '.</p>' +
-          '<div class="gestes">' + (vu ? bouton('interroger', 'Relire', ' data-id="' + p.id + '"') + bouton('confronter', 'Confronter', ' data-id="' + p.id + '"', 'main', bloque)
-            : bouton('interroger', 'Interroger', ' data-id="' + p.id + '"', 'main', bloque)) + '</div></article>';
-      }).join('') + '</div>' +
-      '<h2 class="rubrique">Les lieux</h2><div class="fiches lieux">' +
-      '<article class="fiche"><h3>La lingerie</h3><p class="etat">Le corps y a été retrouvé.</p><div class="gestes">' +
-      (S.fait.corps ? bouton('examiner', 'Relire') : bouton('examiner', 'Examiner le corps', '', 'main', bloque)) + '</div></article>' +
+  // ---------- Affichage : pièces du dossier ----------
+  function rang(cle) { return actionsDe(A).indexOf(cle) + 3; }
+  function entete(titre, n, legiste) {
+    return '<header class="entete"><p class="service">' + (legiste ? 'Institut<br>médico-légal' : 'Sûreté générale<br>Brigade mobile') + '</p>' +
+      '<h3>' + titre + '</h3>' + (n ? '<p class="no">Pièce n° <b class="main">' + n + '</b></p>' : '<p class="no"></p>') + '</header>';
+  }
+  function declare(el) {
+    return '<p class="dit' + (el.tu ? ' tu' : '') + (el.src.charAt(0) === 'a' ? ' aveu' : '') + '"><span class="marge">' + heureTxt(el.slot) + '</span>«&nbsp;' + frappe(el.texte) + '&nbsp;»</p>';
+  }
+  // Ce qui ne révèle rien reste une ligne du procès-verbal ; le reste part sous scellés.
+  function releve(el) {
+    if (el.faits.some(function (f) { return f.t === 'net' || f.t === 'intacte'; })) return '<p class="constat"><span class="marge">R.A.S.</span>' + frappe(el.texte) + '</p>';
+    return '<div class="scelle">' + FICELLE + '<div class="etq"><p class="no">Scellé n° ' + el.id.slice(1) + '</p><p>' + frappe(el.texte) + '</p></div></div>';
+  }
+  function constat() {
+    return '<section class="feuille pv" id="p-constat">' + entete('Procès-verbal de constatation', 1) +
+      '<p>' + frappe(pieces('dossier')[0].texte) + '</p></section>';
+  }
+  function legiste() {
+    return '<section class="feuille pv medical" id="p-legiste">' + entete('Rapport médico-légal', 2, true) +
+      '<p>' + frappe(pieces('dossier')[1].texte) + '</p></section>';
+  }
+  function audition(p, bref) {
+    var l = connus().filter(function (el) { return el.src === 't:' + p.id || el.src === 'aveu:' + p.id; });
+    return '<section class="feuille pv" id="p-i-' + p.id + '">' + entete(bref ? esc(complet(p)) : 'Procès-verbal d’audition', rang('i:' + p.id)) +
+      (bref ? '' : '<p class="formule">' + frappe(cap(A.manoir) + ', nuit du ' + A.date + '. Devant nous comparaît ' + p.prenom + ' ' + p.nom.toUpperCase() + ', ' + p.metier + ', qui déclare :') + '</p>' +
+        '<p class="dit">«&nbsp;' + frappe(p.accueil) + '&nbsp;»</p>') +
+      l.map(declare).join('') +
+      (bref ? '' : '<footer class="signe"><span>Lecture faite, persiste et signe.' + PARAPHE + '</span><b class="main">' + esc(p.prenom.charAt(0) + '. ' + p.nom) + '</b></footer>') + '</section>';
+  }
+  function perquisition(ou, bref) {
+    return '<section class="feuille pv" id="p-f-' + ou.id + '">' + entete(bref ? esc(cap(ou.nom)) : 'Procès-verbal de perquisition', rang('f:' + ou.id)) +
+      (bref ? '' : '<p class="formule">' + frappe('Fouille ' + de(ou.nom) + '. Constaté et saisi ce qui suit :') + '</p>') +
+      pieces('f:' + ou.id).map(releve).join('') + '</section>';
+  }
+  function examen(bref) {
+    return '<section class="feuille pv medical" id="p-corps">' + entete(bref ? 'Le corps' : 'Constatations sur le corps', rang('corps'), true) +
+      (bref ? '' : '<p class="formule">' + frappe('Examen pratiqué dans la lingerie, où le corps a été retrouvé. Relevé et placé sous scellés :') + '</p>') +
+      pieces('corps').map(releve).join('') + '</section>';
+  }
+  function confrontation(d) {
+    var el = d.rappel, o = origine(el.src);
+    return '<section class="feuille pv">' + entete('Procès-verbal de confrontation') +
+      '<p class="formule">' + frappe(d.titre + '. La pièce suivante lui est mise sous les yeux (' + o.charAt(0).toLowerCase() + o.slice(1) + ') :') + '</p>' +
+      (parole(el) ? '<blockquote class="rappel">«&nbsp;' + frappe(el.texte) + '&nbsp;»</blockquote>' : releve(el)) +
+      (d.geste ? '<p class="geste main">' + esc(d.geste) + '</p>' : '') +
+      '<p class="dit"><span class="marge">rép.</span>«&nbsp;' + frappe(d.parole) + '&nbsp;»</p></section>';
+  }
+
+  // ---------- Affichage : enquête ----------
+  function vueLecture() {
+    var d = S.dernier, src, html;
+    if (!d) {
+      html = '<aside class="billet main"><p>Interroge les invités, fouille les pièces, examine le corps. Tout ce que tu apprends est rangé dans le carnet, où une grille t’aide à recouper qui était où.</p>' +
+        '<p>Tu as ' + A.budget + ' actions avant l’aube.</p><p class="sig">Le commissaire</p></aside>' + constat() + legiste();
+    } else if (d.rappel) {
+      html = confrontation(d);
+    } else {
+      src = d.src[0].split(':');
+      html = src[0] === 't' ? audition(gens(A, src[1])) : src[0] === 'f' ? perquisition(piece(A, src[1])) : examen();
+    }
+    if (d) html += '<p class="retour">' + bouton('constat', 'Revenir au procès-verbal de constatation', '', 'relire') + '</p>';
+    return '<div class="lecture" id="lecture" tabindex="0" role="region" aria-label="Pièce sous les yeux">' + html + '</div>';
+  }
+
+  function rubrique(nom, valeur) { return '<div><dt>' + nom + '</dt><dd>' + txt(valeur) + '</dd></div>'; }
+  function fiche(p, i) {
+    var vu = S.fait['i:' + p.id], bloque = S.actions <= 0 || !!S.fini, attr = ' data-id="' + p.id + '"';
+    return '<article class="fiche" aria-label="' + esc(complet(p)) + '">' +
+      '<header><span>Fiche de signalement</span><span>n° ' + (i + 1) + '</span></header>' +
+      '<div class="ident"><div class="photo">' + portrait(p) + '</div><dl class="cases">' +
+      rubrique('Nom', p.nom.toUpperCase()) + rubrique('Prénom', p.prenom) + rubrique('Profession', p.metier) + '</dl></div>' +
+      '<dl class="trio">' + rubrique('Cheveux', p.cheveux) + rubrique('Tabac', p.tabac || 'ne fume pas') + rubrique('Main', p.main) + '</dl>' +
+      '<dl class="rubriques">' + rubrique('Observations', cap(p.caractere) + '.') + rubrique('Relations avec la victime', cap(p.lien(A.victime)) + '.') +
+      rubrique('Mobile possible', p.mobile(A.victime)) + rubrique('Connu des services', 'Néant.') + '</dl>' +
+      (vu ? '<span class="vu">Entendu' + e(p.g) + '</span>' : '') +
+      '<div class="gestes">' + (vu ? bouton('confronter', 'Confronter', attr, 'acte', bloque) + bouton('interroger', 'Relire sa déposition', attr, 'relire')
+        : bouton('interroger', 'Interroger', attr, 'acte', bloque)) + '</div></article>';
+  }
+  function croquis() {
+    var bloque = S.actions <= 0 || !!S.fini;
+    return '<section class="feuille croquis"><p class="legende main">Rez-de-chaussée, croquis sans échelle</p><div class="plan">' +
+      '<article class="salle corps"><h3>La lingerie</h3><p>Le corps y a été retrouvé.</p><div class="gestes">' +
+      (S.fait.corps ? bouton('examiner', 'Relire les constatations', '', 'relire') : bouton('examiner', 'Examiner le corps', '', 'acte', bloque)) + '</div></article>' +
       A.pieces.map(function (ou) {
         var vu = S.fait['f:' + ou.id], objets = A.armes.filter(function (a) { return a.lieu === ou.id; }).map(function (a) { return a.nom + ' (' + a.place + ')'; });
-        return '<article class="fiche"><h3>' + esc(cap(ou.nom)) + '</h3>' +
-          '<p class="etat">' + (objets.length ? 'On y range ' + esc(liste(objets)) + '.' : 'Aucun objet dangereux n’y est rangé.') + '</p>' +
-          '<div class="gestes">' + (vu ? bouton('fouiller', 'Relire', ' data-id="' + ou.id + '"') : bouton('fouiller', 'Fouiller', ' data-id="' + ou.id + '"', 'main', bloque)) + '</div></article>';
-      }).join('') + '</div>';
+        return '<article class="salle"><h3>' + esc(cap(ou.nom)) + (vu ? ' <span class="fait">fouillé</span>' : '') + '</h3>' +
+          '<p>' + (objets.length ? 'On y range ' + esc(liste(objets)) + '.' : 'Aucun objet dangereux n’y est rangé.') + '</p>' +
+          '<div class="gestes">' + (vu ? bouton('fouiller', 'Relire le procès-verbal', ' data-id="' + ou.id + '"', 'relire') : bouton('fouiller', 'Fouiller', ' data-id="' + ou.id + '"', 'acte', bloque)) + '</div></article>';
+      }).join('') + '</div></section>';
+  }
+  function vueEnquete() {
+    return '<div class="table">' + vueLecture() + '<div class="pile">' +
+      '<h2 class="crayon">Les invités de la soirée</h2><div class="fiches">' + A.suspects.map(fiche).join('') + '</div>' +
+      '<h2 class="crayon">Les lieux</h2>' + croquis() + '</div></div>';
   }
 
+  // ---------- Affichage : carnet ----------
   function vueGrille() {
-    var lignes = [{ id: 'V', nom: A.victime.nom + ' †' }].concat(A.suspects.map(function (p) { return { id: p.id, nom: p.nom }; })), s, onglets = '';
-    for (s = 0; s < A.T; s++) onglets += '<button type="button" class="heure' + (s === S.heure ? ' on' : '') + '" data-act="heure" data-i="' + s + '">' + heureTxt(s) + '</button>';
-    return '<section class="feuille"><h2>Grille de recoupement</h2>' +
-      '<p class="mode">Choisis une heure, puis clique une case pour la faire passer de présent <b class="m-p">●</b> à absent <b class="m-a">✕</b>, douteux <b class="m-d">?</b>, puis vide.</p>' +
-      '<div class="heures">' + onglets + '</div>' +
-      '<div class="defile"><table class="grille"><thead><tr><th></th>' + A.pieces.map(function (p) { return '<th>' + esc(p.court) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    var lignes = [{ id: 'V', nom: A.victime.nom + ' †' }].concat(A.suspects.map(function (p) { return { id: p.id, nom: p.nom }; })), s, heures = '';
+    for (s = 0; s < A.T; s++) heures += '<button type="button" class="heure' + (s === S.heure ? ' on' : '') + '" data-act="heure" data-i="' + s + '"' + (s === S.heure ? ' aria-current="true"' : '') + '>' + heureTxt(s) + '</button>';
+    return '<section class="page"><h2 class="crayon">Qui était où ?</h2>' +
+      '<div class="heures">' + heures + '</div>' +
+      '<div class="defile"><table class="grille"><thead><tr><td></td>' + A.pieces.map(function (p) { return '<th scope="col"><span>' + esc(p.court) + '</span></th>'; }).join('') + '</tr></thead><tbody>' +
       lignes.map(function (l) {
-        return '<tr><th>' + esc(l.nom) + '</th>' + A.pieces.map(function (p) {
+        return '<tr><th scope="row">' + esc(l.nom) + '</th>' + A.pieces.map(function (p) {
           var cle = S.heure + '|' + l.id + '|' + p.id, m = S.grille[cle] || '';
-          return '<td><button type="button" class="case m-' + m + '" data-act="case" data-k="' + cle + '" aria-label="' + esc(l.nom + ', ' + p.nom) + '">' + MARQUES[m] + '</button></td>';
+          return '<td><button type="button" class="case" data-act="case" data-k="' + cle + '" aria-label="' + esc(l.nom + ', ' + p.nom + ' : ' + ETATS[m]) + '">' + TRAITS[m] + '</button></td>';
         }).join('') + '</tr>';
       }).join('') + '</tbody></table></div>' +
-      '<p class="mode">' + bouton('vider', 'Effacer la grille') + '</p></section>';
+      '<p class="mode">Choisis une heure, puis clique une case : ' + TRAITS.p + ' présent, ' + TRAITS.a + ' absent, ' + TRAITS.d + ' douteux, puis vide. ' +
+      bouton('vider', 'Gommer toute la grille', '', 'relire') + '</p></section>';
   }
 
   function vueCarnet() {
-    var k = connus(), depos = '', indices = '';
+    var depos = '', index = [], indices;
     A.suspects.forEach(function (p) {
-      var l = k.filter(function (el) { return el.src === 't:' + p.id || el.src === 'aveu:' + p.id; });
-      if (l.length) depos += '<h3>' + esc(complet(p)) + '</h3>' + l.map(ligne).join('');
+      if (!S.fait['i:' + p.id]) return;
+      depos += audition(p, true);
+      index.push(['p-i-' + p.id, p.nom]);
     });
-    ['dossier', 'corps'].concat(A.pieces.map(function (p) { return 'f:' + p.id; })).forEach(function (src) {
-      var l = k.filter(function (el) { return el.src === src; });
-      if (l.length) indices += '<h3>' + esc(origine(src)) + '</h3>' + l.map(ligne).join('');
+    index.push(['p-constat', 'Constatation'], ['p-legiste', 'Médecin']);
+    indices = constat() + legiste();
+    if (S.fait.corps) { indices += examen(true); index.push(['p-corps', 'Corps']); }
+    A.pieces.forEach(function (ou) {
+      if (!S.fait['f:' + ou.id]) return;
+      indices += perquisition(ou, true);
+      index.push(['p-f-' + ou.id, cap(ou.nom)]);
     });
-    return '<div class="carnet"><div>' +
-      '<section class="feuille"><h2>Dépositions</h2>' + (depos || '<p class="mode">Personne n’a encore été interrogé.</p>') + '</section>' +
-      '<section class="feuille"><h2>Indices matériels</h2>' + indices + '</section></div><div>' +
-      vueGrille() +
-      '<section class="feuille"><h2>Notes</h2><textarea id="notes" rows="8" placeholder="Tes hypothèses, tes doutes…">' + esc(S.notes) + '</textarea></section></div></div>';
+    return '<div class="carnet"><div class="calepin" id="calepin">' + vueGrille() +
+      '<section class="page lignee"><h2 class="crayon"><label for="notes">Notes</label></h2><textarea id="notes" class="main" rows="6" placeholder="Tes hypothèses, tes doutes…">' + esc(S.notes) + '</textarea></section></div>' +
+      '<div class="pieces"><h2 class="crayon">Pièces versées au dossier</h2>' +
+      '<p class="index">' + index.map(function (x) { return '<button type="button" class="btn relire" data-act="aller" data-id="' + x[0] + '">' + esc(x[1]) + '</button>'; }).join('') + '</p>' +
+      (depos || '<p class="vide main">Personne n’a encore été interrogé.</p>') + indices + '</div></div>';
   }
 
+  // ---------- Affichage : mandat et rapport de clôture ----------
+  function blanc(texte, vide) {
+    return '<span class="blanc' + (texte ? ' main' : '') + '">' + (texte ? esc(texte) : '<i>' + vide + '</i>') + '</span>';
+  }
   function choix(cle, titre, items) {
-    return '<fieldset class="choix"><legend>' + titre + '</legend>' + items.map(function (it) {
-      return '<button type="button" class="btn' + (S.acc[cle] === it.id ? ' on' : '') + '" data-act="choix" data-k="' + cle + '" data-id="' + it.id + '">' + esc(it.nom) + '</button>';
+    return '<fieldset class="mention' + (S.acc[cle] ? ' faite' : '') + '"><legend>' + titre + ' <i>(rayer les mentions inutiles)</i></legend>' + items.map(function (it) {
+      var on = S.acc[cle] === it.id;
+      return '<button type="button" class="option' + (on ? ' on' : '') + '" aria-pressed="' + on + '" data-act="choix" data-k="' + cle + '" data-id="' + it.id + '">' + esc(it.nom) + '</button>';
     }).join('') + '</fieldset>';
   }
   function vueAccusation() {
-    var pret = S.acc.c && S.acc.w && S.acc.r;
-    return '<section class="feuille acte"><span class="tampon">Mandat</span><h2>Accusation</h2>' +
-      '<p class="mode">Désigne le coupable, l’arme et la pièce du crime. ' + (S.actions > 0 ? 'Une erreur te coûte ' + COUT_ERREUR + ' actions.' : 'C’est ta dernière chance.') + '</p>' +
-      choix('c', 'Le coupable', A.suspects.map(function (p) { return { id: p.id, nom: complet(p) }; })) +
-      choix('w', 'L’arme', A.armes.map(function (a) { return { id: a.id, nom: cap(a.nom) }; })) +
+    var pret = S.acc.c && S.acc.w && S.acc.r, c = S.acc.c && gens(A, S.acc.c), v = A.victime;
+    return '<section class="feuille mandat"><header class="tete"><p class="service">République française<br>Cabinet du juge d’instruction</p><h2>Mandat d’amener</h2></header>' +
+      '<p class="mode">Remplis le mandat : désigne le coupable, l’arme et la pièce du crime. ' + (S.actions > 0 ? 'Si le juge refuse de le signer, tu perds ' + COUT_ERREUR + ' actions.' : 'C’est ta dernière chance.') + '</p>' +
+      '<p class="dispositif">Nous, juge d’instruction, mandons et ordonnons à tous agents de la force publique d’amener devant nous ' +
+      blanc(c && complet(c), 'nom du prévenu') + ', pour avoir donné la mort à ' + esc(complet(v)) + ' ' +
+      blanc(S.acc.r && piece(A, S.acc.r).dans, 'lieu du crime') + ', au moyen ' + blanc(S.acc.w && de(parId(A.armes, S.acc.w).nom), 'arme employée') + '.</p>' +
+      choix('c', 'Le prévenu', A.suspects.map(function (p) { return { id: p.id, nom: complet(p) }; })) +
       choix('r', 'Le lieu', A.pieces.map(function (p) { return { id: p.id, nom: cap(p.nom) }; })) +
-      '<div class="gestes">' + bouton('accuser', 'Signer l’accusation', '', 'main', !pret) + bouton('renoncer', 'Renoncer et lire le dénouement') + '</div></section>';
+      choix('w', 'L’arme', A.armes.map(function (a) { return { id: a.id, nom: cap(a.nom) }; })) +
+      (S.fausses ? '<p class="refus main">' + pluriel(S.fausses, 'mandat* déjà refusé*') + ' par le juge.</p>' : '') +
+      '<div class="gestes signature">' + bouton('accuser', 'Signer le mandat', '', 'acte', !pret) + bouton('renoncer', 'Renoncer et lire le rapport de clôture', '', 'relire') + '</div></section>';
   }
 
   function vueFin() {
-    var n = note(), k = connus().length;
-    return '<section class="feuille acte"><span class="tampon">' + (S.fini.gagne ? 'Affaire résolue' : 'Classée') + '</span>' +
-      '<h2>' + (S.fini.gagne ? 'Tu tiens le coupable' : 'Le coupable t’a échappé') + '</h2>' +
-      '<p class="verdict"><b>' + n + '/20</b> — ' + grade(n) + '. ' + Math.max(0, S.actions) + ' action' + (S.actions > 1 ? 's' : '') + ' restante' + (S.actions > 1 ? 's' : '') + ' sur ' + A.budget + ', ' +
-      (S.fausses ? S.fausses + ' fausse' + (S.fausses > 1 ? 's' : '') + ' accusation' + (S.fausses > 1 ? 's' : '') : 'aucune fausse accusation') + '. Tu avais réuni ' + k + ' des ' + A.elements.length + ' pièces du dossier.</p>' +
-      '<h3>Ce qui s’est passé</h3>' + recit(A).map(function (t) { return '<p>' + esc(t) + '</p>'; }).join('') +
-      '<h3>Ce qui permettait de conclure</h3>' + conclusions(A).map(function (b) {
-        return '<h4>' + esc(b.titre) + '</h4><ul>' + b.lignes.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>';
+    var n = note(), k = connus().length, gagne = S.fini.gagne;
+    return '<section class="feuille pv cloture">' + entete('Rapport de clôture') +
+      '<p class="tampon ' + (gagne ? 'classe' : 'echec') + '">' + (gagne ? 'Classé' : 'Non élucidé') + '</p>' +
+      '<div class="avis main"><b>' + n + '/20</b><p>' + grade(n) + '. ' + (gagne ? 'Tu tiens le coupable.' : 'Le coupable t’a échappé.') + '</p></div>' +
+      '<p>' + frappe((S.actions > 0 ? 'Il te restait ' + pluriel(S.actions, 'action*') : 'Il ne te restait aucune action') + ' sur ' + A.budget + ', avec ' +
+      (S.fausses ? pluriel(S.fausses, 'fausse* accusation*') : 'aucune fausse accusation') + '. Tu avais réuni ' + k + ' des ' + A.elements.length + ' pièces du dossier. Le strict nécessaire tenait en ' + A.utiles.length + ' actions.') + '</p>' +
+      '<h4>Ce qui s’est passé</h4>' + recit(A).map(function (t) { return '<p>' + frappe(t) + '</p>'; }).join('') +
+      '<h4>Ce qui permettait de conclure</h4>' + conclusions(A).map(function (b) {
+        return '<h5>' + esc(b.titre) + '</h5><ul>' + b.lignes.map(function (t) { return '<li>' + frappe(t) + '</li>'; }).join('') + '</ul>';
       }).join('') +
-      '<p class="mode">Le strict nécessaire tenait en ' + A.utiles.length + ' actions.</p>' +
-      '<div class="gestes">' + bouton('hasard', 'Nouvelle affaire', '', 'main') + '</div></section>';
+      '<div class="gestes">' + bouton('hasard', 'Ouvrir une nouvelle affaire', '', 'acte') + '</div></section>';
   }
 
   function vueModal() {
@@ -909,34 +1061,68 @@
     k.forEach(function (el) { if (groupes.indexOf(el.src) < 0) groupes.push(el.src); });
     groupes.forEach(function (src) {
       html += '<h3>' + esc(origine(src)) + '</h3>' + k.filter(function (el) { return el.src === src; }).map(function (el) {
-        return '<button type="button" class="preuve" data-act="montrer" data-id="' + el.id + '">' + esc(el.texte) + '</button>';
+        return '<button type="button" class="preuve" data-act="montrer" data-id="' + el.id + '">' + txt(el.texte) + '</button>';
       }).join('');
     });
-    return '<div class="win" role="dialog" aria-modal="true"><h2>Confronter ' + esc(complet(p)) + '</h2>' +
+    return '<div class="win" role="dialog" aria-modal="true" aria-labelledby="titreModal"><h2 id="titreModal">Confronter ' + esc(complet(p)) + '</h2>' +
       '<p class="mode">Choisis la pièce du dossier à lui mettre sous les yeux. Cela coûte une action.</p>' + html +
-      '<div class="gestes">' + bouton('fermer', 'Annuler') + '</div></div>';
+      '<div class="gestes">' + bouton('fermer', 'Annuler', '', 'relire') + '</div></div>';
+  }
+
+  // ---------- Affichage : rendu ----------
+  var retour = null;   // suspect dont la confrontation était ouverte au rendu précédent
+
+  function repere(el) {
+    var d = el && el.dataset;
+    if (!d || !d.act) return el && el.id ? '#' + el.id : '';
+    return '[data-act="' + d.act + '"]' + (d.id ? '[data-id="' + d.id + '"]' : '') + (d.k ? '[data-k="' + d.k + '"]' : '') + (d.i ? '[data-i="' + d.i + '"]' : '');
+  }
+  function amener(sel, force) {
+    var el = document.querySelector(sel), r, calme;
+    if (!el || !el.getBoundingClientRect || !el.scrollIntoView) return;
+    r = el.getBoundingClientRect();
+    calme = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (force || r.top < 0 || r.top > window.innerHeight * 0.7) el.scrollIntoView({ block: 'start', behavior: calme ? 'auto' : 'smooth' });
   }
 
   function render() {
     var onglets = S.fini ? [['fin', 'Dénouement'], ['enquete', 'Enquête'], ['carnet', 'Carnet']] : [['enquete', 'Enquête'], ['carnet', 'Carnet'], ['accusation', 'Accusation']];
-    $('#actions').textContent = Math.max(0, S.actions) + '/' + A.budget;
+    var reste = Math.max(0, S.actions), m = Math.round((1 - reste / A.budget) * NUIT / 5) * 5;
+    var actif = document.activeElement, sel = repere(actif), calepin = document.getElementById('calepin'), haut = calepin ? calepin.scrollTop : 0, cible = null;
+
+    $('#affaire').textContent = 'Affaire ' + A.victime.nom;
+    $('#lieu').textContent = cap(A.manoir) + ', nuit du ' + A.date;
     $('#horloge').textContent = horloge();
-    $('#fausses').textContent = S.fausses;
+    $('#actions').textContent = reste ? pluriel(reste, 'action*') + ' sur ' + A.budget : 'L’aube se lève';
+    $('#fausses').textContent = S.fausses ? pluriel(S.fausses, 'mandat* refusé*') : '';
+    $('#aigH').style.transform = 'rotate(' + m / 2 + 'deg)';
+    $('#aigM').style.transform = 'rotate(' + m * 6 + 'deg)';
     $('#onglets').innerHTML = onglets.map(function (o) {
-      return '<button type="button" class="onglet' + (S.onglet === o[0] ? ' on' : '') + '" data-act="onglet" data-id="' + o[0] + '">' + o[1] + '</button>';
+      return '<button type="button" class="onglet o-' + o[0] + (S.onglet === o[0] ? ' on' : '') + '" data-act="onglet" data-id="' + o[0] + '"' + (S.onglet === o[0] ? ' aria-current="page"' : '') + '>' + o[1] + '</button>';
     }).join('');
-    $('#screen').innerHTML = (S.alerte && !S.fini ? '<p class="alerte">' + esc(S.alerte) + '</p>' : '') +
+    $('#screen').className = 'o-' + S.onglet;
+    $('#screen').innerHTML = (S.alerte && !S.fini ? '<p class="alerte" role="alert">' + frappe(S.alerte) + '</p>' : '') +
       (S.onglet === 'fin' ? vueFin() : S.onglet === 'carnet' ? vueCarnet() : S.onglet === 'accusation' ? vueAccusation() : vueEnquete());
     $('#modal').hidden = !S.confronte;
     $('#modal').innerHTML = S.confronte ? vueModal() : '';
+
+    // Le rendu remplace les boutons : on rend le clavier à celui qui vient de servir, ou à son voisin le plus utile.
+    calepin = document.getElementById('calepin');
+    if (calepin) calepin.scrollTop = haut;
+    if (S.confronte && !retour) cible = $('#modal').querySelector('button');
+    else if (!S.confronte && retour) cible = document.querySelector('[data-act="confronter"][data-id="' + retour + '"]') || document.getElementById('lecture');
+    else if (sel && actif && actif.isConnected === false) cible = document.querySelector(sel) || document.getElementById('lecture');
+    retour = S.confronte;
+    if (cible && cible.focus) cible.focus({ preventScroll: true });
   }
 
   // ---------- Commandes ----------
   document.addEventListener('click', function (ev) {
-    var b = ev.target.closest('[data-act]'), id;
+    var b = ev.target.closest('[data-act]'), id, act;
     if (!b) return;
     id = b.dataset.id;
-    switch (b.dataset.act) {
+    act = b.dataset.act;
+    switch (act) {
       case 'onglet': S.onglet = id; break;
       case 'interroger': interroger(id); break;
       case 'fouiller': fouiller(id); break;
@@ -944,6 +1130,7 @@
       case 'confronter': if (S.actions > 0 && !S.fini) S.confronte = id; break;
       case 'montrer': confronter(S.confronte, id); break;
       case 'fermer': S.confronte = null; break;
+      case 'constat': S.dernier = null; break;
       case 'heure': S.heure = +b.dataset.i; break;
       case 'case': S.grille[b.dataset.k] = SUIVANT[S.grille[b.dataset.k] || '']; break;
       case 'vider': S.grille = {}; break;
@@ -951,8 +1138,11 @@
       case 'accuser': accuser(); break;
       case 'renoncer': S.fini = { gagne: false }; S.onglet = 'fin'; break;
       case 'hasard': nouvelle('', $('#niveau').value); break;
+      case 'aller': amener('#' + id, true); return;
     }
     render();
+    if (/^(interroger|fouiller|examiner|montrer|constat)$/.test(act)) amener(document.getElementById('lecture') ? '#lecture' : '#screen');
+    else if (/^(onglet|accuser|renoncer|hasard)$/.test(act)) amener('#screen');
   });
 
   document.addEventListener('input', function (ev) {
@@ -960,7 +1150,16 @@
   });
 
   document.addEventListener('keydown', function (ev) {
-    if (ev.key === 'Escape' && S.confronte) { S.confronte = null; render(); }
+    var boutons, premier, dernier;
+    if (!S.confronte) return;
+    if (ev.key === 'Escape') { S.confronte = null; render(); return; }
+    if (ev.key !== 'Tab') return;
+    // Le clavier ne sort pas de la confrontation tant qu'elle est ouverte.
+    boutons = $('#modal').querySelectorAll('button');
+    premier = boutons[0];
+    dernier = boutons[boutons.length - 1];
+    if (ev.shiftKey && document.activeElement === premier) { ev.preventDefault(); dernier.focus(); }
+    else if (!ev.shiftKey && document.activeElement === dernier) { ev.preventDefault(); premier.focus(); }
   });
 
   $('#seedForm').addEventListener('submit', function (ev) {

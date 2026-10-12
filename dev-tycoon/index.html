@@ -3,37 +3,165 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dev Tycoon</title>
+  <title>Dev Tycoon 2003 - Gestion du personnel</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <header class="hud">
-    <h1>Dev <em>Tycoon</em></h1>
-    <dl class="stats">
-      <div class="stat stat-money"><dt>Trésorerie</dt><dd id="money">0 €</dd></div>
-      <div class="stat"><dt>Revenu</dt><dd id="rate">0 €/s</dd></div>
-      <div class="stat"><dt>Stade</dt><dd id="stage">Chambre</dd></div>
-      <div class="stat"><dt>Flagrants délits</dt><dd id="caught">0</dd></div>
-    </dl>
-    <button type="button" class="reset" id="reset">Recommencer</button>
-  </header>
+<body data-stage="0">
+  <svg class="sprite" aria-hidden="true" width="0" height="0">
+    <symbol id="i-app" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="2" width="14" height="10"/><rect x="2" y="3" width="12" height="8" fill="#d4d0c8"/><rect x="3" y="4" width="10" height="6" fill="#0a246a"/>
+      <rect x="4" y="7" width="2" height="3" fill="#3fdc5a"/><rect x="7" y="5" width="2" height="5" fill="#3fdc5a"/><rect x="10" y="6" width="2" height="4" fill="#3fdc5a"/>
+      <rect x="6" y="12" width="4" height="1"/><rect x="4" y="13" width="8" height="1"/>
+    </symbol>
+    <symbol id="i-save" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="1" width="14" height="14" fill="#000080"/><rect x="4" y="1" width="8" height="5" fill="#fff"/><rect x="9" y="2" width="2" height="3" fill="#000080"/>
+      <rect x="3" y="9" width="10" height="6" fill="#fff"/><rect x="5" y="11" width="6" height="1" fill="#808080"/><rect x="5" y="13" width="6" height="1" fill="#808080"/>
+    </symbol>
+    <symbol id="i-new" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="3" y="1" width="10" height="14"/><rect x="4" y="2" width="8" height="12" fill="#fff"/><rect x="10" y="1" width="3" height="3" fill="#d4d0c8"/><rect x="10" y="4" width="3" height="1"/><rect x="9" y="1" width="1" height="4"/>
+      <rect x="5" y="7" width="6" height="1" fill="#808080"/><rect x="5" y="9" width="6" height="1" fill="#808080"/><rect x="5" y="11" width="4" height="1" fill="#808080"/>
+    </symbol>
+    <symbol id="i-hire" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="4" y="1" width="6" height="2" fill="#5a3a22"/><rect x="4" y="3" width="6" height="4" fill="#f0c090"/><rect x="2" y="8" width="10" height="7" fill="#0a50c8"/><rect x="6" y="8" width="2" height="2" fill="#fff"/>
+      <rect x="12" y="2" width="2" height="6" fill="#008000"/><rect x="10" y="4" width="6" height="2" fill="#008000"/>
+    </symbol>
+    <symbol id="i-train" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="3" width="14" height="11" fill="#800000"/><rect x="2" y="4" width="12" height="9" fill="#fff"/><rect x="8" y="4" width="1" height="9" fill="#800000"/>
+      <rect x="3" y="6" width="4" height="1" fill="#808080"/><rect x="3" y="8" width="4" height="1" fill="#808080"/><rect x="3" y="10" width="3" height="1" fill="#808080"/>
+      <rect x="10" y="6" width="3" height="1" fill="#808080"/><rect x="10" y="8" width="3" height="1" fill="#808080"/><rect x="10" y="10" width="3" height="1" fill="#808080"/>
+    </symbol>
+    <symbol id="i-tip" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="5" y="1" width="6" height="9" fill="#806000"/><rect x="4" y="2" width="8" height="6" fill="#806000"/><rect x="6" y="2" width="4" height="7" fill="#ffe000"/><rect x="5" y="3" width="6" height="4" fill="#ffe000"/>
+      <rect x="6" y="3" width="1" height="2" fill="#fff"/><rect x="6" y="10" width="4" height="3" fill="#808080"/><rect x="7" y="13" width="2" height="1"/>
+    </symbol>
+    <symbol id="i-help" viewBox="0 0 16 16">
+      <text x="8" y="14" text-anchor="middle" font-family="Tahoma, Verdana, sans-serif" font-weight="bold" font-size="16" fill="#0a246a">?</text>
+    </symbol>
+    <symbol id="i-cam" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="1" y="4" width="10" height="8" fill="#404040"/><rect x="2" y="5" width="8" height="6" fill="#808080"/><rect x="11" y="6" width="2" height="4" fill="#404040"/><rect x="13" y="5" width="2" height="6" fill="#404040"/>
+      <rect class="cam-led" x="3" y="6" width="2" height="2" fill="#3fdc5a"/><rect x="5" y="12" width="2" height="3" fill="#404040"/>
+    </symbol>
+    <symbol id="i-start" viewBox="0 0 16 16" shape-rendering="crispEdges">
+      <rect x="2" y="2" width="5" height="5" fill="#e0402a"/><rect x="9" y="2" width="5" height="5" fill="#3aa33a"/><rect x="2" y="9" width="5" height="5" fill="#2a5cd0"/><rect x="9" y="9" width="5" height="5" fill="#f0b400"/>
+    </symbol>
+    <symbol id="i-info" viewBox="0 0 32 32">
+      <path d="M16 3a12 11 0 0 1 4 21.4L21 30l-7-5A12 11 0 0 1 16 3z" fill="#fff" stroke="#404040" stroke-width="1.5" stroke-linejoin="round"/>
+      <rect x="14" y="8" width="4" height="3" fill="#0a37c8"/><rect x="13" y="13" width="5" height="7" fill="#0a37c8"/><rect x="12" y="19" width="8" height="2" fill="#0a37c8"/>
+    </symbol>
+    <symbol id="i-ask" viewBox="0 0 32 32">
+      <path d="M16 3a12 11 0 0 1 4 21.4L21 30l-7-5A12 11 0 0 1 16 3z" fill="#fff" stroke="#404040" stroke-width="1.5" stroke-linejoin="round"/>
+      <text x="16" y="21" text-anchor="middle" font-family="Tahoma, Verdana, sans-serif" font-weight="bold" font-size="18" fill="#0a37c8">?</text>
+    </symbol>
+    <symbol id="i-warn" viewBox="0 0 32 32">
+      <path d="M16 3 30 28H2z" fill="#ffd800" stroke="#000" stroke-width="2" stroke-linejoin="round"/>
+      <rect x="14.5" y="11" width="3" height="9"/><rect x="14.5" y="22" width="3" height="3"/>
+    </symbol>
+    <symbol id="i-bulb" viewBox="0 0 32 32">
+      <path d="M16 3a9 9 0 0 1 5 16.5V23H11v-3.5A9 9 0 0 1 16 3z" fill="#ffe000" stroke="#806000" stroke-width="1.5"/>
+      <rect x="11" y="23" width="10" height="5" fill="#a0a0a0" stroke="#404040"/><rect x="14" y="28" width="4" height="2" fill="#404040"/>
+      <path d="M13 8a5 5 0 0 0-2 4" fill="none" stroke="#fff" stroke-width="2"/>
+    </symbol>
+  </svg>
 
-  <div class="goal"><span class="goal-bar" id="goalBar"></span><span class="goal-text" id="goalText"></span></div>
+  <div class="desktop">
+    <div class="window app" id="app">
+      <header class="titlebar">
+        <svg class="ico" aria-hidden="true"><use href="#i-app"/></svg>
+        <h1 id="winTitle">Dev Tycoon 2003 - Gestion du personnel</h1>
+        <span class="tb-btns" aria-hidden="true"><i class="tb-min"></i><i class="tb-max"></i><i class="tb-x"></i></span>
+      </header>
 
-  <main class="layout">
-    <section class="office" id="office" aria-label="Open space"></section>
+      <nav class="menubar" aria-label="Menus">
+        <div class="menu"><button type="button" class="menu-btn" data-menu="file" aria-haspopup="true" aria-expanded="false">Fichier</button></div>
+        <div class="menu"><button type="button" class="menu-btn" data-menu="staff" aria-haspopup="true" aria-expanded="false">Personnel</button></div>
+        <div class="menu"><button type="button" class="menu-btn" data-menu="shop" aria-haspopup="true" aria-expanded="false">Achats</button></div>
+        <div class="menu"><button type="button" class="menu-btn" data-menu="help" aria-haspopup="true" aria-expanded="false" aria-label="Aide">?</button></div>
+      </nav>
 
-    <aside class="panel" aria-label="Gestion">
-      <section class="card" id="devCard"></section>
-      <section class="card">
-        <h2>Ta boîte</h2>
-        <ul class="shop" id="shop"></ul>
-      </section>
-      <p class="help">Clique sur ton écran pour coder. Recrute, forme ton équipe, et surveille les écrans : un dev surpris sur <b>Klode</b> voit son salaire baisser un moment.</p>
-    </aside>
-  </main>
+      <div class="toolbar" role="toolbar" aria-label="Commandes">
+        <span class="grip" aria-hidden="true"></span>
+        <button type="button" class="tool" data-cmd="save" title="Enregistrer la partie"><svg class="ico" aria-hidden="true"><use href="#i-save"/></svg><span>Enregistrer</span></button>
+        <button type="button" class="tool" data-cmd="reset" title="Effacer la partie et recommencer"><svg class="ico" aria-hidden="true"><use href="#i-new"/></svg><span>Nouvelle partie</span></button>
+        <span class="tool-sep" aria-hidden="true"></span>
+        <button type="button" class="tool" id="tbHire" data-cmd="hire" title="Recruter un développeur"><svg class="ico" aria-hidden="true"><use href="#i-hire"/></svg><span>Recruter</span></button>
+        <button type="button" class="tool" id="tbTrain" data-buy="train" title="Payer une formation au développeur sélectionné"><svg class="ico" aria-hidden="true"><use href="#i-train"/></svg><span>Former</span></button>
+        <span class="tool-sep" aria-hidden="true"></span>
+        <button type="button" class="tool" data-cmd="tip" title="Astuce du jour"><svg class="ico" aria-hidden="true"><use href="#i-tip"/></svg><span>Astuce</span></button>
+        <button type="button" class="tool" data-cmd="help" title="Comment jouer"><svg class="ico" aria-hidden="true"><use href="#i-help"/></svg><span>Aide</span></button>
+      </div>
 
-  <div class="toasts" id="toasts" aria-live="polite"></div>
+      <main class="work">
+        <section class="group compta" aria-label="Comptabilité">
+          <h2 class="legend">Comptabilité</h2>
+          <div class="cash"><span>Trésorerie</span><output class="field" id="money">0 €</output></div>
+          <dl class="ledger">
+            <div><dt>Revenu de l'équipe</dt><dd class="field" id="rate">0 €/s</dd></div>
+            <div><dt>Ton clic</dt><dd class="field" id="click">+1 €</dd></div>
+          </dl>
+        </section>
+
+        <section class="pane" aria-label="Bureaux">
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab" role="tab" id="tabPlan" data-cmd="view-plan" aria-selected="true" aria-controls="plan">Plan des bureaux</button>
+            <button type="button" class="tab" role="tab" id="tabList" data-cmd="view-list" aria-selected="false" aria-controls="list">Trombinoscope</button>
+          </div>
+          <div class="sheet">
+            <div class="plan" id="plan" role="tabpanel" aria-labelledby="tabPlan">
+              <div class="office" id="office"></div>
+            </div>
+            <div class="list" id="list" role="tabpanel" aria-labelledby="tabList" hidden>
+              <div class="lv-head roster-cols" aria-hidden="true"><span>Mat.</span><span>Nom</span><span>Poste</span><span class="num x1">Produit</span><span class="num x1">Salaire</span><span class="num">Net <i class="sort"></i></span><span>État</span></div>
+              <div class="roster" id="roster"></div>
+            </div>
+            <div class="goal">
+              <p id="goalText"></p>
+              <div class="progress"><span class="blocks" id="goalBar"></span></div>
+              <span class="pct" id="goalPct">0 %</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="group fiche" id="devCard" aria-label="Fiche salarié"></section>
+
+        <section class="group orders" aria-label="Bons de commande">
+          <h2 class="legend">Bons de commande</h2>
+          <div class="lv">
+            <div class="lv-head order-cols" aria-hidden="true"><span>Réf.</span><span>Désignation</span><span class="num">Niv.</span><span>Commander</span></div>
+            <ul id="shop"></ul>
+          </div>
+        </section>
+      </main>
+
+      <footer class="statusbar">
+        <span class="cell grow" id="statusMsg">Prêt</span>
+        <span class="cell" id="stage">Stade : Chambre</span>
+        <span class="cell" id="staff">Effectif : 0/11</span>
+        <span class="cell">Flagrants délits : <b id="caught">0</b></span>
+        <span class="cell watch" id="watch">Surveillance : RAS</span>
+      </footer>
+    </div>
+  </div>
+
+  <div class="taskbar">
+    <div class="menu"><button type="button" class="btn start" data-menu="start" aria-haspopup="true" aria-expanded="false"><svg class="ico" aria-hidden="true"><use href="#i-start"/></svg>Démarrer</button></div>
+    <span class="task" aria-hidden="true"><svg class="ico"><use href="#i-app"/></svg><span id="taskTitle">Dev Tycoon 2003</span></span>
+    <span class="tray">
+      <svg class="ico" id="trayCam" role="img" aria-label="Surveillance des postes"><title>Surveillance des postes</title><use href="#i-cam"/></svg>
+      <svg class="ico" id="trayDisk" aria-hidden="true"><use href="#i-save"/></svg>
+      <span id="clock">00:00</span>
+    </span>
+  </div>
+
+  <div class="balloons" id="balloons" aria-live="polite"></div>
+
+  <div class="dlg-layer" id="dlgLayer" hidden>
+    <div class="window dlg" role="dialog" aria-labelledby="dlgTitle">
+      <div class="titlebar"><span id="dlgTitle"></span><button type="button" class="tb-close" data-cmd="dlg-cancel" aria-label="Fermer"><i class="tb-x"></i></button></div>
+      <div class="dlg-body"><svg class="dlg-icon" viewBox="0 0 32 32" aria-hidden="true"><use id="dlgIcon" href="#i-info"/></svg><div class="dlg-text" id="dlgText"></div></div>
+      <div class="dlg-btns" id="dlgBtns"></div>
+    </div>
+  </div>
+
   <script src="game.js"></script>
 </body>
 </html>

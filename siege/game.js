@@ -57,8 +57,8 @@
   var WINDS = ['de l\'Est', 'du Sud-Est', 'du Sud', 'du Sud-Ouest', 'de l\'Ouest', 'du Nord-Ouest', 'du Nord', 'du Nord-Est'];
   var KINDS = { tour: 'Tour du rempart', porte: 'Porte', route: 'Avant-poste hors les murs', rue: 'Poste dans la ville' };
 
-  var INK = '#3d2f21', GROUND = '#f1e5c6', BLOOD = '#b3341f';
-  var TINT = { archer: '#9db57a', baliste: '#9fb4c2', trebuchet: '#d9b05c', poix: '#4a382a', pieux: '#b98a58' };
+  var INK = '#3d2f21', GROUND = '#f1e5c6', BLOOD = '#b3341f', GORE = '#6e1c10';   // l'encre rouge est réservée à l'ennemi et au danger
+  var WASH = 'rgba(226, 180, 56, .62)', PIN = '#2c3f5a';
   var FONT = '\'Palatino Linotype\', \'Book Antiqua\', Palatino, Georgia, serif';
 
   var $ = function (s) { return document.querySelector(s); };
@@ -581,11 +581,8 @@
     if (def.slow) out.push('Ralentit de ' + Math.round(def.slow[L] * 100) + ' %');
     if (def.spike) out.push('Blesse de ' + def.spike[L]);
     out.push('Portée ' + def.range[L]);
-    if (def.cd) out.push('Recharge ' + def.cd[L] + ' s');
-    return out.join(' · ');
-  }
-  function muster(w, front) {
-    return w.groups.filter(function (g) { return g.front === front; }).map(function (g) { return g.count + ' × ' + FOES[g.ch].name; }).join(', ');
+    if (def.cd) out.push('Recharge ' + String(def.cd[L]).replace('.', ',') + ' s');
+    return out.map(function (t, n) { return n ? t.toLowerCase() : t; }).join(', ');
   }
 
   // Prise pour les essais et la console : toute la logique tourne sans affichage.
@@ -597,11 +594,52 @@
   };
   if (!$('#board')) return;
 
-  // ---------- Dessin ----------
-  var Z = 1.5;   // finesse du calque de jeu par rapport au plan
+  // ---------- Vue ----------
   var canvas = $('#fx'), ctx = canvas.getContext('2d');
-  canvas.width = canvas.height = PX * Z;
+  var view = window.VuePlanche.create({
+    cadre: $('#board'), feuille: $('#feuille'), px: PX, loupe: $('#loupe'), mention: $('#grossi'),
+    // Les jetons occupent le bord gauche de la table tant qu'elle est assez large.
+    marge: function () {
+      var wide = $('#board').clientWidth > 620;
+      return { l: wide ? 104 : 8, t: wide ? 10 : 44, r: wide ? 14 : 8, b: wide ? 10 : 84 };
+    },
+    // Maj + glisser, clic milieu, ou glisser depuis un endroit où il n'y a rien à désigner.
+    glisse: function (e) { return e.button === 0 && (e.shiftKey || !nearest(S.slots, view.point(e), 20)); },
+    clic: function () { act(null); render(); }
+  });
 
+  // ---------- Signes ----------
+  // Chaque signe tient dans un carré de 20 centré sur l'origine : des traits [tracé, remplissage, encre, épaisseur].
+  // Les assaillants regardent vers la droite : on les tourne dans le sens de leur marche.
+  var SIGNS = {
+    archer: [['M-4 -9Q9 0 -4 9', '', INK, 1.9], ['M-4 -9L-4 9', '', INK, 0.8], ['M-9 0L9 0M5.5 -2.6L9 0L5.5 2.6', '', INK, 1.3]],
+    baliste: [['M-9 -1Q0 -10 9 -1', '', INK, 1.9], ['M-9 -1L0 4L9 -1', '', INK, 0.8], ['M0 -7L0 9M-4 9L4 9', '', INK, 2.2]],
+    trebuchet: [['M-7 9L-1 -1L5 9M-9 9L8 9', '', INK, 1.5], ['M-9 -9L5 2', '', INK, 1.9], ['M2.5 2H8.5V8H2.5Z', INK, INK, 0.6], ['M-9 -9Q-10.5 -3 -7 -1', '', INK, 0.8]],
+    poix: [['M-7 -2Q-7 8 0 8Q7 8 7 -2Z', INK, INK, 0.8], ['M-9 -2L9 -2', '', INK, 1.7], ['M-5.5 -2Q0 -11.5 5.5 -2', '', INK, 1]],
+    pieux: [['M-8 8L-4 -8M-2 8L2 -8M4 8L8 -8', '', INK, 1.9], ['M-10 8L10 8', '', INK, 1]],
+    p: [['M4.5 0A4.5 4.5 0 1 1 -4.5 0A4.5 4.5 0 1 1 4.5 0Z', BLOOD, GORE, 1.2], ['M2 -4L10 -4', '', GORE, 1.1]],
+    c: [['M10 0L-6 6.5L-2.5 0L-6 -6.5Z', '#cf4a30', GORE, 1.3]],
+    b: [['M-6 -6H5V6H-6Z', '#8a2a19', GORE, 1.2], ['M6.5 -7.5V7.5', '', GORE, 2.6]],
+    e: [['M-9 -4.5H9V4.5H-9Z', GROUND, '', 0], ['M-9 -4.5H9M-9 4.5H9M-5.5 -4.5V4.5M-1.8 -4.5V4.5M1.8 -4.5V4.5M5.5 -4.5V4.5', '', BLOOD, 1.6]],
+    B: [['M-10 -8.5H-5M5 -8.5H10M-10 8.5H-5M5 8.5H10', '', GORE, 2.6], ['M-13 -6.5H11V6.5H-13Z', '#a33a22', GORE, 1.6], ['M-13 0H11', '', GORE, 0.8], ['M11 0H19', '', GORE, 3], ['M19 -2.8V2.8', '', GORE, 3.6]]
+  };
+  Object.keys(SIGNS).forEach(function (id) {
+    SIGNS[id].forEach(function (s) { s[4] = new Path2D(s[0]); });
+  });
+  function sign(id) {
+    SIGNS[id].forEach(function (s) {
+      if (s[1]) { ctx.fillStyle = s[1]; ctx.fill(s[4]); }
+      if (s[2]) { ctx.strokeStyle = s[2]; ctx.lineWidth = s[3]; ctx.stroke(s[4]); }
+    });
+  }
+  // Le même signe pour la légende, hors du plan.
+  function signSvg(id) {
+    return '<svg class="signe" viewBox="' + (id === 'B' ? '-15 -11 37 22' : '-11 -11 22 22') + '" aria-hidden="true">' + SIGNS[id].map(function (s) {
+      return '<path d="' + s[0] + '" fill="' + (s[1] || 'none') + '" stroke="' + (s[2] || 'none') + '" stroke-width="' + s[3] + '" stroke-linecap="round" stroke-linejoin="round"/>';
+    }).join('') + '</svg>';
+  }
+
+  // ---------- Dessin ----------
   function ring(x, y, r) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); }
   function ink(fill, stroke, width) {
     if (fill) { ctx.fillStyle = fill; ctx.fill(); }
@@ -614,10 +652,23 @@
     ctx.fillStyle = fill || INK;
     ctx.fillText(s, x, y);
   }
+  // Une jauge tracée à l'encre : une réglette graduée au quart, noircie de ce qui reste.
   function gauge(x, y, w, h, part, color) {
+    var i;
+    part = Math.max(0, Math.min(1, part));
     ctx.fillStyle = GROUND; ctx.fillRect(x - w / 2, y, w, h);
-    ctx.fillStyle = color; ctx.fillRect(x - w / 2, y, w * Math.max(0, Math.min(1, part)), h);
-    ctx.strokeStyle = INK; ctx.lineWidth = 1; ctx.strokeRect(x - w / 2, y, w, h);
+    ctx.fillStyle = color; ctx.fillRect(x - w / 2, y, w * part, h);
+    ctx.strokeStyle = INK; ctx.lineWidth = 0.9; ctx.strokeRect(x - w / 2, y, w, h);
+    ctx.beginPath();
+    for (i = 1; i < 4; i++) { ctx.moveTo(x - w / 2 + w * i / 4, y + h); ctx.lineTo(x - w / 2 + w * i / 4, y + h + 2); }
+    ctx.lineWidth = 0.7; ctx.stroke();
+  }
+  // L'épingle qui marque la défense désignée.
+  function pin(x, y) {
+    ring(x, y, 15.5); ink(null, INK, 1.8);
+    ctx.beginPath(); ctx.moveTo(x + 7, y - 7.5); ctx.lineTo(x + 12.5, y - 14); ink(null, INK, 1.3);
+    ring(x + 13.5, y - 15.5, 4.6); ink(PIN, INK, 1);
+    ring(x + 12.2, y - 16.9, 1.3); ink('rgba(255, 255, 255, .6)');
   }
 
   // Portée à montrer : la défense sous le curseur, sinon celle qu'on s'apprête à poser, sinon la sélection.
@@ -630,13 +681,15 @@
     return { x: t.x, y: t.y, r: def.range[t.lvl], near: def.near };
   }
 
+  // Un emplacement libre : un rond pointillé ; lavé de jaune, comme un ouvrage projeté, quand la défense choisie peut s'y poser.
   function drawSlot(s) {
     var open = U.pick && !s.tower && allowed(TOWER[U.pick], s);
     if (s.tower || s.kind === 'porte') return;
-    ctx.globalAlpha = U.pick && !open ? 0.3 : 1;
-    ring(s.x, s.y, open ? 9 : 7.5);
-    ink(open ? 'rgba(217, 162, 90, .75)' : 'rgba(241, 229, 198, .7)', INK, open ? 2 : 1.2);
-    if (s.kind !== 'tour') { ring(s.x, s.y, 2); ink(INK); }
+    ctx.globalAlpha = U.pick && !open ? 0.35 : 1;
+    ring(s.x, s.y, open ? 9 : 7);
+    if (open) ink(WASH, INK, 1.3);
+    else { ink('rgba(241, 229, 198, .8)'); ctx.setLineDash([2.2, 2]); ink(null, INK, 1.1); ctx.setLineDash([]); }
+    if (s.kind !== 'tour') { ring(s.x, s.y, 1.6); ink(INK); }
     ctx.globalAlpha = 1;
   }
 
@@ -645,86 +698,94 @@
     var inx = PX / 2 - fr.x, iny = PX / 2 - fr.y, l = Math.sqrt(inx * inx + iny * iny) || 1, far = 30 + Math.abs(inx / l) * 34, lx = fr.x + inx / l * far, ly = fr.y + iny / l * far;
     if (aimed) {
       ctx.setLineDash([5, 4]);
-      ring(fr.x, fr.y, 19 + Math.sin(S.tick / 6) * 1.5); ink(null, BLOOD, 2.5);
+      ring(fr.x, fr.y, 19 + Math.sin(S.tick / 6) * 1.5); ink(null, BLOOD, 2.2);
       ctx.setLineDash([]);
     }
-    if (open) { ring(fr.x, fr.y, 14); ink('rgba(217, 162, 90, .75)', INK, 2); }
+    if (open) { ring(fr.x, fr.y, 14); ink(WASH, INK, 1.7); }
     if (fr.down) {
       ctx.beginPath();
       ctx.moveTo(fr.x - 9, fr.y - 9); ctx.lineTo(fr.x + 9, fr.y + 9); ctx.moveTo(fr.x + 9, fr.y - 9); ctx.lineTo(fr.x - 9, fr.y + 9);
-      ink(null, BLOOD, 4);
+      ink(null, BLOOD, 3.5);
     }
     text(fr.name.replace('Porte ', 'P. '), lx, ly - 7, 13, 'italic bold', fr.down ? BLOOD : INK, GROUND);
-    gauge(lx, ly + 2, 44, 6, fr.hp / fr.max, fr.hp * 3 < fr.max ? BLOOD : '#6f8a4a');
+    gauge(lx, ly + 2, 44, 5, fr.hp / fr.max, fr.hp * 3 < fr.max ? BLOOD : INK);
+    if (U.sel === fr.slot) pin(fr.x, fr.y);
   }
 
   function drawTower(t) {
     var def = t.def, i, part;
-    ring(t.x, t.y, 11.5);
-    ink(TINT[def.id], INK, 2.2);
-    text(def.ch, t.x, t.y + 1, 15, 'bold', def.id === 'poix' ? GROUND : INK);
-    for (i = 0; i <= t.lvl; i++) { ring(t.x - 6 * t.lvl / 2 + i * 6, t.y + 16, 2); ink(INK, GROUND, 0.8); }
+    ring(t.x, t.y, 13); ink(GROUND, INK, 1.5);
+    ring(t.x, t.y, 11.2); ink(null, INK, 0.45);
+    ctx.save();
+    ctx.translate(t.x, t.y); ctx.scale(0.86, 0.86);
+    sign(def.id);
+    ctx.restore();
+    for (i = 0; i <= t.lvl; i++) { ring(t.x - 6 * t.lvl / 2 + i * 6, t.y + 17.5, 2); ink(INK, GROUND, 0.8); }
     if (def.guard && t.slot.kind === 'route') {
       part = 1 - t.wear / def.guard[t.lvl];
-      gauge(t.x, t.y - 20, 22, 4, part, part < 0.34 ? BLOOD : '#6f8a4a');
+      gauge(t.x, t.y - 20, 22, 3.5, part, part < 0.34 ? BLOOD : INK);
     }
-    if (U.sel === t.slot) { ring(t.x, t.y, 15.5); ink(null, '#d9a25a', 2.5); }
+    if (U.sel === t.slot && t.slot.kind !== 'porte') pin(t.x, t.y);
   }
 
   function drawFoe(f) {
-    var ch = f.ch, a = Math.atan2(f.uy, f.ux), w;
+    var ch = f.ch, w;
     ctx.save();
     ctx.translate(f.x, f.y);
-    ctx.rotate(a);
+    ctx.rotate(Math.atan2(f.uy, f.ux));
     ctx.scale(1.25, 1.25);
-    ctx.beginPath();
-    if (ch === 'p') ctx.arc(0, 0, 5, 0, Math.PI * 2);
-    else if (ch === 'c') { ctx.moveTo(9, 0); ctx.lineTo(-6, 6); ctx.lineTo(-3, 0); ctx.lineTo(-6, -6); ctx.closePath(); }
-    else if (ch === 'b') ctx.rect(-6, -6, 12, 12);
-    else if (ch === 'e') { ctx.moveTo(8, 0); ctx.lineTo(0, 6.5); ctx.lineTo(-8, 0); ctx.lineTo(0, -6.5); ctx.closePath(); }
-    else ctx.rect(-13, -7, 26, 14);
-    ink(ch === 'b' ? '#7a2415' : ch === 'e' ? '#e08a3c' : ch === 'B' ? '#5c3a22' : ch === 'c' ? '#d0452c' : BLOOD, f.slowT > 0 ? '#2f5f8a' : INK, ch === 'B' ? 2 : 1.5);
-    if (ch === 'B') { ctx.beginPath(); ctx.moveTo(-13, 0); ctx.lineTo(17, 0); ink(null, GROUND, 2.5); ring(17, 0, 3); ink(BLOOD, INK, 1); }
-    if (ch === 'b') { ctx.beginPath(); ctx.moveTo(6, -6); ctx.lineTo(6, 6); ink(null, GROUND, 2); }
-    if (ch === 'e') { ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ink(null, INK, 1.5); }
+    sign(ch);
     ctx.restore();
+    if (f.slowT > 0) { ctx.setLineDash([2, 2]); ring(f.x, f.y, ch === 'B' ? 20 : 11); ink(null, '#2f5f8a', 1.2); ctx.setLineDash([]); }
     if (f.hp < f.max) {
       w = ch === 'B' ? 28 : 14;
-      ctx.fillStyle = INK; ctx.fillRect(f.x - w / 2 - 0.5, f.y - 15.5, w + 1, 4);
-      ctx.fillStyle = '#e9c46a'; ctx.fillRect(f.x - w / 2, f.y - 15, w * Math.max(0, f.hp / f.max), 3);
+      ctx.beginPath(); ctx.moveTo(f.x - w / 2, f.y - 14); ctx.lineTo(f.x + w / 2, f.y - 14); ink(null, GROUND, 4);
+      ctx.beginPath(); ctx.moveTo(f.x - w / 2, f.y - 14); ctx.lineTo(f.x + w / 2, f.y - 14); ink(null, INK, 0.7);
+      ctx.beginPath(); ctx.moveTo(f.x - w / 2, f.y - 14); ctx.lineTo(f.x - w / 2 + w * Math.max(0, f.hp / f.max), f.y - 14); ink(null, GORE, 2.6);
     }
   }
 
-  // Bannière au bord du plan : d'où viendra la prochaine vague.
+  // Fanion planté au bord du plan : d'où viendra la prochaine vague.
   function drawOmen(fr, n) {
-    var p = along(fr.road, 26), a = Math.atan2(p.uy, p.ux), beat = 1 + Math.sin(S.tick / 6) * 0.08;
+    var p = along(fr.road, 30), beat = 1 + Math.sin(S.tick / 6) * 0.06;
     ctx.save();
     ctx.translate(p.x, p.y);
     ctx.scale(beat, beat);
-    ring(0, 0, 15); ink(BLOOD, INK, 2);
-    ctx.rotate(a);
-    ctx.beginPath(); ctx.moveTo(26, 0); ctx.lineTo(16, -7); ctx.lineTo(16, 7); ctx.closePath(); ink(BLOOD, INK, 1.5);
-    ctx.rotate(-a);
-    text(String(n), 0, 1, 15, 'bold', GROUND);
+    ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -27); ink(null, GROUND, 4.5);
+    ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(0, -27); ink(null, INK, 1.7);
+    ctx.beginPath(); ctx.moveTo(0, -27); ctx.lineTo(25, -24); ctx.lineTo(18, -18); ctx.lineTo(25, -12); ctx.lineTo(0, -9); ctx.closePath(); ink(BLOOD, GORE, 1.3);
+    ring(0, 7, 2.2); ink(INK);
+    text(String(n), 9, -17.5, 13, 'bold', GROUND);
     ctx.restore();
+  }
+
+  function burst(x, y, r, n) {
+    var i, a;
+    ctx.beginPath();
+    for (i = 0; i < n; i++) {
+      a = i / n * Math.PI * 2 + 0.3;
+      ctx.moveTo(x + Math.cos(a) * r * 0.55, y + Math.sin(a) * r * 0.55); ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    }
   }
 
   function draw() {
     var z = zone(), i, s, e, k;
-    ctx.setTransform(Z, 0, 0, Z, 0, 0);
-    ctx.clearRect(0, 0, PX, PX);
+    view.ajuste(canvas);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    view.repere(ctx);
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
 
-    // La route que prendra la prochaine vague, soulignée à l'encre rouge.
+    // La route que prendra la prochaine vague, pointée à l'encre rouge.
     if (S.next) {
       S.next.fronts.forEach(function (g) {
         var pts = S.fronts[g].road.pts;
         ctx.beginPath();
         pts.forEach(function (p, n) { if (n) ctx.lineTo(p.x, p.y); else ctx.moveTo(p.x, p.y); });
-        ctx.setLineDash([3, 9]); ink(null, 'rgba(179, 52, 31, .7)', 3); ctx.setLineDash([]);
+        ctx.setLineDash([2.5, 8]); ink(null, 'rgba(179, 52, 31, .8)', 2.6); ctx.setLineDash([]);
       });
     }
-    ring(S.plaza.x, S.plaza.y, 13); ink(null, S.lives * 3 <= LIVES ? BLOOD : INK, 2);
+    ring(S.plaza.x, S.plaza.y, 13); ink(null, S.lives * 3 <= LIVES ? BLOOD : INK, 1.8);
 
     for (i = 0; i < S.slots.length; i++) drawSlot(S.slots[i]);
     S.fronts.forEach(drawGate);
@@ -736,34 +797,35 @@
       s = S.shots[i];
       if (s.kind === 'stone') {
         k = Math.sin(Math.PI * s.t / s.T);
-        ring(s.x, s.y, 2.5); ink('rgba(61, 47, 33, .35)');
-        ring(s.x, s.y - k * 26, 4 + k * 2); ink('#6b5a4a', INK, 1.2);
+        ring(s.x, s.y, 2.5); ink('rgba(61, 47, 33, .3)');
+        ring(s.x, s.y - k * 26, 3.5 + k * 2); ink('#6b5a4a', INK, 1.2);
       } else if (s.ux !== undefined) {
-        ctx.beginPath(); ctx.moveTo(s.x - s.ux * 8, s.y - s.uy * 8); ctx.lineTo(s.x, s.y); ink(null, INK, 1.8);
+        ctx.beginPath(); ctx.moveTo(s.x - s.ux * 9, s.y - s.uy * 9); ctx.lineTo(s.x, s.y); ink(null, INK, 1.5);
       }
     }
     for (i = 0; i < S.fx.length; i++) {
       e = S.fx[i]; k = Math.max(0, e.t / e.T);
       if (e.kind === 'bolt') {
         ctx.globalAlpha = k;
-        ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x2, e.y2); ink(null, INK, 2.5);
+        ctx.beginPath(); ctx.moveTo(e.x, e.y); ctx.lineTo(e.x2, e.y2); ink(null, INK, 2.2);
       } else if (e.kind === 'poix') {
-        ctx.globalAlpha = k * 0.55;
+        ctx.globalAlpha = k * 0.5;
         ring(e.x, e.y, e.r); ink('#3a2a1c');
       } else {
         ctx.globalAlpha = k;
-        ring(e.x, e.y, e.r * (1.1 - k * 0.5)); ink('rgba(224, 138, 60, .45)', INK, 2);
+        ring(e.x, e.y, e.r * (0.9 - k * 0.4)); ink('rgba(107, 90, 71, .28)');
+        burst(e.x, e.y, e.r * (1.15 - k * 0.5), 9); ink(null, INK, 1.6);
       }
       ctx.globalAlpha = 1;
     }
 
     if (z) {
-      ring(z.x, z.y, z.r); ink('rgba(61, 47, 33, .09)');
-      ctx.setLineDash([7, 5]); ink(null, INK, 1.6);
+      ring(z.x, z.y, z.r); ink('rgba(61, 47, 33, .07)');
+      ctx.setLineDash([7, 5]); ink(null, INK, 1.4);
       if (z.near) { ring(z.x, z.y, z.near); ink(null, BLOOD, 1.2); }
       ctx.setLineDash([]);
     }
-    if (U.cur) { ring(U.cur.x, U.cur.y, U.cur.kind === 'porte' ? 16 : 14); ink(null, '#fff6dc', 2.5); ring(U.cur.x, U.cur.y, U.cur.kind === 'porte' ? 17.5 : 15.5); ink(null, INK, 1); }
+    if (U.cur) { ring(U.cur.x, U.cur.y, U.cur.kind === 'porte' ? 16.5 : 14.5); ink(null, GROUND, 3.4); ink(null, INK, 1.1); }
     if (S.next && !S.over) S.next.fronts.forEach(function (g) { drawOmen(S.fronts[g], S.next.n); });
   }
 
@@ -777,90 +839,100 @@
     $(sel).innerHTML = html;
   }
 
+  // Les défenses à poser : des jetons sur le bord de la table.
   function shopView() {
     return TOWERS.map(function (def, i) {
-      return '<button type="button" class="buy' + (U.pick === def.id ? ' on' : '') + (S.gold < def.cost[0] ? ' poor' : '') + '" data-act="pick" data-i="' + i + '">' +
-        '<span class="key">' + (i + 1) + '</span><span class="chip" style="background:' + TINT[def.id] + (def.id === 'poix' ? ';color:' + GROUND : '') + '">' + def.ch + '</span>' + esc(def.name) + '<span class="price">' + def.cost[0] + ' or</span></button>';
+      return '<button type="button" class="jeton' + (U.pick === def.id ? ' on' : '') + (S.gold < def.cost[0] ? ' poor' : '') + '" data-act="pick" data-i="' + i + '" aria-pressed="' + (U.pick === def.id) + '">' +
+        '<span class="key">' + (i + 1) + '</span>' + signSvg(def.id) + '<span class="nom">' + esc(def.name) + '</span><span class="price">' + def.cost[0] + ' or</span></button>';
     }).join('');
   }
 
   function gateView(fr) {
     var cost = herseCost(fr);
-    return '<b>' + esc(fr.name) + '</b> · ' + (fr.down ? '<span class="bad">tombée</span>' : Math.ceil(fr.hp) + '/' + fr.max + ' PV') + (fr.lvl ? ' · herse ' + fr.lvl + '/' + HERSE.length : '') +
-      '<div class="row">' +
-      (fr.down ? '<button type="button" class="btn" data-act="rebuild"' + (S.gold >= REBUILD.cost && !besieged(fr) ? '' : ' disabled') + '>Relever [R] ' + REBUILD.cost + ' or</button>'
-        : '<button type="button" class="btn" data-act="repair"' + (S.gold >= REPAIR.cost && fr.hp < fr.max ? '' : ' disabled') + '>Réparer [R] ' + REPAIR.cost + ' or</button>') +
-      '<button type="button" class="btn" data-act="herse"' + (cost && S.gold >= cost ? '' : ' disabled') + '>' + (cost ? 'Herse [H] ' + cost + ' or' : 'Herse doublée') + '</button></div>';
+    return '<p><b>' + esc(fr.name) + '</b>, ' + (fr.down ? '<span class="bad">tombée</span>' : Math.ceil(fr.hp) + ' PV sur ' + fr.max) + (fr.lvl ? ', herse ' + fr.lvl + '/' + HERSE.length : '') + '.</p>' +
+      '<div class="mentions">' +
+      (fr.down ? '<button type="button" class="mention" data-act="rebuild"' + (S.gold >= REBUILD.cost && !besieged(fr) ? '' : ' disabled') + '>Relever (R), ' + REBUILD.cost + ' or</button>'
+        : '<button type="button" class="mention" data-act="repair"' + (S.gold >= REPAIR.cost && fr.hp < fr.max ? '' : ' disabled') + '>Réparer (R), ' + REPAIR.cost + ' or</button>') +
+      '<button type="button" class="mention" data-act="herse"' + (cost && S.gold >= cost ? '' : ' disabled') + '>' + (cost ? 'Herse (H), ' + cost + ' or' : 'Herse doublée') + '</button></div>';
   }
   function towerView(t) {
     var def = t.def, cost = upgradeCost(t);
-    return '<b>' + esc(def.name) + ' · niveau ' + (t.lvl + 1) + '/3</b>\n' + esc(stats(def, t.lvl)) +
-      (def.guard && t.slot.kind === 'route' ? '\nTient encore ' + (def.guard[t.lvl] - t.wear) + ' passages.' : '') +
-      (cost ? '\n<i>Niveau ' + (t.lvl + 2) + ' :</i> ' + esc(stats(def, t.lvl + 1)) : '') +
-      '<div class="row">' +
-      '<button type="button" class="btn" data-act="up"' + (cost && S.gold >= cost ? '' : ' disabled') + '>' + (cost ? 'Améliorer [A] ' + cost + ' or' : 'Niveau maximal') + '</button>' +
-      '<button type="button" class="btn" data-act="sell">Vendre [X] +' + resale(t) + ' or</button></div>';
+    return '<p><b>' + esc(def.name) + ', niveau ' + (t.lvl + 1) + ' sur 3.</b> ' + esc(stats(def, t.lvl)) + '.' +
+      (def.guard && t.slot.kind === 'route' ? ' Tient encore ' + (def.guard[t.lvl] - t.wear) + ' passages.' : '') + '</p>' +
+      (cost ? '<p><i>Au niveau ' + (t.lvl + 2) + ' : ' + esc(stats(def, t.lvl + 1).toLowerCase()) + '.</i></p>' : '') +
+      '<div class="mentions">' +
+      '<button type="button" class="mention" data-act="up"' + (cost && S.gold >= cost ? '' : ' disabled') + '>' + (cost ? 'Améliorer (A), ' + cost + ' or' : 'Niveau maximal') + '</button>' +
+      '<button type="button" class="mention" data-act="sell">Vendre (X), +' + resale(t) + ' or</button></div>';
   }
   function infoView() {
     var s = U.sel, def, out = [];
     if (s) {
       if (s.kind === 'porte') out.push(gateView(S.fronts[s.front]));
       if (s.tower) out.push(towerView(s.tower));
-      else if (s.kind === 'porte') out.push('<i>Choisis la poix (4) puis clique la porte pour en garnir le châtelet.</i>');
-      return out.join('\n');
+      else if (s.kind === 'porte') out.push('<p><i>Choisis la poix (4) puis clique la porte pour en garnir le châtelet.</i></p>');
+      return out.join('');
     }
     if (U.pick) {
       def = TOWER[U.pick];
-      return '<b>' + esc(def.name) + ' · ' + def.cost[0] + ' or</b>\n' + esc(def.desc) + '\n' + esc(stats(def, 0)) + '\n<i>Se pose ' + esc(where(def)) + ' : clique un emplacement doré. Échap pour annuler.</i>';
+      return '<p><b>' + esc(def.name) + ', ' + def.cost[0] + ' or.</b> ' + esc(def.desc) + ' ' + esc(stats(def, 0)) + '.</p><p><i>Se pose ' + esc(where(def)) + ' : clique un emplacement lavé de jaune. Échap pour annuler.</i></p>';
     }
-    return 'Choisis une défense (1 à 5), puis clique un emplacement. Clique une défense posée pour l\'améliorer ou la vendre, une porte pour la réparer.';
+    return '<p>Prends un jeton (1 à 5), puis clique un emplacement du plan. Clique une défense posée pour l\'améliorer ou la vendre, une porte pour la réparer.</p>';
   }
 
+  // L'état des portes : une ligne par porte, sa jauge tracée à l'encre.
   function gatesView() {
     return S.fronts.map(function (fr) {
-      var aimed = S.next && S.next.fronts.indexOf(fr.i) >= 0;
-      return '<button type="button" class="gate' + (U.sel === fr.slot ? ' on' : '') + (aimed ? ' aimed' : '') + '" data-act="gate" data-i="' + fr.i + '">' + esc(fr.name) +
+      var aimed = S.next && S.next.fronts.indexOf(fr.i) >= 0, low = fr.hp * 3 < fr.max;
+      return '<button type="button" class="porte' + (U.sel === fr.slot ? ' on' : '') + (aimed ? ' aimed' : '') + (fr.down ? ' down' : '') + '" data-act="gate" data-i="' + fr.i + '">' +
+        '<span class="nom">' + esc(fr.name) + '</span><span class="jauge' + (low ? ' bas' : '') + '"><i style="width:' + Math.round(fr.hp / fr.max * 100) + '%"></i></span>' +
         '<span class="hp' + (fr.down ? ' bad' : '') + '">' + (fr.down ? 'tombée' : Math.ceil(fr.hp) + '/' + fr.max) + '</span></button>';
     }).join('');
   }
 
+  function musterView(w, front) {
+    return w.groups.filter(function (g) { return g.front === front; }).map(function (g) {
+      return '<span class="pion">' + signSvg(g.ch) + g.count + ' ' + esc(FOES[g.ch].name.toLowerCase()) + '</span>';
+    }).join('');
+  }
   function waveView() {
     var w = S.next, head;
-    if (!w) return 'C\'est le dernier assaut. Tiens bon.';
+    if (!w) return '<p><b>C\'est le dernier assaut.</b> Tiens bon.</p>';
     if (!S.wave) head = 'Vague 1 : quand tu veux.';
     else if (S.queue.length) head = 'Vague ' + w.n + ' : après celle-ci.';
     else head = 'Vague ' + w.n + ' dans ' + Math.ceil(S.timer) + ' s.';
-    return '<b>' + head + '</b>' + (w.n === WAVES ? '\n<i>Assaut général.</i>' : '') + w.fronts.map(function (g) {
-      return '\n<span class="aim">' + esc(S.fronts[g].name) + '</span>' + (w.fronts.length > 1 && w.n < WAVES ? g === w.main ? ' <i>assaut</i>' : ' <i>diversion</i>' : '') + '\n  ' + esc(muster(w, g));
+    return '<p><b>' + head + '</b>' + (w.n === WAVES ? ' <i>Assaut général.</i>' : '') + '</p>' + w.fronts.map(function (g) {
+      return '<div class="front"><span class="aim">' + esc(S.fronts[g].name) + '</span>' + (w.fronts.length > 1 && w.n < WAVES ? g === w.main ? ' <i>assaut</i>' : ' <i>diversion</i>' : '') + '<div class="troupe">' + musterView(w, g) + '</div></div>';
     }).join('');
   }
 
   function hintView() {
     var s = U.cur, f = U.foe, t;
-    if (f && !f.gone) return f.def.name + ' · ' + Math.ceil(f.hp) + '/' + f.max + ' PV · ' + f.def.tag;
-    if (!s) return ' ';
+    if (f && !f.gone) return f.def.name + ', ' + Math.ceil(f.hp) + ' PV sur ' + f.max + ' : ' + f.def.tag + '.';
+    if (!s) return '';
     t = s.tower;
-    if (t) return (s.kind === 'porte' ? S.fronts[s.front].name + ' · ' : '') + t.def.name + ' niveau ' + (t.lvl + 1) + ' · ' + stats(t.def, t.lvl);
-    if (s.kind === 'porte') return S.fronts[s.front].name + ' · ' + (S.fronts[s.front].down ? 'tombée' : Math.ceil(S.fronts[s.front].hp) + '/' + S.fronts[s.front].max + ' PV') + ' · clique pour la réparer, la herser ou y verser la poix.';
+    if (t) return (s.kind === 'porte' ? S.fronts[s.front].name + ' : ' : '') + t.def.name + ' niveau ' + (t.lvl + 1) + ', ' + stats(t.def, t.lvl).toLowerCase() + '.';
+    if (s.kind === 'porte') return S.fronts[s.front].name + ', ' + (S.fronts[s.front].down ? 'tombée' : Math.ceil(S.fronts[s.front].hp) + ' PV sur ' + S.fronts[s.front].max) + ' : clique pour la réparer, la herser ou y verser la poix.';
     if (U.pick) return KINDS[s.kind] + ' : ' + (allowed(TOWER[U.pick], s) ? TOWER[U.pick].name + ' pour ' + TOWER[U.pick].cost[0] + ' or.' : TOWER[U.pick].name.toLowerCase() + ' impossible ici.');
     return KINDS[s.kind] + ' : emplacement libre.';
   }
 
+  // La dépêche qui clôt le siège.
   function modalView() {
     var won = S.over === 'won', up = S.fronts.filter(function (fr) { return !fr.down; }).length;
-    return '<div class="win" role="dialog" aria-modal="true"><h2>' + (won ? 'Victoire' : 'Défaite') + '</h2><p>' +
+    return '<div class="depeche" role="dialog" aria-modal="true"><h2>' + (won ? 'Victoire' : 'Défaite') + '</h2><p>' +
       (won ? esc(S.name) + ' tient : les ' + WAVES + ' vagues sont repoussées, ' + up + ' porte' + (up > 1 ? 's' : '') + ' sur ' + S.fronts.length + ' encore debout.' : 'La place ' + elide(S.name) + esc(S.name) + ' tombe à la vague ' + S.wave + '.') +
-      ' Assaillants abattus : ' + S.kills + ' · Score : ' + S.score + (S.record ? ' · nouveau record pour cette ville !' : ' · Record : ' + S.best) + '</p><div class="opts">' +
-      '<button type="button" class="btn main" data-act="retry">Revanche</button>' +
-      '<button type="button" class="btn" data-act="random">Autre ville</button>' +
-      '<a class="btn" href="' + esc($('#toPlan').getAttribute('href')) + '">Retour au plan</a></div></div>';
+      '</p><ul class="ecritures"><li>Assaillants abattus<b>' + S.kills + '</b></li><li>Score<b>' + S.score + '</b></li><li>' + (S.record ? 'Nouveau record pour cette ville' : 'Record de cette ville') + '<b>' + S.best + '</b></li></ul>' +
+      '<div class="mentions">' +
+      '<button type="button" class="mention" data-act="retry">Revanche</button>' +
+      '<button type="button" class="mention" data-act="random">Autre ville</button>' +
+      '<a class="mention" href="' + esc($('#toPlan').getAttribute('href')) + '">Retour au plan</a></div></div>';
   }
 
   function render() {
     if (U.sel && !U.sel.tower && U.sel.kind !== 'porte') U.sel = null;
     put('#lives', String(Math.max(0, S.lives)));
     put('#gold', String(S.gold));
-    put('#waveNo', S.wave + '/' + WAVES);
+    put('#waveNo', String(S.wave));
     put('#score', String(S.score));
     put('#best', String(Math.max(S.best, S.score)));
     put('#hint', esc(hintView()));
@@ -870,11 +942,11 @@
     put('#gates', gatesView());
     put('#wave', waveView());
     put('#ctl',
-      '<button type="button" class="btn" data-act="next"' + (canCall() ? '' : ' disabled') + '>Vague suivante [N]</button>' +
-      '<button type="button" class="btn' + (U.paused ? ' on' : '') + '" data-act="pause">' + (U.paused ? 'Reprendre' : 'Pause') + ' [Espace]</button>' +
-      '<span class="speeds">' + [1, 2, 3].map(function (n) {
-        return '<button type="button" class="btn' + (U.speed === n ? ' on' : '') + '" data-act="speed" data-i="' + n + '">×' + n + '</button>';
-      }).join('') + ' [V]</span>');
+      '<button type="button" class="sceau" data-act="next"' + (canCall() ? '' : ' disabled') + '><span>Lancer<br>la vague</span><small>N</small></button>' +
+      '<div class="allure"><button type="button" class="mention' + (U.paused ? ' on' : '') + '" data-act="pause">' + (U.paused ? 'Reprendre' : 'Pause') + ' (Espace)</button>' +
+      '<span class="choix">Allure (V) ' + [1, 2, 3].map(function (n) {
+        return '<button type="button"' + (U.speed === n ? ' class="on"' : '') + ' data-act="speed" data-i="' + n + '" aria-pressed="' + (U.speed === n) + '">×' + n + '</button>';
+      }).join('') + '</span></div>');
     put('#modal', S.over ? modalView() : '');
     $('#modal').hidden = !S.over;
     draw();
@@ -906,11 +978,14 @@
     $('#seed').value = seed;
     $('#size').value = size;
     $('#plan').innerHTML = S.city.svg;
-    $('#city').textContent = elide(S.name) + S.name;
-    $('#caption').textContent = S.name + ', ' + S.city.size + (S.city.people ? ' des ' + S.city.people : '') + ' · ' + S.fronts.length + ' portes à tenir · ' + WAVES + ' vagues';
+    $('#lead').textContent = 'Journal du siège ' + elide(S.name).trim();
+    $('#city').textContent = S.name;
+    $('#caption').textContent = S.city.size.charAt(0).toUpperCase() + S.city.size.slice(1) + (S.city.people ? ' des ' + S.city.people : '') + ', ' + S.fronts.length + ' portes à tenir contre ' + WAVES + ' vagues.';
+    $('#waves').textContent = 'sur ' + WAVES;
     document.title = 'Siège ' + elide(S.name) + S.name;
     $('#toPlan').href = '../plans-de-ville/index.html#' + U.address;
     try { history.replaceState(null, '', '#' + U.address); } catch (e) { location.replace('#' + U.address); }   // Chrome refuse replaceState en file://
+    view.entier();
   }
   function readAddress() {
     var a = window.PlanVille.parse(location.hash.slice(1));
@@ -939,10 +1014,6 @@
   }
   function cycleSpeed() { U.speed = U.speed % 3 + 1; }
 
-  function pointOf(e) {
-    var r = canvas.getBoundingClientRect();
-    return { x: (e.clientX - r.left) / r.width * PX, y: (e.clientY - r.top) / r.height * PX };
-  }
   function nearest(list, p, max) {
     var best = null, top = max, i, d;
     for (i = 0; i < list.length; i++) {
@@ -952,7 +1023,7 @@
     return best;
   }
   function hover(e) {
-    var p = pointOf(e);
+    var p = view.point(e);
     U.cur = nearest(S.slots, p, 20);
     U.foe = U.cur ? null : nearest(S.foes, p, 14);
     canvas.style.cursor = U.cur ? 'pointer' : '';
@@ -1008,7 +1079,7 @@
   document.addEventListener('keydown', function (e) {
     var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key, n = parseInt(k, 10);
     if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'SELECT') return;
-    if ((tag === 'BUTTON' || tag === 'A') && (k === 'Enter' || k === ' ')) return;
+    if ((tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY') && (k === 'Enter' || k === ' ')) return;
     if (S.over) return;
     if (n >= 1 && n <= TOWERS.length) choose(TOWERS[n - 1].id);
     else if (ARROWS[k]) step(ARROWS[k][0], ARROWS[k][1]);
@@ -1045,6 +1116,7 @@
   });
 
   window.Siege.render = render;
+  window.Siege.view = view;
 
   (function () {
     var a = readAddress();

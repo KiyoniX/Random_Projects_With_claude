@@ -8,23 +8,24 @@
 </head>
 <body>
   <header class="top">
-    <div class="intro">
-      <h1>Random <em>Projects</em></h1>
-      <p>Des jeux, des outils et des mondes générés, tous jouables ici sans installation.</p>
+    <div class="sign">
+      <h1>Random Projects</h1>
+      <p>La ludothèque : des jeux, des outils et des mondes générés, à sortir de l'étagère et à ouvrir ici même.</p>
     </div>
-    <form class="seed" id="seedForm">
+    <form class="ticket" id="seedForm">
       <label for="seed">Graine commune</label>
-      <div class="seed-row">
+      <div class="ticket-row">
         <input id="seed" type="text" maxlength="24" autocomplete="off" spellcheck="false">
-        <button type="button" class="btn" id="random">Au hasard</button>
+        <button type="button" id="random">Tirer au sort</button>
       </div>
-      <p class="seed-help">Elle te suit d'un projet à l'autre : même graine, même planète, même ville, même donjon.</p>
+      <p>Les boîtes marquées d'un point doré la reprennent : même graine, même planète, même ville, même donjon.</p>
     </form>
   </header>
 
-  <main id="shelves"></main>
-
-  <footer class="foot">Survole une carte pour voir le projet tourner. Tout fonctionne hors connexion.</footer>
+  <div class="room">
+    <main id="shelves"></main>
+    <aside class="table" id="table" aria-live="polite"></aside>
+  </div>
 
   <script src="portail/app.js"></script>
 </body>

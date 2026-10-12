@@ -13,13 +13,15 @@
   var TOISES = 5;               // toises par unité du plan, comme dans Plans de ville
   var WARN = 0.8;               // part des quais à partir de laquelle un quartier est menacé
   var INK = '#3d2f21', STONE = '#7a5d43', GROUND = '#f1e5c6', ROOF = '#b99d75', RED = '#b3402a', OK = '#4f7a3a';
+  var WASH = '222, 178, 62';   // gomme-gutte : le jaune des ouvrages projetés
+  var GRID = 6;                // la grille de simulation se montre quand une case fait au moins ce nombre de pixels
   // Dégradés : position, rouge, vert, bleu.
   var RAMPS = {
     courant: [0, 226, 236, 226, 0.3, 141, 187, 196, 0.6, 54, 116, 150, 0.85, 30, 58, 104, 1, 60, 30, 76],
     niveau: [0, 200, 224, 220, 0.4, 222, 214, 150, 0.7, 226, 164, 84, 0.8, 204, 96, 60, 1, 150, 36, 34]
   };
   var TOOLS = {
-    pont: 'Clique une traversée en pointillés pour y jeter un pont. Sur un pont bâti, clique le tablier pour y ajouter une pile : des arches plus courtes coûtent moins cher, mais chaque pile freine l\'eau.',
+    pont: 'Clique une traversée lavée de jaune pour y jeter un pont. Sur un pont bâti, clique le tablier pour y ajouter une pile : des arches plus courtes coûtent moins cher, mais chaque pile freine l\'eau.',
     moulin: 'Pose une roue dans l\'eau, le long des quartiers (60 écus). Elle rend selon le cube de la vitesse du courant qui la traverse, et le freine.',
     digue: 'Trace un mur dans l\'eau, le long des quartiers (4 écus la case), pour rabattre le courant vers une roue. Plus tu resserres, plus l\'eau monte.',
     quai: 'Clique la berge d\'un quartier pour rehausser ses quais de moitié (5 écus par longueur de berge). Clique encore pour les défaire.',
@@ -31,7 +33,8 @@
 
   // ---------- État ----------
   var canvas = $('#vue'), ctx = canvas.getContext('2d');
-  var field = layer(NX, NY), trail = layer(PX, PX), fieldImg = field.ctx.createImageData(NX, NY);
+  // trail : le sillage des traceurs, tenu à la taille de l'écran pour rester net quand on regarde de près.
+  var field = layer(NX, NY), trail = layer(8, 8), fieldImg = field.ctx.createImageData(NX, NY);
   var LUT = { courant: ramp(RAMPS.courant), niveau: ramp(RAMPS.niveau) };
   var TX = new Float32Array(NT), TY = new Float32Array(NT), TA = new Float32Array(NT);
   var refSt = new Float64Array(0);
@@ -46,6 +49,25 @@
   };
   var save = { best: {} };
 
+  var view = window.VuePlanche.create({
+    cadre: $('#carte'), feuille: $('#feuille'), px: PX, loupe: $('#loupe'), mention: $('#grossi'),
+    // Les onglets des outils occupent le bord gauche de la table tant qu'elle est assez large.
+    marge: function () {
+      var wide = $('#carte').clientWidth > 620;
+      return { l: wide ? 104 : 8, t: wide ? 10 : 44, r: wide ? 14 : 8, b: wide ? 10 : 84 };
+    },
+    glisse: function (e) { return e.button === 0 && e.shiftKey; },
+    saisie: function () {
+      if (ui.drag && ui.drag.kind !== 'trace' && !ui.drag.moved) ui.undo.pop();
+      ui.drag = null;
+    },
+    change: wipe
+  });
+
+  function wipe() {
+    trail.ctx.setTransform(1, 0, 0, 1, 0, 0);
+    trail.ctx.clearRect(0, 0, trail.cv.width, trail.cv.height);
+  }
   function layer(w, h) {
     var cv = document.createElement('canvas');
     cv.width = w; cv.height = h;
@@ -100,17 +122,19 @@
     refSt = new Float64Array(river.nSt);
     for (i = 0; i < fieldImg.data.length; i++) fieldImg.data[i] = 0;
     for (i = 0; i < NT; i++) spawn(i, true);
-    trail.ctx.clearRect(0, 0, PX, PX);
+    wipe();
     ui.works = []; ui.undo = []; ui.redo = []; ui.hover = null; ui.drag = null; ui.norm = null; ui.crue = null; ui.stars = 0;
 
     $('#graine').value = seed; $('#taille').value = size;
-    $('#ville').textContent = ' · ' + plan.name;
-    document.title = plan.name + ' · Rivières et moulins';
-    $('#legende').textContent = plan.name + ', ' + plan.size + ' sur ' + river.name + ' · ' + plural(river.crossings.length, 'traversée', 'traversées') + ' à relier · ' +
-      plural(river.wards.length, 'quartier riverain', 'quartiers riverains') + (river.isle ? ' · une île' : '');
+    $('#ville').textContent = plan.name;
+    $('#cours').textContent = 'sur ' + river.name;
+    document.title = plan.name + ' sur ' + river.name + ', rivières et moulins';
+    $('#legende').textContent = plan.size.charAt(0).toUpperCase() + plan.size.slice(1) + (plan.people ? ' des ' + plan.people : '') + ', ' + plural(river.crossings.length, 'traversée', 'traversées') + ' à relier, ' +
+      plural(river.wards.length, 'quartier riverain', 'quartiers riverains') + (river.isle ? ', une île' : '') + '.';
     $('#versPlan').href = '../plans-de-ville/index.html#' + address;
     $('#attente').hidden = false;
     try { history.replaceState(null, '', '#' + address); } catch (e) { location.replace('#' + address); }   // Chrome refuse replaceState en file://
+    view.entier();
     hud();
   }
 
@@ -124,8 +148,8 @@
     var i, top = st.stars[2] * 1.3;
     $('#attente').hidden = true;
     for (i = 0; i < 3; i++) $('#seuil' + i).style.left = (st.stars[i] / top * 100) + '%';
-    $('#seuils').textContent = '★ ' + fmt(st.stars[0] * S.UNIT) + '   ★★ ' + fmt(st.stars[1] * S.UNIT) + '   ★★★ ' + fmt(st.stars[2] * S.UNIT) + ' et la crue tenue';
-    $('#repere').style.left = (100 / 1.3) + '%';
+    $('#seuils').textContent = 'Étoiles à ' + fmt(st.stars[0] * S.UNIT) + ', ' + fmt(st.stars[1] * S.UNIT) + ' et ' + fmt(st.stars[2] * S.UNIT) + ' sacs ; la troisième, crue tenue.';
+    $('#repere').style.bottom = (100 / 1.3) + '%';
     for (i = 0; i < NT; i++) spawn(i, true);
     hud();
   }
@@ -344,12 +368,14 @@
 
   function moveTracers(n) {
     var g = trail.ctx, f = S.fields(), ux = f.ux, uy = f.uy, solid = f.solid, sub = Math.ceil(n / 8), h = n / sub, i, k, c, x, y, nx, ny;
+    g.setTransform(1, 0, 0, 1, 0, 0);
     g.globalCompositeOperation = 'destination-out';
     g.fillStyle = 'rgba(0,0,0,0.11)';
-    g.fillRect(0, 0, PX, PX);
+    g.fillRect(0, 0, trail.cv.width, trail.cv.height);
     g.globalCompositeOperation = 'source-over';
+    view.repere(g);
     g.strokeStyle = ui.view === 'plan' ? 'rgba(52,96,116,0.4)' : 'rgba(255,255,255,0.6)';
-    g.lineWidth = 1.1;
+    g.lineWidth = 1.1 / Math.pow(view.zoom, 0.6);
     g.beginPath();
     for (i = 0; i < NT; i++) {
       x = TX[i]; y = TY[i]; nx = x; ny = y;
@@ -459,8 +485,8 @@
       hot = ui.hover && ui.hover.kind === 'pont' && ui.hover.cr === j;
       if (b < 0) {
         deck(f, 5.5);
-        ctx.fillStyle = hot && ui.tool === 'pont' ? 'rgba(179,64,42,0.32)' : 'rgba(179,64,42,0.14)'; ctx.fill();
-        ctx.setLineDash([6, 4]); ctx.lineWidth = 1.8; ctx.strokeStyle = RED; ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(' + WASH + (hot && ui.tool === 'pont' ? ',0.85)' : ',0.5)'); ctx.fill();
+        ctx.setLineDash([6, 4]); ctx.lineWidth = 1.5; ctx.strokeStyle = INK; ctx.stroke(); ctx.setLineDash([]);
         continue;
       }
       o = ui.works[b];
@@ -517,8 +543,33 @@
       if (!ui.paused) ui.spin[k] = (ui.spin[k] + m.u[k] * 0.9) % 1;
       wheel(o.x, o.y, ui.spin[k], 'rgba(241,229,198,0.82)', INK);
       ctx.fillStyle = ROOF; ctx.strokeStyle = INK; ctx.lineWidth = ui.hover && ui.hover.kind === 'moulin' && ui.hover.i === m.index[k] ? 2.2 : 1;
-      ctx.beginPath(); ctx.rect(o.x * CELL - 3.4, o.y * CELL - 3.4, 6.8, 6.8); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.rect(o.x * CELL - 3.4, o.y * CELL - 3.4, 6.8, 6.8); ctx.fill(); ctx.stroke();
+        ctx.lineWidth = 0.6; ctx.beginPath(); ctx.moveTo(o.x * CELL - 3.4, o.y * CELL - 3.4); ctx.lineTo(o.x * CELL + 3.4, o.y * CELL + 3.4); ctx.moveTo(o.x * CELL + 3.4, o.y * CELL - 3.4); ctx.lineTo(o.x * CELL - 3.4, o.y * CELL + 3.4); ctx.stroke();
     }
+  }
+
+  // De près, la grille de la simulation : les cases que ferment les ouvrages, celles que freinent les roues.
+  function drawGrid() {
+    var f = S.fields(), d = view.dpr || 1, x0 = Math.max(1, Math.floor(-view.x / view.k / CELL)), y0 = Math.max(1, Math.floor(-view.y / view.k / CELL));
+    var x1 = Math.min(NX - 2, Math.ceil((canvas.width / d - view.x) / view.k / CELL)), y1 = Math.min(NY - 2, Math.ceil((canvas.height / d - view.y) / view.k / CELL)), x, y, c;
+    for (y = y0; y <= y1; y++) {
+      for (x = x0; x <= x1; x++) {
+        c = y * NX + x;
+        if (!river.bed[c] || !f.wk[c] && !f.drag[c]) continue;
+        ctx.fillStyle = f.wk[c] ? 'rgba(61,47,33,0.3)' : 'rgba(47,86,115,0.25)';
+        ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+      }
+    }
+    ctx.beginPath();
+    for (x = x0; x <= x1 + 1; x++) { ctx.moveTo(x * CELL, y0 * CELL); ctx.lineTo(x * CELL, (y1 + 1) * CELL); }
+    for (y = y0; y <= y1 + 1; y++) { ctx.moveTo(x0 * CELL, y * CELL); ctx.lineTo((x1 + 1) * CELL, y * CELL); }
+    ctx.lineWidth = 1 / view.k; ctx.strokeStyle = 'rgba(31,65,89,0.2)'; ctx.stroke();
+  }
+  // Les cases exactes qu'occuperait l'ouvrage sous le pointeur.
+  function footprint(each, ok) {
+    if (CELL * view.k < GRID) return;
+    ctx.fillStyle = ok ? 'rgba(79,122,58,0.45)' : 'rgba(179,64,42,0.4)';
+    each(function (c) { ctx.fillRect((c % NX) * CELL, ((c / NX) | 0) * CELL, CELL, CELL); });
   }
 
   // Ce que ferait un clic, dessiné sous le pointeur.
@@ -527,15 +578,18 @@
     if (!st.ready || ui.hx < 0) return;
     if (d && d.kind === 'trace') {
       o = { t: 'digue', x0: d.x0, y0: d.y0, x1: d.x1, y1: d.y1 }; ok = S.canDike(o);
+      footprint(function (fn) { S.dikeCells(o, fn); }, ok);
       ctx.lineCap = 'round'; ctx.lineWidth = S.DIKE_R * 2 * CELL; ctx.strokeStyle = ok ? 'rgba(79,122,58,0.85)' : 'rgba(179,64,42,0.8)';
       ctx.beginPath(); ctx.moveTo(d.x0 * CELL, d.y0 * CELL); ctx.lineTo(d.x1 * CELL, d.y1 * CELL); ctx.stroke(); ctx.lineCap = 'butt';
     } else if (d) return;
     else if (ui.tool === 'moulin') {
       ok = S.canMill(ui.hx, ui.hy, ui.works, -1);
+      footprint(function (fn) { S.millCells(ui.hx, ui.hy, function (c) { if (river.zone[c]) fn(c); }); }, ok);
       wheel(ui.hx, ui.hy, 0, ok ? 'rgba(79,122,58,0.25)' : 'rgba(179,64,42,0.25)', ok ? OK : RED);
     } else if (ui.tool === 'pont' && h && h.kind === 'pont' && h.i >= 0) {
       o = ui.works[h.i]; f = { t: 'pont', cr: o.cr, piles: [h.t] };
       ok = o.piles.length < MAX_PILES && pileFits(o, h.t, -1);
+      footprint(function (fn) { S.pileCells(f, 0, function (c) { if (river.bed[c]) fn(c); }); }, ok);
       pileShape(f, 0, 0.5);
       ctx.lineWidth = 1.6; ctx.strokeStyle = ok ? OK : RED; ctx.stroke();
     } else if (ui.tool === 'quai' && h && h.kind === 'berge') {
@@ -548,8 +602,12 @@
   }
 
   function draw() {
-    ctx.clearRect(0, 0, PX, PX);
+    var near = CELL * view.k >= GRID;
+    if (view.ajuste(canvas) || trail.cv.width !== canvas.width || trail.cv.height !== canvas.height) { trail.cv.width = canvas.width; trail.cv.height = canvas.height; }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     if (!river) return;
+    view.repere(ctx);
     ctx.save();
     ctx.beginPath(); ctx.rect(19.5, 19.5, PX - 39, PX - 39); ctx.clip();   // le cadre du plan reste intact
     drawWards(false);
@@ -557,10 +615,14 @@
     ctx.clip(clip, 'evenodd');
     if (ui.view !== 'plan' && (st.ready || ui.view === 'courant')) {
       paintField();
-      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingEnabled = !near;   // de près, chaque case garde sa teinte
       ctx.drawImage(field.cv, 0, 0, PX, PX);
     }
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(trail.cv, 0, 0);
+    ctx.restore();
+    if (near && st.ready) drawGrid();
     ctx.restore();
     drawQuays();
     drawDikes();
@@ -614,6 +676,7 @@
       $('#etape').textContent = ['On mesure le fleuve nu.', 'On mesure le fleuve nu en crue.', 'On éprouve des ponts à une pile pour fixer la hauteur des quais.'][st.phase] || '';
       $('#avance').style.width = Math.min(100, (st.phase + Math.min(1, st.since / 7000)) / 3 * 100) + '%';
       $('#etat').textContent = 'Étalonnage…'; $('#etat').className = 'etat';
+      $('#info').textContent = '';
       $('#etoiles').textContent = starText(0);
       setBut($('#butPonts'), '', plural(river.crossings.length, 'traversée', 'traversées') + ' à relier par un pont');
       setBut($('#butCrue'), '', 'Aucun quartier inondé');
@@ -635,13 +698,14 @@
     $('#prod').textContent = fmt(prod * S.UNIT);
     $('#prodBarre').style.width = Math.min(100, prod / (st.stars[2] * 1.3) * 100) + '%';
     $('#niveau').textContent = Math.round(st.top * 100);
-    $('#niveauBarre').style.width = Math.min(100, st.top / 1.3 * 100) + '%';
-    $('#niveauBarre').parentNode.className = 'barre niveau' + (st.top > 1 ? ' haut' : '');
+    $('#niveauBarre').style.height = Math.min(100, st.top / 1.3 * 100) + '%';
+    $('#niveauBarre').parentNode.className = 'limni' + (st.top > 1 ? ' haut' : '');
     $('#menaces').innerHTML = list.length ? (drowned ? 'Inondé ou menacé : ' : 'Menacé : ') + list.join(', ') : 'Aucun quartier menacé.';
     $('#budget').textContent = left;
     $('#budgetSur').textContent = 'écus sur ' + st.budget;
+    $('#budget').className = left < 0 ? 'non' : '';
     $('#budgetBarre').style.width = Math.max(0, Math.min(100, left / st.budget * 100)) + '%';
-    $('#budgetBarre').parentNode.className = 'barre budget' + (left < 0 ? ' vide' : '');
+    $('#budgetBarre').parentNode.className = 'regle budget' + (left < 0 ? ' vide' : '');
 
     setBut($('#butPonts'), n === river.crossings.length ? 'ok' : '', n + ' / ' + plural(river.crossings.length, 'traversée reliée', 'traversées reliées'));
     setBut($('#butCrue'), drowned ? 'non' : 'ok', drowned ? plural(drowned, 'quartier inondé', 'quartiers inondés') : 'Aucun quartier inondé');
@@ -659,7 +723,7 @@
     $('#crue').className = 'verdict' + (st.regime === 1 && s || st.regime === 0 && ui.crue && ui.crue.key === k ? (drowned || ui.crue && ui.crue.key === k && !ui.crue.ok ? ' non' : ' ok') : '');
 
     need = st.stars[Math.min(2, ui.stars)];
-    if (n < river.crossings.length) advice = 'Jette un pont sur chaque traversée en pointillés rouges.';
+    if (n < river.crossings.length) advice = 'Jette un pont sur chaque traversée lavée de jaune.';
     else if (left < 0) advice = 'Le budget est dépassé : allège le chantier.';
     else if (drowned) advice = 'Retire un obstacle en aval des quartiers inondés, ou rehausse leurs quais.';
     else if (st.regime === 1) advice = s ? 'Reviens au débit ordinaire pour mesurer la farine.' : '';
@@ -674,9 +738,9 @@
 
   // ---------- Commandes ----------
   function locate(e) {
-    var r = canvas.getBoundingClientRect();
-    ui.hx = (e.clientX - r.left) / r.width * NX;
-    ui.hy = (e.clientY - r.top) / r.height * NY;
+    var p = view.point(e);
+    ui.hx = p.x / CELL;
+    ui.hy = p.y / CELL;
   }
   canvas.addEventListener('pointerdown', function (e) {
     if (e.button === 1 || !st.ready) return;
@@ -700,7 +764,7 @@
 
   function setView(v) {
     ui.view = v;
-    trail.ctx.clearRect(0, 0, PX, PX);
+    wipe();
   }
   function toggleCrue() {
     if (st.ready) S.setRegime(st.regime ? 0 : 1);
@@ -730,6 +794,7 @@
     else if ((e.ctrlKey || e.metaKey) && k === 'y') redo();
     else if (e.ctrlKey || e.metaKey || e.altKey) return;
     else if (tools[k]) ui.tool = tools[k];
+    else if (k === ' ' && e.target && e.target.tagName === 'SUMMARY') return;
     else if (k === ' ') ui.paused = !ui.paused;
     else if (k === 'c') toggleCrue();
     else if (k === '1') setView('plan');
@@ -761,7 +826,7 @@
 
   // Prise pour les essais et pour la console : avance la simulation sans attendre les images.
   window.RIVIERE = {
-    ui: ui, ville: function () { return city; }, fleuve: function () { return river; },
+    ui: ui, vue: view, ville: function () { return city; }, fleuve: function () { return river; },
     poser: function (list) { ui.works = list; apply(); },
     avance: function (n) {
       var i;
