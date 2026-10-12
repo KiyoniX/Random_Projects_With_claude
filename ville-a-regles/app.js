@@ -22,9 +22,9 @@
   var LEGENDS = {
     ville: [['#d9907a', 'Logements'], ['#4a86c8', 'Commerces', 'h'], ['#9b8fb5', 'Industrie', 'b2'], ['#58b0a8', 'Bureaux', 'sq'], ['#93c77f', 'Parcs', 'dots'], ['#ffffff', 'École', 'bar'], ['#ffffff', 'Clinique', 'x']],
     trafic: [['#82aad7', 'Fluide', 'l1'], ['#f7c800', 'Chargé', 'l2'], ['#c4161c', 'Bouchon', 'l3']],
-    classes: [[CLS[0], 'Ménages modestes'], [CLS[1], 'Ménages moyens', 'b1'], [CLS[2], 'Ménages aisés', 'b2']],
+    classes: [[CLS[0], 'Ménages modestes'], [CLS[1], 'Ménages moyens', 'b1'], [CLS[2], 'Ménages aisés', 'b2'], [DULL, 'Sans ménages']],
     valeur: [['#e8ecf4', 'Foncier bas'], ['#7aa0d0', 'Moyen'], ['#10346e', 'Élevé']],
-    bonheur: [['#c4161c', 'Malheureux'], ['#f0ece0', 'Mitigés'], ['#0b4ea2', 'Heureux']],
+    bonheur: [['#c4161c', 'Malheureux'], ['#f0ece0', 'Mitigés'], ['#0b4ea2', 'Heureux'], [DULL, 'Sans ménages']],
     pollution: [['rgba(150,90,40,.8)', 'Air et bruit dégradés']]
   };
   function ramp(stops, t) {
@@ -281,18 +281,26 @@
     }
     box.innerHTML = html;
   }
+  // Amène un panneau dans la partie visible du mât, quand c'est le mât qui défile
+  function reveal(el) {
+    var mat = $('.mat'), m = mat.getBoundingClientRect(), r = el.getBoundingClientRect();
+    if (mat.scrollHeight <= mat.clientHeight + 1) return;
+    if (r.bottom > m.bottom - 8) mat.scrollTop += Math.min(r.top - m.top - 8, r.bottom - m.bottom + 8);
+    else if (r.top < m.top + 8) mat.scrollTop += r.top - m.top - 8;
+  }
   function legend() { $('#legend').innerHTML = LEGENDS[state.view].map(function (l) { return '<li>' + sw(l[0], l[2]) + l[1] + '</li>'; }).join(''); }
 
   // ---------- Boucle ----------
-  var last = 0, tick = 0;
+  var last = 0, tick = 0, due = 0;
   function frame(now) {
     requestAnimationFrame(frame);
     var S = state.S, dt = Math.min(0.1, (now - last) / 1000);
     last = now;
     if (!S || state.booting) return;
     if (state.speed) {
-      var step = state.speed <= 4 ? 0.05 : 0.1, n = Math.min(80, Math.max(1, Math.round(dt * state.speed / step)));
-      for (var i = 0; i < n; i++) S.step(step);
+      // Le temps dû s'accumule d'une image à l'autre : ×1 reste quatre fois plus lent que ×4, quel que soit l'écran
+      var step = state.speed <= 4 ? 0.05 : 0.1;
+      for (due = Math.min(due + dt * state.speed, 80 * step); due >= step; due -= step) S.step(step);
     }
     draw();
     if (now - tick > 350) { tick = now; panel(); }
@@ -337,22 +345,60 @@
   }
 
   // ---------- Événements ----------
-  var drag = null;
+  var drag = null, doigts = {}, pince = null;
   var toWorld = function (ev) {
     var r = canvas.getBoundingClientRect();
     return { x: state.cam.x + (ev.clientX - r.left - r.width / 2) / state.cam.z, y: state.cam.y + (ev.clientY - r.top - r.height / 2) / state.cam.z };
   };
   // Le clic milieu déplace le plan au lieu de lancer le défilement automatique
   canvas.addEventListener('mousedown', function (ev) { if (ev.button === 1) ev.preventDefault(); });
-  canvas.addEventListener('pointerdown', function (ev) { drag = { x: ev.clientX, y: ev.clientY, moved: ev.button !== 0 }; canvas.setPointerCapture(ev.pointerId); canvas.classList.add('drag'); });
+  // Grossit de f autour d'un point de l'écran, qui reste sous le curseur ou entre les doigts
+  var zoomAt = function (pt, f) {
+    var before = toWorld(pt), cam = state.cam;
+    cam.z = clamp(cam.z * f, zmin(), 3);
+    var after = toWorld(pt);
+    cam.x += before.x - after.x; cam.y += before.y - after.y;
+  };
+  var deux = function () {
+    var k = Object.keys(doigts), a = doigts[k[0]], b = doigts[k[1]];
+    return { clientX: (a.clientX + b.clientX) / 2, clientY: (a.clientY + b.clientY) / 2, d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1 };
+  };
+  canvas.addEventListener('pointerdown', function (ev) {
+    if (!drag) doigts = {};
+    doigts[ev.pointerId] = { clientX: ev.clientX, clientY: ev.clientY };
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* pointeur déjà relâché */ }
+    // Un deuxième doigt : le geste devient un pincement, et ne désignera rien
+    if (drag && Object.keys(doigts).length > 1) { drag.moved = true; pince = Object.keys(doigts).length === 2 ? deux() : null; return; }
+    drag = { x: ev.clientX, y: ev.clientY, moved: ev.button !== 0 }; canvas.classList.add('drag');
+  });
   canvas.addEventListener('pointermove', function (ev) {
-    if (!drag) return;
+    if (!drag || !doigts[ev.pointerId]) return;
+    doigts[ev.pointerId] = { clientX: ev.clientX, clientY: ev.clientY };
+    if (Object.keys(doigts).length > 1) {
+      if (!pince) return;
+      // Le milieu des deux doigts déplace le plan, leur écartement le grossit
+      var g = deux();
+      state.cam.x -= (g.clientX - pince.clientX) / state.cam.z; state.cam.y -= (g.clientY - pince.clientY) / state.cam.z;
+      zoomAt(g, g.d / pince.d);
+      state.cam.x = clamp(state.cam.x, 0, W); state.cam.y = clamp(state.cam.y, 0, H);
+      pince = g;
+      return;
+    }
     var dx = ev.clientX - drag.x, dy = ev.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
     state.cam.x = clamp(state.cam.x - dx / state.cam.z, 0, W); state.cam.y = clamp(state.cam.y - dy / state.cam.z, 0, H);
     drag.x = ev.clientX; drag.y = ev.clientY;
   });
+  // Un doigt se lève : s'il en reste, le geste continue avec eux
+  var lift = function (ev) {
+    delete doigts[ev.pointerId];
+    var k = Object.keys(doigts);
+    pince = k.length === 2 ? deux() : null;
+    if (k.length === 1 && drag) { drag.x = doigts[k[0]].clientX; drag.y = doigts[k[0]].clientY; }
+    return k.length > 0;
+  };
   canvas.addEventListener('pointerup', function (ev) {
+    if (lift(ev)) return;
     canvas.classList.remove('drag');
     if (drag && !drag.moved && state.S) {
       var p = toWorld(ev), city = state.S.city, best = null, bd = 18;
@@ -365,16 +411,14 @@
         if (!be) $('#inspect').innerHTML = HINT;
       }
       inspect();
+      if (state.pick) reveal($('.loupe'));
     }
     drag = null;
   });
-  canvas.addEventListener('pointercancel', function () { drag = null; canvas.classList.remove('drag'); });
+  canvas.addEventListener('pointercancel', function (ev) { if (!lift(ev)) { drag = null; canvas.classList.remove('drag'); } });
   canvas.addEventListener('wheel', function (ev) {
     ev.preventDefault();
-    var before = toWorld(ev), cam = state.cam;
-    cam.z = clamp(cam.z * (ev.deltaY < 0 ? 1.15 : 1 / 1.15), zmin(), 3);
-    var after = toWorld(ev);
-    cam.x += before.x - after.x; cam.y += before.y - after.y;
+    zoomAt(ev, ev.deltaY < 0 ? 1.15 : 1 / 1.15);
   }, { passive: false });
   var mark = function (box, attr, value) { box.querySelectorAll('button').forEach(function (b) { var on = b.dataset[attr] === String(value); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); }); };
   $('#speeds').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (b) { state.speed = +b.dataset.speed; mark(this, 'speed', state.speed); } });
@@ -390,6 +434,8 @@
     if (ev.key === '0' || ev.key === 'à' || ev.key === 'Home') { ev.preventDefault(); fit(); }
   });
   window.addEventListener('resize', resize);
+  // Le bandeau peut passer sur deux lignes sans que la fenêtre change : la toile suit son cadre
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(canvas);
   // Une autre graine arrive par l'adresse : on refonde
   window.addEventListener('hashchange', function () { var v = fromHash(); if (v && !state.booting && state.S && v !== state.S.city.seed) found(v); });
 

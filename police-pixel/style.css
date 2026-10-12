@@ -79,7 +79,7 @@ svg .plein { fill: currentColor; stroke: none; }
 .options { display: flex; align-items: center; gap: 16px; padding: 0 10px; height: 30px; flex: none; background: var(--plomb-2); border-bottom: 1px solid var(--encre); white-space: nowrap; overflow: hidden; }
 .options strong { min-width: 96px; font-weight: 400; color: var(--texte); }
 .options label { display: flex; align-items: center; gap: 6px; color: var(--sourd); }
-.astuce { flex: 1; min-width: 0; color: var(--eteint); overflow: hidden; text-overflow: ellipsis; }
+.astuce { flex: 1; min-width: 0; color: var(--sourd); overflow: hidden; text-overflow: ellipsis; }
 .zoom { display: flex; align-items: center; gap: 4px; }
 .zoom output { min-width: 32px; text-align: center; }
 
@@ -199,7 +199,15 @@ svg .plein { fill: currentColor; stroke: none; }
 .aide i { font-style: normal; color: var(--texte); }
 
 @media (max-width: 1100px) {
-  .casse { width: 276px; }
+  .casse { width: 290px; }
+  /* Les rangées de commandes passent à la ligne plutôt que de rogner leur dernier bouton. */
+  .casse-tete { height: auto; min-height: 30px; flex-wrap: wrap; padding: 4px 10px; gap: 4px 10px; }
+  .casse-tete h2 { flex: 1; }
+  #casseCompte { order: 5; flex: none; width: 100%; }
+  .fiche, .epreuve-tete { height: auto; flex-wrap: wrap; }
+  .fiche { min-height: 36px; padding-top: 4px; padding-bottom: 4px; row-gap: 4px; }
+  .fiche-comp { flex-wrap: wrap; }
+  .epreuve-cmd { flex-wrap: wrap; row-gap: 4px; padding: 5px 10px; overflow: visible; }
   .copie { width: 200px; }
   .blancs { grid-template-columns: 1fr; }
 }
@@ -219,6 +227,11 @@ svg .plein { fill: currentColor; stroke: none; }
   .casse { width: 100%; border-left: 0; }
   .casse-corps { overflow: visible; }
   .barre { height: auto; flex-wrap: wrap; }
+  .barre h1 { height: 34px; line-height: 34px; padding-top: 0; }
+  .menus { order: 3; flex: none; width: 100%; flex-wrap: wrap; position: relative; }
+  .menu { position: static; }
+  .menu-liste { min-width: 0; width: min(300px, 100%); }
+  .astuce { order: 9; flex: none; width: 100%; }
   .menu-titre { height: 34px; }
   .enseigne { max-width: 100%; height: 34px; border-left: 0; }
   .fen .deux, .aide { flex-direction: column; }

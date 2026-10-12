@@ -25,6 +25,7 @@ input[type=number] { width: 4.6em; }
 input[type=range] { accent-color: var(--muted); }
 input[type=checkbox], input[type=radio] { accent-color: var(--accent); vertical-align: -2px; }
 kbd { font: inherit; font-size: .92em; color: var(--muted); }
+* { scrollbar-color: var(--dim) transparent; }
 
 .btn { padding: .22rem .6rem; border: 1px solid var(--line); border-radius: 3px; color: var(--text); background: var(--panel2); white-space: nowrap; }
 .btn:hover:not(:disabled) { border-color: var(--muted); }
@@ -54,7 +55,7 @@ kbd { font: inherit; font-size: .92em; color: var(--muted); }
 .options label { display: flex; align-items: center; gap: .35rem; color: var(--muted); }
 .options input[type=range] { width: 110px; }
 .options output { min-width: 1.6em; color: var(--text); font-variant-numeric: tabular-nums; }
-.astuce { flex: 1; min-width: 0; color: var(--dim); overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.astuce { flex: 1; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; text-align: right; }
 
 /* ---------- Plan de travail ---------- */
 .plan { display: flex; flex: 1; min-height: 0; }
@@ -148,6 +149,20 @@ svg .plein { fill: currentColor; stroke: none; }
   #sv { height: 56px; }
   .panneau { gap: 4px; padding-top: 4px; padding-bottom: 6px; }
   .images { min-height: 0; padding-bottom: 5px; }
+}
+
+/* Fenêtre étroite : la barre et les options passent à la ligne au lieu de sortir de l'écran. */
+@media (max-width: 700px) {
+  .barre { flex-wrap: wrap; height: auto; gap: 0 .9rem; }
+  .barre h1 { line-height: 34px; }
+  .rapides { margin-left: auto; }
+  .menus { order: 3; flex: none; width: 100%; flex-wrap: wrap; position: relative; }
+  .menu { position: static; }
+  .menu-titre { height: 28px; }
+  .menu-liste { min-width: 0; width: min(17rem, 100%); }
+  .options { flex-wrap: wrap; height: auto; min-height: 32px; padding: 4px .7rem; gap: .25rem 1.1rem; }
+  .options strong { min-width: 0; }
+  .astuce { flex: none; width: 100%; text-align: left; }
 }
 
 /* ---------- Barre d'état ---------- */

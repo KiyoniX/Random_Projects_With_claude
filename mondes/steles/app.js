@@ -346,7 +346,12 @@
   $('#steles').addEventListener('click', function (e) {
     var w = e.target.closest('.word'), p = e.target.closest('.propose');
     if (w) { state.pick = { s: +w.dataset.s, i: +w.dataset.i }; state.sign = null; state.note = null; refresh(); }
-    else if (p) { propose(state.game.steles[+p.dataset.s]); refresh(); }
+    else if (p) {
+      var avant = $('#win').hidden;
+      propose(state.game.steles[+p.dataset.s]); refresh();
+      // La dernière stèle traduite ramène à l'annonce, qui s'affiche en tête du cahier
+      if (avant && !$('#win').hidden) Guide.aller('win');
+    }
   });
   $('#panel').addEventListener('click', function (e) {
     var b = e.target.closest('button'), s = state.save;

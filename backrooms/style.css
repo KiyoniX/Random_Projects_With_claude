@@ -108,6 +108,14 @@ button, input { font: inherit; }
 #start:active { transform: translateY(2px); box-shadow: 0 0 0 1px #8b8d87, 0 1px 0 #8b8d87; }
 .hint { margin: .7rem 2rem 0; font-size: .82rem; color: #4b4e50; }
 
+/* Fenêtre moyenne : la plaque gravée ne passe pas sur le plan, et l'affiche levée ne laisse pas dépasser les plaques qu'elle recouvre */
+@media (max-width: 78rem) {
+  .say { max-width: calc(100vw - 460px); }
+  .veil:not([hidden]) ~ .hud { display: none; }
+}
+@media (max-width: 56rem) {
+  .say { left: 16px; right: 230px; width: fit-content; max-width: none; margin: 0 auto; transform: none; }
+}
 @media (max-width: 34rem) {
   .palier { top: 12px; left: 8px; min-width: 0; padding: .25rem .6rem 0; }
   #level { font-size: 1.25rem; }
@@ -122,7 +130,7 @@ button, input { font: inherit; }
   .plan figcaption { font-size: .62rem; white-space: nowrap; }
   #map { width: 124px; height: 124px; image-rendering: auto; }
   .plan p { font-size: .64rem; }
-  .say { bottom: 232px; }
+  .say { bottom: 232px; left: 50%; right: auto; width: max-content; max-width: 92vw; margin: 0; transform: translateX(-50%); }
   .veil { padding: 16px 6px 8px; place-items: start center; }
   .bandeau { font-size: .86rem; padding-left: 1.5rem; padding-right: 1.5rem; }
   .affiche h1, .lead, #rules, .pied, .hint { margin-left: 1rem; margin-right: 1rem; }

@@ -5,7 +5,9 @@
   var $ = function (s) { return document.querySelector(s); };
   var rnd = function (n) { return Math.floor(Math.random() * n); };
   var pick = function (a) { return a[rnd(a.length)]; };
-  var euro = function (n) { return (n < 0 ? '−' : '') + Math.abs(n) + ' €'; };
+  var euro = function (n) { return (n < 0 ? '−' : '') + Math.abs(n) + '\u00a0€'; };
+  // À l'affichage seulement : pas de deux-points ni de guillemet fermant rejeté seul en début de ligne
+  var typo = function (s) { return s.replace(/ ([:;?!»])/g, '\u00a0$1'); };
 
   var DAYS = 7, DAY_LEN = 210, PRIME = 10, AMENDE = 10, SAVE = 'bureau-des-reclamations';
   var WEEK = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
@@ -216,7 +218,7 @@
   }
   function drawRules() {
     $('#rules').innerHTML = active(G.day).map(function (r) {
-      var tag = tagOf(r, G.day), body = '<b>Art. ' + r.art + '</b> ' + textOf(r, G.day) + (tag ? ' <em>' + tag + '</em>' : '');
+      var tag = tagOf(r, G.day), body = '<b>Art. ' + r.art + '</b> ' + typo(textOf(r, G.day)) + (tag ? ' <em>' + tag + '</em>' : '');
       if (!r.ok) return '<li><p>' + body + '</p></li>';
       return '<li><button type="button" data-art="' + r.art + '" aria-pressed="' + (G.motif === r) + '"' + (G.motif === r ? ' class="sel"' : '') + '>' + body + '</button></li>';
     }).join('');
@@ -241,9 +243,9 @@
     $('#clock').classList.toggle('late', G.closing);
   }
   function say(text) { $('#say').textContent = text; }
-  function note(text, kind) { $('#slip').textContent = text; $('#slip').className = 'slip ' + kind; }
+  function note(text, kind) { $('#slip').textContent = typo(text); $('#slip').className = 'slip ' + kind; }
   function card(html, label, fn, alt, altFn) {
-    $('#card').innerHTML = html + '<div class="actions"><button type="button" id="go">' + label + '</button>' +
+    $('#card').innerHTML = typo(html) + '<div class="actions"><button type="button" id="go">' + label + '</button>' +
       (alt ? '<button type="button" class="alt" id="alt">' + alt + '</button>' : '') + '</div>';
     $('#veil').hidden = false;
     $('#go').onclick = fn;

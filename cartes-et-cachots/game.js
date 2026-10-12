@@ -13,7 +13,7 @@
   var MX = 4, MY = 3;       // coin de la carte du donjon dans l'écran
   var BOX = 10, CARD_H = 10; // largeur intérieure et hauteur d'une carte, en cases
   var PER_ROW = 5, PER_PAGE = 10;
-  var LINE = 1.2, STRETCH = 1.25;   // hauteur de rangée, étirement maximal des caractères
+  var LINE = 1.2, STRETCH = 1.25, SQUEEZE = 0.75;   // hauteur de rangée, étirement et resserrement extrêmes des caractères
   var Z_MIN = 0.5, Z_MAX = 4, Z_STEP = 1.15;
   var NOIR = 0, ROUGE = 1, VERT = 2, JAUNE = 3, BLEU = 4, MAGENTA = 5, CYAN = 6, BLANC = 7;
 
@@ -849,6 +849,7 @@
   }
 
   function render() {
+    var mode;
     clear();
     header();
     if (page) guidePage();
@@ -858,6 +859,10 @@
     ecran.innerHTML = flush();
     $('#poste').dataset.mode = page || modal ? 'page' : C ? 'combat' : 'donjon';
     $('#annonce').textContent = modal ? modal.title + '. ' + modal.text : S.log[S.log.length - 1] || '';
+    // Vue agrandie : une page qui s'ouvre se lit depuis son coin haut gauche, là où est son titre.
+    mode = $('#poste').dataset.mode + (modal ? modal.title : '');
+    if (mode !== view.mode && (C || modal || page) && view.base && loose()) { view.x = view.y = view.base.rh; place(); }
+    view.mode = mode;
     follow();
     light(view.hot);
   }
@@ -873,7 +878,7 @@
 
   // Taille ajustée : la grille entière tient dans la place libre. Tant qu'il y a la place, une rangée fait un multiple de trois pavés.
   function fit() {
-    var scene = $('#scene'), w = scene.clientWidth - 28, h = scene.clientHeight - 28, ratio, rh, cw, k = 1;
+    var scene = $('#scene'), w = scene.clientWidth - 28, h = scene.clientHeight - 28, ratio, rh, cw, tall, k = 1;
     if (!(w > 100 && h > 100)) return;
     ratio = $('#etalon').getBoundingClientRect().width / 1000 || 0.55;
     rh = Math.max(9, Math.floor(h / (ROWS + 2) / 3) * 3);
@@ -882,6 +887,10 @@
       cw = w / (COLS + 4);
       rh = Math.max(8, Math.floor(cw / ratio * LINE));
       if (rh >= 15) rh -= rh % 3;
+      // Écran étroit : s'il reste de la hauteur, les caractères s'allongent (jusqu'à un quart plus étroits que hauts) pour rester lisibles.
+      tall = Math.min(Math.floor(h / (ROWS + 2)), Math.floor(rh / SQUEEZE));
+      if (tall >= 15) tall -= tall % 3;
+      if (tall > rh) { rh = tall; k = cw / (rh / LINE * ratio); }
     } else k = Math.min(STRETCH, w / (cw * (COLS + 4)));   // les caractères d'un Minitel sont larges
     view.ratio = ratio;
     view.base = { rh: rh, k: k };

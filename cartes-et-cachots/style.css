@@ -40,7 +40,7 @@ body { background: var(--coque); color: var(--encre); font-family: 'Segoe UI', V
 .plaque h1 { font-size: 13px; font-weight: 600; }
 .plaque p { font-size: 12px; opacity: .8; }
 
-.annonce { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.annonce { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* ---------- Écran de caractères ---------- */
 .ecran { position: absolute; left: 0; top: 0; transform-origin: 0 0; --rh: 18px; font: 15px/18px Consolas, 'Cascadia Mono', 'Lucida Console', 'Courier New', monospace; color: var(--blanc); white-space: pre; user-select: none; -webkit-user-select: none; text-shadow: 0 0 .25em; text-shadow: 0 0 .25em color-mix(in srgb, currentColor 40%, transparent); }

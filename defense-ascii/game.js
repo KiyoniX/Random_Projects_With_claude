@@ -662,13 +662,19 @@
   function loadZoom() {
     var z;
     try { z = parseFloat(localStorage.getItem(ZOOM_KEY)); } catch (e) { z = 0; }
-    if (z >= ZMIN && z <= ZMAX) V.z = z;
+    if (z >= ZMIN && z <= ZMAX) { V.z = z; V.kept = true; }
+  }
+
+  // Corps de la feuille, ajusté pour qu'une case fasse un nombre entier de pixels : sinon les bords du chemin se décalent d'une ligne à l'autre.
+  function corps() {
+    var f = V.fit * V.z;
+    return V.cu ? Math.max(1, Math.round(f * V.cu)) / V.cu : f;
   }
 
   // Place la feuille dans son cadre : centrée si elle est plus petite, sinon bornée à ses bords.
   function applyView() {
     var view = $('#view'), sheet = $('#sheet'), vw = view.clientWidth, vh = view.clientHeight, w, h;
-    sheet.style.fontSize = V.fit * V.z + 'px';
+    sheet.style.fontSize = corps() + 'px';
     w = sheet.offsetWidth; h = sheet.offsetHeight;
     V.x = w <= vw ? (vw - w) / 2 : Math.min(0, Math.max(vw - w, V.x));
     V.y = h <= vh ? (vh - h) / 2 : Math.min(0, Math.max(vh - h, V.y));
@@ -682,13 +688,17 @@
     sheet.style.fontSize = probe + 'px';
     V.uw = sheet.offsetWidth / probe; V.uh = sheet.offsetHeight / probe;
     if (!V.uw || !V.uh) { V.uw = 0; return; }
+    V.cu = $('#map').getBoundingClientRect().width / W / probe;
     vw = view.clientWidth;
     room = Math.max(200, window.innerHeight - 250);
-    V.fit = Math.max(4, Math.min(vw / V.uw, room / V.uh, 24));
+    V.fit = Math.max(4, Math.min(vw / V.uw, room / V.uh, 36));
+    if (V.cu) V.fit = Math.max(1, Math.floor(V.fit * V.cu)) / V.cu;
     // En fenêtre étroite la carte entière est minuscule : le cadre garde de la hauteur pour qu'on puisse grossir.
     sheet.style.fontSize = V.fit + 'px';
-    view.style.height = Math.max(sheet.offsetHeight, V.fit < 10 ? Math.min(300, room) : 0) + 2 + 'px';
-    if (first) { V.x = (vw - V.uw * V.fit * V.z) / 2; V.y = (V.uh * V.fit - V.uh * V.fit * V.z) / 2; }
+    view.style.height = Math.max(sheet.offsetHeight, V.fit < 13 ? Math.min(300, room) : 0) + 2 + 'px';
+    // Sans réglage enregistré, la carte minuscule est d'abord grossie à la hauteur du cadre, calée sur l'entrée.
+    if (first && !V.kept && V.fit < 13) { V.z = Math.min(ZMAX, (view.clientHeight - 2) / (V.uh * V.fit)); V.x = 0; V.y = 0; }
+    else if (first) { V.x = (vw - V.uw * V.fit * V.z) / 2; V.y = (V.uh * V.fit - V.uh * V.fit * V.z) / 2; }
     applyView();
   }
 
@@ -700,7 +710,7 @@
     z = Math.max(ZMIN, Math.min(ZMAX, z));
     fx = (cx - V.x) / w; fy = (cy - V.y) / h;
     V.z = z;
-    sheet.style.fontSize = V.fit * V.z + 'px';
+    sheet.style.fontSize = corps() + 'px';
     V.x = cx - fx * sheet.offsetWidth; V.y = cy - fy * sheet.offsetHeight;
     applyView();
     saveZoom();

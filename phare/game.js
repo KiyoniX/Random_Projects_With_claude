@@ -16,7 +16,8 @@
   var cellAt = function (x, y) { return P.LEVELS[pl.level][Math.floor(y)].charAt(Math.floor(x)); };
   var solid = function (x, y) { var c = cellAt(x, y); return c !== ' ' && c !== '.'; };
   function el(tag, text, cls) { var e = document.createElement(tag); if (text) e.textContent = text; if (cls) e.className = cls; return e; }
-  function line(h, text, cls) { var p = el('p', '', 'ligne' + (cls ? ' ' + cls : '')); p.appendChild(el('time', h)); p.appendChild(el('span', text)); return p; }
+  // À l'affichage seulement : ni « % » ni « h » rejeté seul en début de ligne
+  function line(h, text, cls) { var p = el('p', '', 'ligne' + (cls ? ' ' + cls : '')); p.appendChild(el('time', h)); p.appendChild(el('span', text.replace(/(\d) ([%h])/g, '$1 $2'))); return p; }
   function set(id, text) { if (shownText[id] !== text) { shownText[id] = text; $(id).textContent = text; } }
   function tell(text, seconds) { sayUntil = tm + seconds; set('#say', text); $('#say').style.opacity = 1; }
   function load() { try { var s = JSON.parse(localStorage.getItem(KEY)); return s && s.v === 1 && !s.over ? s : null; } catch (e) { return null; } }
@@ -141,7 +142,17 @@
     N.sea.reefs.forEach(function (q) {
       g.setLineDash([u, 3 * u]); g.beginPath(); g.arc(m(q.x), m(q.y), Math.max(5 * u, q.r * k + 3 * u), 0, 7); g.stroke(); g.setLineDash([]);
       g.beginPath(); q.rocks.forEach(function (r) { g.moveTo(m(r.x) - 3 * u, m(r.y)); g.lineTo(m(r.x) + 3 * u, m(r.y)); g.moveTo(m(r.x), m(r.y) - 3 * u); g.lineTo(m(r.x), m(r.y) + 3 * u); }); g.stroke();
-      g.font = 'italic ' + 11 * u + 'px Cambria, Georgia, serif'; g.fillText(P.cap(q.name), m(q.x), m(q.y) - q.r * k - 7 * u);
+    });
+    // Le nom d'une roche s'écrit au-dessus d'elle ; s'il y toucherait un autre nom ou une autre roche, il passe dessous, à droite ou à gauche
+    g.font = 'italic ' + 11 * u + 'px Cambria, Georgia, serif';
+    var taken = N.sea.reefs.map(function (q) { var r = Math.max(5 * u, q.r * k + 3 * u); return { x: m(q.x), y: m(q.y), w: r, h: r, q: q }; }).concat([{ x: W / 2, y: W / 2, w: 7 * u, h: 7 * u }]);
+    N.sea.reefs.forEach(function (q) {
+      var name = P.cap(q.name), hw = g.measureText(name).width / 2 + 2 * u, r = Math.max(5 * u, q.r * k + 3 * u), x = m(q.x), y = m(q.y), best = null;
+      [[x, y - r - 4 * u], [x, y + r + 11 * u], [x + r + 3 * u + hw, y + 4 * u], [x - r - 3 * u - hw, y + 4 * u]].forEach(function (at) {
+        var hits = taken.filter(function (b) { return b.q !== q && Math.abs(b.x - at[0]) < b.w + hw && Math.abs(b.y - at[1] + 3.5 * u) < b.h + 6 * u; }).length;
+        if (!best || hits < best.hits) best = { x: at[0], y: at[1], hits: hits };
+      });
+      taken.push({ x: best.x, y: best.y - 3.5 * u, w: hw, h: 6 * u }); g.fillText(name, best.x, best.y);
     });
     g.font = 11 * u + 'px Cambria, Georgia, serif';
     g.fillRect(m(port.x) - 4 * u, m(port.y) - 4 * u, 8 * u, 8 * u); g.fillText('Port', m(port.x), m(port.y) + (port.y > 0 ? -8 : 16) * u);

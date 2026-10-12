@@ -35,7 +35,8 @@ Ces motifs sont les signes d'une page générée sans parti pris. Ils sont prosc
 - **Aucune dépendance, aucun réseau** : chaque page marche ouverte en `file://` comme publiée sur GitHub Pages. Pas de police distante, donc **polices du système Windows uniquement**, avec des replis. C'est la contrainte la plus structurante : voir « Limites connues ».
 - **Deux ou trois familles de caractères par projet, pas plus.**
 - **Zoom à la molette** partout où l'on dessine, pose ou regarde une carte : centré sur le curseur, déplacement de la vue (clic milieu, et Espace ou Maj + glisser selon ce que la touche fait déjà dans le jeu), une touche et un bouton pour revenir à la vue d'ensemble, visée exacte à tous les niveaux, et la page qui ne défile pas sous la molette.
-- **Pixels nets** : tout ce qui est pixel-art ou caractère se rend sans lissage.
+- **Pixels nets** : tout ce qui est pixel-art ou caractère se rend sans lissage. Une toile doit aussi tomber sur un pixel entier de l'écran : une hauteur de ligne fractionnaire au-dessus d'elle suffit à la décaler et à la lisser. On donne donc des hauteurs de ligne entières à ce qui la précède (`chiptune`), ou on la recale à l'affichage (`textures`).
+- **Aucune commande chassée** : un tampon, une bulle ou un bandeau qui apparaît en cours de partie ne déplace ni ne recouvre jamais une commande. Il se pose sur une zone sans bouton, ou prend sa propre place dans la mise en page. Les ordres qui font avancer le jeu (cachet, pause, niveau suivant) passent avant tout contenu de longueur variable, et la page se resserre quand la fenêtre est basse.
 - **La forme, pas seulement la couleur** : tours, machines, ennemis et états se distinguent aussi par leur silhouette ou un signe, pour rester lisibles par un daltonien.
 - **Graine** : un projet généré lit sa graine dans l'adresse, ce qui permet au portail de promener la même graine d'un projet à l'autre.
 - **Règles intouchables** : une refonte visuelle ne change jamais une règle de jeu. Chaque refonte a été validée par un test rejoué avant et après, à résultat identique.
@@ -310,6 +311,7 @@ Les états s'y lisent sans la couleur. Un site ouvert a une pastille magenta, un
    - déposer une vignette `portail/apercus/<id>.webp` de 640 × 400 ;
    - ajouter une ligne au `README.md`.
 6. **Regarder le résultat** sur des captures, en 1366 × 768 et en fenêtre étroite, et se demander honnêtement si l'on voit l'objet ou une page web déguisée.
+7. **Jouer une vraie partie** jusqu'à la fin, victoire et défaite, avec les vraies commandes, en 1366 × 768, 1100 × 700 et 420 de large. Les défauts qui comptent (bouton poussé hors de l'écran, message caché sous une barre, chemin qui ne se lit pas) n'apparaissent pas sur l'écran d'accueil.
 
 ## Limites connues
 

@@ -62,6 +62,7 @@
     'border-bottom:3px solid #d1a94e;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .16s ease-out}' +
     '#retour-ludotheque:hover,#retour-ludotheque:focus-visible,#retour-ludotheque.ouvert{transform:translate(-50%,0)}' +
     '#retour-ludotheque:focus-visible{outline:3px solid #d1a94e;outline-offset:2px}' +
+    '#retour-ludotheque.annonce{pointer-events:none}' +
     '@media (prefers-reduced-motion:reduce){#retour-ludotheque{transition:none}}' +
     '@media print{#retour-ludotheque{display:none}}';
   var style = document.createElement('style'), tab = document.createElement('a'), seen = false;
@@ -81,8 +82,9 @@
   });
 
   try { seen = !!localStorage.getItem(HINT_KEY); localStorage.setItem(HINT_KEY, '1'); } catch (e) { /* stockage indisponible : pas de rappel */ }
+  // À la première visite elle se montre d'elle-même ; les clics la traversent alors, pour ne bloquer aucune commande placée dessous.
   if (!seen) {
-    tab.classList.add('ouvert');
-    setTimeout(function () { tab.classList.remove('ouvert'); }, HINT_MS);
+    tab.classList.add('ouvert', 'annonce');
+    setTimeout(function () { tab.classList.remove('ouvert', 'annonce'); }, HINT_MS);
   }
 })();

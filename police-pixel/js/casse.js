@@ -52,7 +52,8 @@
     actif = toiles[p.courant] && toiles[p.courant].parentNode;
     if (actif) {
       actif.classList.add('actif');
-      if (actif.scrollIntoView) actif.scrollIntoView({ block: 'nearest' });
+      // En fenêtre étroite la casse ne défile pas elle-même : on ne fait pas sauter la page vers elle à chaque trait.
+      if (actif.scrollIntoView && $('#casse').scrollHeight > $('#casse').clientHeight) actif.scrollIntoView({ block: 'nearest' });
     }
   };
 

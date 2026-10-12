@@ -36,7 +36,8 @@ a { color: inherit; text-decoration: none; }
 .room { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 2.5rem; align-items: start; max-width: 1320px; margin: 0 auto; padding: 1rem 1.5rem 4rem; }
 
 .shelf { margin-top: 1.25rem; }
-.row { display: flex; align-items: flex-end; gap: 5px; min-height: 340px; padding: 0 14px; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; }
+/* 18 px de jour au-dessus des boîtes : celle qu'on sort monte de 16 px sans être rognée. La barre de défilement est une rainure dans le bois. */
+.row { display: flex; align-items: flex-end; gap: 5px; min-height: 340px; padding: 18px 14px 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--wood-edge) var(--wood); }
 .plank { position: relative; background: linear-gradient(to top, var(--wood-edge) 0 12px, var(--wood) 12px); padding: .55rem 1rem calc(.6rem + 12px); box-shadow: 0 10px 14px -6px rgba(0, 0, 0, .55); display: flex; align-items: baseline; gap: .4rem 1.2rem; flex-wrap: wrap; }
 .plank h2 { font-family: var(--display); font-size: 1.25rem; font-weight: 700; color: var(--ink); background: var(--paper); padding: 0 .6rem; }
 .plank p { color: #1f1408; font-size: .9rem; }
@@ -119,7 +120,7 @@ a { color: inherit; text-decoration: none; }
 .notice h3 { font-family: var(--display); font-size: 1.7rem; font-weight: 700; line-height: 1.1; color: var(--ink); }
 .notice p { margin-top: .5rem; max-width: 34rem; font-family: var(--text); font-size: 1rem; font-style: normal; font-weight: 400; color: var(--ink); }
 .notice .facts { font-size: .88rem; color: #5a4d3c; }
-.notice code { font-family: Consolas, 'Courier New', monospace; font-size: .85rem; background: #e3d8bb; padding: .05rem .3rem; }
+.notice code { font-family: Consolas, 'Courier New', monospace; font-size: .85rem; background: #e3d8bb; padding: .05rem .3rem; white-space: nowrap; }
 .open { display: inline-block; margin-top: .9rem; padding: .55rem 1.2rem; background: var(--ink); color: var(--paper); font-family: var(--display); font-weight: 700; font-size: 1.1rem; }
 .open:hover { background: #4a3a22; }
 

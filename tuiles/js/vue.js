@@ -495,6 +495,8 @@
     M.surCase = salir;
     M.surStructure = function () { U.toutRepeindre(); };
     window.addEventListener('resize', U.ajusterToile);
+    // En fenêtre étroite les barres changent de hauteur (outil, mode d'essai) : la toile suit la scène.
+    if (window.ResizeObserver) new ResizeObserver(U.ajusterToile).observe(scene);
     cadre.addEventListener('pointerdown', function (e) { if (e.button) return; tenu = true; cadre.setPointerCapture(e.pointerId); viserMini(e); e.preventDefault(); e.stopPropagation(); });
     cadre.addEventListener('pointermove', function (e) { if (tenu) viserMini(e); });
     cadre.addEventListener('pointerup', function () { tenu = false; });

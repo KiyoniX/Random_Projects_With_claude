@@ -144,9 +144,15 @@
     if (b) select(b.dataset.id);
   });
   // Au doigt, il n'y a pas de survol : le premier appui sort la boîte, le second l'ouvre.
+  // L'appui donne aussi le focus, qui sort la boîte avant le clic : on retient donc celle qui était sortie quand le doigt s'est posé.
+  var touched = '';
+  document.addEventListener('pointerdown', function (e) {
+    var b = boxOf(e);
+    if (e.pointerType === 'touch') touched = b && b.classList.contains('on') ? b.dataset.id : '';
+  }, true);
   document.addEventListener('click', function (e) {
     var b = boxOf(e);
-    if (!b || b.classList.contains('on')) return;
+    if (!b || (e.pointerType === 'touch' ? touched === b.dataset.id : b.classList.contains('on'))) return;
     e.preventDefault();
     select(b.dataset.id);
   });

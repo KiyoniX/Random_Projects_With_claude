@@ -198,20 +198,16 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .3em; border: 1px soli
 .notice .suivant { margin: 0; }
 
 /* ---------- Écrans étroits ---------- */
-@media (max-width: 1180px) {
+@media (max-width: 1250px) {
   .bandeau { grid-template-columns: minmax(0, 1fr) 218px 272px; height: auto; }
-  .bandeau > .cartouche { grid-column: 1 / -1; border-left: 0; border-top: 2px solid var(--encre); grid-template-columns: 2fr 1fr 1fr 1fr 1.3fr 1.2fr 3fr; grid-template-rows: auto; }
+  .bandeau > .cartouche { grid-column: 1 / -1; border-left: 0; border-top: 2px solid var(--encre); grid-template-columns: minmax(0, 1fr) repeat(5, auto); grid-template-rows: auto auto; }
   .c-titre { grid-column: auto; }
-  .cartouche > div { border-bottom: 0; }
-  .cartouche > .c-case:nth-child(3), .cartouche > .c-visa { border-left: 1px solid var(--encre); }
-  .cartouche > .c-visa { grid-column: auto; flex-wrap: wrap; }
-  .tampon { position: static; margin-left: auto; }
-  .tampon + .suivant { margin-left: 0; }
-  .table { height: auto; min-height: 100vh; }
-  .plan { min-height: 46vw; }
+  .cartouche > .c-case:nth-child(3) { border-left: 1px solid var(--encre); }
+  /* Le visa garde toute la largeur : le tampon se frappe entre le verdict et le bouton, sans rien déplacer. */
+  .tampon { right: 150px; bottom: auto; top: 50%; margin-top: -30px; }
 }
 @media (max-width: 860px) {
-  .table { grid-template-columns: minmax(0, 1fr); padding: 8px; }
+  .table { grid-template-columns: minmax(0, 1fr); padding: 8px; height: auto; min-height: 100vh; }
   .bord { flex-direction: row; flex-wrap: wrap; align-items: flex-start; gap: 8px 14px; }
   .rangement { flex-direction: row; border-bottom: 0; padding-bottom: 0; }
   .instruments { flex-direction: row; }
@@ -227,6 +223,13 @@ kbd { display: inline-block; min-width: 1.5em; padding: 0 .3em; border: 1px soli
   .cartouche > div { border-bottom: 1px solid var(--encre); }
   .tiroirs, .colonnes { grid-template-columns: 1fr; }
   .lien, .loupe button { padding-top: 6px; padding-bottom: 6px; }
+  .crans button { padding-left: 7px; padding-right: 7px; }
+  /* La page défile : le bouton suit la fenêtre pour rester sous la main. */
+  .tampon { right: 12px; }
+  .c-visa .suivant { position: fixed; right: 12px; bottom: 12px; z-index: 4; box-shadow: 0 0 0 2px var(--papier); }
+}
+@media (max-width: 620px) {
+  .bandeau { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .cadran #aiguille, .tiroir, .instr { transition: none; }

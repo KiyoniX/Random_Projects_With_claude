@@ -1060,11 +1060,16 @@
 
   // ---------- Vue ----------
   function taille() {
-    var r = $('#cadre').getBoundingClientRect(), neuf = !vue.l;
+    var r = cv.getBoundingClientRect(), neuf = !vue.l || (!!niv && auCadre());
     vue.dpr = window.devicePixelRatio || 1;
     vue.l = Math.max(100, r.width); vue.h = Math.max(100, r.height);
     cv.width = Math.round(vue.l * vue.dpr); cv.height = Math.round(vue.h * vue.dpr);
     if (neuf && niv) cadrer(); else if (niv) borner();
+  }
+  // Vrai tant que le joueur n'a pas touché au cadrage : la vue suit alors la place disponible.
+  function auCadre() {
+    var z = Math.round(borne(Math.floor(ajuste()), 12, 84) * vue.dpr) / vue.dpr;
+    return vue.z === z && vue.zc === z && vue.ox === Math.round((vue.l - niv.w * z) / 2) && vue.oy === Math.round((vue.h - niv.h * z) / 2 + 6);
   }
   // Échelle qui montre toute la travée, repères et afficheurs compris.
   function ajuste() {
@@ -1403,7 +1408,7 @@
   }
 
   function majOutils() {
-    var ch = $('#choix'), montre = outil === 'filtre' || outil === 'src', l;
+    var ch = $('#choix'), montre = outil === 'filtre' || outil === 'src';
     [].forEach.call(document.querySelectorAll('.piece'), function (b) { b.classList.toggle('actif', b.dataset.piece === outil); });
     [].forEach.call(document.querySelectorAll('[data-vit]'), function (b) { b.classList.toggle('actif', +b.dataset.vit === vit); });
     $('[data-act="pipette"]').classList.toggle('actif', outil === 'pipette');
@@ -1415,7 +1420,13 @@
     $('#fleche').textContent = FLECHES[dir];
     curseur();
     ch.hidden = !montre;
-    if (!montre) return;
+    if (montre) majChoix(ch);
+    // Le bandeau des choix prend ou rend de la hauteur au sol : la vue suit.
+    if (Math.abs(cv.getBoundingClientRect().height - vue.h) > 0.5) taille();
+  }
+
+  function majChoix(ch) {
+    var l;
     ch.textContent = '';
     l = document.createElement('span');
     l.textContent = outil === 'filtre' ? 'Laisse passer tout droit (touche F) :' : 'Fournit (touche F) :';

@@ -91,7 +91,7 @@ h1, h2 { font-size: inherit; font-weight: normal; }
 .pane { grid-column: 1; grid-row: 1 / 4; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .compta { grid-column: 2; grid-row: 1; }
 .fiche { grid-column: 2; grid-row: 2; }
-.orders { grid-column: 2; grid-row: 3; align-self: start; }
+.orders { grid-column: 2; grid-row: 3; align-self: start; display: flex; flex-direction: column; max-height: calc(100% - 7px); }
 
 .cash { display: flex; align-items: center; gap: 8px; }
 .cash .field { flex: 1; padding: 2px 7px; font-size: 20px; font-weight: bold; text-align: right; font-variant-numeric: tabular-nums; }
@@ -209,7 +209,7 @@ h1, h2 { font-size: inherit; font-weight: normal; }
 .row.boosted:not(.selected) .r-state, .row.boosted:not(.selected) .r-net { color: var(--ok); }
 .list .empty { padding: 10px; }
 
-.orders .lv { background: #fff; box-shadow: var(--sunken); padding: 2px; }
+.orders .lv { min-height: 60px; overflow: auto; background: #fff; box-shadow: var(--sunken); padding: 2px; }
 .order-cols { grid-template-columns: 66px minmax(0, 1fr) 38px 82px; }
 .orders .ref { white-space: nowrap; }
 .orders .row { padding: 4px 0; border-bottom: 1px solid #e4e1d8; }
@@ -274,8 +274,9 @@ h1, h2 { font-size: inherit; font-weight: normal; }
 @keyframes disk { from { opacity: 1; } }
 
 /* ---------- Bulles de notification ---------- */
-.balloons { position: fixed; right: 8px; bottom: 40px; z-index: 80; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; width: min(310px, calc(100vw - 16px)); pointer-events: none; }
-.balloon { position: relative; width: 100%; padding: 6px 9px 7px 31px; background: var(--info); border: 1px solid #000; box-shadow: 2px 2px 0 rgba(0, 0, 0, .35); animation: balloon 5s linear forwards; }
+/* Les bulles s'alignent le long de la barre des tâches : empilées, elles masquaient les bons de commande. */
+.balloons { position: fixed; left: 8px; right: 8px; bottom: 40px; z-index: 80; display: flex; justify-content: flex-end; align-items: flex-end; gap: 5px; pointer-events: none; }
+.balloon { position: relative; flex: 0 1 auto; min-width: 0; max-width: 330px; padding: 6px 9px 7px 31px; background: var(--info); border: 1px solid #000; box-shadow: 2px 2px 0 rgba(0, 0, 0, .35); animation: balloon 5s linear forwards; }
 .balloon .ico { position: absolute; left: 8px; top: 6px; }
 .balloon b { display: block; }
 .balloon:last-child::before, .balloon:last-child::after { content: ''; position: absolute; right: 34px; top: 100%; border-left: 11px solid transparent; border-top: 11px solid #000; }
@@ -294,15 +295,30 @@ h1, h2 { font-size: inherit; font-weight: normal; }
 .dlg-btns { display: flex; justify-content: center; gap: 7px; padding: 4px 12px 11px; }
 .dlg-btns .btn { min-width: 76px; }
 
+/* ---------- Fenêtre basse : la fiche se tasse pour que tout tienne sans défiler ---------- */
+@media (max-height: 760px) and (min-width: 761px) {
+  .checks { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(3, auto); grid-auto-flow: column; column-gap: 4px; }
+}
+@media (max-height: 700px) and (min-width: 761px) {
+  .work { gap: 4px 8px; padding-top: 4px; }
+  .group { padding: 10px 8px 6px; }
+  .pay, .buy { margin-top: 5px; }
+  .caption { margin-top: 5px; }
+}
+
 /* ---------- Mobile : la fenêtre passe en plein écran ---------- */
 @media (max-width: 760px) {
   :root { font-size: 13px; }
-  body { display: block; height: auto; min-height: 100%; overflow: visible; padding-bottom: 32px; background: var(--face); }
+  body { display: block; height: auto; min-height: 100%; overflow: visible; padding-bottom: 40px; background: var(--face); }
   .desktop { padding: 0; }
   .app { height: auto; padding: 2px; }
   .tb-min, .tb-max { display: none; }
   .menu-btn { padding: 6px 11px; }
-  .menu-item { padding: 9px 14px 9px 24px; }
+  .menu-item { padding: 9px 14px 9px 24px; white-space: normal; }
+  .menu-item .hint { white-space: nowrap; }
+  .menubar { position: relative; }
+  .menubar .menu { position: static; }
+  .menubar .menu-pop { left: 0; right: 0; min-width: 0; }
   .menu-item.checked::before { top: 10px; }
   .tool { padding: 7px 9px; }
   .tool span { display: none; }
@@ -325,9 +341,12 @@ h1, h2 { font-size: inherit; font-weight: normal; }
   .statusbar { flex-wrap: wrap; }
   .cell { flex: auto; padding: 4px 7px; }
   .cell.grow { flex-basis: 100%; }
-  .taskbar { position: fixed; left: 0; right: 0; bottom: 0; }
+  .taskbar { position: fixed; left: 0; right: 0; bottom: 0; height: 38px; }
+  .orders { max-height: none; }
+  .orders .lv { overflow: visible; }
   .task { display: none; }
-  .balloons { right: 4px; bottom: 40px; }
+  .balloons { left: auto; right: 4px; bottom: 48px; flex-direction: column; width: min(310px, calc(100vw - 8px)); }
+  .balloon { width: 100%; max-width: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

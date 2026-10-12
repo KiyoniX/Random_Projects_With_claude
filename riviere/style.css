@@ -102,3 +102,27 @@
 .sceau { --cire: #24506e; --cire-claire: #4f86a8; --cire-sombre: #173449; width: 4.6rem; height: 4.6rem; }
 .sceau[aria-pressed="true"] { transform: rotate(-7deg) scale(.94); box-shadow: inset 0 0 0 .34rem rgba(0, 0, 0, .3), inset 0 2px 10px rgba(0, 0, 0, .6), 0 0 0 3px var(--feuille), 0 0 0 4.5px var(--prusse); }
 [data-act="pause"][aria-pressed="true"] { border-bottom-width: 2px; }
+
+/* La graine du portail fait neuf caractères : le blanc de l'imprimé doit la montrer entière. */
+.levee input { width: 9.6ch; }
+
+/* Fenêtre basse : la feuille se resserre pour que le cachet de la crue, l'allure et les lavis restent sous les yeux. */
+@media (max-height: 54rem) and (min-width: 58.01rem) {
+  .annexe { padding-top: .65rem; padding-bottom: .5rem; }
+  .annexe section { margin-top: .22rem; }
+  .annexe h2 { margin-bottom: .1rem; }
+  .cartouche { padding: .2rem .5rem .25rem; }
+  .cartouche p { line-height: 1.15; }
+  .soustitre { margin-top: .15rem; }
+  .tete { margin-top: .15rem; }
+  .buts { margin-top: .1rem; }
+  .buts li { line-height: 1.24; }
+  .buts li::before { top: .22rem; }
+  .buts li.ok::after { top: -.15rem; }
+  .buts li.non::after { top: .02rem; }
+  .note { margin-top: .15rem; }
+  .regle { margin-top: .42rem; }
+  .limni { height: 5.3rem; }
+  .sceau { width: 4.1rem; height: 4.1rem; font-size: .7rem; }
+  .levee { margin-top: .4rem; padding-top: .2rem; }
+}

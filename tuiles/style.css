@@ -35,6 +35,7 @@ input[type=color] { width: 34px; height: 22px; padding: 0; border: 0; background
 kbd { font: inherit; font-size: .94em; color: var(--doux); }
 svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 svg .plein { fill: currentColor; stroke: none; }
+* { scrollbar-color: var(--pale) transparent; }
 
 /* ---------- Boutons ---------- */
 .b { display: inline-flex; align-items: center; justify-content: center; gap: .35rem; min-height: 24px; padding: 0 .65rem; border-radius: 2px; background: var(--relief); color: var(--texte); white-space: nowrap; }
@@ -78,7 +79,7 @@ svg .plein { fill: currentColor; stroke: none; }
 .optionsOutil strong { font-family: var(--titre); font-size: 14px; font-weight: 600; min-width: 7.2rem; }
 .optionsOutil select { max-width: 17rem; }
 .coche { display: flex; align-items: center; gap: .35rem; }
-.astuce { flex: 1; min-width: 0; color: var(--pale); overflow: hidden; text-overflow: ellipsis; }
+.astuce { flex: 1; min-width: 0; color: var(--doux); overflow: hidden; text-overflow: ellipsis; }
 .reglagesVue { display: flex; align-items: center; gap: .35rem; }
 .zoom output { min-width: 4.6em; padding: 0 .3rem; display: inline-flex; align-items: center; justify-content: center; background: var(--creux); font-variant-numeric: tabular-nums; }
 
@@ -233,4 +234,22 @@ body.essai .scene { cursor: default; }
 }
 @media (max-height: 700px) {
   .volet { gap: 5px; padding-top: 6px; padding-bottom: 7px; }
+}
+
+/* Fenêtre étroite : les barres passent à la ligne au lieu de pousser leurs commandes hors de l'écran. */
+@media (max-width: 700px) {
+  .barre, .options, .essaiBarre { flex-wrap: wrap; height: auto; }
+  .barre { padding-top: 4px; gap: 0 .7rem; }
+  .menus { order: 3; width: 100%; flex-wrap: wrap; position: relative; }
+  .menu { position: static; }
+  .menu-titre { height: 28px; }
+  .menu-liste { min-width: 0; width: min(18.5rem, 100%); }
+  .options, .essaiBarre { padding-top: 5px; padding-bottom: 5px; gap: 5px 1rem; }
+  .optionsOutil { flex: none; width: 100%; flex-wrap: wrap; gap: 5px 1rem; }
+  .optionsOutil strong { min-width: 0; }
+  .reglagesVue { margin-left: auto; }
+  .essaiBarre em { flex: none; width: 100%; }
+  .fen .corps { min-width: 0; }
+  .matieres { grid-template-columns: repeat(2, 1fr); }
+  .aide { grid-template-columns: 1fr; }
 }

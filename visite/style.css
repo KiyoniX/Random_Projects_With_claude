@@ -64,8 +64,9 @@ body.en-marche .enseigne, body.en-marche .billet { opacity: 0; pointer-events: n
 .rose > * { transform-box: view-box; transform-origin: 0 0; }
 
 /* ---------- Le plan déplié ---------- */
-.carte { position: fixed; inset: 0; z-index: 6; display: grid; grid-template-rows: 1fr auto auto; justify-items: center; align-items: center; gap: .2rem; padding: .8rem; background: rgba(40, 28, 16, .72) var(--motif); }
-.planche-depliee { height: 100%; aspect-ratio: 1; max-width: 100%; min-height: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 34px rgba(0, 0, 0, .55); background: #e4d2aa; }
+.carte { position: fixed; inset: 0; z-index: 6; display: grid; grid-template-rows: 1fr auto auto; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: center; gap: .2rem; padding: .8rem; background: rgba(40, 28, 16, .72) var(--motif); }
+/* En fenêtre haute et étroite, c'est la largeur qui borne le carré du plan. */
+.planche-depliee { height: 100%; max-height: calc(100vw - 1.6rem); aspect-ratio: 1; max-width: 100%; min-height: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 10px 34px rgba(0, 0, 0, .55); background: #e4d2aa; }
 .planche-depliee canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
 .carte .note { color: #f3e7c8; font-size: 1.5rem; text-shadow: 0 1px 2px #000; }
 .carte .mention { color: #f3e7c8; border-bottom-color: #f3e7c8; }
@@ -95,6 +96,14 @@ body.en-marche .enseigne, body.en-marche .billet { opacity: 0; pointer-events: n
   .rose { width: 2.6rem; height: 2.6rem; left: -1.1rem; top: -1.1rem; }
   .carnet { width: min(14rem, 54vw); }
   .cadence { right: 9rem; }
+}
+/* Faute de place en bas, l'invite à emprunter un passage monte au-dessus du carnet et du plan de poche : au doigt, c'est elle qu'on touche. */
+@media (max-width: 52rem) {
+  .invite { bottom: 8.6rem; z-index: 4; }
+}
+/* Fenêtre étroite : la légende passe sous le billet des réglages, qui peut être déplié. */
+@media (max-width: 30rem) {
+  .legende { top: 14rem; }
 }
 @media (prefers-reduced-motion: reduce) {
   .legende, .enseigne, .billet, .fondu, .seuil { transition: none; }

@@ -495,14 +495,16 @@
   if (!$('#toDungeon')) return;
 
   // ---------- Interface ----------
-  var current = null, link = null;   // link : la cité d'où l'on vient, tant qu'on ne change pas de graine
+  var current = null, link = null, shown = '';   // link : la cité d'où l'on vient, tant qu'on ne change pas de graine ; shown : l'adresse du plan affiché
   var vue = window.VuePlanche.create({
     cadre: $('#table'), feuille: $('#feuille'), px: PX, loupe: $('#loupe'), mention: $('#grossi'),
     marge: function () {
       var wide = $('#table').clientWidth > 620;
       return { l: wide ? 104 : 8, t: wide ? 10 : 44, r: 14, b: 10 };
     },
-    glisse: function (e) { return e.button === 0; }
+    glisse: function (e) { return e.button === 0; },
+    // Au doigt, il n'y a pas de survol : toucher un quartier donne son nom
+    clic: function (e) { nameUnder(e); }
   });
 
   function readAddress() {
@@ -535,6 +537,7 @@
     $('#toVisit').href = '../visite/index.html#' + address;
     $('#toAtlas').parentNode.hidden = !(from && from.atlas);
     if (from && from.atlas) $('#toAtlas').href = '../mondes/atlas-des-mondes/index.html#' + from.atlas;
+    shown = address;
     try { history.replaceState(null, '', '#' + address); } catch (e) { location.replace('#' + address); }   // Chrome refuse replaceState en file://
     vue.entier();
   }
@@ -544,7 +547,7 @@
     $('#hint').textContent = w ? w.getAttribute('data-nom') : '';
   }
   $('#map').addEventListener('pointermove', nameUnder);
-  $('#map').addEventListener('pointerleave', function () { $('#hint').textContent = ''; });
+  $('#map').addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch') $('#hint').textContent = ''; });
 
   function save(blob, ext) {
     var a = document.createElement('a'), url = URL.createObjectURL(blob);
@@ -571,6 +574,13 @@
       canvas.toBlob(function (blob) { save(blob, 'png'); });
     };
     img.src = url;
+  });
+
+  // Une autre ville arrive par l'adresse : on la trace
+  window.addEventListener('hashchange', function () {
+    var a = parse(location.hash.slice(1)), b = parse(shown);
+    if (a.seed === b.seed && a.size === b.size && (a.from ? a.from.query : '') === (b.from ? b.from.query : '')) return;
+    readAddress(); show();
   });
 
   window.PlanVille.vue = vue;

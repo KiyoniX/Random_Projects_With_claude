@@ -10,6 +10,8 @@
 .renvois span { font-size: .84rem; font-style: italic; color: var(--encre-pale); }
 .tirages { font-size: .95rem; }
 .note { margin-top: .75rem; transform: rotate(-.5deg); }
+/* La graine commune du portail compte jusqu'à onze signes : le blanc à remplir doit la montrer entière. */
+.levee input { width: 11.5ch; }
 
 /* Le grain, l'ombre et les écritures recouvrent le plan : le pointeur doit passer au travers pour atteindre les quartiers. */
 .map svg > rect, .map svg text { pointer-events: none; }

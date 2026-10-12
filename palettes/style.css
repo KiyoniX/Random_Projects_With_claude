@@ -30,6 +30,7 @@ input[type=number], input[type=text], select, textarea { background: var(--fond)
 input[type=text], textarea, pre { user-select: text; -webkit-user-select: text; }
 input[type=range] { accent-color: #b4b4b4; min-width: 0; }
 input[type=checkbox] { accent-color: #d0d0d0; vertical-align: -2px; }
+* { scrollbar-color: var(--pale) transparent; }
 b { font-weight: 600; color: var(--texte); }
 h2 { font: 600 14px/1.3 var(--chiffres); color: var(--fort); display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
 h2 label { font: 400 12px 'Segoe UI', system-ui, sans-serif; color: var(--doux); display: flex; align-items: center; gap: .4rem; white-space: nowrap; }
@@ -57,7 +58,7 @@ h2 input[type=range] { width: 96px; }
 .reglage.liste { grid-template-columns: 6.2em 1fr; }
 .reglage.liste select { min-width: 0; color: var(--texte); }
 .reglage.inerte { opacity: .35; pointer-events: none; }
-.bouts { display: flex; justify-content: space-between; margin: -6px 0 0 5.2em; color: var(--pale); font-size: 11px; white-space: nowrap; }
+.bouts { display: flex; justify-content: space-between; margin: -6px 0 0 5.2em; color: var(--doux); font-size: 11px; white-space: nowrap; }
 
 /* ---------- Barre du haut ---------- */
 .barre { display: flex; align-items: center; gap: .8rem; padding: 0 .7rem; height: 36px; flex: none; background: var(--panneau); border-bottom: 1px solid var(--trait); }
@@ -99,6 +100,7 @@ h2 input[type=range] { width: 96px; }
 .onglets > button[data-onglet] { padding: 0 14px; font: 500 13.5px var(--chiffres); color: var(--doux); border-top: 2px solid transparent; white-space: nowrap; }
 .onglets > button[data-onglet]:hover { color: var(--texte); }
 .onglets > button[data-onglet].actif { color: var(--fort); background: var(--fond); border-top-color: var(--fort); margin-bottom: -1px; }
+.regards { display: flex; align-items: stretch; margin-left: auto; }
 .vision { display: flex; align-items: center; gap: .4rem; color: var(--doux); margin-right: 14px; white-space: nowrap; }
 .vision select { color: var(--texte); }
 .fonds { display: flex; align-items: center; gap: 4px; padding-right: 12px; }
@@ -134,8 +136,10 @@ h2 input[type=range] { width: 96px; }
 #baseNuance { width: 46px; height: 28px; padding: 0; border: 1px solid var(--trait); background: none; cursor: pointer; }
 #baseHex { width: 6.2em; color: var(--texte); }
 .tons { display: flex; height: 62px; }
-.tons i { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.tons i { position: relative; flex: 1; min-width: 0; overflow: hidden; container-type: inline-size; }
 .tons i span { position: absolute; left: 5px; bottom: 4px; font: 500 11px var(--chiffres); font-style: normal; letter-spacing: .03em; opacity: .8; }
+/* Une case trop étroite pour son code n'en montre pas un bout : elle le garde pour l'infobulle. */
+@container (max-width: 47px) { .tons i span { display: none; } }
 .tons i.depart { box-shadow: inset 0 5px 0 currentColor; }
 .apercu.pile { display: flex; flex-direction: column; gap: 3px; }
 .apercu.pile .tons { height: 34px; }
@@ -225,6 +229,12 @@ body.survol::after { content: ''; position: fixed; inset: 6px; border: 3px dashe
   #sv { height: 92px; }
   .echantillon { height: 50px; }
   .cote { gap: 7px; }
+}
+
+/* Sous cette largeur, la rangée d'onglets ne tient plus : la vision et le sélecteur de fond passent dessous au lieu de glisser sous le panneau de droite. */
+@media (max-width: 1180px) {
+  .onglets { height: auto; flex-wrap: wrap; }
+  .onglets > button[data-onglet], .regards { height: 33px; }
 }
 
 /* ---------- Fenêtre étroite ---------- */

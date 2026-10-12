@@ -65,6 +65,14 @@
     g.putImageData(im, 0, 0);
   }
 
+  // Une toile posée à cheval sur deux pixels d'écran serait lissée : on la ramène sur un pixel entier.
+  function caler(canvas) {
+    var r;
+    canvas.style.transform = '';
+    r = canvas.getBoundingClientRect();
+    canvas.style.transform = 'translate(' + (Math.round(r.left) - r.left) + 'px, ' + (Math.round(r.top) - r.top) + 'px)';
+  }
+
   function dessiner() {
     var n = tex.n, ct = $('#tuile'), cp = $('#pavage'), rep = Number($('#oRep').value), z = Number($('#oZoom').value);
     var cadre = $('#cadreTuile'), zt, cote, g, i, j;
@@ -82,6 +90,7 @@
       g.fillStyle = '#ff3df2';
       for (i = 1; i < rep; i++) { g.fillRect(i * n * z, 0, 1, cote); g.fillRect(0, i * n * z, cote, 1); }
     }
+    caler(ct); caler(cp);
     $('#oImage').textContent = tex.nb > 1 ? (Math.min(iImage, images.length - 1) + 1) + ' / ' + tex.nb : '';
   }
 

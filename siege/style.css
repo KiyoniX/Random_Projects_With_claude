@@ -65,14 +65,33 @@
 .pion .signe { width: 1.15rem; height: 1.15rem; flex: none; }
 .pion .signe[viewBox^="-15"] { width: 1.9rem; }
 
-.assaut { display: grid; grid-template-columns: 1fr auto; gap: .2rem .7rem; align-items: start; }
-#wave { min-height: 4.2rem; }
-.ctl { display: contents; }
-.allure { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem 1rem; font-size: .9rem; }
+/* L'annonce, l'allure et le cachet tiennent en tête ; le détail des troupes, de longueur variable, vient dessous
+   et ne pousse donc jamais un ordre hors de la feuille. */
+.assaut { display: grid; grid-template-columns: 1fr auto; gap: .2rem .7rem; align-items: start; min-height: 6.6rem; align-content: start; }
+#wave, .ctl { display: contents; }
+#wave > p { grid-column: 1; grid-row: 1; }
+#wave > .front { grid-column: 1 / -1; margin-top: 0; }
+.allure { grid-column: 1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem 1rem; font-size: .9rem; }
 .allure .mention.on { border-bottom-width: 2px; }
 
 /* Lancer la vague : le cachet de cire rouge. L'ordre qui appelle l'ennemi est le seul rouge de la feuille. */
-.sceau { grid-column: 2; grid-row: 1; margin-top: .1rem; }
+.sceau { grid-column: 2; grid-row: 1 / span 2; margin-top: .1rem; }
+
+/* La graine du portail fait neuf caractères : le blanc de l'imprimé doit la montrer entière. */
+.levee input { width: 9.6ch; }
+
+/* Fenêtre basse : la feuille se resserre pour garder ses ordres sous les yeux. */
+@media (max-height: 54rem) and (min-width: 58.01rem) {
+  .annexe { padding-top: .7rem; padding-bottom: .55rem; }
+  .annexe section { margin-top: .3rem; }
+  .annexe h2 { margin-bottom: .15rem; }
+  .cartouche { padding: .2rem .5rem .25rem; }
+  .ecritures { margin-top: .2rem; }
+  .ecritures li { line-height: 1.26; }
+  .note { margin-top: .25rem; }
+  .porte { padding-top: .05rem; padding-bottom: .05rem; }
+  .levee { margin-top: .4rem; padding-top: .2rem; }
+}
 
 /* ---------- Dépêche de fin ---------- */
 .modal { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; background: rgba(20, 16, 10, .38); }
