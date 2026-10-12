@@ -7,7 +7,7 @@
   var WORDS = ['astre', 'brume', 'corail', 'dune', 'ecume', 'forge', 'givre', 'halo', 'iris', 'jade', 'lune', 'mousse', 'nacre', 'onde', 'pollen', 'quartz', 'roc', 'sable', 'tourbe', 'volcan'];
 
   // hash : ce que le projet attend après le « # » pour une graine donnée ; absent, il n'en utilise pas.
-  // w, h : largeur et hauteur de la tranche, en pixels. cmd : projet à lancer en ligne de commande, sans page.
+  // w, h : largeur et hauteur de la tranche, en pixels. cmd : projet à lancer en ligne de commande, sans page ; link : où mène alors sa boîte.
   function plain(s) { return encodeURIComponent(s); }
   function town(s) { return encodeURIComponent(s) + '/ville'; }
 
@@ -39,7 +39,7 @@
       items: [
         { id: 'atelier', title: 'Atelier Pixel', dir: 'atelier-pixel', kind: 'Outil', w: 80, h: 300, text: 'Éditeur de pixel-art animé : calques, frise d\'images, pelure d\'oignon, export GIF.' },
         { id: 'textures', title: 'Textures répétables', dir: 'textures', kind: 'Outil', w: 76, h: 288, text: 'Pierre, bois, herbe, eau : des tuiles en pixel-art qui se raccordent sans couture.' },
-        { id: 'erosion', title: 'Érosion', dir: 'erosion-rust', cmd: 'cargo run --release', kind: 'Simulateur en Rust', w: 58, h: 262, text: 'Eau, gel, vent, glaciers et végétation sculptent un relief.' }
+        { id: 'erosion', title: 'Érosion', dir: 'erosion-rust', cmd: 'cargo run --release', link: 'https://github.com/KiyoniX/Random_Projects_With_claude/tree/main/erosion-rust', kind: 'Simulateur en Rust', w: 58, h: 262, text: 'Eau, gel, vent, glaciers et végétation sculptent un relief.' }
       ]
     }
   ];
@@ -60,6 +60,7 @@
   }
   function url(it) {
     var seed = $('#seed').value.trim();
+    if (it.link) return it.link;
     return it.dir + '/index.html' + (it.hash && seed ? '#' + it.hash(seed) : '');
   }
 
@@ -69,7 +70,7 @@
     var size = Math.max(13, Math.min(21, (it.h - (it.id === 'enquete' || it.id === 'tycoon' ? 110 : 74)) / (it.title.length * 0.6)));
     var inner = '<span class="name">' + esc(it.title) + '</span>' + (it.hash ? '<span class="dot" title="Suit la graine commune"></span>' : '');
     var attrs = ' class="box b-' + it.id + '" data-id="' + it.id + '" style="--w:' + it.w + 'px;--h:' + it.h + 'px;--fs:' + size.toFixed(1) + 'px"';
-    return it.cmd ? '<button type="button"' + attrs + '>' + inner + '</button>' : '<a' + attrs + ' href="' + esc(url(it)) + '">' + inner + '</a>';
+    return '<a' + attrs + ' href="' + esc(url(it)) + '">' + inner + '</a>';
   }
   function renderShelves() {
     $('#shelves').innerHTML = SHELVES.map(function (sh) {
@@ -86,7 +87,7 @@
       (it.cmd ? '' : '<img src="portail/apercus/' + it.id + '.webp" alt="" onerror="this.remove()">') + '</div>' +
       '<div class="notice"><h3>' + esc(it.title) + '</h3><p>' + esc(it.text) + '</p>' +
       '<p class="facts">' + esc(it.kind) + '.' + seeded + '</p>' +
-      (it.cmd ? '<p class="facts">Se lance au terminal, dans <code>' + esc(it.dir) + '</code> : <code>' + esc(it.cmd) + '</code></p>'
+      (it.cmd ? '<p class="facts">Se lance au terminal, dans <code>' + esc(it.dir) + '</code> : <code>' + esc(it.cmd) + '</code></p><a class="open" href="' + esc(url(it)) + '">Voir le code sur GitHub</a>'
         : '<a class="open" href="' + esc(url(it)) + '">Ouvrir la boîte</a>') + '</div></div>';
   }
 
