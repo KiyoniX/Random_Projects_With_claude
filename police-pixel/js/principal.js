@@ -35,7 +35,7 @@
     composerTous: function () {
       U.deselectionner();
       var n = PP.composerManquants();
-      U.message(n ? n + ' caractères accentués composés à partir de leur lettre et de leur accent.' : 'Rien à composer : dessinez d\'abord les lettres de base et les accents (` ´ ˆ ¨ ¸).');
+      U.message(n ? n + ' caractères accentués composés à partir de leur lettre et de leur accent.' : 'Rien à composer : dessine d\'abord les lettres de base et les accents (` ´ ˆ ¨ ¸).');
     },
     retirer: function () {
       var code = PP.police.courant;
@@ -55,7 +55,7 @@
     zoomPlus: function () { U.zoomer(1); }, zoomMoins: function () { U.zoomer(-1); }, ajuster: function () { U.ajuster(); },
     allerA: function () { $('#allerA').focus(); },
     precedent: function () { voisin(-1); }, suivant: function () { voisin(1); },
-    rangHaut: function () { voisin(-U.casseColonnes(), true); }, rangBas: function () { voisin(U.casseColonnes(), true); },
+    rangHaut: function () { rangee(-1); }, rangBas: function () { rangee(1); },
     poser: function () { U.deselectionner(); },
     supprimer: function () { if (!U.supprimer()) U.message('Aucune sélection. Pour vider le caractère : Édition > Effacer le caractère.'); }
   };
@@ -63,7 +63,7 @@
   function retourner(sens) {
     U.deselectionner();
     if (PP.retourner(PP.police.courant, sens)) PP.valider('Retourner');
-    else U.message(PP.glyphe(PP.police.courant).comp ? 'Détachez d\'abord la composition.' : 'Rien à retourner.');
+    else U.message(PP.glyphe(PP.police.courant).comp ? 'Détache d\'abord la composition.' : 'Rien à retourner.');
   }
 
   U.agir = function (act) {
@@ -79,10 +79,22 @@
     U.rafraichir();
     return true;
   };
-  function voisin(pas, memeGroupe) {
+  function voisin(pas) {
     var ordre = PP.ordre(), i = ordre.indexOf(PP.police.courant), n = i + pas;
-    if (memeGroupe && (n < 0 || n >= ordre.length)) return;
     U.aller(ordre[PP.borne(n, 0, ordre.length - 1)]);
+  }
+  // Rangée du dessus ou du dessous, telle qu'on la voit dans la casse : chaque groupe commence une rangée,
+  // on prend donc le cassetin de la rangée voisine le plus proche en colonne.
+  function rangee(sens) {
+    var actif = document.querySelector('#casse .cassetin.actif'), r, ecart = null, mieux = null, dx = 0;
+    if (!actif) return;
+    r = actif.getBoundingClientRect();
+    document.querySelectorAll('#casse .cassetin').forEach(function (b) {
+      var q = b.getBoundingClientRect(), dy = (q.top - r.top) * sens, d = Math.abs(q.left - r.left);
+      if (dy < r.height / 2) return;
+      if (ecart === null || dy < ecart - 1 || (Math.abs(dy - ecart) <= 1 && d < dx)) { ecart = dy; mieux = b; dx = d; }
+    });
+    if (mieux) U.aller(+mieux.dataset.code);
   }
 
   // ---------- Fiche du caractère et enseigne ----------
@@ -231,15 +243,15 @@
         '</div><div>' +
         '<h3>Parcourir la casse</h3>' + table([['← →', 'caractère précédent, suivant'], ['↑ ↓', 'rangée du dessus, du dessous'], ['Tab, puis un caractère', 'y va directement'], ['Ctrl + D', 'duplique le caractère vers un autre']]) +
         '<h3>Fichiers</h3>' + table([['Ctrl + S', 'enregistre le projet (.police.json)'], ['Ctrl + O', 'ouvre un projet'], ['Ctrl + E', 'exporte la police en TrueType']]) +
-        '<h3>Les repères</h3><p>La case de papier a la largeur de la chasse : tirez les deux carrés bleus de son bord droit pour la changer. Le trait rouge est la ligne de base ; ce qui descend dessous est un jambage. ' +
+        '<h3>Les repères</h3><p>La case de papier a la largeur de la chasse : tire les deux carrés bleus de son bord droit pour la changer. Le trait rouge est la ligne de base ; ce qui descend dessous est un jambage. ' +
         'On peut dessiner hors de la case : le caractère débordera alors sur ses voisins.</p>' +
         '</div><div class="texte">' +
-        '<h3>Les accents</h3><p>Dessinez une fois les accents du groupe « Accents » (<kbd>`</kbd> <kbd>´</kbd> <kbd>ˆ</kbd> <kbd>¨</kbd> <kbd>¸</kbd>) à leur place au-dessus d\'un bas de casse, puis <i>Caractère &gt; Composer tous les accentués vides</i>. ' +
-        'Chaque caractère composé reste lié à sa lettre et à son accent : retouchez le « e », tous ses dérivés suivent. L\'accent, en bleu, se règle avec Maj + flèches ; « Détacher » fige le dessin.</p>' +
-        '<h3>L\'épreuve et le crénage</h3><p>L\'épreuve compose votre texte en direct, pixels nets, de ×1 à ×4. Cochez « Composer avec la police exportée » pour voir le fichier TrueType lui-même au travail. ' +
-        'Dans l\'onglet Crénage, tapez une paire (AV, To, L’) et resserrez-la, ou laissez l\'outil proposer les paires dont le blanc est trop grand.</p>' +
+        '<h3>Les accents</h3><p>Dessine une fois les accents du groupe « Accents » (<kbd>`</kbd> <kbd>´</kbd> <kbd>ˆ</kbd> <kbd>¨</kbd> <kbd>¸</kbd>) à leur place au-dessus d\'un bas de casse, puis <i>Caractère &gt; Composer tous les accentués vides</i>. ' +
+        'Chaque caractère composé reste lié à sa lettre et à son accent : retouche le « e », tous ses dérivés suivent. L\'accent, en bleu, se règle avec Maj + flèches ; « Détacher » fige le dessin.</p>' +
+        '<h3>L\'épreuve et le crénage</h3><p>L\'épreuve compose ton texte en direct, pixels nets, de ×1 à ×4. Coche « Composer avec la police exportée » pour voir le fichier TrueType lui-même au travail. ' +
+        'Dans l\'onglet Crénage, tape une paire (AV, To, L’) et resserre-la, ou laisse l\'outil proposer les paires dont le blanc est trop grand.</p>' +
         '<h3>Utiliser la police</h3><p>Le fichier .ttf s\'installe par un double-clic dans Windows. Il est net à ' + PP.police.h + ' px et à ses multiples (' + PP.police.h * 2 + ', ' + PP.police.h * 3 + '…) ; ' +
-        'en points dans un traitement de texte, cela fait ' + (PP.police.h * 0.75) + ' pt, ' + (PP.police.h * 1.5) + ' pt… à 100 % de zoom. Pour un jeu, préférez la planche PNG avec son JSON ou le format BMFont.</p>' +
+        'en points dans un traitement de texte, cela fait ' + (PP.police.h * 0.75) + ' pt, ' + (PP.police.h * 1.5) + ' pt… à 100 % de zoom. Pour un jeu, préfère la planche PNG avec son JSON ou le format BMFont.</p>' +
         '</div></div>',
       boutons: [{ nom: 'Fermer', fort: true }]
     });

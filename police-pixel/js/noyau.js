@@ -24,7 +24,8 @@
 
   function borne(v, a, b) { return Math.max(a, Math.min(b, v)); }
   function entier(v, a, b, defaut) {
-    v = Math.round(Number(v));
+    // Un champ vidé ou une valeur absente garde la valeur par défaut au lieu de valoir 0.
+    v = v === '' || v === null ? NaN : Math.round(Number(v));
     if (!isFinite(v)) v = defaut;
     return borne(v, a, b);
   }
@@ -444,7 +445,7 @@
 
   // ---------- Métriques ----------
   // Change la hauteur et les repères. Le dessin suit la ligne de base ; ce qui dépasse est perdu.
-  PP.reglerMetriques = function (o) {
+  PP.reglerMetriques = function (o, sansValider) {
     var p = PP.police, h = entier(o.h, H_MIN, H_MAX, p.h), base = entier(o.base, 1, h, Math.min(p.base, h)), dy = base - p.base, k, g, n, x, y, ny;
     if (h !== p.h || dy) {
       for (k in p.glyphes) {
@@ -466,7 +467,7 @@
     p.hasc = entier(o.hasc, 1, base, Math.min(p.hasc, base));
     p.hdesc = entier(o.hdesc, 0, h - base, Math.min(p.hdesc, h - base));
     PP.revision++;
-    PP.valider('Régler les repères');
+    if (!sansValider) PP.valider('Régler les repères');
   };
 
   PP.reglerPolice = function (o) {
@@ -529,7 +530,8 @@
     for (k in p.glyphes) {
       if (CRENABLES.test(PP.car(+k)) && PP.encre(+k) && groupeDe(+k) !== 4) { codes.push(+k); profils[k] = profil(+k); }
     }
-    function ref(c) { return profils[c] ? blanc(profils[c], profils[c], PP.avance(c), p.h) : Infinity; }
+    // L'approche de référence compte l'interlettrage, comme le blanc mesuré entre deux caractères.
+    function ref(c) { return profils[c] ? blanc(profils[c], profils[c], PP.avance(c) + p.interlettre, p.h) : Infinity; }
     cible = Math.min(ref(0x6E), ref(0x48), ref(0x6C));
     if (cible === Infinity) cible = 1;
     cible = Math.max(1, cible);
@@ -638,8 +640,9 @@
       fixe: o.fixe, chasse: o.chasse, interlettre: o.interlettre, interligne: o.interligne, pas: o.pas, gras: o.gras, italique: o.italique, codes: []
     });
     o.caracteres.forEach(function (r) {
-      var code = entier(r.c, 0x20, 0x10FFFF, -1), g, x, y, px, py;
-      if (code < 0) return;
+      var code = r && Number(r.c), g, x, y, px, py;
+      // Un code hors des caractères permis est ignoré, pas ramené sur un autre caractère.
+      if (code !== Math.floor(code) || code < 0x20 || (code >= 0x7F && code < 0xA0) || code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF)) return;
       g = p.glyphes[code] = glypheNeuf(code, entier(r.a, 0, AV_MAX, p.chasse));
       if (Array.isArray(r.comp)) g.comp = { base: +r.comp[0], accent: +r.comp[1], dx: entier(r.comp[2], -GX, GX, 0), dy: entier(r.comp[3], -H_MAX, H_MAX, 0) };
       else if (Array.isArray(r.l)) {
@@ -654,8 +657,8 @@
       }
     });
     if (!Object.keys(p.glyphes).length) throw new Error('Ce projet ne contient aucun caractère.');
-    (o.crenage || []).forEach(function (q) {
-      var v = entier(q[2], -GX, GX, 0);
+    (Array.isArray(o.crenage) ? o.crenage : []).forEach(function (q) {
+      var v = Array.isArray(q) ? entier(q[2], -GX, GX, 0) : 0;
       if (v && p.glyphes[q[0]] && p.glyphes[q[1]]) p.crenage[q[0] + ',' + q[1]] = v;
     });
     p.courant = p.glyphes[o.courant] ? o.courant : (p.glyphes[65] ? 65 : +Object.keys(p.glyphes)[0]);

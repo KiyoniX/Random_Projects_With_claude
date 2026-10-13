@@ -80,7 +80,7 @@
     return e;
   }
   function ascii(s) {
-    return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]/g, '');
+    return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/Œ/g, 'OE').replace(/œ/g, 'oe').replace(/Æ/g, 'AE').replace(/æ/g, 'ae').replace(/ß/g, 'ss').replace(/[^A-Za-z0-9]/g, '');
   }
 
   // ---------- Glyphes ----------
@@ -197,7 +197,7 @@
       if (gid[q.a] !== undefined && gid[q.b] !== undefined) r.push({ a: gid[q.a], b: gid[q.b], v: q.v * unite });
     });
     r.sort(function (x, y) { return x.a - y.a || x.b - y.b; });
-    return r.slice(0, PAIRES_MAX);
+    return r;
   }
 
   function tableKern(ps) {
@@ -304,7 +304,8 @@
     }
 
     ps = o.kern === false && o.gpos === false ? [] : paires(liste, U);
-    if (ps.length && o.kern !== false) tables.kern = tableKern(ps);
+    // La limite de la table kern ne vaut que pour elle : GPOS garde toutes les paires tant qu'elles y tiennent.
+    if (ps.length && o.kern !== false) tables.kern = tableKern(ps.slice(0, PAIRES_MAX));
     if (ps.length && o.gpos !== false) { t = tableGpos(ps); if (t) tables.GPOS = t; }
 
     var pl = plages(liste);

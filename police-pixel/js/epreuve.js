@@ -122,7 +122,7 @@
   function listes() {
     var ps = PP.paires(), pr = E.propositions;
     $('#kPaires').innerHTML = '<h3>' + (ps.length ? ps.length + (ps.length > 1 ? ' paires réglées' : ' paire réglée') : 'Aucune paire réglée') + '</h3>' +
-      (ps.length ? ps.map(function (q) { return ligne(q, 'retire', 'Retirer le crénage de cette paire'); }).join('') : '<p class="note">Tapez deux caractères dans « Paire », ou lancez la détection.</p>');
+      (ps.length ? ps.map(function (q) { return ligne(q, 'retire', 'Retirer le crénage de cette paire'); }).join('') : '<p class="note">Tape deux caractères dans « Paire », ou lance la détection.</p>');
     if (pr) pr = pr.filter(function (q) { return PP.utilisable(q.a) && PP.utilisable(q.b) && PP.crenage(q.a, q.b) > q.v; });
     $('#kTout').hidden = !pr || !pr.length;
     $('#kPropositions').innerHTML = !pr ? '<h3>Propositions</h3><p class="note">La détection compare le blanc entre deux caractères à l\'approche courante de la police.</p>' :
@@ -138,8 +138,8 @@
   }
   function crener(delta, absolu) {
     var a = E.paire[0], b = E.paire[1];
-    if (!PP.utilisable(a) || !PP.utilisable(b)) { U.message('Tapez deux caractères de la police dans « Paire ».'); return; }
-    if (PP.police.fixe) { U.message('Une police à chasse fixe ne se crène pas : décochez « Chasse fixe » dans Police > Informations et repères.'); return; }
+    if (!PP.utilisable(a) || !PP.utilisable(b)) { U.message('Tape deux caractères de la police dans « Paire ».'); return; }
+    if (PP.police.fixe) { U.message('Une police à chasse fixe ne se crène pas : décoche « Chasse fixe » dans Police > Informations et repères.'); return; }
     PP.reglerCrenage(a, b, absolu ? 0 : PP.crenage(a, b) + delta);
     PP.valider('Régler le crénage');
   }

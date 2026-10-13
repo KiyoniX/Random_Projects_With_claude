@@ -14,11 +14,11 @@
   var ASTUCES = {
     crayon: 'Clic gauche pose, clic droit efface.',
     gomme: 'Efface les pixels touchés.',
-    ligne: 'Tirez une droite ; clic droit pour effacer le long de la droite.',
-    rect: 'Tirez un rectangle ; clic droit pour effacer.',
+    ligne: 'Tire une droite ; clic droit pour effacer le long de la droite.',
+    rect: 'Tire un rectangle ; clic droit pour effacer.',
     pot: 'Remplit la zone touchée, sans sortir de la case du caractère.',
-    selection: 'Tirez un cadre, puis déplacez-le. Ctrl+C copie, Ctrl+V colle, y compris dans un autre caractère.',
-    main: 'Tirez pour déplacer la vue. Partout ailleurs : bouton du milieu ou barre d\'espace.'
+    selection: 'Tire un cadre, puis déplace-le. Ctrl+C copie, Ctrl+V colle, y compris dans un autre caractère.',
+    main: 'Tire pour déplacer la vue. Partout ailleurs : bouton du milieu ou barre d\'espace.'
   };
 
   var $ = function (s) { return document.querySelector(s); };
@@ -203,7 +203,7 @@
   }
   function libre() {
     var g = PP.glyphe(PP.police.courant);
-    if (g.comp) { U.message('Caractère composé : Maj+flèches déplace l\'accent ; détachez-le (fiche du caractère) pour le retoucher.'); return false; }
+    if (g.comp) { U.message('Caractère composé : Maj+flèches déplace l\'accent ; détache-le (fiche du caractère) pour le retoucher.'); return false; }
     return true;
   }
 
@@ -237,7 +237,7 @@
     U.ancrer();
     U.sel = { x: m.x, y: PP.borne(m.y, 0, Math.max(0, p.h - m.h)), l: m.l, h: Math.min(m.h, p.h), flot: { l: m.l, h: m.h, pix: new Uint8Array(m.pix) } };
     U.choisir('selection');
-    U.message('Collé : déplacez le morceau, puis Entrée ou un clic ailleurs pour le poser.');
+    U.message('Collé : déplace le morceau, puis Entrée ou un clic ailleurs pour le poser.');
   };
   U.supprimer = function () {
     var s = U.sel;

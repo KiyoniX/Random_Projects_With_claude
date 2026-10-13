@@ -71,7 +71,7 @@
     if (U.propre) { suite(); return; }
     U.dialogue({
       titre: 'Remplacer la police en cours ?',
-      html: '<p>« ' + echapper(PP.police.nom) + ' » quittera l\'atelier. Enregistrez d\'abord le projet si vous voulez la retrouver.</p>',
+      html: '<p>« ' + echapper(PP.police.nom) + ' » quittera l\'atelier. Enregistre d\'abord le projet si tu veux la retrouver.</p>',
       boutons: [{ nom: 'Garder la police en cours' }, { nom: 'Enregistrer puis remplacer', action: function () { U.enregistrer(); setTimeout(suite, 0); } }, { nom: 'Remplacer', fort: true, action: function () { setTimeout(suite, 0); } }]
     });
   }
@@ -113,7 +113,7 @@
         nom: 'Créer la police', fort: true, action: function (f) {
           var o = lireReperes(f);
           o.nom = f.elements.nom.value.trim() || 'Sans titre'; o.fixe = f.elements.fixe.checked; o.chasse = nombre(f, 'chasse', 1, PP.AV_MAX);
-          setTimeout(function () { remplacer(function () { ouvrirPolice(PP.policeCreer(o), 'Nouvelle police : dessinez le A, puis passez au suivant avec la flèche droite.'); }); }, 0);
+          setTimeout(function () { remplacer(function () { ouvrirPolice(PP.policeCreer(o), 'Nouvelle police : dessine le A, puis passe au suivant avec la flèche droite.'); }); }, 0);
         }
       }]
     });
@@ -137,7 +137,7 @@
             gras: f.elements.gras.checked, italique: f.elements.italique.checked, fixe: f.elements.fixe.checked, chasse: nombre(f, 'chasse', 1, PP.AV_MAX) };
           if (change) {
             for (k in q.glyphes) { e = q.glyphes[k].pix && PP.boite(q.glyphes[k].pix); if (e && (e.y0 + o.base - q.base < 0 || e.y1 + o.base - q.base >= o.h)) perdu++; }
-            PP.reglerMetriques(o);
+            PP.reglerMetriques(o, true);   // une seule étape d'historique avec les réglages qui suivent
           }
           PP.reglerPolice(infos);
           U.ajuster();
@@ -152,7 +152,7 @@
     U.dialogue({
       titre: 'Ajouter des caractères',
       html: '<label class="champ long"><span>Caractères ou codes</span><textarea name="cars" rows="3" spellcheck="false" placeholder="ñ ß ¿ ¡   ou   U+2603 U+2190"></textarea></label>' +
-        '<p class="note">Tapez ou collez les caractères voulus, ou donnez leurs codes Unicode séparés par des espaces. Ceux que la police contient déjà sont ignorés.</p>',
+        '<p class="note">Tape ou colle les caractères voulus, ou donne leurs codes Unicode séparés par des espaces. Ceux que la police contient déjà sont ignorés.</p>',
       boutons: [{ nom: 'Annuler' }, {
         nom: 'Ajouter à la casse', fort: true, action: function (f) {
           var codes = codesSaisis(f.elements.cars.value), n;
@@ -175,7 +175,7 @@
       boutons: [{ nom: 'Annuler' }, {
         nom: 'Dupliquer', fort: true, action: function (f) {
           var c = codesSaisis(f.elements.cible.value)[0];
-          if (c === undefined || c < 0x20) throw new Error('Indiquez le caractère d\'arrivée.');
+          if (c === undefined || c < 0x20) throw new Error('Indique le caractère d\'arrivée.');
           if (c === code) throw new Error('C\'est le même caractère.');
           if (PP.dependants(c).length) throw new Error('« ' + PP.car(c) + ' » sert de base ou d\'accent à d\'autres caractères : il serait dangereux de l\'écraser.');
           U.deselectionner();
@@ -196,7 +196,7 @@
       boutons: [{ nom: 'Annuler' }, {
         nom: 'Composer', fort: true, action: function (f) {
           var b = codesSaisis(f.elements.base.value)[0], a = codesSaisis(f.elements.accent.value)[0], r;
-          if (b === undefined || a === undefined) throw new Error('Indiquez la lettre de base et l\'accent.');
+          if (b === undefined || a === undefined) throw new Error('Indique la lettre de base et l\'accent.');
           U.deselectionner();
           r = PP.lier(code, b, a);
           if (r) throw new Error(r);
@@ -210,7 +210,7 @@
     U.dialogue({
       titre: 'Variante italique',
       html: '<label class="champ"><span>Un pixel de décalage toutes les</span><select name="pas"><option value="2">2 rangées (très penché)</option><option value="3" selected>3 rangées</option><option value="4">4 rangées</option><option value="5">5 rangées (à peine)</option></select></label>' +
-        '<p class="note">Chaque dessin est cisaillé en escalier autour de la ligne de base. La police en cours est transformée : enregistrez d\'abord le projet du romain si vous voulez garder les deux.</p>',
+        '<p class="note">Chaque dessin est cisaillé en escalier autour de la ligne de base. La police en cours est transformée : enregistre d\'abord le projet du romain si tu veux garder les deux.</p>',
       boutons: [{ nom: 'Annuler' }, { nom: 'Pencher la police', fort: true, action: function (f) { U.deselectionner(); PP.deriverItalique(+f.elements.pas.value); U.message('Police penchée. Ctrl+Z pour revenir au romain.'); } }]
     });
   };
@@ -265,12 +265,12 @@
       U.dialogue({
         titre: 'Extrait CSS',
         html: '<textarea class="code" rows="15" readonly spellcheck="false">' + echapper(PP.css()) + '</textarea>' +
-          '<p class="note">Exportez la police en .ttf et en .woff, placez les deux fichiers à côté de la feuille de style, puis collez cet extrait.</p>',
+          '<p class="note">Exporte la police en .ttf et en .woff, place les deux fichiers à côté de la feuille de style, puis colle cet extrait.</p>',
         boutons: [{ nom: 'Fermer' }, { nom: 'Télécharger ' + f + '.css', action: function () { telecharger(f + '.css', PP.css(), 'text/css'); }, garde: true }, {
           nom: 'Copier', fort: true, garde: true, action: function (fen) {
             var t = fen.querySelector('textarea');
             t.select();
-            try { document.execCommand('copy'); U.message('Extrait CSS copié.'); } catch (e) { U.message('Copie impossible : sélectionnez le texte et copiez-le à la main.'); }
+            try { document.execCommand('copy'); U.message('Extrait CSS copié.'); } catch (e) { U.message('Copie impossible : sélectionne le texte et copie-le à la main.'); }
           }
         }]
       });
@@ -293,7 +293,7 @@
       localStorage.setItem(CLE_PROJET, JSON.stringify(PP.versJSON()));
       $('#etatSauve').textContent = 'Sauvegardé dans ce navigateur';
     } catch (e) {
-      $('#etatSauve').textContent = 'Sauvegarde automatique impossible : enregistrez le projet';
+      $('#etatSauve').textContent = 'Sauvegarde automatique impossible : enregistre le projet';
     }
   }
   U.sauverBientot = function () {
@@ -347,7 +347,7 @@
           o.codes = PP.codes(f.elements.cars.value.replace(/[\r\n]/g, ''));
           o.nom = nom.replace(/\.[a-z0-9]+$/i, '') || 'Planche importée';
           p = PP.importerPlanche(donnees.data, c.width, c.height, o);
-          setTimeout(function () { remplacer(function () { ouvrirPolice(p, 'Planche importée : ' + PP.ordre().length + ' caractères. Vérifiez les repères dans Police > Informations et repères.'); }); }, 0);
+          setTimeout(function () { remplacer(function () { ouvrirPolice(p, 'Planche importée : ' + Object.keys(p.glyphes).length + ' caractères. Vérifie les repères dans Police > Informations et repères.'); }); }, 0);
         }
       }],
       apres: function (f) {
@@ -386,8 +386,9 @@
       var fichier = this.files[0], lecteur = new FileReader();
       if (!fichier) return;
       lecteur.onload = function () {
-        var p;
-        try { p = PP.depuisJSON(JSON.parse(lecteur.result)); } catch (e) { U.dialogue({ titre: 'Projet illisible', html: '<p>' + echapper(e.message) + '</p>' }); return; }
+        var p, o;
+        try { o = JSON.parse(lecteur.result); } catch (e) { U.dialogue({ titre: 'Projet illisible', html: '<p>Ce fichier n\'est pas du JSON lisible : ce n\'est pas un projet Police Pixel, ou il est abîmé.</p>' }); return; }
+        try { p = PP.depuisJSON(o); } catch (e) { U.dialogue({ titre: 'Projet illisible', html: '<p>' + echapper(e.message) + '</p>' }); return; }
         remplacer(function () { ouvrirPolice(p, 'Projet ouvert : ' + p.nom + '.'); });
       };
       lecteur.readAsText(fichier);

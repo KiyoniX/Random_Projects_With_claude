@@ -143,7 +143,8 @@
 
   // ---------- Noms de fichiers et CSS ----------
   PP.nomFichier = function () {
-    var p = PP.police, s = (p.nom + (PP.STYLES[p.style.trim().toLowerCase()] && !p.gras && !p.italique ? '' : '-' + p.style)).normalize('NFD').replace(/[̀-ͯ]/g, '');
+    var p = PP.police, s = (p.nom + (PP.STYLES[p.style.trim().toLowerCase()] && !p.gras && !p.italique ? '' : '-' + p.style)).normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[œŒ]/g, 'oe').replace(/[æÆ]/g, 'ae').replace(/ß/g, 'ss');   // ces lettres n'ont pas de décomposition
     return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'police';
   };
 
@@ -201,7 +202,7 @@
       }
       if (o.largeurs === 'detecter') g.av = Math.min(PP.AV_MAX, x1 - x0 + 1 + approche);
     }
-    if (!n) throw new Error('Aucun caractère trouvé : vérifiez la taille des cases et la couleur du fond.');
+    if (!n) throw new Error('Aucun caractère trouvé : vérifie la taille des cases et la couleur du fond.');
     p.courant = p.glyphes[65] ? 65 : +Object.keys(p.glyphes)[0];
     return p;
   };

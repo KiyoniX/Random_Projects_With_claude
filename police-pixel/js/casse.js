@@ -64,12 +64,6 @@
     PP.dependants(code).forEach(peindre);
   };
 
-  // Nombre de cassetins par rangée, pour monter et descendre avec les flèches.
-  U.casseColonnes = function () {
-    var b = $('#casse .cassetins'), c = b && b.firstChild;
-    return b && c ? Math.max(1, Math.floor((b.clientWidth + 2) / (c.offsetWidth + 2))) : 10;
-  };
-
   // ---------- Aller à un caractère ----------
   function codeSaisi(s) {
     var m = /^(?:U\+|0x)([0-9a-f]{2,6})$/i.exec(s.trim());
@@ -94,7 +88,7 @@
       code = v.codePointAt(0);
       champ.value = '';
       champ.blur();
-      if (!U.aller(code)) U.message('« ' + PP.car(code) + ' » n\'est pas dans la police : ajoutez-le avec « + Ajouter ».');
+      if (!U.aller(code)) U.message('« ' + PP.car(code) + ' » n\'est pas dans la police : ajoute-le avec « + Ajouter ».');
     });
     champ.addEventListener('keydown', function (e) {
       var code;
@@ -102,9 +96,9 @@
       code = codeSaisi(champ.value);
       champ.value = '';
       champ.blur();
-      if (code >= 0 && !U.aller(code)) U.message(PP.hexa(code) + ' n\'est pas dans la police : ajoutez-le avec « + Ajouter ».');
+      if (code >= 0 && !U.aller(code)) U.message(PP.hexa(code) + ' n\'est pas dans la police : ajoute-le avec « + Ajouter ».');
     });
-    champ.addEventListener('focus', function () { U.message('Tapez un caractère pour y aller, ou un code comme U+0152 puis Entrée. Échap pour renoncer.'); });
+    champ.addEventListener('focus', function () { U.message('Tape un caractère pour y aller, ou un code comme U+0152 puis Entrée. Échap pour renoncer.'); });
   };
   U.codeSaisi = codeSaisi;
 })();
