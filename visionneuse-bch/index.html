@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Visionneuse BCH</title>
+  <meta name="description" content="Les modèles 3D BCH du moteur de Game Freak (Pokémon X/Y, Rubis Oméga/Saphir Alpha) présentés en vitrine : maillages, textures, squelette et animations, rendus en WebGL dans le navigateur.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="pupitre">
+    <div class="enseigne">
+      <h1>Visionneuse BCH</h1>
+      <p class="statut" id="statut" aria-live="polite">Galerie des modèles 3D de Game Freak</p>
+    </div>
+    <div class="outils">
+      <button type="button" class="laiton" id="bOuvrir" title="Ouvrir un .bch, un GARC ou un paquet de Pokémon (O)">Ouvrir un fichier</button>
+      <input type="file" id="iFichier" multiple hidden>
+      <div class="groupe exports">
+        <button type="button" class="laiton" id="bCapture" disabled title="Enregistrer ce que montre la vitrine (PNG)">Capture PNG</button>
+        <button type="button" class="laiton" id="bObj" disabled title="Maillages visibles dans la pose affichée, avec leurs textures en PNG (archive ZIP)">Export OBJ</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="galerie">
+    <section class="vitrine" aria-label="La vitrine">
+      <div class="corniche" aria-label="Commandes de la vitrine">
+        <div class="groupe" role="group" aria-labelledby="lVue">
+          <span class="nom-groupe" id="lVue">Vue</span>
+          <div class="segments" id="gVue">
+            <button type="button" data-vue="ensemble" aria-pressed="true" title="Revenir à la vue d'ensemble (0 ou Origine)">Ensemble</button>
+            <button type="button" data-vue="face" aria-pressed="false" title="De face (1)">Face</button>
+            <button type="button" data-vue="profil" aria-pressed="false" title="De profil (2)">Profil</button>
+            <button type="button" data-vue="dessus" aria-pressed="false" title="De dessus (3)">Dessus</button>
+          </div>
+        </div>
+        <div class="groupe" role="radiogroup" aria-labelledby="lFond">
+          <span class="nom-groupe" id="lFond">Fond</span>
+          <div class="nuancier" id="gFond">
+            <button type="button" role="radio" data-fond="gris" aria-checked="true" title="Fond gris neutre"><i class="pastille gris"></i>gris</button>
+            <button type="button" role="radio" data-fond="noir" aria-checked="false" title="Fond noir"><i class="pastille noir"></i>noir</button>
+            <button type="button" role="radio" data-fond="blanc" aria-checked="false" title="Fond blanc"><i class="pastille blanc"></i>blanc</button>
+            <button type="button" role="radio" data-fond="damier" aria-checked="false" title="Damier, pour juger la transparence"><i class="pastille damier"></i>damier</button>
+          </div>
+        </div>
+        <div class="groupe cases">
+          <label class="case" title="Grille au sol (G)"><input type="checkbox" id="cGrille"><i></i>Grille</label>
+          <label class="case" title="Os et articulations par-dessus le modèle (S)"><input type="checkbox" id="cSquelette"><i></i>Squelette</label>
+          <label class="case" title="Faire tourner la tournette (T)"><input type="checkbox" id="cTournette" checked><i></i>Tournette</label>
+        </div>
+      </div>
+      <div class="verre" id="verre">
+        <canvas id="toile" aria-label="Le modèle sur sa tournette. Glisser pour tourner autour, molette pour approcher, Maj ou clic du milieu pour déplacer."></canvas>
+        <div class="reflet" aria-hidden="true"></div>
+        <div class="vide" id="vide">
+          <h2>Vitrine vide</h2>
+          <p>Glisse ici un fichier <b>.bch</b> : un modèle de Pokémon X/Y ou de Rubis Oméga/Saphir Alpha, sorti du romfs du jeu. Un GARC qui en contient, ou un paquet de Pokémon (PC, GR, MM…), fait aussi l'affaire.</p>
+          <p class="sans-explorateur" id="sansExplorateur" hidden>L'explorateur de romfs n'est pas installé à côté de cette page : les GARC et les fichiers compressés en LZ11 ne s'ouvrent pas encore ici. Les .bch nus, oui.</p>
+          <div class="actions-vide">
+            <button type="button" class="laiton" id="bChoisir">Choisir un fichier</button>
+            <button type="button" class="papier" id="bCube">Poser le cube d'essai</button>
+          </div>
+          <p class="note">Rien ne quitte ton ordinateur : la page lit le fichier sur place.</p>
+        </div>
+        <div class="depot" id="depot" hidden><p>Lâche le fichier dans la vitrine</p></div>
+        <div class="erreur" id="erreur" hidden></div>
+      </div>
+      <div class="socle">
+        <div class="plaque" id="plaque">
+          <p class="espece" id="pNom">Vitrine vide</p>
+          <p class="modele" id="pModele">En attente d'un spécimen</p>
+          <p class="releve" id="pReleve">&nbsp;</p>
+        </div>
+        <div class="lecteur" id="lecteur" aria-label="Lecteur d'animations">
+          <button type="button" class="manivelle" id="manivelle" disabled title="Tourne la manivelle pour avancer image par image ; clique dessus pour lancer ou arrêter (Espace)" aria-label="Manivelle : lancer ou arrêter l'animation">
+            <svg viewBox="0 0 80 80" aria-hidden="true">
+              <circle cx="40" cy="40" r="30" class="m-disque"/>
+              <circle cx="40" cy="40" r="22" class="m-gorge"/>
+              <g id="bras">
+                <rect x="37" y="12" width="6" height="30" rx="2" class="m-bras"/>
+                <circle cx="40" cy="40" r="7" class="m-moyeu"/>
+                <circle cx="40" cy="14" r="7" class="m-poignee"/>
+              </g>
+            </svg>
+          </button>
+          <div class="reglettes">
+            <label class="reglette">
+              <span class="legende"><span id="lEtat">Aucune animation choisie</span><output id="oImage"></output></span>
+              <input type="range" id="rImage" min="0" max="1" step="1" value="0" disabled aria-label="Image de l'animation">
+            </label>
+            <label class="reglette courte">
+              <span class="legende"><span>Vitesse</span><output id="oVitesse">× 1</output></span>
+              <input type="range" id="rVitesse" min="0" max="4" step="1" value="2" aria-label="Vitesse de lecture">
+              <span class="graduations" aria-hidden="true"><i>¼</i><i>½</i><i>1</i><i>2</i><i>4</i></span>
+            </label>
+          </div>
+          <div class="pas">
+            <button type="button" id="bPrec" disabled title="Image précédente (←)">‹ image</button>
+            <button type="button" id="bLecture" disabled title="Lancer ou arrêter (Espace)">Lancer</button>
+            <button type="button" id="bSuiv" disabled title="Image suivante (→)">image ›</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="cartel" id="cartel" aria-label="Fiche de collection">
+      <header class="cartel-tete">
+        <h2>Fiche de collection</h2>
+        <p class="inventaire" id="inventaire">Aucun spécimen exposé</p>
+      </header>
+      <section class="rubrique" id="rSpecimen">
+        <h3>Spécimen</h3>
+        <dl class="fiche" id="fiche"><dt>Provenance</dt><dd>Glisse un fichier dans la vitrine.</dd></dl>
+        <div class="lot" id="lot" hidden>
+          <span id="lotTitre">Pièce</span>
+          <button type="button" class="papier petit" id="bPiecePrec" title="Pièce précédente du GARC">‹</button>
+          <input type="number" id="iPiece" min="0" value="0" aria-label="Numéro de la pièce dans le GARC"><span id="lotTotal"></span>
+          <button type="button" class="papier petit" id="bPieceSuiv" title="Pièce suivante du GARC">›</button>
+          <button type="button" class="papier petit" id="bModeleSuiv" title="Chercher la prochaine pièce qui contient un modèle">modèle suivant</button>
+          <label class="case petite"><input type="checkbox" id="cReunir" checked><i></i>réunir avec les pièces suivantes sans modèle (textures, animations)</label>
+        </div>
+      </section>
+      <section class="rubrique" id="rMaillages">
+        <h3>Maillages <span class="compte" id="nMaillages"></span></h3>
+        <ul class="maillages" id="lMaillages"><li class="rien">Aucun.</li></ul>
+      </section>
+      <section class="rubrique" id="rTextures">
+        <h3>Textures <span class="compte" id="nTextures"></span></h3>
+        <div class="vignettes" id="lTextures"><p class="rien">Aucune.</p></div>
+      </section>
+      <section class="rubrique" id="rSquelette">
+        <h3>Squelette <span class="compte" id="nOs"></span></h3>
+        <div id="lSquelette"><p class="rien">Aucun os.</p></div>
+      </section>
+      <section class="rubrique" id="rAnimations">
+        <h3>Animations <span class="compte" id="nAnimations"></span></h3>
+        <ul class="animations" id="lAnimations"><li class="rien">Aucune.</li></ul>
+      </section>
+      <section class="rubrique" id="rObservations">
+        <h3>Observations</h3>
+        <ul class="observations" id="lObservations"><li class="rien">Rien à signaler.</li></ul>
+      </section>
+    </aside>
+  </main>
+
+  <script src="bch.js"></script>
+  <script src="fabrique.js"></script>
+  <script src="../explorateur-romfs/formats.js"></script>
+  <script src="app.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

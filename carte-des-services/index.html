@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carte des services</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bandeau">
+    <div class="cartouche">
+      <h1>Carte des services</h1>
+      <p>Le réseau de la 3DS vu depuis un jeu, d'après 3dbrew</p>
+    </div>
+    <nav class="vues" aria-label="Plans affichés">
+      <button type="button" class="vue" data-vue="plan" aria-pressed="true">Plan du réseau</button>
+      <button type="button" class="vue" data-vue="memoire" aria-pressed="false">Plan du quartier : la mémoire</button>
+      <button type="button" class="vue" data-vue="svc" aria-pressed="false">Appels système</button>
+    </nav>
+    <form class="guichet" id="guichet" role="search" autocomplete="off">
+      <label for="question">Guichet d'information</label>
+      <div class="saisie">
+        <input id="question" type="search" spellcheck="false" placeholder="fs:USER, OpenFile, 0x08010100, svc 0x32, 0x1FF82000">
+        <button type="submit">Chercher</button>
+      </div>
+    </form>
+  </header>
+
+  <main class="station">
+    <section class="vue-plan" id="vuePlan" aria-label="Plan du réseau">
+      <svg id="plan" role="img" aria-label="Plan des modules et services de la 3DS"></svg>
+      <div class="commandes-plan">
+        <button type="button" id="bEnsemble" title="Revenir à la vue d'ensemble (touche 0)">Vue d'ensemble</button>
+        <button type="button" id="bPlus" title="Rapprocher (touche +)" aria-label="Rapprocher">+</button>
+        <button type="button" id="bMoins" title="Éloigner (touche -)" aria-label="Éloigner">−</button>
+      </div>
+      <aside class="legende" id="legende" aria-label="Légende"></aside>
+    </section>
+
+    <section class="vue-memoire" id="vueMemoire" hidden aria-label="Carte de la mémoire"></section>
+    <section class="vue-svc" id="vueSvc" hidden aria-label="Appels système"></section>
+
+    <aside class="panneau" id="panneau" aria-live="polite"></aside>
+  </main>
+
+  <script src="donnees.js"></script>
+  <script src="app.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

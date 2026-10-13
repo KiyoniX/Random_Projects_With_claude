@@ -37,7 +37,10 @@
     'tuiles': ['#3f9a3c', '#f4f4f6', 'T'],
     'police-pixel': ['#ebe8e1', '#16171a', 'a'],
     'chiptune': ['#9bbc0f', '#1c2a5a', 'P'],
-    'decompil-3ds': ['#1b5e36', '#eef1ea', '3']
+    'decompil-3ds': ['#1b5e36', '#eef1ea', '3'],
+    'explorateur-romfs': ['#8a5a2b', '#f4ecd8', 'R'],
+    'visionneuse-bch': ['#3b2a1e', '#c9a24b', 'B'],
+    'carte-des-services': ['#f7f7f4', '#1b1d21', 'S']
   };
 
   var script = document.currentScript, home = script ? script.src.replace(/portail\/site\.js.*$/, 'index.html') : '';

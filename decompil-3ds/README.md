@@ -8,6 +8,10 @@ Ouvre `index.html` : la page montre la feuille de route en sept paliers, l'avanc
 
 Tu travailles uniquement sur ton propre jeu, acheté et installé sur ta propre console, dumpé par elle. Rien de ce qui en sort n'est versionné ni distribué : ni le dump, ni le code du jeu, ni ses fichiers, ni ses textes. Tout ça vit dans `local/`, que le `.gitignore` du dépôt exclut. Le dépôt ne contient que nos outils et nos notes.
 
+## La journée du 14 octobre
+
+`JOURNEE.md` est le programme de la première journée consacrée à la console elle-même : ce qu'il faut préparer la veille, les fichiers à sortir de la 3DS (NAND, ROM de démarrage, FIRM, modules système, Pokémon X), dans quel ordre les ouvrir, et quoi lire en premier dans Ghidra.
+
 ## La marche à suivre
 
 1. **Dumper.** Le jeu est une copie numérique (la cartouche est morte). Sur la console, démarre GodMode9 (Start au démarrage), va dans `[A:] SYSNAND SD`, pose-toi sur le dossier `title`, appuie sur A et choisis « Open title manager ». Sélectionne Pokémon X, A, « Dump CXI/NDS file » : le fichier `.cxi`, déjà déchiffré, arrive dans `0:/gm9/out`. Si une mise à jour du jeu est installée, dumpe-la aussi : c'est elle qui porte le code qui tourne vraiment.
@@ -17,6 +21,10 @@ Tu travailles uniquement sur ton propre jeu, acheté et installé sur ta propre 
 5. **Faire les exercices.** Installe devkitPro avec « 3DS Development », puis suis `exercices/README.md`. On compile de petits programmes dont on connaît le code, et on apprend à les reconnaître dans Ghidra.
 6. **Ouvrir le jeu dans Ghidra.** `python outils/elfer.py local/extrait/exefs/code.bin` enveloppe le code dans un ELF chargé à `0x00100000` ; importe-le en ARM v6 little-endian, puis lance les quatre scripts 3DS dans l'ordre. Tout est détaillé dans `outils/GHIDRA.md`.
 7. **REA.** C'est l'outil qu'on veut utiliser au quotidien : Claude Code pilote Ghidra à travers lui et doit fournir les preuves de ce qu'il affirme. Il est branché, mais sa version Windows n'ouvre que des exécutables PE x86 : pour l'ARM de la 3DS, il faut le faire tourner sous WSL. `outils/REA.md` explique ce qui est fait, ce qui bloque, et comment lever le blocage.
+
+## Les outils voisins sur le site
+
+Trois projets du dépôt accompagnent le carnet, dans l'étagère « La 3DS ouverte » du portail : `explorateur-romfs` parcourt le romfs extrait dans le navigateur (GARC, LZ11, textes, images, modèles), `visionneuse-bch` rend les modèles 3D de Game Freak, et `carte-des-services` donne les modules, services, commandes IPC et SVC de la console d'après 3dbrew.
 
 ## Les scripts
 

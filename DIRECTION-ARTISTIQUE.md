@@ -312,6 +312,65 @@ La console est ouverte sur un tapis antistatique bleu, et sa carte mère sert de
 
 Sans la couleur, les états se lisent à leur forme. Une pastille est pleine si c'est fait ou présent, en demi-disque si c'est entamé, vide si c'est à faire ou absent, barrée d'une diagonale pour un outil que le PC ne peut pas voir, comme GodMode9 sur la console. Les tâches ont des cases à cocher imprimées, et une tâche faite passe en encre pâle. Ce qui bloque est en rouge, précédé d'un ✗.
 
+### `explorateur-romfs` : la réserve du musée et son meuble à tiroirs
+
+Le romfs extrait est une collection inventoriée. À gauche, le meuble de fichier en chêne sert d'arbre, et c'est la seule audace : chaque dossier est une façade de tiroir avec son porte-étiquette de laiton, sa carte tapée à la machine et sa poignée ; un tiroir ouvert laisse voir son intérieur sombre, et les montants s'empilent à chaque niveau. Les GARC et les paquets « mini » sont des boîtes de conservation grises, avec leur prise et leur étiquette ; les fichiers sont des fiches vues par la tranche. À droite, la fiche de catalogue de la pièce choisie (carton réglé, filet noir sous la cote, trou de tringle) porte sa nature, sa taille et ses tampons. Dessous, sur la table d'examen en linoléum, la pièce est posée sur un relevé à onglets de papier : bordereau, texte, hexadécimal, image, modèle 3D, recherche. Les contrôles sont des tickets de carton à ombre franche ; seule l'ouverture d'un dossier est une plaque de laiton.
+
+| Rôle | Valeur |
+| --- | --- |
+| Chêne du meuble (façades) | `#8a5a2b`, arête `#a8743f`, joints `#5b3a1b` |
+| Intérieur d'un tiroir ouvert | `#3e2914` |
+| Laiton (porte-étiquettes, poignées, ce qui est choisi, focus) | `#c9a24b`, ombre `#8a6d2a` |
+| Carton des fiches | `#f4ecd8`, réglure `#d6c9a8` |
+| Boîtes de conservation (GARC, paquets) | `#7e8b90`, ombre `#5c686d` |
+| Linoléum de la réserve, table d'examen | `#b4b8ac`, ombre `#9a9f92` ; papier du relevé `#fbf9f2` |
+| Encre de machine et de tampon | `#262320`, pâle `#6b6358` |
+| Rouge de tampon (ce qui n'a pas pu être lu, rien d'autre) | `#b3261e` |
+| Tapé à la machine (étiquettes, cotes, textes du jeu, hexadécimal) | Courier New, puis Courier, Nimbus Mono PS |
+| L'outil | Segoe UI, puis Tahoma, Helvetica Neue |
+
+Le tampon dit la nature, et sa forme la double : double cadre pour un GARC, cadre pincé pour le LZ, ovale pour un texte, hexagone pour un BCH, traits de coupe pour une image, chemise à onglet pour un paquet, cadre simple pour un format connu mais pas ouvert, tirets pour l'inconnu, croix pour l'illisible. Tous sont à l'encre noire sauf l'illisible, seul tampon rouge, précédé d'un ✗ dans le texte. Un fichier compressé reçoit deux tampons : LZ11, puis ce qu'il contient. Les variables des textes restent visibles telles que pk3DS les écrit, encadrées d'un filet. Zoom à la molette centré sur le curseur pour les images, glisser pour déplacer, `0` pour la vue d'ensemble.
+
+### `visionneuse-bch` : la vitrine de la galerie
+
+Le modèle est un spécimen exposé dans une vitrine de muséum, la galerie où l'on montre ce que l'explorateur de romfs a sorti de la réserve. La vitrine est un cadre de bois sombre et de verre ; sa corniche porte les commandes de la vitrine (vue, fond, grille, squelette, tournette). Le spécimen tourne sur une tournette de bois tourné cerclée de laiton, rendue en 3D avec lui : c'est la seule audace. Le fond de la vitre reste neutre pour qu'on juge le modèle, avec un sélecteur gris, noir, blanc ou damier. Sous la vitre, le socle porte la plaque de laiton gravée (le nom du fichier en italique, comme un nom d'espèce, puis le modèle, les sommets, les faces, les os et les animations) et le lecteur d'animations : une manivelle, dont un vingt-quatrième de tour avance d'une image et qu'un clic lance ou arrête, et deux réglettes de laiton graduées pour l'image et la vitesse. À droite, la fiche de collection est un cartel de papier : numéro d'inventaire, puis les rubriques Spécimen, Maillages, Textures, Squelette, Animations et Observations.
+
+| Rôle | Valeur |
+| --- | --- |
+| Mur de la galerie | `#c4bdae`, ombre `#a8a091` |
+| Bois sombre (vitrine, corniche, socle) | `#3b2a1e`, clair `#5a4030`, ombre `#24180f` |
+| Laiton (plaque, manivelle, réglettes, ce qui est choisi) | `#c9a24b`, clair `#e3c77e`, ombre `#8a6a28` |
+| Verre (arête de la vitre, reflet du coin) | `#9fb3ae` |
+| Papier du cartel | `#f1ead8`, filets `#d6c9a9` |
+| Encre | `#2a2018`, pâle `#6b5d4c` |
+| Rouge (ce qui n'a pas pu être lu, rien d'autre) | `#a3301f` |
+| Plaques et cartel | Cambria, puis Georgia |
+| Outil | Segoe UI, puis Tahoma, Verdana |
+
+La forme double la couleur : un maillage caché a sa case vide et son nom barré ; l'animation choisie porte un losange plein ◆, les autres un losange creux ◇ ; le fond choisi est cerclé de laiton et coché ; ce qui n'a pas été lu commence par ✗. Aucun voile sombre : la vitrine vide garde sa tournette, et le cartel d'invitation est posé dessus.
+
+### `carte-des-services` : le plan du réseau
+
+Le système de la 3DS vu depuis un jeu, dessiné comme le plan d'un réseau de métro. Chaque module système est une ligne avec son numéro, chaque service une station. Le jeu est la gare centrale d'où toutes les lignes partent en faisceau, à 45°, vers deux rives : le système, les fichiers, l'image et les entrées à droite, le réseau et les réglages à gauche. Le matériel (pxi, i2c, spi, gpio, pdn, mcu, codec) forme sous le réseau une ceinture de lignes en tirets ; pxi franchit la rivière qui sépare l'ARM11 de l'ARM9 et finit à Process9. Le panneau de droite est le panneau de la station : ses horaires sont les commandes IPC, en tableau. Le guichet d'information, en haut, comprend un nom, un en-tête IPC, un numéro de SVC ou une adresse. Le plan du quartier est la mémoire, ancienne 3DS et New 3DS côte à côte, en îlots dont la hauteur suit le logarithme de la taille. Une seule audace, le plan ; le reste est sobre.
+
+| Rôle | Valeur |
+| --- | --- |
+| Papier du plan | `#f7f7f4` |
+| Encre (texte, bandeau, gare, cadres) | `#1b1d21`, pâle `#5d6168` |
+| Surligneur (ce qui est trouvé ou choisi, rien d'autre) | `#ffe14a` |
+| Rivière ARM11 / ARM9 | `#cfe2ec`, berge `#9fc2d6` |
+| Lignes, une couleur par famille | Système rouge vermillon `#d6332a`, Fichiers bleu outremer `#2c4cb8`, Image vert émeraude `#0f8a55`, Caméra et vidéo violet `#8b3fb0`, Son rose `#e2589c`, Entrées orange `#e58200`, Réglages brun `#8a4b22`, Sans fil local turquoise `#0a9fae`, Internet vert olive `#78900f`, Services en ligne bleu ciel `#3a90e6`, Matériel gris acier `#6b7079` |
+| Signalétique (plan, fiches) | Segoe UI, puis Helvetica Neue, Arial |
+| En-têtes IPC, adresses, SVC | Consolas, puis Cascadia Mono, Lucida Console |
+
+Les 42 lignes se partagent onze couleurs, une par famille. Dans une famille, on les distingue par le numéro et le nom du module au terminus. L'ordre des couleurs a été vérifié pour le daltonisme entre familles voisines sur le plan. Sans la couleur, tout se lit encore à la forme :
+- les services en ligne ont un trait double ;
+- le matériel a des tirets et des plaques carrées ;
+- une station ouverte aux jeux est un rond blanc cerclé d'encre, un service réservé au système une coche ;
+- les pastilles numérotées sous une station donnent les lignes qui l'appellent ;
+- ce qui est trouvé est surligné et cerclé plus épais, le reste du réseau pâlit ;
+- dans le plan du quartier, un îlot hachuré diffère entre les deux modèles.
+
 ### `mondes` : le guide de voyage
 
 `atlas-des-mondes`, `chroniques`, `langues-inventees`, `steles`.

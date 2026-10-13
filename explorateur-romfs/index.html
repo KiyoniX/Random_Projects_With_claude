@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explorateur de romfs</title>
+  <meta name="description" content="Parcourir dans le navigateur le romfs extrait d'un jeu 3DS : GARC, LZ11, textes de Pokémon X/Y, images et modèles.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="registre">
+    <div class="titre">
+      <h1>Explorateur de romfs</h1>
+      <p class="inventaire" id="inventaire" aria-live="polite">La réserve est vide.</p>
+    </div>
+    <div class="ouvrir">
+      <button type="button" class="ticket plaque" id="bDossier">Ouvrir un dossier</button>
+      <button type="button" class="ticket" id="bFichiers">Ouvrir des fichiers</button>
+      <input type="file" id="iDossier" webkitdirectory directory multiple hidden>
+      <input type="file" id="iFichiers" multiple hidden>
+    </div>
+  </header>
+
+  <main class="reserve">
+    <aside class="meuble" aria-label="Le meuble à tiroirs : l'arbre du romfs">
+      <div class="fronton">
+        <label class="porte-filtre" for="filtreNom"><span class="vh">Filtrer par nom ou par chemin</span>
+          <input type="text" id="filtreNom" placeholder="filtrer par nom ou chemin" spellcheck="false">
+        </label>
+        <div class="filtres" id="filtres" role="group" aria-label="Filtrer par nature"></div>
+        <p class="note-filtre" id="noteFiltre" hidden>Le filtre ne voit dans les GARC que ceux qu'on a ouverts ou fouillés par la recherche.</p>
+      </div>
+      <div class="arbre" id="arbre" role="tree" tabindex="0" aria-label="Le romfs">
+        <div class="arbre-contenu" id="arbreContenu"></div>
+      </div>
+    </aside>
+
+    <section class="examen" aria-label="La table d'examen">
+      <article class="fiche" id="fiche" aria-live="polite"></article>
+      <div class="table" id="table">
+        <div class="rangee">
+          <div class="onglets" id="onglets" role="tablist" aria-label="Façons de regarder la pièce"></div>
+          <form class="recherche" id="recherche" role="search" autocomplete="off">
+            <label class="champ" for="q"><span class="vh">Chercher dans les textes</span>
+              <input type="search" id="q" placeholder="Texte à chercher" spellcheck="false" disabled>
+            </label>
+            <label class="coche" title="Lit chaque GARC encore fermé pour y trouver des textes : plus long sur un vrai romfs">
+              <input type="checkbox" id="aussiFermes"><span>GARC fermés aussi</span>
+            </label>
+            <button type="submit" class="ticket" id="bChercher" disabled>Chercher</button>
+          </form>
+        </div>
+        <div class="releve" id="releve" role="tabpanel"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="depot" id="depot" aria-hidden="true"><p>Lâche le dossier : il sera inventorié ici, sans rien envoyer.</p></div>
+
+  <script src="formats.js"></script>
+  <script src="../visionneuse-bch/bch.js"></script>
+  <script src="app.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

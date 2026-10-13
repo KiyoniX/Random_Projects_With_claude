@@ -1,0 +1,451 @@
+/* Visionneuse BCH : la vitrine de la galerie du muséum.
+   Le spécimen tourne dans une vitrine de bois sombre et de verre, avec sa plaque de laiton gravée,
+   et sa fiche de collection est accrochée au mur à droite. */
+
+:root {
+  --mur: #c4bdae;            /* pierre claire de la galerie */
+  --mur-ombre: #a8a091;
+  --bois: #3b2a1e;           /* bois sombre de la vitrine et du socle */
+  --bois-clair: #5a4030;
+  --bois-ombre: #24180f;
+  --laiton: #c9a24b;         /* plaques, ce qui est choisi, focus */
+  --laiton-clair: #e3c77e;
+  --laiton-ombre: #8a6a28;
+  --verre: #9fb3ae;          /* arête de la vitre */
+  --papier: #f1ead8;         /* papier du cartel */
+  --filet: #d6c9a9;
+  --encre: #2a2018;
+  --encre-pale: #6b5d4c;
+  --rouge: #a3301f;          /* réservé à ce qui n'a pas pu être lu */
+  --grave: Cambria, Georgia, "Times New Roman", serif;
+  --outil: "Segoe UI", Tahoma, Verdana, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--mur);
+  color: var(--encre);
+  font: 14px/1.45 var(--outil);
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: .45; }
+:focus-visible { outline: 2px solid var(--encre); outline-offset: 2px; }
+
+/* ---------------------------------------------------------------- le pupitre (outils) */
+.pupitre {
+  display: flex;
+  align-items: center;
+  gap: 10px 22px;
+  flex-wrap: wrap;
+  padding: 14px 22px 10px;   /* les 8 pixels du haut restent libres pour l'onglet de retour */
+}
+.enseigne h1 {
+  margin: 0;
+  font: 600 21px/1.1 var(--grave);
+  letter-spacing: .01em;
+}
+.statut { margin: 1px 0 0; font-size: 12.5px; color: var(--encre-pale); min-height: 1.45em; }
+.outils { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 18px; flex: 1; justify-content: flex-end; }
+.groupe { display: flex; align-items: center; gap: 8px; }
+.nom-groupe { font-size: 12.5px; color: var(--encre-pale); }
+
+/* plaques de laiton : les actions */
+.laiton {
+  background: var(--laiton);
+  border: 1px solid var(--laiton-ombre);
+  border-radius: 2px;
+  box-shadow: inset 0 1px 0 var(--laiton-clair), 0 1px 0 var(--laiton-ombre);
+  padding: 5px 12px;
+  font-weight: 600;
+  color: var(--bois-ombre);
+}
+.laiton:hover:not(:disabled) { background: var(--laiton-clair); }
+.laiton:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 1px 0 var(--laiton-ombre); }
+
+/* boutons de papier : ce qui reste secondaire */
+.papier {
+  background: var(--papier);
+  border: 1px solid var(--encre-pale);
+  border-radius: 2px;
+  padding: 5px 12px;
+}
+.papier:hover:not(:disabled) { border-color: var(--encre); background: #fbf6ea; }
+.papier.petit { padding: 1px 8px; font-size: 12.5px; }
+
+/* vues : réglette d'onglets, l'onglet choisi est enfoncé et en laiton */
+.segments { display: flex; border: 1px solid var(--encre-pale); border-radius: 2px; overflow: hidden; }
+.segments button {
+  color: var(--encre);
+  border: 0;
+  border-left: 1px solid var(--encre-pale);
+  background: var(--papier);
+  padding: 4px 10px;
+}
+.segments button:first-child { border-left: 0; }
+.segments button:hover { background: #fbf6ea; }
+.segments button[aria-pressed="true"] {
+  background: var(--laiton);
+  box-shadow: inset 0 2px 0 var(--laiton-ombre);
+  font-weight: 600;
+}
+
+/* fonds : de vraies pastilles de couleur ; la choisie est cerclée de laiton et cochée */
+.nuancier { display: flex; gap: 4px; }
+.nuancier button {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid transparent; border-radius: 2px;
+  padding: 2px 6px 2px 3px; font-size: 13px;
+}
+.nuancier button:hover { border-color: var(--mur-ombre); }
+.pastille {
+  position: relative;
+  width: 18px; height: 18px;
+  border: 1px solid var(--encre-pale);
+  display: inline-block;
+}
+.pastille.gris { background: #787875; }
+.pastille.noir { background: #131313; }
+.pastille.blanc { background: #f2f2ef; }
+.pastille.damier { background: repeating-conic-gradient(#cccbc9 0 25%, #9e9e9b 0 50%) 0 0 / 9px 9px; }
+.nuancier button[aria-checked="true"] { border-color: var(--laiton-ombre); background: var(--papier); font-weight: 600; }
+.nuancier button[aria-checked="true"] .pastille { outline: 2px solid var(--laiton); outline-offset: 1px; }
+.nuancier button[aria-checked="true"] .pastille::after {
+  content: "✓"; position: absolute; inset: 0; display: grid; place-items: center;
+  font: 700 12px/1 var(--outil); color: var(--laiton);
+  text-shadow: 0 0 2px #000, 0 0 1px #000;
+}
+
+/* cases à cocher imprimées */
+.case { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+.case input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.case i {
+  width: 15px; height: 15px; flex: none;
+  border: 1.5px solid var(--encre);
+  background: var(--papier);
+  display: grid; place-items: center;
+  font: 700 12px/1 var(--outil); font-style: normal;
+}
+.case input:checked + i { background: var(--laiton); }
+.case input:checked + i::after { content: "✓"; color: var(--bois-ombre); }
+.case input:focus-visible + i { outline: 2px solid var(--encre); outline-offset: 2px; }
+.case.petite { font-size: 12.5px; color: var(--encre-pale); align-items: flex-start; }
+.case.petite i { width: 13px; height: 13px; margin-top: 2px; font-size: 10px; }
+
+/* ---------------------------------------------------------------- la galerie */
+.galerie {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 344px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 24px;
+  padding: 2px 22px 18px;
+  min-height: 0;
+}
+
+/* ---------------------------------------------------------------- la vitrine */
+.vitrine {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+.corniche {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 20px;
+  margin: 0 -8px;
+  padding: 7px 18px 8px;
+  background: var(--bois);
+  border-bottom: 3px solid var(--bois-ombre);
+  box-shadow: inset 0 2px 0 var(--bois-clair), 0 3px 0 rgba(36, 24, 15, .35);
+  color: #eadfc4;
+}
+.corniche .nom-groupe { color: #cdbf9c; }
+.corniche .cases { margin-left: auto; gap: 14px; }
+.corniche .nuancier button:hover { border-color: var(--bois-clair); }
+.corniche .nuancier button[aria-checked="true"] { background: var(--bois-clair); border-color: var(--laiton); color: #fff6dd; }
+.corniche .pastille { border-color: #cdbf9c; }
+.verre {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #787875;
+  border: 12px solid var(--bois);
+  border-top-width: 4px;
+  border-bottom: 0;
+  box-shadow: inset 0 0 0 1px var(--verre), inset 0 0 0 3px rgba(36, 24, 15, .55);
+  overflow: hidden;
+}
+.verre canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+  cursor: grab;
+}
+.verre canvas:active { cursor: grabbing; }
+.verre.vierge canvas { cursor: default; }
+/* le reflet de la vitre, dans le coin seulement, pour ne pas fausser le spécimen */
+.reflet {
+  position: absolute; left: 0; top: 0; width: 150px; height: 150px;
+  background: #fff;
+  opacity: .07;
+  clip-path: polygon(0 36%, 36% 0, 46% 0, 0 46%);
+  pointer-events: none;
+}
+
+/* le cartel de la vitrine vide, posé sur la tournette */
+.vide {
+  position: absolute;
+  left: 50%; top: 38%;
+  transform: translate(-50%, -50%);
+  width: min(430px, calc(100% - 32px));
+  background: var(--papier);
+  color: var(--encre);
+  border: 1px solid var(--filet);
+  box-shadow: 4px 5px 0 rgba(36, 24, 15, .35);
+  padding: 18px 22px 16px;
+}
+.vide h2 { margin: 0 0 6px; font: 600 24px/1.15 var(--grave); }
+.vide p { margin: 0 0 10px; font: 15px/1.5 var(--grave); }
+.vide .sans-explorateur { color: var(--rouge); font: 13px/1.45 var(--outil); border-left: 3px solid var(--rouge); padding-left: 8px; }
+.vide .note { font: 12.5px/1.4 var(--outil); color: var(--encre-pale); margin: 10px 0 0; }
+.actions-vide { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+
+.depot {
+  position: absolute; inset: 14px;
+  border: 2px dashed var(--laiton);
+  display: grid; place-items: center;
+  pointer-events: none;
+}
+.depot p { margin: 0; background: var(--papier); padding: 8px 16px; font: 600 18px var(--grave); border: 1px solid var(--laiton-ombre); }
+.erreur {
+  position: absolute; left: 14px; bottom: 14px; max-width: min(460px, calc(100% - 28px));
+  background: var(--papier); border: 1px solid var(--rouge); border-left-width: 4px;
+  padding: 8px 12px; color: var(--rouge); font-size: 13.5px;
+}
+.erreur::before { content: "✗ "; font-weight: 700; }
+
+/* ---------------------------------------------------------------- le socle */
+.socle {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(250px, 380px) minmax(0, 1fr);
+  gap: 22px;
+  align-items: center;
+  margin: 0 -8px;
+  padding: 14px 22px 14px;
+  background: var(--bois);
+  border-top: 4px solid var(--bois-ombre);
+  box-shadow: inset 0 1px 0 var(--bois-clair), inset 0 -4px 0 var(--bois-ombre);
+  color: #eadfc4;
+}
+
+/* la plaque de laiton gravée */
+.plaque {
+  position: relative;
+  background: var(--laiton);
+  color: #3a2810;
+  padding: 9px 26px 8px;
+  border: 1px solid var(--laiton-ombre);
+  box-shadow: inset 0 0 0 3px var(--laiton), inset 0 0 0 4px var(--laiton-ombre), 0 2px 0 var(--bois-ombre);
+  text-shadow: 0 1px 0 rgba(255, 240, 200, .55);
+  min-width: 0;
+}
+.plaque::before, .plaque::after {
+  content: ""; position: absolute; top: 50%; width: 7px; height: 7px; margin-top: -4px;
+  border-radius: 50%; background: var(--laiton-ombre); box-shadow: inset 1px 1px 0 var(--laiton-clair);
+}
+.plaque::before { left: 9px; }
+.plaque::after { right: 9px; }
+.plaque p { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.espece { font: italic 600 20px/1.2 var(--grave); }
+.modele { font: 14px/1.35 var(--grave); }
+.releve { font: 13px/1.4 var(--grave); color: #4a3517; }
+
+/* le lecteur : manivelle, réglettes, pas à pas */
+.lecteur {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+.manivelle {
+  width: 74px; height: 74px; padding: 0;
+  background: none; border: 0; border-radius: 50%;
+  touch-action: none;
+}
+.manivelle svg { width: 100%; height: 100%; display: block; }
+.m-disque { fill: var(--laiton-ombre); stroke: var(--bois-ombre); stroke-width: 2; }
+.m-gorge { fill: var(--laiton); stroke: var(--laiton-ombre); stroke-width: 1.5; }
+.m-bras { fill: var(--laiton-clair); stroke: var(--laiton-ombre); stroke-width: 1; }
+.m-moyeu { fill: var(--laiton-ombre); stroke: var(--bois-ombre); stroke-width: 1; }
+.m-poignee { fill: var(--bois-clair); stroke: var(--bois-ombre); stroke-width: 1.5; }
+.manivelle.tourne .m-gorge { fill: var(--laiton-clair); }
+.manivelle:not(:disabled):hover .m-disque { fill: var(--laiton); }
+#bras { transform-origin: 40px 40px; }
+
+.reglettes { display: grid; gap: 7px; min-width: 0; }
+.reglette { display: grid; gap: 2px; min-width: 0; }
+.legende { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: #eadfc4; white-space: nowrap; overflow: hidden; }
+.legende output { font-variant-numeric: tabular-nums; color: var(--laiton-clair); }
+.reglette.courte { max-width: 230px; }
+
+/* réglette de laiton graduée ; le curseur est un index d'encre */
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 18px; margin: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(58, 40, 16, .75) 0 1px, transparent 1px 10px) 0 0 / 100% 7px no-repeat,
+    var(--laiton);
+  border: 1px solid var(--laiton-ombre);
+  box-shadow: inset 0 1px 0 var(--laiton-clair);
+  border-radius: 1px;
+}
+.courte input[type="range"] { background: repeating-linear-gradient(90deg, rgba(58, 40, 16, .8) 0 2px, transparent 2px calc(25% - .5px)) 7px 0 / calc(100% - 14px) 8px no-repeat, var(--laiton); }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 22px;
+  background: var(--bois-ombre);
+  border: 1px solid #eadfc4;
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
+}
+input[type="range"]::-moz-range-thumb { width: 12px; height: 22px; background: var(--bois-ombre); border: 1px solid #eadfc4; border-radius: 0; }
+input[type="range"]:disabled { opacity: .45; }
+.graduations { display: flex; justify-content: space-between; padding: 0 3px; font-size: 11.5px; color: #cdbf9c; }
+.graduations i { font-style: normal; width: 12px; text-align: center; }
+
+.pas { display: grid; gap: 5px; }
+.pas button {
+  background: var(--bois-clair); color: #eadfc4;
+  border: 1px solid var(--bois-ombre); border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+  padding: 2px 10px; font-size: 12.5px; white-space: nowrap;
+}
+.pas button:hover:not(:disabled) { background: #6b4e3b; }
+#bLecture { background: var(--laiton); color: var(--bois-ombre); border-color: var(--laiton-ombre); font-weight: 600; }
+#bLecture:hover:not(:disabled) { background: var(--laiton-clair); }
+#bLecture[aria-pressed="true"] { box-shadow: inset 0 2px 0 var(--laiton-ombre); }
+
+/* ---------------------------------------------------------------- le cartel */
+.cartel {
+  position: relative;
+  background: var(--papier);
+  border: 1px solid var(--filet);
+  box-shadow: 4px 5px 0 rgba(36, 24, 15, .28);
+  padding: 18px 20px 14px;
+  overflow: auto;
+  min-height: 0;
+  font-size: 13.5px;
+  overscroll-behavior: contain;
+}
+.cartel-tete { border-bottom: 2px solid var(--encre); padding-bottom: 6px; margin-bottom: 4px; }
+.cartel-tete h2 { margin: 0; font: 600 19px/1.2 var(--grave); }
+.inventaire { margin: 2px 0 0; font: italic 13.5px var(--grave); color: var(--encre-pale); }
+.rubrique { border-bottom: 1px solid var(--filet); padding: 9px 0 10px; }
+.rubrique:last-child { border-bottom: 0; }
+.rubrique h3 { margin: 0 0 6px; font: 600 15.5px/1.25 var(--grave); }
+.compte { font: 400 13.5px var(--grave); color: var(--encre-pale); }
+.rien { color: var(--encre-pale); font-style: italic; margin: 0; list-style: none; }
+
+.fiche { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; margin: 0; }
+.fiche dt { color: var(--encre-pale); }
+.fiche dd { margin: 0; overflow-wrap: anywhere; }
+.lot { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 6px; margin-top: 8px; padding-top: 7px; border-top: 1px dotted var(--filet); }
+.lot input[type="number"] { width: 68px; padding: 1px 4px; border: 1px solid var(--encre-pale); background: #fbf6ea; border-radius: 2px; }
+
+ul.maillages, ul.animations, ul.observations { list-style: none; margin: 0; padding: 0; }
+.maillages li { display: grid; grid-template-columns: minmax(0, 1fr); padding: 2px 0; }
+.maillages .case { align-items: flex-start; }
+.maillages .case i { margin-top: 2px; }
+.maillages .nom { overflow-wrap: anywhere; }
+.maillages .detail { display: block; color: var(--encre-pale); font-size: 12.5px; }
+.maillages li.cache .nom { color: var(--encre-pale); text-decoration: line-through; }
+.boutons-liste { display: flex; gap: 6px; margin-top: 6px; }
+
+.vignettes { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px 8px; }
+.vignettes figure { margin: 0; min-width: 0; cursor: zoom-in; }
+.vignettes figure.grande { grid-column: 1 / -1; cursor: zoom-out; }
+.vignettes .cadre {
+  display: grid; place-items: center; aspect-ratio: 1;
+  background: repeating-conic-gradient(#e1dccd 0 25%, #c9c2b0 0 50%) 0 0 / 10px 10px;
+  border: 1px solid var(--encre-pale);
+}
+.vignettes figure.grande .cadre { aspect-ratio: auto; padding: 6px; }
+.vignettes canvas { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; display: block; }
+.vignettes figure.grande canvas { height: auto; }
+.vignettes figcaption { font-size: 12px; line-height: 1.3; margin-top: 3px; overflow-wrap: anywhere; }
+.vignettes figcaption span { display: block; color: var(--encre-pale); }
+.vignettes figure.illisible .cadre { background: var(--papier); border-color: var(--rouge); color: var(--rouge); font-weight: 700; }
+
+.arbre-os { margin: 6px 0 0; }
+.arbre-os summary { cursor: pointer; color: var(--encre-pale); }
+.arbre-os ul { list-style: none; margin: 4px 0 0; padding: 0; font: 12.5px/1.45 var(--outil); max-height: 220px; overflow: auto; }
+.arbre-os li { white-space: nowrap; }
+.arbre-os li::before { content: "└ "; color: var(--filet); }
+.arbre-os li.racine::before { content: "◆ "; color: var(--laiton-ombre); }
+
+.animations li button {
+  width: 100%; display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 6px; align-items: baseline;
+  text-align: left; background: none; border: 0; border-left: 3px solid transparent; padding: 3px 4px 3px 4px;
+}
+.animations li button:hover { background: #fbf6ea; }
+.animations li button::before { content: "◇"; color: var(--encre-pale); }
+.animations li button[aria-pressed="true"] { background: var(--laiton); border-left-color: var(--laiton-ombre); font-weight: 600; }
+.animations li button[aria-pressed="true"]::before { content: "◆"; color: var(--bois-ombre); }
+.animations .nom { overflow-wrap: anywhere; }
+.animations .duree { color: var(--encre-pale); font-size: 12px; font-weight: 400; white-space: nowrap; }
+.animations button[aria-pressed="true"] .duree { color: var(--bois-ombre); }
+
+.observations li { padding: 2px 0 2px 18px; position: relative; }
+.observations li.non-lu { color: var(--rouge); }
+.observations li.non-lu::before { content: "✗"; position: absolute; left: 0; font-weight: 700; }
+.observations li.info::before { content: "·"; position: absolute; left: 4px; color: var(--encre-pale); }
+.observations li.rien { padding-left: 0; }
+
+/* ---------------------------------------------------------------- fenêtres moyennes et étroites */
+@media (max-width: 1320px) {
+  .nuancier button { font-size: 0; gap: 0; padding: 3px; }
+}
+@media (max-width: 1180px) {
+  .galerie { grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; padding: 2px 16px 14px; }
+  .pupitre { padding: 14px 16px 8px; }
+  .socle { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 16px; padding: 12px 16px; }
+  .corniche { gap: 6px 14px; padding: 6px 12px 7px; }
+}
+@media (max-height: 720px) and (min-width: 901px) {
+  .pupitre { padding-top: 12px; padding-bottom: 6px; }
+  .socle { padding-top: 10px; padding-bottom: 10px; }
+  .manivelle { width: 62px; height: 62px; }
+}
+@media (max-width: 900px) {
+  body { height: auto; display: block; }
+  .galerie { display: block; height: auto; padding: 2px 12px 16px; }
+  .vitrine { height: auto; }
+  .verre { flex: none; height: min(64vh, 520px); min-height: 330px; }
+  .cartel { margin-top: 18px; overflow: visible; }
+  .outils { justify-content: flex-start; }
+  .socle { grid-template-columns: minmax(0, 1fr); padding: 12px 14px; gap: 12px; }
+}
+@media (max-width: 520px) {
+  .pupitre { padding: 14px 12px 8px; gap: 8px; }
+  .outils { gap: 8px; flex: 1 1 100%; justify-content: flex-start; }
+  .outils .laiton { padding: 5px 9px; white-space: nowrap; }
+  .exports { gap: 8px; }
+  .segments button { padding: 4px 7px; }
+  .verre { border-width: 6px 8px 0; }
+  .lecteur { grid-template-columns: auto minmax(0, 1fr); }
+  .pas { grid-column: 1 / -1; grid-template-columns: repeat(3, 1fr); }
+  .manivelle { width: 60px; height: 60px; }
+  .plaque { padding: 8px 22px 7px; }
+  .espece { font-size: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .laiton:active:not(:disabled) { transform: none; }
+}

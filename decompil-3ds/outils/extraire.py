@@ -1,11 +1,14 @@
 """Sépare un dump déchiffré en code (exefs) et fichiers (romfs) avec ctrtool, puis inventorie le romfs.
 
-    python extraire.py local/dump/pokemon-x.cxi        titre installé dumpé par GodMode9 (NCCH)
-    python extraire.py local/dump/pokemon-x.3ds        image de cartouche (NCSD) : ctrtool prend la partition 0
+    python extraire.py local/dump/pokemon-x.cxi            titre installé dumpé par GodMode9 (NCCH) -> local/extrait/
+    python extraire.py local/dump/pokemon-x.3ds            image de cartouche (NCSD) : ctrtool prend la partition 0
+    python extraire.py local/dump/hid.cxi hid               un module système, dans local/extrait/hid/ pour ne pas
+                                                           écraser le jeu ; le nom est libre
+    python extraire.py local/dump/firm0.bin firm            un FIRM déchiffré (NATIVE_FIRM) : ctrtool en sort les
+                                                           sections ARM9 et ARM11 dans local/extrait/firm/
 
-Le résultat va dans local/extrait/ : exefs/ (code.bin décompressé, icon, banner), romfs/ et exheader.bin
-(dont elfer.py se sert pour découper le code en segments). Puis un inventaire des GARC trouvés est écrit
-dans local/extrait/inventaire.txt.
+Le résultat : exefs/ (code.bin décompressé, icon, banner), romfs/ et exefs/exheader.bin (dont elfer.py se sert
+pour découper le code en segments). Puis un inventaire des GARC trouvés est écrit dans inventaire.txt.
 """
 import os
 import subprocess
@@ -25,15 +28,35 @@ def trouver_ctrtool():
     return None
 
 
-def extraire(dump):
+def extraire_firm(dump, exe, sortie):
+    """Un FIRM : ctrtool écrit chaque section (ARM9, ARM11) avec son adresse de chargement dans le nom du fichier."""
+    os.makedirs(sortie, exist_ok=True)
+    cmd = [exe, '-p', '--firmdir=' + sortie, dump]
+    print('> ' + ' '.join(cmd))
+    code = subprocess.call(cmd)
+    if code:
+        sys.exit('ctrtool a rendu le code %d' % code)
+    print('\nSections écrites dans %s :' % sortie)
+    for n in sorted(os.listdir(sortie)):
+        print('  %-40s %d octets' % (n, os.path.getsize(os.path.join(sortie, n))))
+    print('\nLa section ARM11 contient le noyau (kernel11) ; la section ARM9, Process9 et kernel9. Les modules système'
+          '\n(fs, hid, gsp...) ne sont pas dedans : ce sont des titres à part dans la CTRNAND, à dumper un par un.')
+
+
+def extraire(dump, nom=None):
+    exe = trouver_ctrtool()
+    if not exe:
+        sys.exit('\nctrtool.exe introuvable sous local/outils/. Lancer outils/installer.py.')
+    sortie = os.path.join(LOCAL, 'extrait', nom) if nom else os.path.join(LOCAL, 'extrait')
+    with open(dump, 'rb') as f:
+        magic = f.read(4)
+    if magic == b'FIRM':
+        extraire_firm(dump, exe, sortie)
+        return
     r = inspecter.inspecter(dump, empreinte=False)
     print(inspecter.rapport(r))
     if not r['dechiffre']:
         sys.exit('\nLe dump est chiffré : ctrtool ne pourra rien en tirer. Déchiffrer d\'abord dans GodMode9.')
-    exe = trouver_ctrtool()
-    if not exe:
-        sys.exit('\nctrtool.exe introuvable sous local/outils/. Lancer outils/installer.py.')
-    sortie = os.path.join(LOCAL, 'extrait')
     exefs, romfs = os.path.join(sortie, 'exefs'), os.path.join(sortie, 'romfs')
     os.makedirs(exefs, exist_ok=True)
     os.makedirs(romfs, exist_ok=True)
@@ -66,7 +89,7 @@ def inventorier(romfs, chemin_rapport):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
+    if len(sys.argv) not in (2, 3):
         print(__doc__)
     else:
-        extraire(sys.argv[1])
+        extraire(sys.argv[1], sys.argv[2] if len(sys.argv) == 3 else None)

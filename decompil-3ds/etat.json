@@ -3,7 +3,7 @@
   "objectif": "Faire tourner Pokémon X nativement sur PC, sans émulateur.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-10-13",
-  "prochaine_action": "Dumper le Pokémon X installé (copie numérique) avec le gestionnaire de titres de GodMode9, en .cxi, et le poser dans local/dump/.",
+  "prochaine_action": "Le 14 octobre : la journée de reverse de la console, programme dans JOURNEE.md. Ce soir, installer devkitPro et copier local/sd/ sur la microSD.",
   "fonctions": {
     "total": null,
     "identifiees": 0,
@@ -363,6 +363,10 @@
     {
       "date": "2026-10-13",
       "texte": "Écrit outils/elfer.py : enveloppe code.bin dans un ELF ARM chargé à 0x00100000, en trois segments si l'exheader est à côté, pour que Ghidra et REA l'ouvrent à la bonne adresse sans réglage. Les scripts Ghidra 3DS sont écrits pour Jython, que Ghidra 12 ne lance plus par défaut : installer.py déballe l'extension Jython livrée avec Ghidra et pose l'en-tête « @runtime Jython » sur les quatre scripts."
+    },
+    {
+      "date": "2026-10-13",
+      "texte": "Terrain préparé pour la journée du 14 : programme dans JOURNEE.md (sauvegarde NAND, boot9/boot11, FIRM déchiffré, modules système hid, sm, fs… dumpés par le gestionnaire de titres, puis hid lu dans Ghidra avant Pokémon X). Téléchargés dans local/ : l'installateur devkitPro 3.0.3, GodMode9 2.2.3 et ftpd 3.2.1, assemblés dans local/sd/ prêts à copier sur la microSD. extraire.py sait maintenant ouvrir un FIRM et ranger plusieurs dumps côte à côte (local/extrait/<nom>/). Trois outils voisins livrés sur le site : Explorateur de romfs, Visionneuse BCH, et la Carte des services en cours."
     }
   ],
   "dump": {

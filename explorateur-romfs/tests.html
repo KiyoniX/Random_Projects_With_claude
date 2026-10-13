@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tests des formats</title>
+  <style>
+    body { margin: 0; padding: 24px 16px; background: #b4b8ac; color: #262320; font: 14px/1.5 'Segoe UI', Tahoma, sans-serif; }
+    main { max-width: 52rem; margin: 0 auto; background: #f4ecd8; padding: 16px 20px 20px; box-shadow: 4px 4px 0 #9a9f92; }
+    h1 { font: 700 20px/1.3 'Courier New', Courier, monospace; margin: 0 0 4px; }
+    p { margin: 0 0 12px; }
+    ol { margin: 0; padding-left: 1.4em; font-family: 'Courier New', Courier, monospace; }
+    li.rate { color: #b3261e; }
+    a { color: inherit; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tests des lecteurs de formats</h1>
+    <p>Des données fabriquées ici, jamais un fichier de jeu : GARC écrits puis relus en version 4 et 6, flux LZ11 compressés puis décompressés, textes de X/Y encodés puis décodés, textures et blocs ETC1 calculés à la main. Les mêmes tests se lancent par <code>node tests.js</code>. <a href="index.html">Retour à l'explorateur</a>.</p>
+    <ol id="journal"></ol>
+  </main>
+  <script src="formats.js"></script>
+  <script src="tests.js"></script>
+  <script>
+    (function () {
+      var ol = document.getElementById('journal');
+      window.lancerTests(window.FORMATS3DS, function (m, rate) {
+        var li = document.createElement('li');
+        li.textContent = (rate ? '✗ ' : '') + m;
+        if (rate) li.className = 'rate';
+        ol.appendChild(li);
+      });
+    })();
+  </script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>
