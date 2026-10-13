@@ -467,15 +467,16 @@
     return btoa(s);
   }
   function decoder(texte, n) {
-    var s = atob(texte), buf = new Uint32Array(n), i = 0, k, run, c;
+    var ABIME = 'Une image de ce fichier est abîmée : il ne peut pas être ouvert.', s, buf = new Uint32Array(n), i = 0, k, run, c;
+    try { s = atob(texte); } catch (err) { throw new Error(ABIME); }
     for (k = 0; k + 4 < s.length; k += 5) {
       run = s.charCodeAt(k);
       c = rgba(s.charCodeAt(k + 1), s.charCodeAt(k + 2), s.charCodeAt(k + 3), s.charCodeAt(k + 4));
-      if (i + run > n) throw new Error('image trop longue');
+      if (i + run > n) throw new Error(ABIME);
       if (c) buf.fill(c, i, i + run);
       i += run;
     }
-    if (i !== n) throw new Error('image incomplète');
+    if (i !== n) throw new Error(ABIME);
     return buf;
   }
   function nombre(v, defaut) { v = Number(v); return isFinite(v) ? v : defaut; }
@@ -542,16 +543,22 @@
   };
 
   // Un projet Atelier Pixel : chaque calque visible de la première image devient une pièce, déjà à sa place.
+  function opacite(c) { return c.opacite === undefined ? 1 : borne(Number(c.opacite) || 0, 0, 1); }
   P.depuisAtelier = function (o, nom) {
     var w, h, n, im, tout, pieces = [];
     if (!o || o.format !== FORMAT_ATELIER || !Array.isArray(o.calques) || !Array.isArray(o.images) || !o.images.length) throw new Error('Ce fichier n\'est pas un projet Atelier Pixel.');
     w = Math.round(o.w); h = Math.round(o.h); n = w * h;
     if (!(w >= 1 && h >= 1 && w <= COTE_MAX && h <= COTE_MAX)) throw new Error('Ce sprite fait ' + o.w + ' × ' + o.h + ' px : le maximum est ' + COTE_MAX + '.');
-    im = o.images[borne(Math.round(o.iImage) || 0, 0, o.images.length - 1)]; tout = new Uint32Array(n);
+    // La première image où un calque visible est peint : Atelier Pixel retient aussi l'image où l'on s'était arrêté, qui peut être vide.
+    im = o.images.filter(function (m) { return m && m.cels && o.calques.some(function (c) { return c.visible !== false && opacite(c) > 0 && m.cels[c.id]; }); })[0];
+    if (!im) throw new Error('Ce projet Atelier Pixel n\'a aucun pixel visible : il n\'y a rien à découper.');
+    tout = new Uint32Array(n);
     o.calques.forEach(function (c) {
-      var t = im.cels && im.cels[c.id], buf, i;
-      if (!t || c.visible === false) return;
+      var t = im.cels[c.id], op = opacite(c), buf, i, a;
+      if (!t || c.visible === false || op <= 0) return;
       buf = decoder(t, n);
+      // L'opacité du calque passe dans les pixels de la pièce, comme Atelier Pixel les montre.
+      if (op < 1) for (i = 0; i < n; i++) if (buf[i]) { a = Math.round((buf[i] >>> 24) * op); buf[i] = a ? ((buf[i] & 0xffffff) | a << 24) >>> 0 : 0; }
       for (i = 0; i < n; i++) if (buf[i]) tout[i] = sur(tout[i], buf[i]);
       pieces.push({ pix: buf, nom: String(c.nom || 'Calque').slice(0, 40) });
     });

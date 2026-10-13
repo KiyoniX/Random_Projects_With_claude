@@ -151,7 +151,8 @@
             apresOuverture('animation', 'Projet « ' + fichier.name + ' » ouvert.');
           }
         } catch (err) {
-          U.alerte('Ouverture impossible', err instanceof SyntaxError ? 'Ce fichier n\'est ni un projet Pantin ni un projet Atelier Pixel lisible.' : err.message);
+          // Seules les erreurs levées par Pantin parlent français ; les autres viennent d'un fichier mal formé.
+          U.alerte('Ouverture impossible', err && err.constructor === Error ? err.message : 'Ce fichier n\'est ni un projet Pantin ni un projet Atelier Pixel lisible.');
         }
       };
       l.readAsText(fichier);
@@ -407,8 +408,8 @@
     }
     if (saisie) { if (k === 'Enter') cible.blur(); return; }
     if (e.altKey) return;
+    // Espace déplace la vue même quand un bouton qu'on vient de cliquer garde le focus : sinon il le pressait de nouveau.
     if (k === ' ') {
-      if (tag === 'BUTTON') return;
       e.preventDefault();
       if (!U.espace) { U.espace = true; $('#scene').classList.add('main'); }
       return;
@@ -467,7 +468,8 @@
     repris = reprendre();
     if (!repris) P.exemple();
     P.surChange = function () { U.rafraichir(); sauverBientot(); };
-    U.choisirMode('animation');
+    // Une planche reprise avant d'être découpée rouvre sur l'étape 1, pas sur un cadre vide.
+    U.choisirMode(repris && !P.doc.pieces.length ? 'decoupe' : 'animation');
     if (!repris) { U.dire('Pantin d\'exemple : glisse un membre pour le faire tourner. Le menu Fichier ouvre ton propre dessin.'); U.lire(true); }
   }
 
