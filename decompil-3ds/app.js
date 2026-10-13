@@ -311,12 +311,12 @@
     function ko(s) { return '<span class="bloque">✗ ' + esc(s) + '</span>'; }
     function ok(s) { return '<span class="acquis">✓ ' + esc(s) + '</span>'; }
     if (!d.present) {
-      ligne('local/dump/', ko('aucun fichier .3ds ni .cci'));
+      ligne('local/dump/', ko('aucun fichier .cxi ni .3ds'));
     } else {
       ligne('Dump', ok(d.fichiers.join(', ')));
       if (d.erreur) ligne('Lecture', ko(d.erreur));
       if (d.titre) ligne('Titre', esc(d.titre) + (d.produit ? '   ' + esc(d.produit) : ''));
-      if ('dechiffre' in d) ligne('Chiffrement', d.dechiffre ? ok('déchiffré, prêt à extraire') : ko('encore chiffré : repasse par GodMode9, « Decrypt file »'));
+      if ('dechiffre' in d) ligne('Chiffrement', d.dechiffre ? ok('déchiffré, prêt à extraire') : ko('encore chiffré : dans GodMode9, « NCCH image options » puis « Decrypt file »'));
       if (d.exefs) ligne('Code (exefs)', mo(d.exefs));
       if (d.romfs) ligne('Fichiers', mo(d.romfs) + ' (romfs)');
     }

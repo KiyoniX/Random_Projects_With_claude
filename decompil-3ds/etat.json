@@ -3,7 +3,7 @@
   "objectif": "Faire tourner Pokémon X nativement sur PC, sans émulateur.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-10-13",
-  "prochaine_action": "Dumper la cartouche de Pokémon X avec GodMode9, la déchiffrer, et la poser dans local/dump/.",
+  "prochaine_action": "Dumper le Pokémon X installé (copie numérique) avec le gestionnaire de titres de GodMode9, en .cxi, et le poser dans local/dump/.",
   "fonctions": {
     "total": null,
     "identifiees": 0,
@@ -15,14 +15,14 @@
       "id": 1,
       "nom": "Extraire le jeu",
       "poids": 1,
-      "but": "Avoir le code et les fichiers de Pokémon X sur le PC, vérifiés, déchiffrés.",
+      "but": "Avoir le code et les fichiers de Pokémon X (copie numérique installée) sur le PC, vérifiés, déchiffrés.",
       "taches": [
         {
-          "t": "Dumper la cartouche avec GodMode9 (menu de la cartouche, « Copy to 0:/gm9/out »)",
+          "t": "Dumper le titre installé avec GodMode9 (gestionnaire de titres, « Dump CXI/NDS file »)",
           "fait": false
         },
         {
-          "t": "Déchiffrer le dump dans GodMode9 (NCSD image options, « Decrypt file »)",
+          "t": "Dumper aussi la mise à jour du jeu si elle est installée (titre 0004000E…), c'est elle qui porte le code qui tourne",
           "fait": false
         },
         {
@@ -251,7 +251,7 @@
     {
       "id": "godmode9",
       "nom": "GodMode9",
-      "role": "Explorateur de fichiers de la console. Dumpe et déchiffre la cartouche.",
+      "role": "Explorateur de fichiers de la console. Son gestionnaire de titres dumpe un jeu installé, déchiffré, en .cxi.",
       "ou": "Sur la console (Start au démarrage)",
       "lieu": "console",
       "present": null,

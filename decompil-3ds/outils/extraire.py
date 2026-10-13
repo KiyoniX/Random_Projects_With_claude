@@ -1,9 +1,11 @@
 """Sépare un dump déchiffré en code (exefs) et fichiers (romfs) avec ctrtool, puis inventorie le romfs.
 
-    python extraire.py local/dump/pokemon-x.3ds
+    python extraire.py local/dump/pokemon-x.cxi        titre installé dumpé par GodMode9 (NCCH)
+    python extraire.py local/dump/pokemon-x.3ds        image de cartouche (NCSD) : ctrtool prend la partition 0
 
-Le résultat va dans local/extrait/ : exefs/ (code.bin décompressé, icon, banner) et romfs/.
-Puis un inventaire des GARC trouvés est écrit dans local/extrait/inventaire.txt.
+Le résultat va dans local/extrait/ : exefs/ (code.bin décompressé, icon, banner), romfs/ et exheader.bin
+(dont elfer.py se sert pour découper le code en segments). Puis un inventaire des GARC trouvés est écrit
+dans local/extrait/inventaire.txt.
 """
 import os
 import subprocess
@@ -35,7 +37,7 @@ def extraire(dump):
     exefs, romfs = os.path.join(sortie, 'exefs'), os.path.join(sortie, 'romfs')
     os.makedirs(exefs, exist_ok=True)
     os.makedirs(romfs, exist_ok=True)
-    cmd = [exe, '-p', '--decompresscode', '--exefsdir=' + exefs, '--romfsdir=' + romfs, dump]
+    cmd = [exe, '-p', '--decompresscode', '--exefsdir=' + exefs, '--romfsdir=' + romfs, '--exheader=' + os.path.join(exefs, 'exheader.bin'), dump]
     print('\n> ' + ' '.join(cmd))
     code = subprocess.call(cmd)
     if code:

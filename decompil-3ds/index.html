@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Décompil 3DS</title>
-  <meta name="description" content="Carnet de bord d'une rétro-ingénierie : de la cartouche de Pokémon X à un jeu qui tourne nativement sur PC.">
+  <meta name="description" content="Carnet de bord d'une rétro-ingénierie : de la copie de Pokémon X installée sur une New 3DS XL à un jeu qui tourne nativement sur PC.">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -38,14 +38,14 @@
       <h2 class="dymo" id="t-jeu">Le jeu</h2>
       <div class="deux">
         <div>
-          <p class="chapo">Tout part de la cartouche. Tant qu'elle n'est pas copiée et déchiffrée sur le PC, il n'y a rien à ouvrir dans Ghidra. Le dump reste dans <code>local/</code>, que le dépôt ne publie jamais.</p>
+          <p class="chapo">Tout part du jeu installé sur la console : la cartouche est morte, on travaille sur la copie numérique. Tant qu'elle n'est pas dumpée sur le PC, il n'y a rien à ouvrir dans Ghidra. Le dump reste dans <code>local/</code>, que le dépôt ne publie jamais.</p>
           <ol class="etapes">
-            <li>Console éteinte, insère la cartouche de Pokémon X. Allume en maintenant <kbd>Start</kbd> : Luma lance GodMode9.</li>
-            <li>Ouvre <code>[C:] GAMECART</code>, choisis le fichier <code>.3ds</code>, appuie sur <kbd>A</kbd> puis « Copy to 0:/gm9/out ». La copie prend plusieurs minutes.</li>
-            <li>Va dans <code>0:/gm9/out</code>, choisis la copie, <kbd>A</kbd>, « NCSD image options » puis « Decrypt file ». Sans ce passage, le PC ne lit que du bruit chiffré.</li>
+            <li>Allume la console en maintenant <kbd>Start</kbd> : Luma lance GodMode9.</li>
+            <li>Va dans <code>[A:] SYSNAND SD</code>, pose-toi sur le dossier <code>title</code>, appuie sur <kbd>A</kbd> et choisis « Open title manager ». La liste des jeux installés s'affiche avec leur nom.</li>
+            <li>Choisis Pokémon X, <kbd>A</kbd>, puis « Dump CXI/NDS file ». Le fichier <code>.cxi</code> arrive dans <code>0:/gm9/out</code>, déjà déchiffré. Si une mise à jour du jeu est installée (un titre qui commence par <code>0004000E</code>), dumpe-la de la même façon : c'est elle qui porte le code qui tourne vraiment.</li>
             <li>Éteins, sors la microSD et copie le fichier dans <code>local/dump/</code> du projet (crée le dossier s'il n'existe pas).</li>
-            <li><code>python outils/inspecter.py local/dump/pokemon-x.3ds</code> doit répondre « déchiffré, prêt à extraire ». Recopie l'empreinte SHA-256 dans le journal.</li>
-            <li><code>python outils/extraire.py local/dump/pokemon-x.3ds</code> pose le code dans <code>local/extrait/exefs/code.bin</code>, les fichiers dans <code>local/extrait/romfs/</code>, et l'inventaire des GARC dans <code>local/extrait/inventaire.txt</code>. Puis <code>python outils/elfer.py local/extrait/exefs/code.bin</code> en fait un <code>code.elf</code> prêt pour Ghidra.</li>
+            <li><code>python outils/inspecter.py local/dump/pokemon-x.cxi</code> doit répondre « déchiffré, prêt à extraire ». Recopie l'empreinte SHA-256 dans le journal.</li>
+            <li><code>python outils/extraire.py local/dump/pokemon-x.cxi</code> pose le code dans <code>local/extrait/exefs/code.bin</code>, l'en-tête étendu dans <code>exheader.bin</code>, les fichiers dans <code>local/extrait/romfs/</code>, et l'inventaire des GARC dans <code>local/extrait/inventaire.txt</code>. Puis <code>python outils/elfer.py local/extrait/exefs/code.bin</code> en fait un <code>code.elf</code> prêt pour Ghidra.</li>
             <li><code>python outils/verifier.py</code> remet la fiche et ce relevé à jour.</li>
           </ol>
         </div>

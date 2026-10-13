@@ -6,14 +6,14 @@ Ouvre `index.html` : la page montre la feuille de route en sept paliers, l'avanc
 
 ## Mise en garde
 
-Tu travailles uniquement sur ta propre cartouche, dumpée avec ta propre console. Rien de ce qui en sort n'est versionné ni distribué : ni le dump, ni le code du jeu, ni ses fichiers, ni ses textes. Tout ça vit dans `local/`, que le `.gitignore` du dépôt exclut. Le dépôt ne contient que nos outils et nos notes.
+Tu travailles uniquement sur ton propre jeu, acheté et installé sur ta propre console, dumpé par elle. Rien de ce qui en sort n'est versionné ni distribué : ni le dump, ni le code du jeu, ni ses fichiers, ni ses textes. Tout ça vit dans `local/`, que le `.gitignore` du dépôt exclut. Le dépôt ne contient que nos outils et nos notes.
 
 ## La marche à suivre
 
-1. **Dumper.** Sur la console, démarre GodMode9 (Start au démarrage). Ouvre la cartouche et copie-la vers `0:/gm9/out`. Puis, sur le fichier, « NCSD image options », « Decrypt file ».
-2. **Inspecter.** Copie le `.3ds` déchiffré dans `local/dump/`, puis : `python outils/inspecter.py local/dump/pokemon-x.3ds`. Le script dit si le dump est bien déchiffré et donne son empreinte SHA-256, à noter dans le journal.
+1. **Dumper.** Le jeu est une copie numérique (la cartouche est morte). Sur la console, démarre GodMode9 (Start au démarrage), va dans `[A:] SYSNAND SD`, pose-toi sur le dossier `title`, appuie sur A et choisis « Open title manager ». Sélectionne Pokémon X, A, « Dump CXI/NDS file » : le fichier `.cxi`, déjà déchiffré, arrive dans `0:/gm9/out`. Si une mise à jour du jeu est installée, dumpe-la aussi : c'est elle qui porte le code qui tourne vraiment.
+2. **Inspecter.** Copie le `.cxi` dans `local/dump/`, puis : `python outils/inspecter.py local/dump/pokemon-x.cxi`. Le script dit si le dump est bien déchiffré et donne son empreinte SHA-256, à noter dans le journal. Une image de cartouche `.3ds` marche aussi.
 3. **Installer les outils.** Pose les zips de ctrtool, makerom et Ghidra dans `local/telechargements/` (les liens sont sur la page), puis : `python outils/installer.py`. Il les déballe dans `local/outils/` et clone les scripts Ghidra 3DS.
-4. **Extraire.** `python outils/extraire.py local/dump/pokemon-x.3ds`. Le code va dans `local/extrait/exefs/code.bin`, les fichiers dans `local/extrait/romfs/`, et la liste des GARC dans `local/extrait/inventaire.txt`.
+4. **Extraire.** `python outils/extraire.py local/dump/pokemon-x.cxi`. Le code va dans `local/extrait/exefs/code.bin`, l'en-tête étendu dans `local/extrait/exefs/exheader.bin`, les fichiers dans `local/extrait/romfs/`, et la liste des GARC dans `local/extrait/inventaire.txt`.
 5. **Faire les exercices.** Installe devkitPro avec « 3DS Development », puis suis `exercices/README.md`. On compile de petits programmes dont on connaît le code, et on apprend à les reconnaître dans Ghidra.
 6. **Ouvrir le jeu dans Ghidra.** `python outils/elfer.py local/extrait/exefs/code.bin` enveloppe le code dans un ELF chargé à `0x00100000` ; importe-le en ARM v6 little-endian, puis lance les quatre scripts 3DS dans l'ordre. Tout est détaillé dans `outils/GHIDRA.md`.
 7. **REA.** C'est l'outil qu'on veut utiliser au quotidien : Claude Code pilote Ghidra à travers lui et doit fournir les preuves de ce qu'il affirme. Il est branché, mais sa version Windows n'ouvre que des exécutables PE x86 : pour l'ARM de la 3DS, il faut le faire tourner sous WSL. `outils/REA.md` explique ce qui est fait, ce qui bloque, et comment lever le blocage.
@@ -22,7 +22,7 @@ Tu travailles uniquement sur ta propre cartouche, dumpée avec ta propre console
 
 | Script | Ce qu'il fait |
 | --- | --- |
-| `outils/inspecter.py` | Lit l'en-tête d'un dump `.3ds` : titre, code produit, chiffré ou non, empreinte. |
+| `outils/inspecter.py` | Lit l'en-tête d'un dump, `.cxi` de titre installé ou `.3ds` de cartouche : titre, code produit, chiffré ou non, empreinte. |
 | `outils/installer.py` | Déballe ctrtool, makerom et Ghidra dans `local/outils/`, installe l'extension Jython de Ghidra, clone les scripts Ghidra 3DS et leur pose l'en-tête `@runtime Jython`. |
 | `outils/extraire.py` | Sépare le dump en exefs et romfs avec ctrtool, puis inventorie les GARC. |
 | `outils/elfer.py` | Enveloppe `code.bin` dans un ELF ARM chargé à `0x00100000`, en trois segments si `exheader.bin` est à côté, pour Ghidra et REA. |
@@ -46,7 +46,7 @@ decompil-3ds/
   outils/                         les scripts Python, et les procédures REA.md et GHIDRA.md
   exercices/                      les homebrews à vérité connue, avec leur Makefile
   local/                          jamais versionné
-    dump/                         le .3ds de ta cartouche
+    dump/                         le .cxi de ton jeu installé
     extrait/                      exefs, romfs, inventaire
     telechargements/              les zips des outils
     outils/                       les outils déballés (ctrtool, makerom, Ghidra, scripts)

@@ -101,7 +101,7 @@ def mesurer(etat):
             o['note'] = 'Paquet %s, déclaration MCP %s, Node %s' % (
                 'installé' if rea_paquet else 'absent', 'trouvée' if rea_mcp else 'absente',
                 '22+ présent' if node_assez_recent() else 'absent ou trop vieux (il faut 22.19+)')
-    dumps = sorted(n for n in os.listdir(os.path.join(LOCAL, 'dump')) if n.lower().endswith(('.3ds', '.cci'))) if os.path.isdir(os.path.join(LOCAL, 'dump')) else []
+    dumps = sorted(n for n in os.listdir(os.path.join(LOCAL, 'dump')) if n.lower().endswith(('.cxi', '.app', '.3ds', '.cci'))) if os.path.isdir(os.path.join(LOCAL, 'dump')) else []
     etat['dump'] = {'present': bool(dumps), 'fichiers': dumps}
     if dumps:
         import inspecter
