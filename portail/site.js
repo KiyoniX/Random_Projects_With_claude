@@ -28,6 +28,7 @@
     'phare': ['#2f4038', '#dcc078', 'Q'],
     'bureau-des-reclamations': ['#d47a2a', '#fbfaf3', 'R'],
     'atelier-pixel': ['#2b2d35', '#f4f4f6', 'A'],
+    'pantin': ['#2a2b2d', '#d2ab52', 'P'],
     'textures': ['#a8452f', '#fff3e6', 'T'],
     'palettes': ['#3b2e63', '#ffe7a4', 'P'],
     'tuiles': ['#3f9a3c', '#f4f4f6', 'T'],

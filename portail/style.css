@@ -95,6 +95,8 @@ a { color: inherit; text-decoration: none; }
 .b-visite { background: linear-gradient(#e4d2aa 0 70%, #8a3f2c 70% 78%, #c9b28c 78% 90%, #6f6a55 90%); color: #3d2f21; }
 .b-visite .name { font-family: 'Palatino Linotype', 'Book Antiqua', Georgia, serif; font-style: italic; }
 .b-visite .dot { bottom: 34px; }
+.b-pantin { background: radial-gradient(circle at 50% 30px, #f3dfa2 0 2px, #d2ab52 2px 7px, #6a4f1c 7px 8px, transparent 8px), radial-gradient(circle at 50% calc(100% - 34px), #f3dfa2 0 2px, #d2ab52 2px 7px, #6a4f1c 7px 8px, transparent 8px), linear-gradient(#3a3b3f 0 1px, transparent 1px) 0 0 / 100% 16px, linear-gradient(90deg, #3a3b3f 0 1px, transparent 1px) 0 0 / 16px 100%, #2a2b2d; color: #f4f4f6; }
+.b-pantin .name { font-family: var(--text); font-weight: 700; background: #1d1e24; padding: 8px 3px; margin-top: 36px; }
 .b-palettes { background: linear-gradient(#0c1620 0 9%, #21204e 9% 18%, #3b2e63 18% 27%, #5e406c 27% 36%, #815175 36% 45%, #a06074 45% 54%, #c46979 54% 63%, #de8a78 63% 72%, #a9927f 72% 81%, #cdc1b4 81% 90%, #ffe7a4 90%); color: #f4f4f6; }
 .b-palettes .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; background: #1d1e24; padding: 8px 3px; }
 .b-tuiles { background: linear-gradient(#1f5c22 0 1px, transparent 1px) 0 0 / 100% 16px, linear-gradient(90deg, #1f5c22 0 1px, transparent 1px) 0 0 / 16px 100%, linear-gradient(#3f9a3c 0 72%, #6b4a2e 72% 84%, #2f6fc0 84%); color: #f4f4f6; }

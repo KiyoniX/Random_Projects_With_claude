@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pantin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <h1><i class="attache"></i>Pantin</h1>
+    <nav class="menus" id="menus"></nav>
+    <div class="rapides">
+      <button type="button" class="btn" data-act="annuler" id="bAnnuler" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+      <button type="button" class="btn" data-act="retablir" id="bRetablir" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
+    </div>
+  </header>
+
+  <div class="etapes" id="etapes">
+    <button type="button" class="etape" data-mode="decoupe" title="Découper la planche en pièces (1)"><b>1</b> Découper</button>
+    <button type="button" class="etape" data-mode="montage" title="Assembler les pièces et poser les attaches (2)"><b>2</b> Monter</button>
+    <button type="button" class="etape" data-mode="animation" title="Poser le pantin image par image (3)"><b>3</b> Animer</button>
+    <strong id="nomOutil"></strong>
+    <span class="astuce" id="astuce"></span>
+  </div>
+
+  <div class="plan">
+    <aside class="outils" id="outils"></aside>
+
+    <section class="scene" id="scene">
+      <canvas id="toile"></canvas>
+    </section>
+
+    <aside class="cote">
+      <section class="panneau grand">
+        <h2>Pièces <span class="compte" id="compte"></span></h2>
+        <div class="rang">
+          <button type="button" class="btn mini" data-act="pieceMonter" title="Passer la pièce devant la suivante">▲ Devant</button>
+          <button type="button" class="btn mini" data-act="pieceDescendre" title="Passer la pièce derrière la précédente">▼ Derrière</button>
+          <button type="button" class="btn mini" data-act="pieceRenommer" title="Renommer la pièce (F2)">Nom</button>
+          <button type="button" class="btn mini" data-act="pieceSupprimer" title="Supprimer la pièce">✕</button>
+        </div>
+        <div class="pieces" id="pieces"></div>
+      </section>
+
+      <section class="panneau" id="pPiece">
+        <h2 id="titrePiece">Pièce choisie</h2>
+        <label class="rang">Tenue par <select id="mere"></select></label>
+        <div class="rang">Attache
+          <label>x <input type="number" id="attX" step="0.5"></label>
+          <label>y <input type="number" id="attY" step="0.5"></label>
+        </div>
+        <div class="rang" id="rDecal">Décalage
+          <label>x <input type="number" id="poseX" step="1"></label>
+          <label>y <input type="number" id="poseY" step="1"></label>
+        </div>
+        <div class="rang">
+          <label id="rPose" title="Angle autour de l'attache, en degrés, dans le sens des aiguilles d'une montre">Angle <input type="number" id="poseA" step="1"> °</label>
+          <label id="rLissage" class="large" title="Comment la pièce quitte cette clé pour aller vers la suivante">
+            <select id="lissage" aria-label="Départ de la clé">
+              <option value="doux">part en douceur</option>
+              <option value="lin">part régulièrement</option>
+              <option value="palier">saute d'un coup</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="panneau">
+        <h2>Cadre et rotation</h2>
+        <div class="rang">
+          <label>Largeur <input type="number" id="cadreW" min="1" max="512"></label>
+          <label>Hauteur <input type="number" id="cadreH" min="1" max="512"></label>
+        </div>
+        <div class="rang">
+          <button type="button" class="btn mini" data-act="cadrer" title="Resserrer le cadre sur tout ce que le pantin occupe pendant ses animations">Cadrer le pantin</button>
+          <label title="Tourne une version agrandie de la pièce, puis la réduit : les contours restent nets au lieu de se déchirer"><input type="checkbox" id="soigne"> Rotation soignée</label>
+        </div>
+        <label class="rang">Crans
+          <select id="cran">
+            <option value="0">Angle libre</option>
+            <option value="5">5°</option>
+            <option value="15">15°</option>
+            <option value="22.5">22,5°</option>
+            <option value="45">45°</option>
+          </select>
+        </label>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="frise">
+    <div class="frise-corps">
+      <div class="frise-cmd">
+        <select id="anims" aria-label="Animation en cours"></select>
+        <button type="button" class="btn mini" data-act="animAjouter" title="Nouvelle animation">+</button>
+        <span class="sep"></span>
+        <button type="button" class="btn mini" data-act="imgPremiere" title="Première image (Début)">⏮</button>
+        <button type="button" class="btn mini" data-act="imgPrecedente" title="Image précédente (←)">◀</button>
+        <button type="button" class="btn mini lire" data-act="lire" id="bLire" title="Lire / arrêter (Entrée)">▶ Lire</button>
+        <button type="button" class="btn mini" data-act="imgSuivante" title="Image suivante (→)">▶</button>
+        <span class="sep"></span>
+        <button type="button" class="btn mini" data-act="cle" title="Poser une clé sur la pièce choisie à cette image (K)">◆ Poser une clé</button>
+        <button type="button" class="btn mini" data-act="cleOter" title="Retirer la clé de la pièce choisie à cette image (Suppr)">◇ Retirer</button>
+        <span class="sep"></span>
+        <label>Images <input type="number" id="longueur" min="1" max="120"></label>
+        <label>Cadence <input type="number" id="cadence" min="1" max="60"> i/s</label>
+        <label><input type="checkbox" id="boucle"> Boucle</label>
+        <span class="sep"></span>
+        <label title="Montre en transparence l'image d'avant (rouge) et celle d'après (bleu) (O)"><input type="checkbox" id="oignon"> Pelure d'oignon</label>
+      </div>
+      <div class="pistes" id="pistes">
+        <div class="noms" id="noms"></div>
+        <div class="grille" id="grille"><canvas id="frise"></canvas></div>
+      </div>
+    </div>
+    <section class="panneau apercu-zone">
+      <h2>Aperçu <span class="compte" id="apercuInfo"></span></h2>
+      <div class="apercu"><canvas id="apercu" width="1" height="1"></canvas></div>
+    </section>
+  </footer>
+
+  <div class="etat">
+    <span id="etatPos">–</span>
+    <span id="etatInfo"></span>
+    <span id="etatMsg" class="msg"></span>
+    <span id="etatSauve" class="sauve"></span>
+  </div>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="file" id="fichier" accept=".json,application/json,image/png,image/gif,image/jpeg,image/webp,image/bmp" hidden>
+
+  <script src="js/noyau.js"></script>
+  <script src="../atelier-pixel/js/gif.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/panneaux.js"></script>
+  <script src="js/principal.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

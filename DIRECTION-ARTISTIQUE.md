@@ -262,13 +262,14 @@ Le brun est réservé à l'imprimé, pour que les quatre couleurs de stylo, qui 
 
 ### Les outils graphiques : le fond neutre
 
-`atelier-pixel`, `textures`, `palettes`, `tuiles`, `police-pixel`.
+`atelier-pixel`, `pantin`, `textures`, `palettes`, `tuiles`, `police-pixel`.
 
-Ici le fond gris neutre n'est pas un défaut de parti pris, c'est une nécessité de métier : une interface colorée fausse le jugement des couleurs qu'on dessine. Ces cinq outils forment une famille reconnaissable (barre de menus en haut, outils à gauche, toile au centre, réglages à droite), et chacun pousse l'idée dans son sens.
+Ici le fond gris neutre n'est pas un défaut de parti pris, c'est une nécessité de métier : une interface colorée fausse le jugement des couleurs qu'on dessine. Ces six outils forment une famille reconnaissable (barre de menus en haut, outils à gauche, toile au centre, réglages à droite), et chacun pousse l'idée dans son sens.
 
 | Outil | Ce qui lui est propre |
 | --- | --- |
 | `atelier-pixel` | Gris `#18181a` à `#2c2c30`, ambre `#e8b04a` réservé à la sélection en cours. Frise d'animation en bas. |
+| `pantin` | Le plan de travail est un tapis de découpe gris, quadrillé tous les 8 pixels. Le seul ornement est l'attache parisienne : une tête de laiton fendue `#d2ab52` marque chaque pivot, un fil clair la relie à la pièce qui la tient, et le même laiton désigne ce qui est choisi. Trois étapes numérotées (découper, monter, animer), parce que c'est vraiment une suite. Sur la frise, la forme d'une clé dit comment la pièce repart : rond en douceur, losange régulier, carré par à-coup. |
 | `textures` | Mêmes gris. La tuile seule et son pavage côte à côte : la répétition est le sujet. |
 | `palettes` | Aucune couleur d'accent, uniquement des gris (`#1a1a1a` à `#f4f4f4`). La seule couleur à l'écran est la palette, étalée sur toute la largeur. Un sélecteur de fond (noir, gris, blanc) sert à juger. |
 | `tuiles` | La carte prend presque tout l'écran, avec des règles graduées en cases. Ambre `#e8b04a` pour l'outil actif, cyan `#5cb8c8` pour les objets. |

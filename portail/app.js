@@ -45,6 +45,7 @@
       title: 'Outils et atelier', note: 'Pour dessiner, composer, fabriquer, et deux simulateurs à lancer au terminal.',
       items: [
         { id: 'atelier', title: 'Atelier Pixel', dir: 'atelier-pixel', kind: 'Outil', w: 80, h: 300, text: 'Éditeur de pixel-art animé : calques, frise d\'images, pelure d\'oignon, export GIF.' },
+        { id: 'pantin', title: 'Pantin', dir: 'pantin', kind: 'Outil', w: 62, h: 292, text: 'Animer un sprite sans le redessiner : on le découpe en pièces, on les épingle, on pose quelques clés et les images entre deux se calculent.' },
         { id: 'textures', title: 'Textures répétables', dir: 'textures', kind: 'Outil', w: 76, h: 288, text: 'Pierre, bois, herbe, eau : des tuiles en pixel-art qui se raccordent sans couture.' },
         { id: 'palettes', title: 'Palettes', dir: 'palettes', kind: 'Outil', w: 64, h: 280, text: 'Tirer une palette d\'une image, la réduire, vérifier ses contrastes, l\'envoyer vers Atelier Pixel et Textures.' },
         { id: 'tuiles', title: 'Tuiles', dir: 'tuiles', kind: 'Outil', w: 70, h: 294, text: 'Éditeur de cartes en tuiles : calques, collisions, objets, et un personnage pour essayer le niveau.' },
