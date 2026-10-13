@@ -180,7 +180,8 @@
       v = B.lire(el.dataset.c);
       f = CHAMPS[Number(el.closest('[data-i]').dataset.i)];
       if (el.tagName === 'BUTTON') { el.classList.toggle('actif', el.dataset.v === v); el.setAttribute('aria-checked', el.dataset.v === v); continue; }
-      if (el === actif && el.type !== 'range') continue;
+      // Seul le champ numérique en cours de frappe est épargné : une case cochée ou une liste qui garde le focus suit Ctrl+Z.
+      if (el === actif && el.type === 'number') continue;
       if (el.type === 'checkbox') el.checked = !!v;
       else if (el.type === 'range' || el.type === 'number') el.value = f && f.t === 'reg' ? afficher(f, v) : v;
       else el.value = v;
@@ -191,7 +192,7 @@
       for (i = 0; i < els.length; i++) {
         els[i].style.background = c.rampe[i];
         els[i].title = 'Teinte ' + (i + 1) + ' sur ' + c.rampe.length + ' : ' + c.rampe[i] + '. Clique pour la changer.';
-        if (els[i].firstChild !== actif) els[i].firstChild.value = c.rampe[i];
+        if (els[i].firstChild !== enCours) els[i].firstChild.value = c.rampe[i];
       }
     } else {
       $('#rampe').innerHTML = c.rampe.map(function (h, k) {
@@ -238,7 +239,14 @@
     });
     z.addEventListener('change', function (e) {
       var el = e.target, v, f;
-      if (el.type === 'range' || el.type === 'color') { finir(); return; }
+      if (el.type === 'range' || el.type === 'color') {
+        finir();
+        // Un sélecteur de couleur qui n'envoie que « change » (sans « input ») : la teinte est prise ici.
+        if (el.type === 'color' && B.couche().rampe[Number(el.dataset.t)] !== el.value) {
+          v = B.couche().rampe.slice(); v[Number(el.dataset.t)] = el.value; B.regler('rampe', v);
+        }
+        return;
+      }
       if (!el.dataset.c) return;
       if (el.type === 'checkbox') v = el.checked;
       else if (el.tagName === 'SELECT') v = el.value;
@@ -249,7 +257,11 @@
       if (el.type === 'number') { f = CHAMPS[Number(el.closest('[data-i]').dataset.i)]; el.value = f && f.t === 'reg' ? afficher(f, B.lire(el.dataset.c)) : B.lire(el.dataset.c); }
       U.rafraichir();
     });
-    ['pointerup', 'keyup', 'focusout'].forEach(function (t) { z.addEventListener(t, function () { if (enCours) finir(); }); });
+    // La perte du focus ne compte que pour le champ en cours : en glissant une réglette, le champ d'avant perd le focus
+    // après le premier « input » de la nouvelle, et couperait le geste en deux étapes d'annulation.
+    ['pointerup', 'keyup', 'focusout'].forEach(function (t) { z.addEventListener(t, function (e) { if (enCours && (t !== 'focusout' || e.target === enCours)) finir(); }); });
+    // Un nombre tapé sans Entrée est retenu avant que la réglette saisie ne bouge : son « change » tomberait au milieu du geste.
+    z.addEventListener('pointerdown', function (e) { var a = document.activeElement; if (a && a.type === 'number' && a !== e.target && z.contains(a)) a.blur(); });
     z.addEventListener('click', function (e) {
       var b = e.target.closest('button[data-v]'), r = e.target.closest('[data-rampe]'), c = B.couche(), l;
       if (b) { B.regler(b.dataset.c, b.dataset.v); return; }

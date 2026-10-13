@@ -381,6 +381,8 @@
       // Dans un champ en cours de frappe, Ctrl+Z et Ctrl+Y défont la frappe, pas l'effet.
       o = { z: e.shiftKey ? 'retablir' : 'annuler', y: 'retablir', s: 'enregistrer', o: 'ouvrir', d: 'coucheDupliquer' }[k];
       if (saisie && (k === 'z' || k === 'y')) return;
+      // Ctrl+S au milieu d'une frappe : le champ est d'abord validé, pour que le fichier contienne la valeur tapée.
+      if (o && saisie) cible.blur();
       if (o) { e.preventDefault(); agir(o); }
       return;
     }
