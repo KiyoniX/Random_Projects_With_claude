@@ -131,8 +131,13 @@
   // ---------- Vérifier : contrastes ----------
   var grille = null;        // { cote, n } : la géométrie de la matrice affichée
 
+  // La palette telle que la vision choisie dans la barre la montre : contrastes et étagement se jugent sur ce qu'on verra.
+  function vue() { return P.rgbPalette().map(function (c) { return P.R.vision === 'normale' ? c : P.simuler(c, P.R.vision); }); }
+  function hexVue(i) { return P.rgbVersHex(vue()[i]); }
+  function nomVision() { return P.R.vision === 'normale' ? '' : ' en ' + P.VISIONS.filter(function (v) { return v.id === P.R.vision; })[0].nom.toLowerCase().replace(/ \(.*\)$/, ''); }
+
   function dessinerMatrice() {
-    var pal = P.rgbPalette(), n = pal.length, cadre = $('#cadreMatrice'), c = $('#matrice'), k = window.devicePixelRatio || 1;
+    var pal = vue(), n = pal.length, cadre = $('#cadreMatrice'), c = $('#matrice'), k = window.devicePixelRatio || 1;
     var place = Math.max(60, Math.min(cadre.clientWidth, cadre.clientHeight)), cote = Math.max(3, Math.floor(place / (n + 1))), T = cote * (n + 1), g, i, j, r, bons = 0, x, y;
     c.width = Math.round(T * k); c.height = Math.round(T * k);
     c.style.width = c.style.height = T + 'px';
@@ -141,18 +146,18 @@
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.font = '600 ' + Math.min(13, Math.round(cote * 0.42)) + 'px Bahnschrift, "Segoe UI", sans-serif';
     for (i = 0; i < n; i++) {
-      g.fillStyle = '#' + P.E.couleurs[i];
+      g.fillStyle = '#' + P.rgbVersHex(pal[i]);
       g.fillRect((i + 1) * cote, 0, cote, cote - 1);
       g.fillRect(0, (i + 1) * cote, cote - 1, cote);
     }
     for (j = 0; j < n; j++) {
       for (i = 0; i < n; i++) {
         x = (j + 1) * cote; y = (i + 1) * cote;
-        g.fillStyle = '#' + P.E.couleurs[j];
+        g.fillStyle = '#' + P.rgbVersHex(pal[j]);
         g.fillRect(x, y, cote, cote);
         if (i === j) continue;
         r = P.contraste(pal[i], pal[j]);
-        g.fillStyle = '#' + P.E.couleurs[i];
+        g.fillStyle = '#' + P.rgbVersHex(pal[i]);
         if (r >= P.R.ratio) {
           if (i < j) bons++;
           // Le rapport est écrit avec la couleur de la ligne sur celle de la colonne : s'il se lit, la paire tient.
@@ -168,10 +173,10 @@
   function infoMatrice(i, j) {
     var E = P.E, n = E.couleurs.length, paires = n * (n - 1) / 2, r;
     if (i >= 0 && j >= 0 && i !== j && i < n && j < n) {
-      r = P.contraste(P.hexVersRgb(E.couleurs[i]), P.hexVersRgb(E.couleurs[j]));
-      $('#infoMatrice').innerHTML = '<span class="puces"><i style="background:#' + E.couleurs[i] + '"></i><i style="background:#' + E.couleurs[j] + '"></i></span> #' + E.couleurs[i] + ' sur #' + E.couleurs[j] + ' : <b>' + fr(r, 2) + ' : 1</b>, ' + P.niveau(r) + '. Un clic choisit la paire.';
+      r = P.contraste(vue()[i], vue()[j]);
+      $('#infoMatrice').innerHTML = '<span class="puces"><i style="background:#' + hexVue(i) + '"></i><i style="background:#' + hexVue(j) + '"></i></span> #' + E.couleurs[i] + ' sur #' + E.couleurs[j] + nomVision() + ' : <b>' + fr(r, 2) + ' : 1</b>, ' + P.niveau(r) + '. Un clic choisit la paire.';
     } else {
-      $('#infoMatrice').textContent = n < 2 ? 'Il faut au moins deux couleurs.' : grille.bons + ' des ' + pluriel(paires, 'paire') + ' atteignent ' + String(P.R.ratio).replace('.', ',') + ' : 1. ' +
+      $('#infoMatrice').textContent = n < 2 ? 'Il faut au moins deux couleurs.' : grille.bons + ' des ' + pluriel(paires, 'paire') + ' atteignent ' + String(P.R.ratio).replace('.', ',') + ' : 1' + nomVision() + '. ' +
         (grille.cote >= CASE_CHIFFREE ? 'Chaque case écrit le rapport avec la couleur de sa ligne sur celle de sa colonne ; un simple point : contraste insuffisant.' : 'Un carré plein marque les paires qui l\'atteignent. Survole une case pour lire son rapport.');
     }
   }
@@ -183,18 +188,18 @@
 
   // ---------- Vérifier : valeurs, voisines, daltonisme ----------
   function rafraichirValeursDetail() {
-    var E = P.E, L = E.couleurs.map(function (c, i) { return { i: i, l: P.clarte(P.hexVersRgb(c)) }; }).sort(function (a, b) { return a.l - b.l || a.i - b.i; });
+    var E = P.E, pal = vue(), L = pal.map(function (c, i) { return { i: i, l: P.clarte(c) }; }).sort(function (a, b) { return a.l - b.l || a.i - b.i; });
     var n = L.length, vide = 0, ou = 0, serres = 0, k, ideal;
     for (k = 1; k < n; k++) {
       if (L[k].l - L[k - 1].l > vide) { vide = L[k].l - L[k - 1].l; ou = k; }
       if (L[k].l - L[k - 1].l < 1.5) serres++;
     }
     $('#escalier').innerHTML = L.map(function (x) {
-      return '<i data-i="' + x.i + '"' + (x.i === E.sel ? ' class="choisie"' : '') + ' style="height:' + Math.max(1.5, x.l).toFixed(1) + '%;background:#' + E.couleurs[x.i] + '" title="#' + E.couleurs[x.i] + ', clarté ' + Math.round(x.l) + '"></i>';
+      return '<i data-i="' + x.i + '"' + (x.i === E.sel ? ' class="choisie"' : '') + ' style="height:' + Math.max(1.5, x.l).toFixed(1) + '%;background:#' + P.rgbVersHex(pal[x.i]) + '" title="#' + E.couleurs[x.i] + ', clarté ' + Math.round(x.l) + nomVision() + '"></i>';
     }).join('');
     if (n < 2) { $('#infoValeurs').textContent = 'Une seule couleur : pas d\'étagement à juger.'; return; }
     ideal = (L[n - 1].l - L[0].l) / (n - 1);
-    $('#infoValeurs').innerHTML = 'Les couleurs rangées de la plus sombre à la plus claire : plus l\'escalier est régulier, mieux les valeurs sont étagées. Clartés de <b>' + Math.round(L[0].l) + '</b> à <b>' + Math.round(L[n - 1].l) +
+    $('#infoValeurs').innerHTML = 'Les couleurs rangées de la plus sombre à la plus claire' + nomVision() + ' : plus l\'escalier est régulier, mieux les valeurs sont étagées. Clartés de <b>' + Math.round(L[0].l) + '</b> à <b>' + Math.round(L[n - 1].l) +
       '</b>, soit une marche idéale de ' + fr(ideal) + '. Plus grande marche : <b>' + fr(vide) + '</b>, entre #' + E.couleurs[L[ou - 1].i] + ' et #' + E.couleurs[L[ou].i] + '. ' +
       (serres ? '<b>' + pluriel(serres, 'marche') + '</b> de moins de 1,5 : ces couleurs ont presque la même valeur et ne se détacheront que par leur teinte.' : 'Aucune marche de moins de 1,5.');
   }
