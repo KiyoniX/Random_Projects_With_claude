@@ -188,7 +188,11 @@
     try { o = JSON.parse(texte); } catch (e) { o = null; }
     if (o && o.format === FORMAT) throw new Error('Ce fichier est un projet Vitrail, pas une palette.');
     if (o && typeof o === 'object') { liste = Array.isArray(o) ? o : o.couleurs || o.colors || o.palette; nom = Array.isArray(o) ? '' : String(o.nom || o.name || ''); }
-    else liste = String(texte).match(/#[0-9a-f]{6}\b/gi);
+    else {
+      liste = String(texte).match(/#[0-9a-f]{6}\b/gi);
+      // La liste .hex de Palettes écrit ses codes sans « # », un par ligne.
+      if (!liste) { liste = String(texte).split(/\r?\n/).filter(function (l) { return /^\s*[0-9a-f]{6}(?:[0-9a-f]{2})?\s*$/i.test(l); }); if (!liste.length) liste = null; }
+    }
     if (!Array.isArray(liste)) throw new Error('Aucune liste de couleurs dans ce fichier.');
     liste.forEach(function (c) {
       var m = /^#?([0-9a-f]{6})(?:[0-9a-f]{2})?$/i.exec(typeof c === 'string' ? c.trim() : '');

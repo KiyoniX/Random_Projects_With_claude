@@ -138,7 +138,7 @@
     });
     $('#grille').addEventListener('change', function () { V.doc.grille = Number(this.value); V.change(false); });
     $('#aimant').addEventListener('change', function () { V.doc.aimant = this.checked; V.change(false); });
-    $('#regles').addEventListener('change', function () { U.regles = this.checked; U.redessiner(); });
+    $('#regles').addEventListener('change', function () { U.regles = this.checked; U.redessiner(); if (U.cocher) U.cocher(); });
 
     $('#verres').addEventListener('click', function (e) {
       var b = e.target.closest('.plaque');

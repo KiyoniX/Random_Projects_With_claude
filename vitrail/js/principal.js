@@ -43,7 +43,8 @@
   function choix(nom, liste, valeur) {
     return '<select name="' + nom + '">' + liste.map(function (o) { return '<option value="' + o[0] + '"' + (String(o[0]) === String(valeur) ? ' selected' : '') + '>' + echapper(o[1]) + '</option>'; }).join('') + '</select>';
   }
-  function nombre(v) { v = Number(String(v).replace(',', '.')); return isFinite(v) ? v : null; }
+  // Un champ vidé ne vaut pas zéro : il est refusé comme un texte illisible.
+  function nombre(v) { v = String(v).trim().replace(',', '.'); return v !== '' && isFinite(v) ? Number(v) : null; }
 
   // ---------- Téléchargements ----------
   function telecharger(blob, nom) {
@@ -351,6 +352,7 @@
     var c = { jour: U.vue === 'jour', atelier: U.vue === 'atelier', carton: U.vue === 'carton', reglesVoir: U.regles, grisailleFine: U.largeurGrisaille === 0.8, grisailleMoyenne: U.largeurGrisaille === 1.5, grisailleLarge: U.largeurGrisaille === 3 }, k, els, i;
     for (k in c) { els = document.querySelectorAll('.menu-liste [data-act="' + k + '"]'); for (i = 0; i < els.length; i++) els[i].classList.toggle('coche', c[k]); }
   }
+  U.cocher = cocher;
   function initMenus() {
     var z = $('#menus');
     z.innerHTML = MENUS.map(function (m) {
