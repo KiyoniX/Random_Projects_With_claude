@@ -108,17 +108,18 @@
 
   // Renvoie une phrase de compte rendu.
   P.exporterWav = function (quoi, normaliser) {
-    var ech = P.rendre(quoi, normaliser), suffixe = { morceau: '', boucle: '-boucle', motif: '-' + C.cle(P.motif().nom), 'motif-boucle': '-' + C.cle(P.motif().nom) + '-boucle' }[quoi];
+    var ech = P.rendre(quoi, normaliser), nm = C.cle(P.motif().nom) || 'motif', suffixe = { morceau: '', boucle: '-boucle', motif: '-' + nm, 'motif-boucle': '-' + nm + '-boucle' }[quoi];
     if (!ech.length) return 'Rien à exporter : le morceau est vide.';
     telecharger(base() + suffixe + '.wav', P.wav(ech, FE_EXPORT), 'audio/wav');
     return 'Exporté : ' + base() + suffixe + '.wav, ' + (ech.length / FE_EXPORT).toFixed(2) + ' s.';
   };
   P.exporterBruitWav = function (i, normaliser) {
-    var b = P.projet.bruitages[i], ech;
+    var b = P.projet.bruitages[i], ech, nom;
     if (!b) return 'Aucun bruitage à exporter.';
     ech = P.rendreBruit(i, normaliser);
-    telecharger(C.cle(b.nom) + '.wav', P.wav(ech, FE_EXPORT), 'audio/wav');
-    return 'Exporté : ' + C.cle(b.nom) + '.wav, ' + (ech.length / FE_EXPORT).toFixed(2) + ' s.';
+    nom = (C.cle(b.nom) || 'bruitage') + '.wav';
+    telecharger(nom, P.wav(ech, FE_EXPORT), 'audio/wav');
+    return 'Exporté : ' + nom + ', ' + (ech.length / FE_EXPORT).toFixed(2) + ' s.';
   };
   P.exporterBruitsZip = function (normaliser) {
     var vus = {}, fichiers = P.projet.bruitages.map(function (b, i) {
@@ -133,7 +134,8 @@
   };
   // Le fichier que charge un jeu : un appel à Chiptune.ajouter avec le morceau et ses bruitages.
   P.texteLecteur = function () {
-    return '// ' + P.projet.titre + ' : à charger après lecteur.js, puis Chiptune.jouer(\'' + base() + '\').\n' +
+    // Un saut de ligne dans le titre ferait sortir la suite du commentaire et casserait le fichier.
+    return '// ' + P.projet.titre.replace(/\s+/g, ' ') + ' : à charger après lecteur.js, puis Chiptune.jouer(\'' + base() + '\').\n' +
       'Chiptune.ajouter(' + JSON.stringify(base()) + ', ' + P.serialiser() + ');\n';
   };
   P.exporterLecteur = function () {

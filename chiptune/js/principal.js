@@ -5,6 +5,9 @@
   var DELAI_SAUVEGARDE = 700;
   var LONGUEURS = [8, 12, 16, 24, 32, 48, 64, 96, 128];
   var MENUS = ['menu-fichier', 'menu-export'];
+  var PLEIN_MOTIFS = 'Un morceau compte au plus 99 motifs et 256 sections.';
+  var PLEIN_INSTR = 'La banque est pleine : 99 instruments au plus.';
+  var PLEIN_BRUITS = 'Un projet compte au plus 64 bruitages.';
 
   function $(id) { return document.getElementById(id); }
 
@@ -330,9 +333,9 @@
     $('a-pas').addEventListener('change', function () { P.motifLongueur(parseInt($('a-pas').value, 10)); dire('Le motif fait maintenant ' + P.motif().pas + ' pas.'); });
     $('a-moins').addEventListener('click', function () { P.arrFois(-1); });
     $('a-plus').addEventListener('click', function () { P.arrFois(1); });
-    $('a-nouveau').addEventListener('click', function () { P.motifNouveau(false); dire('Motif vide ajouté après la section courante.'); });
-    $('a-dupliquer').addEventListener('click', function () { P.motifNouveau(true); dire('Motif dupliqué : cette copie se modifie sans toucher à l\'original.'); });
-    $('a-ajouter').addEventListener('click', function () { P.arrAjouter(); dire('Le même motif est rejoué dans une nouvelle section.'); });
+    $('a-nouveau').addEventListener('click', function () { dire(P.motifNouveau(false) ? 'Motif vide ajouté après la section courante.' : PLEIN_MOTIFS); });
+    $('a-dupliquer').addEventListener('click', function () { dire(P.motifNouveau(true) ? 'Motif dupliqué : cette copie se modifie sans toucher à l\'original.' : PLEIN_MOTIFS); });
+    $('a-ajouter').addEventListener('click', function () { dire(P.arrAjouter() ? 'Le même motif est rejoué dans une nouvelle section.' : 'Un morceau compte au plus 256 sections.'); });
     $('a-gauche').addEventListener('click', function () { P.arrDeplacer(-1); });
     $('a-droite').addEventListener('click', function () { P.arrDeplacer(1); });
     $('a-boucle').addEventListener('click', function () { P.arrBoucle(); dire('Le morceau reprendra à la section ' + (P.cur.ordre + 1) + ' après la dernière.'); });
@@ -361,8 +364,8 @@
       lire: function () { return P.projet.instruments[P.instr - 1]; },
       regler: function (c, v) { P.instrRegler(P.instr - 1, c, v, false); }
     });
-    $('i-nouveau').addEventListener('click', function () { P.instrNouveau(null); dire('Instrument ' + P.instr + ' créé.'); });
-    $('i-dupliquer').addEventListener('click', function () { P.instrNouveau(P.projet.instruments[P.instr - 1]); dire('Instrument dupliqué sous le numéro ' + P.instr + '.'); });
+    $('i-nouveau').addEventListener('click', function () { dire(P.instrNouveau(null) ? 'Instrument ' + P.instr + ' créé.' : PLEIN_INSTR); });
+    $('i-dupliquer').addEventListener('click', function () { dire(P.instrNouveau(P.projet.instruments[P.instr - 1]) ? 'Instrument dupliqué sous le numéro ' + P.instr + '.' : PLEIN_INSTR); });
     $('i-supprimer').addEventListener('click', function () { dire(P.instrSupprimer() ? 'Instrument supprimé ; les notes qui l\'utilisaient reprennent l\'instrument précédent de leur voie.' : 'Un morceau garde au moins un instrument.'); });
     piano = P.creerPiano($('i-piano'), function (n) { P.noteClavier(n, P.projet.instruments[P.instr - 1]); }, function (n) { P.finNoteClavier(n); });
 
@@ -380,12 +383,12 @@
     $('b-hasard').addEventListener('click', function () { P.bruitRemplacer(P.bruitAuHasard(), 'Tirage'); ecouterBruit(); dire('Son tiré au hasard : ' + P.projet.bruitages[P.bruit].nom.toLowerCase() + '.'); });
     $('b-variation').addEventListener('click', function () {
       var b = P.projet.bruitages[P.bruit];
-      if (!b) { dire('Aucun bruitage à varier : créez-en un d\'abord.'); return; }
+      if (!b) { dire('Aucun bruitage à varier : crée-en un d\'abord.'); return; }
       P.bruitRemplacer(P.bruitVarier(b), 'Variation'); ecouterBruit(); dire('Variation du bruitage. Annuler revient à la version précédente.');
     });
     $('b-ecouter').addEventListener('click', ecouterBruit);
-    $('b-nouveau').addEventListener('click', function () { P.bruitNouveau({ nom: 'Bruitage', type: 0, note: 72, duree: 8, a: 0, d: 10, s: 0, r: 2 }); ecouterBruit(); });
-    $('b-dupliquer').addEventListener('click', function () { var b = P.projet.bruitages[P.bruit]; if (b) { P.bruitNouveau(P.copie(b)); dire('Bruitage dupliqué.'); } });
+    $('b-nouveau').addEventListener('click', function () { if (P.bruitNouveau({ nom: 'Bruitage', type: 0, note: 72, duree: 8, a: 0, d: 10, s: 0, r: 2 })) ecouterBruit(); else dire(PLEIN_BRUITS); });
+    $('b-dupliquer').addEventListener('click', function () { var b = P.projet.bruitages[P.bruit]; if (b) dire(P.bruitNouveau(P.copie(b)) ? 'Bruitage dupliqué.' : PLEIN_BRUITS); });
     $('b-supprimer').addEventListener('click', function () { P.bruitSupprimer(); });
     $('b-wav').addEventListener('click', function () { dire(P.exporterBruitWav(P.bruit, $('x-normaliser').checked)); });
 
@@ -410,7 +413,7 @@
   P.ecouter(majTout);
   P.ecouter(planifierSauvegarde);
   brancher();
-  if (P.restaurerAuto()) dire('Votre dernier travail est rouvert. Espace lance la lecture.');
+  if (P.restaurerAuto()) dire('Ton dernier travail est rouvert. Espace lance la lecture.');
   else { P.ouvrir(P.DEMOS[0].creer()); dire('Morceau fourni : ' + P.DEMOS[0].nom + '. Espace lance la lecture ; les autres sont dans Fichier.'); }
   caler();
   majTransport();

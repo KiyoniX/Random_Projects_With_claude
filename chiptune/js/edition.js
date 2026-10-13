@@ -141,7 +141,7 @@
       k = k.toLowerCase();
       if (k === 'c') { n = P.copier(); dire(n + ' cellule' + (n > 1 ? 's copiées.' : ' copiée.')); return true; }
       if (k === 'x') { n = P.couper(); dire(n + ' cellule' + (n > 1 ? 's coupées.' : ' coupée.')); return true; }
-      if (k === 'v') { n = P.coller(); dire(n ? 'Collé.' : 'Le presse-papiers est vide : copiez d\'abord une sélection.'); return true; }
+      if (k === 'v') { n = P.coller(); dire(n ? 'Collé.' : 'Le presse-papiers est vide : copie d\'abord une sélection.'); return true; }
       if (k === 'a') {
         if (P.sel && P.plage().l0 === 0 && P.plage().l1 === m.pas - 1 && P.plage().v0 === P.cur.voie && P.plage().v1 === P.cur.voie) P.sel = { v0: 0, l0: 0, v1: 4, l1: m.pas - 1 };
         else P.sel = { v0: P.cur.voie, l0: 0, v1: P.cur.voie, l1: m.pas - 1 };

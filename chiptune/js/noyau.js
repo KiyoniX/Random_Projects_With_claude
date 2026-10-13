@@ -114,7 +114,8 @@
     o.env = x.env === 'pas' ? 'pas' : 'adsr';
     o.a = entier(x.a, 0, 120, 0); o.d = entier(x.d, 0, 240, 8); o.s = entier(x.s, 0, 15, 10); o.r = entier(x.r, 0, 240, 4);
     o.pas = liste(x.pas, 64, 0, 15, 0); if (!o.pas.length) o.pas = d.pas;
-    o.pasBoucle = entier(x.pasBoucle, -1, o.pas.length - 1, -1);
+    // Même plage que le curseur de l'éditeur : une boucle au-delà de la longueur vaut « sans ».
+    o.pasBoucle = entier(x.pasBoucle, -1, 63, -1);
     o.rap = entier(x.rap, 0, 3, 2);
     o.rapSeq = liste(x.rapSeq, 32, 0, 3, 2); o.rapVit = entier(x.rapVit, 1, 30, 2); o.rapBoucle = x.rapBoucle !== false;
     o.arp = liste(x.arp, 16, -24, 24, 0); o.arpVit = entier(x.arpVit, 1, 30, 1); o.arpBoucle = x.arpBoucle !== false;
@@ -155,7 +156,7 @@
     o.pasParTemps = entier(x.pasParTemps, 1, 8, 4);
     o.swing = borne(Math.round((Number(x.swing) || 0) * 100) / 100, 0, 0.6);
     o.tonique = entier(x.tonique, 0, 11, 0);
-    o.gamme = String(x.gamme || 'majeure');
+    o.gamme = P.GAMMES.some(function (g) { return g.id === x.gamme; }) ? x.gamme : 'majeure';
     o.contrainte = !!x.contrainte;
     o.volume = borne(Number(x.volume) || 1, 0.1, 1);
     o.instruments = (Array.isArray(x.instruments) ? x.instruments : []).slice(0, 99).map(function (q) { return normInstr(q, false); });
@@ -164,7 +165,7 @@
     for (i = 0; i < x.motifs.length && i < 99; i++) {
       m = x.motifs[i] || {};
       pas = entier(m.pas, 1, PAS_MAX, 32);
-      o.motifs.push({ nom: String(m.nom || 'Motif').slice(0, 12), pas: pas, voies: [0, 1, 2, 3, 4].map(function (v) { return normVoie(m.voies && m.voies[v], pas); }) });
+      o.motifs.push({ nom: String(m.nom == null ? 'Motif' : m.nom).slice(0, 12), pas: pas, voies: [0, 1, 2, 3, 4].map(function (v) { return normVoie(m.voies && m.voies[v], pas); }) });
     }
     o.arrangement = (Array.isArray(x.arrangement) ? x.arrangement : []).slice(0, 256).map(function (a) {
       return { motif: entier(a && a.motif, 0, o.motifs.length - 1, 0), fois: entier(a && a.fois, 1, 16, 1) };
@@ -187,8 +188,11 @@
   };
 
   P.ouvrir = function (x) {
-    P.projet = P.normaliser(x);
-    hist.pile = []; hist.refaire = []; hist.cle = '';
+    var p = P.normaliser(x);
+    // Le morceau remplacé reste dans l'historique : Annuler le fait revenir.
+    if (P.projet) P.op('Ouvrir un autre morceau');
+    P.projet = p;
+    hist.cle = '';
     P.cur = { ordre: 0, motif: P.projet.arrangement[0].motif, voie: 0, ligne: 0, col: 0 };
     P.sel = null; P.instr = 1; P.bruit = 0;
     signaler('ouvrir');
@@ -358,7 +362,7 @@
   };
   P.motifNouveau = function (dupliquer) {
     var p = P.projet, m;
-    if (p.motifs.length >= 99) return;
+    if (p.motifs.length >= 99 || p.arrangement.length >= 256) return false;
     P.op(dupliquer ? 'Dupliquer le motif' : 'Nouveau motif');
     m = dupliquer ? copie(P.motif()) : creerMotif('', P.motif().pas);
     m.nom = dupliquer ? (m.nom + ' bis').slice(0, 12) : 'Motif ' + (p.motifs.length + 1);
@@ -367,6 +371,7 @@
     if (p.boucle > P.cur.ordre) p.boucle++;
     P.cur.ordre++; P.cur.motif = p.motifs.length - 1; P.cur.ligne = 0; P.sel = null;
     signaler('structure');
+    return true;
   };
   P.motifLongueur = function (pas) {
     var m, v, k, col;
@@ -387,12 +392,13 @@
   };
   P.arrAjouter = function () {
     var p = P.projet;
-    if (p.arrangement.length >= 256) return;
+    if (p.arrangement.length >= 256) return false;
     P.op('Ajouter à l\'arrangement');
     p.arrangement.splice(P.cur.ordre + 1, 0, { motif: P.cur.motif, fois: 1 });
     if (p.boucle > P.cur.ordre) p.boucle++;
     P.cur.ordre++;
     signaler('structure');
+    return true;
   };
   P.arrRetirer = function () {
     var p = P.projet;
@@ -450,13 +456,14 @@
   };
   P.instrNouveau = function (modele) {
     var p = P.projet, x;
-    if (p.instruments.length >= 99) return;
+    if (p.instruments.length >= 99) return false;
     P.op('Nouvel instrument');
     x = modele ? copie(modele) : P.instrDefaut(0);
     if (modele) x.nom = (x.nom + ' bis').slice(0, 24);
     p.instruments.push(x);
     P.instr = p.instruments.length;
     signaler('instrument');
+    return true;
   };
   P.instrSupprimer = function () {
     var p = P.projet, k = P.instr, i, v, l, col, m;
@@ -479,11 +486,12 @@
   };
   P.bruitNouveau = function (def) {
     var p = P.projet;
-    if (p.bruitages.length >= 64) return;
+    if (p.bruitages.length >= 64) return false;
     P.op('Nouveau bruitage');
     p.bruitages.push(normInstr(def, true));
     P.bruit = p.bruitages.length - 1;
     signaler('bruitage');
+    return true;
   };
   P.bruitRemplacer = function (def, libelle) {
     var p = P.projet;
