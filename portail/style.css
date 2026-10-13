@@ -36,6 +36,9 @@ a { color: inherit; text-decoration: none; }
 .room { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 2.5rem; align-items: start; max-width: 1320px; margin: 0 auto; padding: 1rem 1.5rem 4rem; }
 
 .shelf { margin-top: 1.25rem; }
+/* La suite d'une étagère : une planche nue, un peu plus près de la précédente. */
+.shelf.suite { margin-top: .6rem; }
+.shelf.suite .plank { min-height: 24px; padding: 0; }
 /* 18 px de jour au-dessus des boîtes : celle qu'on sort monte de 16 px sans être rognée. La barre de défilement est une rainure dans le bois. */
 .row { display: flex; align-items: flex-end; gap: 5px; min-height: 340px; padding: 18px 14px 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--wood-edge) var(--wood); }
 .plank { position: relative; background: linear-gradient(to top, var(--wood-edge) 0 12px, var(--wood) 12px); padding: .55rem 1rem calc(.6rem + 12px); box-shadow: 0 10px 14px -6px rgba(0, 0, 0, .55); display: flex; align-items: baseline; gap: .4rem 1.2rem; flex-wrap: wrap; }
@@ -97,6 +100,12 @@ a { color: inherit; text-decoration: none; }
 .b-visite .dot { bottom: 34px; }
 .b-pantin { background: radial-gradient(circle at 50% 30px, #f3dfa2 0 2px, #d2ab52 2px 7px, #6a4f1c 7px 8px, transparent 8px), radial-gradient(circle at 50% calc(100% - 34px), #f3dfa2 0 2px, #d2ab52 2px 7px, #6a4f1c 7px 8px, transparent 8px), linear-gradient(#3a3b3f 0 1px, transparent 1px) 0 0 / 100% 16px, linear-gradient(90deg, #3a3b3f 0 1px, transparent 1px) 0 0 / 16px 100%, #2a2b2d; color: #f4f4f6; }
 .b-pantin .name { font-family: var(--text); font-weight: 700; background: #1d1e24; padding: 8px 3px; margin-top: 36px; }
+.b-particules { background: linear-gradient(#ffc46b, #ffc46b) calc(50% - 7px) 64px / 2px 2px no-repeat, linear-gradient(#f0762e, #f0762e) calc(50% + 9px) 70px / 2px 2px no-repeat, linear-gradient(#ffc46b, #ffc46b) calc(50% + 5px) 58px / 2px 2px no-repeat, linear-gradient(#f0762e, #f0762e) calc(50% - 11px) 74px / 2px 2px no-repeat, linear-gradient(#fff3c4, #fff3c4) 50% 84px / 4px 2px no-repeat, linear-gradient(#ffc46b, #ffc46b) 50% 82px / 8px 6px no-repeat, linear-gradient(#f0762e, #f0762e) 50% 80px / 12px 10px no-repeat, linear-gradient(#f0762e, #f0762e) 50% 78px / 8px 14px no-repeat, linear-gradient(#7a3412, #7a3412) 50% 78px / 16px 14px no-repeat, linear-gradient(#3d3936, #3d3936) 50% 92px / 4px calc(100% - 92px) no-repeat, repeating-linear-gradient(#c9b083 0 2px, #a88d63 2px 4px, #a88d63 4px 6px, #6e5a3c 6px 8px) 50% 0 / 8px 80px no-repeat, #2b2c2f; color: #dcdcde; }
+.b-particules .name { font-family: 'Bahnschrift SemiCondensed', Bahnschrift, var(--text); font-weight: 700; background: #1b1c1e; padding: 8px 3px; margin-top: 98px; }
+.b-eclairage { background: radial-gradient(circle at calc(50% - 7px) 23px, #ffe9c8 0 2px, #ee8a3c 2.5px 4px, rgba(0, 0, 0, .55) 4.5px 5.5px, transparent 6px), radial-gradient(circle at 50% 30px, transparent 0 16.5px, #141414 17px 18px, #2a2b2d 18.5px), radial-gradient(circle at calc(50% - 7px) 23px, #e6e6e6 0, #a3a3a3 6px, #767676 13px, #3c3c3c 23px, #1e1e1e 28px); color: #f4f4f6; }
+.b-eclairage .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 600; background: #1d1e24; padding: 8px 3px; margin-top: 44px; }
+.b-vitrail { background: repeating-linear-gradient(58deg, transparent 0 15px, #1b1c1e 15px 17px), repeating-linear-gradient(-58deg, transparent 0 15px, #1b1c1e 15px 17px), linear-gradient(#a3162a 0 17%, #e6ece6 17% 41%, #1f3d96 41% 59%, #e6ece6 59% 83%, #e4a82a 83%); box-shadow: inset 0 0 0 5px #232527, inset -7px 0 9px -5px rgba(0, 0, 0, .55); color: #232527; }
+.b-vitrail .name { font-family: Corbel, 'Segoe UI', Candara, sans-serif; font-weight: 700; background: #fbfaf3; padding: 10px 4px; box-shadow: 0 0 0 3px #232527; margin-top: 52px; }
 .b-palettes { background: linear-gradient(#0c1620 0 9%, #21204e 9% 18%, #3b2e63 18% 27%, #5e406c 27% 36%, #815175 36% 45%, #a06074 45% 54%, #c46979 54% 63%, #de8a78 63% 72%, #a9927f 72% 81%, #cdc1b4 81% 90%, #ffe7a4 90%); color: #f4f4f6; }
 .b-palettes .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; background: #1d1e24; padding: 8px 3px; }
 .b-tuiles { background: linear-gradient(#1f5c22 0 1px, transparent 1px) 0 0 / 100% 16px, linear-gradient(90deg, #1f5c22 0 1px, transparent 1px) 0 0 / 16px 100%, linear-gradient(#3f9a3c 0 72%, #6b4a2e 72% 84%, #2f6fc0 84%); color: #f4f4f6; }

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vitrail</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-vue="jour">
+  <header class="barre">
+    <h1><svg class="losange" viewBox="0 0 22 22" aria-hidden="true"><path d="M11 1 21 11 11 21 1 11z" fill="#1f3d96"/><path d="M11 1 21 11H11z" fill="#a3162a"/><path d="M1 11h10v10z" fill="#e4a82a"/><path d="M11 1 21 11 11 21 1 11zM11 1v20M1 11h20" fill="none" stroke="#1b1c1e" stroke-width="1.6" stroke-linejoin="round"/></svg>Vitrail</h1>
+    <nav class="menus" id="menus"></nav>
+    <div class="interrupteur" id="vues" role="radiogroup" aria-label="La table lumineuse">
+      <span>La table</span>
+      <button type="button" role="radio" data-vue="jour" title="Table allumée : les verres à contre-jour (J)">allumée</button>
+      <button type="button" role="radio" data-vue="atelier" title="Table éteinte : les verres vus côté atelier (A)">éteinte</button>
+      <button type="button" role="radio" data-vue="carton" title="Le carton numéroté, comme le calibre (N)">carton</button>
+    </div>
+    <div class="rapides">
+      <button type="button" class="btn" data-act="annuler" id="bAnnuler" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+      <button type="button" class="btn" data-act="retablir" id="bRetablir" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
+    </div>
+  </header>
+
+  <div class="consigne"><strong id="nomOutil"></strong><span class="astuce" id="astuce"></span></div>
+
+  <div class="plan">
+    <aside class="outils" id="outils"></aside>
+
+    <section class="scene" id="scene" aria-label="Table lumineuse">
+      <canvas id="toile"></canvas>
+    </section>
+
+    <aside class="cote">
+      <section class="panneau">
+        <h2>Panneau</h2>
+        <label class="rang">Forme <select id="forme"></select></label>
+        <div class="rang">
+          <label>Largeur <input type="number" id="largeur" min="10" max="400" step="0.5"> cm</label>
+          <label>Hauteur <input type="number" id="hauteur" min="10" max="400" step="0.5"> cm</label>
+        </div>
+        <div class="rang" id="rLobes"><label>Lobes <input type="number" id="lobes" min="5" max="16"></label></div>
+        <div class="rang">
+          <label title="Largeur des prochains plombs tracés">Plomb <select id="plomb"></select></label>
+          <label title="Le plomb de bordure, plus large, qui ceinture le panneau">Bordure <select id="bordure"></select></label>
+        </div>
+        <div class="rang">
+          <label title="Le pas du quadrillage du carton">Grille <select id="grille"></select></label>
+          <label title="Les plombs s'accrochent à la grille, aux nœuds et aux autres plombs (Alt : sans aimant)"><input type="checkbox" id="aimant"> Aimant</label>
+        </div>
+        <div class="rang">
+          <button type="button" class="btn" data-act="generer">Générer un réseau…</button>
+          <button type="button" class="btn" data-act="contour" title="Tracer le contour d'une forme libre">Contour à la main</button>
+        </div>
+      </section>
+
+      <section class="panneau">
+        <h2>Verres <span class="compte" id="nbVerres"></span></h2>
+        <div class="verres" id="verres"></div>
+        <p class="verre-nom" id="verreNom"></p>
+        <div class="rang">
+          <button type="button" class="btn mini" data-act="verreModifier" title="Changer la couleur, la texture ou le nom du verre choisi">Modifier…</button>
+          <button type="button" class="btn mini" data-act="verreAjouter">Ajouter…</button>
+          <button type="button" class="btn mini" data-act="verreRetirer" title="Retirer le verre choisi de l'atelier">Retirer</button>
+          <button type="button" class="btn mini" data-act="ouvrirPalette" title="Prendre les couleurs d'une palette du site (JSON) comme verres">Palette…</button>
+        </div>
+      </section>
+
+      <section class="panneau grand">
+        <h2>Pièces <span class="compte" id="nbPieces"></span></h2>
+        <p class="piece-info" id="pieceInfo"></p>
+        <div class="rang regles-tete">
+          <label><input type="checkbox" id="regles"> Marquer les règles de coupe</label>
+          <span class="compte" id="nbAvert"></span>
+        </div>
+        <ul class="avert" id="avert"></ul>
+      </section>
+    </aside>
+  </div>
+
+  <div class="etat">
+    <span id="etatPos">–</span>
+    <span id="etatInfo"></span>
+    <span id="etatMsg" class="msg"></span>
+    <span id="etatSauve" class="sauve"></span>
+  </div>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="file" id="fichier" accept=".json,.hex,.txt,application/json,text/plain" hidden>
+
+  <script src="js/geometrie.js"></script>
+  <script src="js/verre.js"></script>
+  <script src="js/noyau.js"></script>
+  <script src="js/generateur.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/panneaux.js"></script>
+  <script src="js/principal.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

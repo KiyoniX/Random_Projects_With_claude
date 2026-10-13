@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particules</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <h1><i class="etincelle" aria-hidden="true"></i>Particules</h1>
+    <nav class="menus" id="menus"></nav>
+    <div class="rapides">
+      <button type="button" class="btn" data-act="annuler" id="bAnnuler" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+      <button type="button" class="btn" data-act="retablir" id="bRetablir" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
+    </div>
+  </header>
+
+  <div class="plan">
+    <aside class="catalogue" id="catalogue" aria-label="Préréglages">
+      <h2>Préréglages</h2>
+      <div class="vignettes" id="vignettes"></div>
+    </aside>
+
+    <section class="scene" id="scene">
+      <canvas id="toile"></canvas>
+      <div class="fonds" id="fonds" role="radiogroup" aria-label="Fond derrière le sprite">
+        <button type="button" data-fond="gris" title="Fond gris neutre">Gris</button>
+        <button type="button" data-fond="nuit" title="Fond de nuit, pour juger ce qui brille">Nuit</button>
+        <button type="button" data-fond="jour" title="Fond clair, pour juger ce qui est sombre">Jour</button>
+        <button type="button" data-fond="damier" title="Damier : ce qui sera transparent">Damier</button>
+      </div>
+    </section>
+
+    <aside class="cote">
+      <section class="panneau couches-zone">
+        <h2>Couches <span class="compte" id="compteCouches"></span></h2>
+        <div class="couches" id="couches"></div>
+        <div class="rang">
+          <button type="button" class="btn mini" data-act="coucheAjouter" title="Nouvelle couche au-dessus de celle-ci">+ Nouvelle</button>
+          <button type="button" class="btn mini" data-act="coucheDupliquer" title="Dupliquer la couche">Dupliquer</button>
+          <button type="button" class="btn mini" data-act="coucheMonter" title="Dessiner la couche par-dessus la suivante">▲</button>
+          <button type="button" class="btn mini" data-act="coucheDescendre" title="Dessiner la couche sous la précédente">▼</button>
+          <button type="button" class="btn mini" data-act="coucheSupprimer" title="Supprimer la couche">✕</button>
+        </div>
+      </section>
+      <div class="reglages" id="reglages"></div>
+    </aside>
+  </div>
+
+  <footer class="banc">
+    <div class="banc-cmd">
+      <button type="button" class="btn mini" data-act="imgPremiere" title="Première image (Début)">⏮</button>
+      <button type="button" class="btn mini" data-act="imgPrecedente" title="Image précédente (←)">◀</button>
+      <button type="button" class="btn mini lire" data-act="lire" id="bLire" title="Lire / arrêter (Entrée)">▶ Lire</button>
+      <button type="button" class="btn mini" data-act="imgSuivante" title="Image suivante (→)">▶</button>
+      <span class="sep"></span>
+      <label>Images <input type="number" id="nImages" min="1" max="120"></label>
+      <label>Cadence <input type="number" id="cadence" min="1" max="60"> i/s</label>
+      <span class="duree" id="duree"></span>
+      <span class="sep"></span>
+      <button type="button" class="btn mini" data-act="graine" title="Tirer une autre graine : mêmes réglages, autre hasard (G)">Autre graine</button>
+      <span class="boucle" id="boucleInfo"></span>
+    </div>
+    <canvas id="meche" aria-label="Mèche : la boucle d'images, à parcourir en glissant"></canvas>
+  </footer>
+
+  <div class="etat">
+    <span id="etatPos">–</span>
+    <span id="etatInfo"></span>
+    <span id="etatMsg" class="msg"></span>
+    <span id="etatSauve" class="sauve"></span>
+  </div>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="file" id="fichier" accept=".json,.js,application/json,text/javascript" hidden>
+
+  <script src="lecteur.js"></script>
+  <script src="js/prereglages.js"></script>
+  <script src="js/noyau.js"></script>
+  <script src="../atelier-pixel/js/gif.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/panneaux.js"></script>
+  <script src="js/principal.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+/* Vitrail : l'atelier du maître verrier. La table lumineuse est la seule audace ; autour, le zinc de l'établi. */
+:root {
+  --lumiere: #fbfaf3;      /* le plateau rétroéclairé : c'est contre lui qu'on juge un verre */
+  --zinc: #d3d6d3;         /* l'établi : panneaux, menus */
+  --zinc-clair: #e6e8e5;
+  --chant: #a5aaa7;
+  --plomb: #232527;        /* le texte, les plombs, l'outil en main */
+  --graphite: #575b5f;     /* le trait du carton, le texte secondaire */
+  --crayon: #b5281f;       /* le crayon gras : réservé aux avertissements de coupe */
+  --etain: #c3c8cb;
+  --cadre: #2e3133;        /* le cadre de la table */
+  --main: 'Segoe Print', 'Ink Free', 'Comic Sans MS', cursive;
+  font-family: Corbel, 'Segoe UI', Candara, 'Trebuchet MS', sans-serif;
+  font-variant-numeric: lining-nums;   /* Corbel a des chiffres elzéviriens : un 0 s'y lirait comme un o */
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--zinc); color: var(--plomb); font-size: 14px; line-height: 1.35; display: flex; flex-direction: column; overflow: hidden; user-select: none; -webkit-user-select: none; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--plomb); outline-offset: 1px; }
+input[type=number], input[type=text], select { background: var(--zinc-clair); border: 1px solid #959b98; border-radius: 2px; padding: .1rem .3rem; }
+input[type=number] { width: 4.6em; }
+input[type=checkbox], input[type=radio] { accent-color: var(--plomb); vertical-align: -2px; }
+input[type=color] { width: 44px; height: 26px; border: 1px solid #959b98; border-radius: 2px; background: var(--zinc-clair); padding: 1px; cursor: pointer; }
+kbd { font: inherit; font-size: .92em; color: var(--graphite); }
+* { scrollbar-color: #9ca19e transparent; }
+
+.btn { padding: .2rem .6rem; border: 1px solid #8e9491; border-radius: 2px; background: var(--zinc-clair); white-space: nowrap; }
+.btn:hover:not(:disabled) { border-color: var(--plomb); }
+.btn:disabled { opacity: .4; cursor: default; }
+.btn.mini { padding: .08rem .45rem; }
+.btn.fort { background: var(--plomb); border-color: var(--plomb); color: var(--lumiere); }
+
+/* ---------- Barre du haut ---------- */
+.barre { display: flex; align-items: center; gap: .9rem; padding: 0 .6rem; height: 36px; flex: none; border-bottom: 3px solid var(--plomb); }
+.barre h1 { display: flex; align-items: center; gap: 7px; font-size: 17px; font-weight: 700; white-space: nowrap; }
+.losange { width: 20px; height: 20px; }
+.menus { display: flex; flex: 1; align-self: stretch; }
+.menu { position: relative; display: flex; }
+.menu-titre { padding: 0 .65rem; }
+.menu-titre:hover, .menu-titre.ouvert { background: var(--zinc-clair); }
+.menu-liste { position: absolute; top: calc(100% + 3px); left: 0; z-index: 20; min-width: 20rem; padding: .25rem 0; background: var(--zinc-clair); border: 1px solid var(--chant); border-top: 0; box-shadow: 0 6px 16px rgba(35, 37, 39, .28); }
+.menu-liste button { display: flex; justify-content: space-between; gap: 1.5rem; width: 100%; padding: .26rem .8rem .26rem 1.6rem; text-align: left; position: relative; }
+.menu-liste button:hover { background: var(--zinc); }
+.menu-liste button.coche::before { content: '✓'; position: absolute; left: .5rem; }
+.menu-liste hr { border: 0; border-top: 1px solid var(--chant); margin: .25rem 0; }
+.rapides { display: flex; gap: .35rem; }
+
+/* L'interrupteur de la table : trois positions, celle qui est enclenchée en plomb. */
+.interrupteur { display: flex; align-items: center; height: 26px; border: 1px solid var(--plomb); border-radius: 2px; }
+.interrupteur span { padding: 0 .55rem; color: var(--graphite); }
+.interrupteur button { align-self: stretch; padding: 0 .6rem; border-left: 1px solid var(--plomb); }
+.interrupteur button:hover { background: var(--zinc-clair); }
+.interrupteur button.actif { background: var(--plomb); color: var(--lumiere); }
+.interrupteur button[data-vue=jour].actif { box-shadow: inset 0 -3px 0 #e4a82a; }
+
+.consigne { display: flex; align-items: baseline; gap: .9rem; padding: 4px .7rem 5px 56px; flex: none; min-height: 26px; color: var(--graphite); white-space: nowrap; overflow: hidden; }
+.consigne strong { color: var(--plomb); }
+.astuce { overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Plan de travail ---------- */
+.plan { display: flex; flex: 1; min-height: 0; }
+.outils { display: flex; flex-direction: column; gap: 3px; padding: 6px 7px; flex: none; overflow-y: auto; }
+.outil { width: 36px; height: 36px; border: 1px solid transparent; border-radius: 2px; display: grid; place-items: center; }
+.outil:hover { border-color: var(--chant); background: var(--zinc-clair); }
+.outil.actif { background: var(--plomb); color: var(--lumiere); }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+svg .plein { fill: currentColor; stroke: none; }
+svg.losange { stroke: none; }
+
+/* La table lumineuse dans son cadre. */
+.scene { flex: 1; min-width: 0; position: relative; overflow: hidden; background: var(--lumiere); border: 7px solid var(--cadre); border-radius: 3px; box-shadow: inset 0 0 0 1px #565a5d; cursor: crosshair; touch-action: none; }
+.scene canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.scene[data-outil=main], .scene.main { cursor: grab; }
+.scene[data-outil=noeud] { cursor: default; }
+.scene[data-outil=verre], .scene[data-outil=pipette] { cursor: cell; }
+body[data-vue=atelier] .scene { background: #9b9e9a; }
+body[data-vue=carton] .scene { background: #efeee8; }
+
+.cote { width: 292px; flex: none; display: flex; flex-direction: column; overflow-y: auto; }
+.panneau { padding: 7px 12px 10px; border-bottom: 1px solid var(--chant); display: flex; flex-direction: column; gap: 6px; }
+.panneau.grand { flex: 1; min-height: 160px; border-bottom: 0; }
+.panneau h2 { display: flex; align-items: baseline; justify-content: space-between; font-size: 15px; font-weight: 700; }
+.compte { font-weight: 400; color: var(--graphite); font-size: 13px; font-variant-numeric: tabular-nums; }
+.rang { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; }
+.rang label { display: flex; align-items: center; gap: 5px; }
+label.rang select { flex: 1; min-width: 0; }
+
+/* Les verres : des plaques serties de plomb. */
+.verres { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.plaque { position: relative; aspect-ratio: 1; border: 2px solid #1b1c1e; border-radius: 1px; overflow: hidden; background: var(--lumiere); }
+.plaque canvas { display: block; width: 100%; height: 100%; }
+.plaque span { position: absolute; right: 0; bottom: 0; min-width: 13px; padding: 0 2px; background: #1b1c1e; color: var(--lumiere); font-size: 11px; line-height: 13px; text-align: center; }
+.plaque:hover { outline: 1px solid var(--plomb); outline-offset: 1px; }
+.plaque.actif { outline: 3px solid var(--plomb); outline-offset: 2px; }
+.verre-nom { min-height: 1.35em; color: var(--graphite); }
+.verre-nom b { color: var(--plomb); }
+
+.piece-info { min-height: 2.7em; color: var(--graphite); }
+.piece-info b { color: var(--plomb); }
+.faute { color: var(--crayon); }
+.regles-tete { justify-content: space-between; }
+.avert { list-style: none; display: flex; flex-direction: column; overflow-y: auto; min-height: 40px; flex: 1; margin: 0 -4px; }
+.avert button { display: flex; align-items: center; gap: 8px; width: 100%; padding: 3px 4px; text-align: left; border-radius: 2px; }
+.avert button:hover { background: var(--zinc-clair); }
+.avert .vide { padding: 3px 4px; color: var(--graphite); }
+.signe { flex: none; width: 13px; height: 13px; border: 2px solid var(--crayon); }
+.signe.rond { border-radius: 50%; }
+.signe.tirets { border-style: dashed; }
+.signe.croix { border: 0; position: relative; }
+.signe.croix::before, .signe.croix::after { content: ''; position: absolute; left: 5px; top: -1px; width: 2px; height: 15px; background: var(--crayon); transform: rotate(45deg); }
+.signe.croix::after { transform: rotate(-45deg); }
+
+/* ---------- Barre d'état ---------- */
+.etat { display: flex; gap: 1.2rem; align-items: center; padding: 0 .7rem; height: 24px; flex: none; background: #c3c7c4; border-top: 1px solid var(--chant); color: var(--graphite); font-size: 13px; white-space: nowrap; overflow: hidden; }
+#etatPos { min-width: 9em; font-variant-numeric: tabular-nums; }
+.etat .msg { flex: 1; color: var(--plomb); overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- Fenêtres ---------- */
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(35, 37, 39, .42); }
+.fen { max-width: min(80rem, 100%); max-height: 100%; overflow: auto; padding: 1rem 1.2rem; background: #eceeeb; border: 2px solid var(--plomb); border-radius: 2px; display: flex; flex-direction: column; gap: .8rem; user-select: text; -webkit-user-select: text; }
+.fen h2 { font-size: 17px; }
+.fen h3 { font-size: 14.5px; margin: .3rem 0 .3rem; }
+.fen .corps { display: flex; flex-direction: column; gap: .65rem; min-width: 19rem; }
+.fen .champ { display: flex; align-items: center; gap: .4rem; }
+.fen .champ input[type=text] { width: 15rem; }
+.fen .note { color: var(--graphite); max-width: 36rem; }
+.fen .erreur { color: var(--crayon); }
+.fen .pied { display: flex; justify-content: flex-end; gap: .5rem; }
+.nuancier { display: flex; flex-wrap: wrap; gap: 3px; max-width: 30rem; }
+.nuancier i { width: 20px; height: 20px; border: 2px solid #1b1c1e; }
+.regles { border-collapse: collapse; }
+.regles td { padding: .2rem .7rem .2rem 0; vertical-align: middle; }
+.regles td:first-child { white-space: nowrap; }
+.regles td:nth-child(2) { white-space: nowrap; }
+.aide { display: flex; gap: 1.8rem; flex-wrap: wrap; }
+.aide > div { flex: 1 1 17rem; max-width: 24rem; }
+.aide table { border-collapse: collapse; }
+.aide td { padding: .1rem .9rem .1rem 0; vertical-align: top; }
+.aide td:first-child { white-space: nowrap; }
+.aide kbd { color: var(--plomb); font-weight: 700; }
+.aide ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: .35rem; }
+
+@media (max-height: 700px) {
+  .panneau { gap: 4px; padding-top: 5px; padding-bottom: 7px; }
+  .consigne { min-height: 22px; padding-top: 2px; padding-bottom: 3px; }
+}
+
+/* Fenêtre étroite : les barres passent à la ligne, les panneaux passent sous la table. */
+@media (max-width: 760px) {
+  /* Le haut de la barre reste libre : l'étiquette de retour à la ludothèque y dépasse. */
+  .barre { flex-wrap: wrap; height: auto; gap: 4px .8rem; padding: 10px .6rem 4px; }
+  .menus { order: 3; flex: none; width: 100%; flex-wrap: wrap; position: relative; }
+  .menu { position: static; }
+  .menu-titre { height: 28px; }
+  .menu-liste { min-width: 0; width: min(20rem, 100%); }
+  .rapides { margin-left: auto; }
+  .rapides .btn { padding: .2rem .45rem; }
+  .interrupteur { order: 4; }
+  .interrupteur span { display: none; }
+  .consigne { white-space: normal; padding-left: .7rem; }
+  .consigne strong { display: none; }
+  .plan { flex-wrap: wrap; overflow-y: auto; }
+  .outils { flex-direction: row; flex-wrap: wrap; width: 100%; }
+  .scene { flex: none; width: 100%; height: 56vh; }
+  .cote { width: 100%; overflow: visible; }
+  .verres { grid-template-columns: repeat(8, 1fr); }
+  .etat #etatPos, .etat .sauve { display: none; }
+}

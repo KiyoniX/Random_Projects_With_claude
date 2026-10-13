@@ -262,18 +262,37 @@ Le brun est réservé à l'imprimé, pour que les quatre couleurs de stylo, qui 
 
 ### Les outils graphiques : le fond neutre
 
-`atelier-pixel`, `pantin`, `textures`, `palettes`, `tuiles`, `police-pixel`.
+`atelier-pixel`, `pantin`, `particules`, `eclairage`, `textures`, `palettes`, `tuiles`, `police-pixel`.
 
-Ici le fond gris neutre n'est pas un défaut de parti pris, c'est une nécessité de métier : une interface colorée fausse le jugement des couleurs qu'on dessine. Ces six outils forment une famille reconnaissable (barre de menus en haut, outils à gauche, toile au centre, réglages à droite), et chacun pousse l'idée dans son sens.
+Ici le fond gris neutre n'est pas un défaut de parti pris, c'est une nécessité de métier : une interface colorée fausse le jugement des couleurs qu'on dessine. Ces huit outils forment une famille reconnaissable (barre de menus en haut, outils à gauche, toile au centre, réglages à droite), et chacun pousse l'idée dans son sens.
 
 | Outil | Ce qui lui est propre |
 | --- | --- |
 | `atelier-pixel` | Gris `#18181a` à `#2c2c30`, ambre `#e8b04a` réservé à la sélection en cours. Frise d'animation en bas. |
 | `pantin` | Le plan de travail est un tapis de découpe gris, quadrillé tous les 8 pixels. Le seul ornement est l'attache parisienne : une tête de laiton fendue `#d2ab52` marque chaque pivot, un fil clair la relie à la pièce qui la tient, et le même laiton désigne ce qui est choisi. Trois étapes numérotées (découper, monter, animer), parce que c'est vraiment une suite. Sur la frise, la forme d'une clé dit comment la pièce repart : rond en douceur, losange régulier, carré par à-coup. |
+| `particules` | Le banc d'essai de l'artificier. Le seul ornement est la mèche lente : la frise des images est une corde de chanvre `#a88d63` qui part en cendre derrière une braise en pixels, et la même braise `#f0762e` désigne l'émetteur qu'on glisse sur la toile et ce qui est choisi. Le catalogue montre chaque préréglage par son propre effet, pas par une icône ; un sélecteur de fond (gris, nuit, jour, damier) sert à juger. |
+| `eclairage` | Mêmes gris : le plateau d'un studio. L'ornement est aussi l'instrument : la boule grise mate des plateaux de tournage, rendue avec la vraie lumière, sur laquelle on glisse un point à la couleur de la source ; autour d'elle, le sprite éclairé des huit directions, en rose. Gélatine orange `#ee8a3c` pour ce qui est choisi, gélatine bleue `#5b8fd9` pour marquer les normales peintes à la main. La boule des normales, en pixels, se peint aux couleurs d'une carte de normales. Chiffres et titres en Bahnschrift. |
 | `textures` | Mêmes gris. La tuile seule et son pavage côte à côte : la répétition est le sujet. |
 | `palettes` | Aucune couleur d'accent, uniquement des gris (`#1a1a1a` à `#f4f4f4`). La seule couleur à l'écran est la palette, étalée sur toute la largeur. Un sélecteur de fond (noir, gris, blanc) sert à juger. |
 | `tuiles` | La carte prend presque tout l'écran, avec des règles graduées en cases. Ambre `#e8b04a` pour l'outil actif, cyan `#5cb8c8` pour les objets. |
 | `police-pixel` | Gris de plomb (`#27282c` à `#4b4f58`), papier `#e9e8e3`. L'interface est composée dans les polices que l'outil fabrique lui-même (Gaillarde pour les libellés, Gros-texte pour les titres). Vocabulaire de l'atelier de composition : la casse, l'épreuve. |
+
+### `vitrail` : la table lumineuse du maître verrier
+
+Les outils graphiques gardent un fond gris parce qu'on y juge des couleurs. Le verrier, lui, juge son verre à contre-jour : la référence neutre de son métier est la lumière, pas le gris. La table est donc le plateau blanc rétroéclairé de l'atelier, quadrillé comme un carton, serré dans son cadre noir ; c'est la seule audace. Autour, le zinc de l'établi, sans ornement, et la structure de la famille des outils (menus en haut, outils à gauche, réglages à droite). Un interrupteur à trois positions allume la table (verres à contre-jour, plombs noirs), l'éteint (côté atelier : verres sourds, plombs gris, soudures à l'étain) ou montre le carton numéroté, tel qu'il sera découpé en calibres. Le vocabulaire est celui du métier : plombs, pièces, carton, calibre, grisaille, filet. Le nom et les mesures du panneau, la réglette et les numéros du carton sont écrits au crayon sur la table.
+
+| Rôle | Valeur |
+| --- | --- |
+| Lumière (le plateau de la table, rien d'autre) | `#fbfaf3` ; éteinte `#9b9e9a` ; carton `#efeee8` |
+| Zinc de l'établi (barres, panneaux, menus) | `#d3d6d3`, clair `#e6e8e5`, chant `#a5aaa7` |
+| Plomb (texte, plombs, outil en main, ce qui est choisi) | `#232527` ; plombs de jour `#1b1c1e` |
+| Graphite (trait du carton, texte secondaire) | `#575b5f` |
+| Crayon gras (avertissements de coupe, rien d'autre) | `#b5281f` |
+| Étain (soudures, côté atelier) | `#9aa1a5` |
+| Interface | Corbel, puis Segoe UI, Candara ; chiffres alignés, car Corbel les dessine elzéviriens |
+| Crayon (mesures sur la table, numéros du carton) | Segoe Print, puis Ink Free |
+
+Sans la couleur, les avertissements se lisent à leur forme : un cercle sur un coin fautif (pointe, angle rentrant), des tirets autour d'une pièce fautive tout entière, une croix au bout d'un plomb qui ne rejoint rien. Une pièce sans verre est hachurée. La pièce choisie est cernée d'un double trait blanc et plomb, tireté, qui se lit sur n'importe quel verre. Les plaques de verre portent leur chiffre de clavier, et le carton numérote chaque pièce avec une pastille de sa couleur.
 
 ### `mondes` : le guide de voyage
 

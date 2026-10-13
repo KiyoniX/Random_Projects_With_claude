@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Éclairage</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="barre">
+    <h1><i class="boule"></i>Éclairage</h1>
+    <nav class="menus" id="menus"></nav>
+    <div class="rapides">
+      <button type="button" class="btn" data-act="annuler" id="bAnnuler" title="Annuler (Ctrl+Z)">↶ Annuler</button>
+      <button type="button" class="btn" data-act="retablir" id="bRetablir" title="Rétablir (Ctrl+Y)">↷ Rétablir</button>
+    </div>
+  </header>
+
+  <div class="bandeau">
+    <div class="vues" id="vues"></div>
+    <label class="bascule" title="Montre le trait du sprite par-dessus la hauteur, les normales ou le rendu (T)"><input type="checkbox" id="cTrait"> Trait</label>
+    <label class="bascule" title="Montre le sprite en transparence sur la hauteur et les normales, pour voir où tu peins (O)"><input type="checkbox" id="cPelure"> Pelure du sprite</label>
+    <span class="astuce" id="astuce"></span>
+  </div>
+
+  <div class="plan">
+    <aside class="etabli">
+      <div class="outils" id="outils"></div>
+
+      <section class="panneau" id="pOutil">
+        <h2 id="nomOutil"></h2>
+        <div class="rang" data-pour="pinceau lisser normale">
+          <label class="large">Taille <input type="range" id="oTaille" min="1" max="8" step="1"></label><output id="vTaille"></output>
+        </div>
+        <div class="rang" data-pour="pinceau aplat degrade pente">
+          <label class="large"><span id="lHauteur">Hauteur</span> <input type="range" id="oHauteur" min="0" max="255" step="1"></label><input type="number" id="nHauteur" min="0" max="255"><i class="pastille" id="pHauteur"></i>
+        </div>
+        <div class="rang" data-pour="degrade">
+          <label class="large">Jusqu'à <input type="range" id="oH2" min="0" max="255" step="1"></label><input type="number" id="nH2" min="0" max="255"><i class="pastille" id="pH2"></i>
+        </div>
+        <div class="rang" data-pour="pinceau">
+          <select id="oMode" aria-label="Ce que fait le pinceau"><option value="poser">Pose cette hauteur</option><option value="monter">Monte de 16 par passage</option><option value="creuser">Creuse de 16 par passage</option></select>
+        </div>
+        <div class="rang" data-pour="degrade">
+          <select id="oForme" aria-label="Forme du dégradé"><option value="radial">Radial</option><option value="lineaire">Linéaire</option></select>
+          <label><input type="checkbox" id="oBombe"> Bombé</label>
+        </div>
+        <div class="rang" data-pour="pente">
+          <select id="oProfil" aria-label="Profil de la pente"><option value="dome">Dôme</option><option value="biseau">Biseau</option><option value="coussin">Coussin</option></select>
+          <label title="Ajoute la pente au relief déjà peint au lieu de le remplacer"><input type="checkbox" id="oAjouter"> Ajouter</label>
+        </div>
+        <div class="rang" data-pour="pente">
+          <label class="large">Largeur <input type="range" id="oLargeur" min="1" max="32" step="1"></label><output id="vLargeur"></output>
+        </div>
+        <label class="rang" data-pour="aplat degrade pente">Agit sur
+          <select id="oZone"><option value="morceau">le morceau cliqué</option><option value="matiere">la matière (même rampe)</option><option value="couleur">la même couleur</option><option value="tout">tout le sprite</option></select>
+        </label>
+        <div class="rang" data-pour="lisser">
+          <label class="large">Force <input type="range" id="oForce" min="0.1" max="1" step="0.05"></label><output id="vForce"></output>
+        </div>
+        <div class="normale" data-pour="normale pipette">
+          <canvas id="bouleNormale" width="1" height="1" title="Clique la direction vers laquelle regardent les pixels à peindre"></canvas>
+          <p class="note" id="infoNormale"></p>
+          <label data-pour="normale"><input type="checkbox" id="oEffacer"> Effacer les normales peintes</label>
+        </div>
+        <p class="note" data-pour="pipette main">Alt+clic fait la pipette avec n'importe quel outil.</p>
+      </section>
+
+      <section class="panneau">
+        <h2>Relief</h2>
+        <div class="rang">
+          <label class="large" title="L'écart en pixels entre une hauteur de 0 et une hauteur de 255 : plus il est grand, plus les pentes sont raides">Profondeur <input type="range" id="rProfondeur" min="1" max="32" step="1"></label><output id="vProfondeur"></output>
+        </div>
+      </section>
+
+      <section class="panneau apercu-zone">
+        <h2>Taille réelle <span class="compte" id="apercuInfo"></span></h2>
+        <div class="apercu" id="apercu"><canvas id="apercu1" width="1" height="1"></canvas><canvas id="apercu2" width="1" height="1"></canvas></div>
+      </section>
+    </aside>
+
+    <section class="scene" id="scene">
+      <canvas id="toile"></canvas>
+    </section>
+
+    <aside class="cote">
+      <section class="panneau lumiere">
+        <h2>Lumière <select id="rPre" aria-label="Ambiance" title="Une ambiance toute prête : direction, couleurs et intensités"></select><button type="button" class="btn mini" data-act="tourner" id="bTourner" title="Faire tourner la lumière (R)">⟳ Tourner</button></h2>
+        <canvas id="rose" width="1" height="1" title="Glisse sur la boule pour placer la lumière ; clique une version pour l'éclairer de là"></canvas>
+        <div class="rang releve">
+          <label title="D'où vient la lumière : 0° en haut, 90° à droite">Azimut <input type="number" id="rAz" min="0" max="359" step="1"> °</label>
+          <label title="Hauteur de la lumière : 0° rasante, 90° de face">Élévation <input type="number" id="rEl" min="0" max="90" step="1"> °</label>
+        </div>
+      </section>
+
+      <section class="panneau">
+        <div class="rang source">
+          <label class="large"><input type="color" id="rCouleur" title="Couleur de la lumière"> Lumière</label>
+          <input type="range" id="rIntensite" min="0" max="2" step="0.05" aria-label="Intensité de la lumière">
+        </div>
+        <div class="rang source">
+          <label class="large"><input type="color" id="rAmbiante" title="Couleur de la lumière ambiante"> Ambiante</label>
+          <input type="range" id="rAmbI" min="0" max="1" step="0.05" aria-label="Intensité de la lumière ambiante">
+        </div>
+        <div class="rang source">
+          <label class="large"><input type="checkbox" id="rRim"> <input type="color" id="rRimCouleur" title="Couleur du contre-jour"> Contre-jour</label>
+          <input type="range" id="rRimI" min="0" max="1" step="0.05" aria-label="Intensité du contre-jour">
+        </div>
+        <div class="rang source">
+          <label class="large"><input type="checkbox" id="rSpec"> Reflet spéculaire</label>
+          <input type="range" id="rSpecI" min="0" max="1" step="0.05" aria-label="Intensité du reflet">
+        </div>
+        <label class="rang"><input type="checkbox" id="rOmbres"> Ombres portées par le relief</label>
+      </section>
+
+      <section class="panneau grand">
+        <h2>Rendu <span class="compte" id="compteRampes"></span></h2>
+        <label class="rang">Couleurs
+          <select id="rRendu">
+            <option value="rampe">de la rampe de chaque pixel</option>
+            <option value="palette">de toute la palette</option>
+            <option value="libre">libres</option>
+          </select>
+        </label>
+        <label class="rang" title="Mêle deux tons voisins en damier dans les transitions"><input type="checkbox" id="rTrame"> Trame dans les transitions</label>
+        <label class="rang" title="Chaque pixel part de la couleur moyenne de sa rampe : l'ombrage déjà dessiné ne s'ajoute pas à la lumière calculée"><input type="checkbox" id="rAplanir"> Effacer l'ombrage dessiné</label>
+        <label class="rang" title="Le trait du sprite (la couleur sombre de son contour) reste tel quel"><input type="checkbox" id="rTraitGarde"> Garder le trait tel quel</label>
+        <div class="palette">
+          <div class="rampes" id="rampes"><canvas id="toileRampes" width="1" height="1"></canvas></div>
+          <div class="palette-cmd">
+            <button type="button" class="btn mini" data-act="chargerPalette" title="Une palette de Palettes (.json) ou celle d'un projet Atelier Pixel">Charger…</button>
+            <button type="button" class="btn mini" data-act="paletteSprite" id="bPaletteSprite" title="Rendre avec les couleurs du sprite">Du sprite</button>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="frise" id="frise" hidden>
+    <div class="images" id="images"></div>
+    <div class="frise-cmd">
+      <button type="button" class="btn mini" data-act="copierSuivante" title="Recopie le relief de cette image sur la suivante">Relief → image suivante</button>
+      <button type="button" class="btn mini" data-act="copierToutes" title="Recopie le relief de cette image sur toutes les autres">Relief → toutes</button>
+    </div>
+  </footer>
+
+  <div class="etat">
+    <span id="etatPos">–</span>
+    <span id="etatInfo"></span>
+    <span id="etatMsg" class="msg"></span>
+    <span id="etatSauve" class="sauve"></span>
+  </div>
+
+  <div class="modal" id="modal" hidden></div>
+  <input type="file" id="fichier" accept=".json,application/json,image/png,image/gif,image/webp,image/bmp" hidden>
+  <input type="file" id="fichierPalette" accept=".json,application/json" hidden>
+
+  <script src="js/noyau.js"></script>
+  <script src="../atelier-pixel/js/gif.js"></script>
+  <script src="js/vue.js"></script>
+  <script src="js/panneaux.js"></script>
+  <script src="js/principal.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

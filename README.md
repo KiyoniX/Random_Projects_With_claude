@@ -18,6 +18,9 @@ Pour tout parcourir, ouvrir `index.html` à la racine : c'est un portail qui pr�
 | `usine` | Jeu d'automatisation : tapis roulants, séparateurs, ponts, filtres et machines à recettes, quatorze niveaux notés sur le débit, le coût et l'emprise, plus un bac à sable. | Ouvrir `index.html` |
 | `atelier-pixel` | Éditeur de pixel-art animé : outils de dessin, sélection, calques, frise d'images, pelure d'oignon, export PNG, planche et GIF. | Ouvrir `index.html` |
 | `pantin` | Animateur de sprites découpés : on détache les membres d'un dessin, on les épingle les uns aux autres, on pose quelques clés et les images entre deux se calculent. Rotation soignée qui garde les pixels nets, export planche, GIF et vers Atelier Pixel pour la retouche. | Ouvrir `index.html` |
+| `particules` | Concepteur d'effets de particules en pixel-art : quatorze préréglages (feu, fumée, étincelles, explosion, pluie, neige…), couches, rampes de teintes et tramage, export planche de sprites, GIF, vers Atelier Pixel, et un `lecteur.js` que les jeux chargent pour jouer les effets en direct. | Ouvrir `index.html` |
+| `eclairage` | Éclairage de sprites en pixel-art : on peint le relief (hauteur, pentes, normales posées à la main) et l'outil en tire les versions éclairées depuis chaque direction, jour, nuit ou lave, chaque pixel restant dans sa rampe. Export planche, GIF de la lumière qui tourne, vers Atelier Pixel, et carte de normales pour les moteurs. | Ouvrir `index.html` |
+| `vitrail` | Atelier de vitrail : on trace les plombs qui découpent le panneau en pièces, l'outil signale celles qui se couperaient mal, on pose des verres texturés, puis on sort le SVG, le PNG et le calibre de coupe numéroté. | Ouvrir `index.html` |
 | `textures` | Générateur de textures en pixel-art qui se répètent sans couture : vingt matières réglables, boucles animées, export PNG et vers Atelier Pixel. | Ouvrir `index.html` |
 | `palettes` | Générateur de palettes pour le pixel-art : extraction depuis une image, rampes et harmonies, contrastes et daltonisme, export vers Atelier Pixel et Textures. | Ouvrir `index.html` |
 | `tuiles` | Éditeur de cartes en tuiles : calques, collisions, objets, raccords automatiques, mode d'essai, export JSON et Tiled. Reprend les tuiles de Textures et les sprites d'Atelier Pixel. | Ouvrir `index.html` |
@@ -35,7 +38,7 @@ Les projets web tournent sans installation ni connexion.
 
 Chaque projet a sa propre identité visuelle, tirée de son sujet. Le principe, les couleurs et les polices de chacun, et la marche à suivre pour en ajouter un sont décrits dans [`DIRECTION-ARTISTIQUE.md`](DIRECTION-ARTISTIQUE.md).
 
-Plusieurs projets se renvoient l'un à l'autre et partagent du code, ils doivent donc rester côte à côte : une cité de l'atlas (`mondes`) ouvre son plan (`plans-de-ville`), et un plan ouvre ses catacombes (`cartes-et-cachots`), son siège (`siege`), sa rivière (`riviere`) et sa visite à pied (`visite`). `textures` et `palettes` exportent vers `atelier-pixel` ; `pantin` ouvre ses projets, lui renvoie ses animations et charge son encodeur GIF ; `palettes` et `tuiles` chargent le moteur de `textures`. Le dossier `portail` contient la page d'accueil.
+Plusieurs projets se renvoient l'un à l'autre et partagent du code, ils doivent donc rester côte à côte : une cité de l'atlas (`mondes`) ouvre son plan (`plans-de-ville`), et un plan ouvre ses catacombes (`cartes-et-cachots`), son siège (`siege`), sa rivière (`riviere`) et sa visite à pied (`visite`). `textures` et `palettes` exportent vers `atelier-pixel` ; `pantin`, `particules` et `eclairage` ouvrent ou lui envoient des projets et chargent son encodeur GIF ; `palettes` et `tuiles` chargent le moteur de `textures`. Le dossier `portail` contient la page d'accueil.
 
 ## Le dossier `mondes`
 

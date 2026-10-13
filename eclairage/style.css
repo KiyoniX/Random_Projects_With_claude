@@ -1,0 +1,188 @@
+:root {
+  --studio: #2a2b2d;       /* le plateau : gris neutre, pour juger les couleurs du rendu */
+  --panel: #202123;
+  --panel2: #2b2c2f;
+  --line: #3d3e43;
+  --text: #dcdcde;
+  --muted: #909197;
+  --dim: #5d5e64;
+  --gris18: #767676;       /* la boule grise : le gris neutre à 18 % des plateaux de tournage */
+  --gel: #ee8a3c;          /* la gélatine orange (CTO) : ce qui est choisi */
+  --gel-sombre: #6e3a14;
+  --ctb: #5b8fd9;          /* la gélatine bleue (CTB) : les normales peintes à la main */
+  --red: #e2665a;
+  --chiffres: Bahnschrift, 'DIN Alternate', 'Arial Narrow', 'Segoe UI', sans-serif;
+  font-family: 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { background: var(--panel); color: var(--text); font-size: 12.5px; line-height: 1.4; display: flex; flex-direction: column; overflow: hidden; user-select: none; -webkit-user-select: none; }
+button, input, select, output { font: inherit; color: inherit; }
+button { cursor: pointer; border: 0; background: none; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--gel); outline-offset: 1px; }
+canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+input[type=number], input[type=text], select { background: #17181a; border: 1px solid var(--line); border-radius: 3px; padding: .15rem .3rem; }
+input[type=number] { width: 4.2em; font-family: var(--chiffres); font-variant-numeric: tabular-nums; }
+input[type=checkbox], input[type=radio], input[type=range] { accent-color: var(--gel); }
+input[type=checkbox] { vertical-align: -2px; }
+input[type=range] { min-width: 0; height: 16px; }
+input[type=color] { width: 22px; height: 18px; padding: 0; border: 1px solid var(--muted); border-radius: 2px; background: none; cursor: pointer; flex: none; }
+input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+input[type=color]::-webkit-color-swatch { border: 0; }
+output { min-width: 2.2em; text-align: right; font-family: var(--chiffres); font-variant-numeric: tabular-nums; color: var(--text); }
+kbd { font: inherit; font-size: .92em; color: var(--muted); }
+* { scrollbar-color: var(--dim) transparent; }
+
+.btn { padding: .22rem .6rem; border: 1px solid var(--line); border-radius: 3px; color: var(--text); background: var(--panel2); white-space: nowrap; }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn:disabled { opacity: .35; cursor: default; }
+.btn.mini { padding: .1rem .42rem; }
+.btn.fort { border-color: var(--gel); color: var(--gel); }
+.btn.allume { border-color: var(--gel); color: #1d1206; background: var(--gel); }
+
+/* La boule grise de plateau, mate, éclairée d'en haut à gauche. C'est l'ornement de l'outil, et son instrument. */
+.boule { display: inline-block; width: 13px; height: 13px; margin-right: 7px; vertical-align: -2px; border-radius: 50%; background: radial-gradient(circle at 34% 30%, #d9d9d9 0, #9b9b9b 32%, var(--gris18) 52%, #3c3c3c 100%); box-shadow: 0 0 0 1px #151515; }
+
+/* ---------- Barre du haut ---------- */
+.barre { display: flex; align-items: center; gap: .9rem; padding: 0 .6rem; height: 34px; flex: none; border-bottom: 1px solid var(--line); }
+.barre h1 { font-family: var(--chiffres); font-size: 15px; font-weight: 600; white-space: nowrap; }
+.menus { display: flex; flex: 1; align-self: stretch; }
+.menu { position: relative; display: flex; }
+.menu-titre { padding: 0 .65rem; color: var(--text); }
+.menu-titre:hover, .menu-titre.ouvert { background: var(--panel2); }
+.menu-liste { position: absolute; top: 100%; left: 0; z-index: 20; min-width: 19rem; padding: .25rem 0; background: var(--panel2); border: 1px solid var(--line); border-radius: 0 0 4px 4px; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+.menu-liste button { display: flex; justify-content: space-between; gap: 1.5rem; width: 100%; padding: .28rem .8rem .28rem 1.6rem; text-align: left; position: relative; }
+.menu-liste button:hover { background: #3b3c41; }
+.menu-liste button.coche::before { content: '✓'; position: absolute; left: .5rem; color: var(--gel); }
+.menu-liste hr { border: 0; border-top: 1px solid var(--line); margin: .25rem 0; }
+.rapides { display: flex; gap: .35rem; }
+
+/* ---------- Les quatre vues ---------- */
+.bandeau { display: flex; align-items: stretch; gap: .9rem; padding: 0 .7rem 0 0; height: 32px; flex: none; border-bottom: 1px solid var(--line); white-space: nowrap; overflow: hidden; }
+.vues { display: flex; }
+.vue { display: flex; align-items: center; gap: .45rem; padding: 0 1rem 0 .7rem; color: var(--muted); border-right: 1px solid var(--line); border-bottom: 3px solid transparent; }
+.vue b { font-family: var(--chiffres); font-weight: 600; color: var(--dim); }
+.vue:hover { color: var(--text); background: var(--panel2); }
+.vue.actif { color: var(--text); background: var(--studio); border-bottom-color: var(--gel); }
+.vue.actif b { color: var(--gel); }
+.bascule { display: flex; align-items: center; gap: .35rem; color: var(--muted); }
+.astuce { align-self: center; flex: 1; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; text-align: right; }
+
+/* ---------- Plan de travail ---------- */
+.plan { display: flex; flex: 1; min-height: 0; }
+.etabli { width: 214px; flex: none; display: flex; flex-direction: column; border-right: 1px solid var(--line); overflow-y: auto; }
+.outils { display: grid; grid-template-columns: repeat(4, 40px); gap: 4px; justify-content: center; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+.outil { width: 40px; height: 36px; border: 1px solid transparent; border-radius: 4px; color: var(--muted); display: grid; place-items: center; }
+.outil:hover { color: var(--text); background: var(--panel2); }
+.outil.actif { color: var(--gel); border-color: var(--gel); background: var(--panel2); }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+svg .plein { fill: currentColor; stroke: none; }
+
+.scene { flex: 1; min-width: 0; position: relative; overflow: hidden; background: var(--studio); cursor: crosshair; touch-action: none; }
+.scene canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.scene[data-outil=main], .scene.main { cursor: grab; }
+
+.cote { width: 284px; flex: none; display: flex; flex-direction: column; border-left: 1px solid var(--line); overflow-y: auto; }
+.panneau { padding: 6px 11px 8px; border-bottom: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+.panneau.grand { flex: 1; }
+.panneau h2 { display: flex; align-items: center; justify-content: space-between; font-family: var(--chiffres); font-size: 13px; font-weight: 600; color: var(--muted); min-height: 22px; }
+.compte { font-family: 'Segoe UI', sans-serif; font-size: 12px; font-weight: 400; color: var(--dim); }
+.rang { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; color: var(--muted); }
+.rang label { display: flex; align-items: center; gap: 5px; }
+.rang select { flex: 1; min-width: 0; color: var(--text); }
+.rang .large { flex: 1; min-width: 0; }
+.rang .large input[type=range] { flex: 1; }
+.rang.source { flex-wrap: nowrap; }
+.rang.source input[type=range] { width: 92px; flex: none; }
+.note { color: var(--muted); }
+.pastille { width: 14px; height: 14px; flex: none; border: 1px solid var(--dim); }
+
+/* La boule des normales : une sphère en pixels, peinte aux couleurs d'une carte de normales. */
+.normale { display: flex; flex-direction: column; align-items: center; gap: 5px; padding-top: 2px; }
+.normale canvas { cursor: crosshair; }
+.normale label { display: flex; gap: 5px; align-items: center; color: var(--muted); align-self: flex-start; }
+.normale .note { align-self: stretch; text-align: center; min-height: 2.8em; }
+
+/* La boule grise au milieu de la rose des versions éclairées. */
+.lumiere h2 select { flex: 1; min-width: 0; margin: 0 6px 0 12px; font-family: 'Segoe UI', sans-serif; font-size: 12.5px; font-weight: 400; color: var(--text); }
+.lumiere canvas { align-self: center; cursor: crosshair; touch-action: none; }
+.releve input[type=number] { font-size: 14px; width: 3.6em; }
+.releve label { color: var(--muted); }
+
+.palette { display: flex; gap: 6px; align-items: stretch; }
+.palette-cmd { display: flex; flex-direction: column; gap: 4px; justify-content: flex-end; }
+.rampes { flex: 1; min-width: 0; display: flex; align-items: flex-end; padding: 4px; background: var(--studio); border: 1px solid var(--line); border-radius: 3px; overflow-x: auto; min-height: 20px; }
+.rampes canvas { flex: none; image-rendering: auto; }
+
+/* L'aperçu à taille réelle, ×1 et ×2 : c'est à cette taille que le sprite sera vu. */
+.apercu-zone { flex: 1; border-bottom: 0; min-height: 96px; }
+.apercu { flex: 1; min-height: 0; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 8px; background: var(--studio); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.apercu canvas { flex: none; }
+
+/* ---------- Frise des images ---------- */
+.frise { flex: none; display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-top: 1px solid var(--line); }
+.images { display: flex; gap: 4px; flex: 1; min-width: 0; overflow-x: auto; padding-bottom: 2px; }
+.images button { flex: none; display: grid; place-items: center; padding: 2px; border: 1px solid var(--line); border-radius: 3px; background: var(--studio); position: relative; }
+.images button.actif { border-color: var(--gel); box-shadow: inset 0 -3px 0 var(--gel); }
+.images canvas { display: block; }
+.images span { position: absolute; left: 3px; top: 1px; font-family: var(--chiffres); font-size: 10px; color: var(--muted); }
+.frise-cmd { display: flex; gap: 5px; flex-wrap: wrap; }
+
+@media (max-height: 720px) {
+  .panneau { gap: 4px; padding-top: 4px; padding-bottom: 6px; }
+  .outils { padding: 5px 6px; }
+}
+
+/* Fenêtre étroite : tout s'empile, la scène d'abord, l'établi en bande et la lumière dessous. */
+@media (max-width: 760px) {
+  body { overflow: auto; height: auto; min-height: 100%; }
+  html { height: auto; }
+  .barre { flex-wrap: wrap; height: auto; gap: 0 .9rem; padding-top: 8px; }
+  .barre h1 { line-height: 34px; }
+  .rapides { margin-left: auto; }
+  .menus { order: 3; flex: none; width: 100%; flex-wrap: wrap; position: relative; }
+  .menu { position: static; }
+  .menu-titre { height: 28px; }
+  .menu-liste { min-width: 0; width: min(19rem, 100%); }
+  .bandeau { flex-wrap: wrap; height: auto; padding: 0; gap: 0 .9rem; }
+  .vues { width: 100%; }
+  .vue { flex: 1; height: 32px; padding: 0 .5rem; justify-content: center; }
+  .bascule { height: 28px; padding-left: .7rem; }
+  .astuce { flex: none; width: 100%; text-align: left; padding: 3px .7rem; white-space: normal; }
+  .plan { flex-direction: column; flex: none; }
+  .scene { flex: none; width: 100%; height: 52vh; order: 1; }
+  .etabli { order: 3; width: 100%; border-right: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .outils { grid-template-columns: repeat(8, 40px); justify-content: start; overflow-x: auto; }
+  .cote { order: 2; width: 100%; border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .etat { position: sticky; bottom: 0; }
+}
+
+/* ---------- Barre d'état ---------- */
+.etat { display: flex; gap: 1.2rem; align-items: center; padding: 0 .7rem; height: 22px; flex: none; background: #17181a; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; }
+#etatPos { min-width: 13em; font-variant-numeric: tabular-nums; }
+.etat .msg { flex: 1; color: var(--gel); overflow: hidden; text-overflow: ellipsis; }
+.etat .sauve { color: var(--dim); }
+
+/* ---------- Fenêtres ---------- */
+.modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 1rem; background: rgba(8, 8, 9, .72); }
+.fen { max-width: min(68rem, 100%); max-height: 100%; overflow: auto; padding: 1rem 1.2rem; background: var(--panel); border: 1px solid var(--muted); border-radius: 6px; display: flex; flex-direction: column; gap: .8rem; box-shadow: 0 16px 48px rgba(0, 0, 0, .6); user-select: text; -webkit-user-select: text; }
+.fen h2 { font-family: var(--chiffres); font-size: 15px; font-weight: 600; color: var(--gel); }
+.fen h3 { font-size: 12.5px; font-weight: 700; color: var(--muted); margin: .2rem 0 .3rem; }
+.fen .corps { display: flex; flex-direction: column; gap: .7rem; min-width: min(19rem, 100%); }
+.fen .rang { gap: .8rem; color: var(--text); }
+.fen .champ { display: flex; align-items: center; gap: .4rem; }
+.fen .champ input[type=text] { width: 16rem; max-width: 100%; }
+.fen .note { max-width: 34rem; }
+.fen .erreur { color: var(--red); }
+.fen .pied { display: flex; justify-content: flex-end; gap: .5rem; }
+.aide { display: flex; gap: 1.3rem; flex-wrap: wrap; }
+.aide > div { flex: 1 1 19rem; max-width: 24rem; }
+.aide h3:not(:first-child) { margin-top: .7rem; }
+.aide table { border-collapse: collapse; }
+.aide td { padding: .1rem .9rem .1rem 0; vertical-align: top; }
+.aide td:first-child { white-space: nowrap; }
+.aide kbd { color: var(--text); }
+.aide ol { padding-left: 1.2rem; display: flex; flex-direction: column; gap: .35rem; }
+.aide p + p { margin-top: .4rem; }
