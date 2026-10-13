@@ -302,7 +302,9 @@
 
   function clavier(e) {
     var cible = e.target, saisie = cible.tagName === 'TEXTAREA' || cible.tagName === 'SELECT' || (cible.tagName === 'INPUT' && cible.type !== 'checkbox' && cible.type !== 'range' && cible.type !== 'radio');
-    var k = e.key.length === 1 ? e.key.toLowerCase() : e.key, ctrl = e.ctrlKey || e.metaKey, type, o;
+    var k = e.key.length === 1 ? e.key.toLowerCase() : e.key, ctrl = e.ctrlKey || e.metaKey, chiffre = /^Digit([0-4])$/.exec(e.code), type, o;
+    // Les chiffres se lisent sur la position de la touche : un clavier français les donne sans Maj.
+    if (chiffre && k !== '#') k = chiffre[1];
     if (U.essai) { toucheEssai(e, true); return; }
     if (k === 'Escape') {
       if (U.fenetreOuverte()) U.fermer();

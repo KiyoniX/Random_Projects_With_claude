@@ -1056,8 +1056,11 @@
   }
 
   document.addEventListener('keydown', function (e) {
-    var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key, d = /^Digit(\d)$/.exec(e.code);
     if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT') return;
+    // Les chiffres se lisent sur la position de la touche : un clavier français les donne sans Maj.
+    // Sa touche 6 donne aussi « - » : elle ne dézoome que s'il n'y a pas de sixième choix à prendre.
+    if (d && (k !== '-' || (!page && (modal ? modal.opts[(modal.page || 0) * PER_PAGE + 5] : C && C.hand.length > 5)))) k = d[1];
     if (tag === 'BUTTON' && (k === 'Enter' || k === ' ')) return;
     // En combat, main pleine, 0 joue la dixième carte au lieu de recadrer.
     if (k === '+' || k === '=' || k === '-' || (k === '0' && !modal && !(C && !page && C.hand.length > 9))) {

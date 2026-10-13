@@ -1077,7 +1077,7 @@
   var ARROWS = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] };
 
   document.addEventListener('keydown', function (e) {
-    var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key, n = parseInt(k, 10);
+    var tag = e.target && e.target.tagName, k = e.key.length === 1 ? e.key.toLowerCase() : e.key, d = /^Digit(\d)$/.exec(e.code), n = d ? +d[1] : parseInt(k, 10);   // position de la touche : un clavier français donne les chiffres sans Maj
     if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'SELECT') return;
     if ((tag === 'BUTTON' || tag === 'A' || tag === 'SUMMARY') && (k === 'Enter' || k === ' ')) return;
     if (S.over) return;

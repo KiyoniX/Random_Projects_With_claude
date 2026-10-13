@@ -797,9 +797,9 @@
     else if (k === ' ' && e.target && e.target.tagName === 'SUMMARY') return;
     else if (k === ' ') ui.paused = !ui.paused;
     else if (k === 'c') toggleCrue();
-    else if (k === '1') setView('plan');
-    else if (k === '2') setView('courant');
-    else if (k === '3') setView('niveau');
+    else if (k === '1' || e.code === 'Digit1') setView('plan');   // position de la touche : un clavier français donne les chiffres sans Maj
+    else if (k === '2' || e.code === 'Digit2') setView('courant');
+    else if (k === '3' || e.code === 'Digit3') setView('niveau');
     else return;
     e.preventDefault();
     hud();

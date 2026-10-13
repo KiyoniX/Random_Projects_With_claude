@@ -269,7 +269,7 @@
       var k = e.key, pas = 60;
       if (k === '+' || k === '=') self.zoomer(1.5);
       else if (k === '-' || k === '_') self.zoomer(1 / 1.5);
-      else if (k === '0' || k === 'Escape' || k === 'Home') self.entiere();
+      else if (k === '0' || e.code === 'Digit0' || k === 'Escape' || k === 'Home') self.entiere();
       else if (k === 'ArrowLeft') self.deplace(-pas, 0);
       else if (k === 'ArrowRight') self.deplace(pas, 0);
       else if (k === 'ArrowUp' && v.z > 1.001) self.deplace(0, -pas);

@@ -163,7 +163,7 @@
       var tag = e.target && e.target.tagName;
       if (e.key === 'Shift') cadre.classList.add('maj');
       if (e.ctrlKey || e.metaKey || e.altKey || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
-      if (e.key === '0' || e.key === 'Home') v.entier();
+      if (e.key === '0' || e.code === 'Digit0' || e.key === 'Home') v.entier();
       else if (e.key === '+' || e.key === '=') v.loupe(1.4);
       else if (e.key === '-') v.loupe(1 / 1.4);
       else return;
