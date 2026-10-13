@@ -346,6 +346,11 @@
     }
     rendu('rProfondeur', 'profondeur', num(1, 32, true), 'input');
     rendu('rRendu', 'rendu', texte); rendu('rTrame', 'trame', coche); rendu('rAplanir', 'aplanir', coche); rendu('rTraitGarde', 'trait', coche);
+    // En quittant un champ numérique (ou sur Entrée), il montre la valeur retenue, bornée, et non ce qu'on a tapé ou effacé.
+    [['nHauteur', function () { return U.o.hauteur; }], ['nH2', function () { return U.o.h2; }],
+      ['rAz', function () { return Math.round(R().az) % 360; }], ['rEl', function () { return Math.round(R().el); }]].forEach(function (c) {
+      $('#' + c[0]).addEventListener('change', function () { this.value = c[1](); });
+    });
     $('#rPre').innerHTML = '<option value="">sur mesure</option>' + E.PREREGLAGES.map(function (p) { return '<option value="' + p.id + '">' + echapper(p.nom) + '</option>'; }).join('');
     $('#rPre').addEventListener('change', function () { if (this.value) U.appliquerPrereglage(this.value); });
     initRose();

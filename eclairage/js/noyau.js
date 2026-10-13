@@ -609,16 +609,20 @@
     for (k = 0; k < out.length; k += 8000) s += String.fromCharCode.apply(null, out.slice(k, k + 8000));
     return btoa(s);
   }
+  // atob se plaint en anglais : on le dit en français.
+  function deBase64(texte) {
+    try { return atob(texte); } catch (e) { throw new Error('Une image de ce fichier est abîmée : son codage est illisible.'); }
+  }
   function decoder(texte, n) {
-    var s = atob(texte), buf = new Uint32Array(n), i = 0, k, run, c;
+    var s = deBase64(texte), buf = new Uint32Array(n), i = 0, k, run, c;
     for (k = 0; k + 4 < s.length; k += 5) {
       run = s.charCodeAt(k);
       c = rgba(s.charCodeAt(k + 1), s.charCodeAt(k + 2), s.charCodeAt(k + 3), s.charCodeAt(k + 4));
-      if (i + run > n) throw new Error('image trop longue');
+      if (i + run > n) throw new Error('Une image de ce fichier est abîmée : elle déborde de sa taille.');
       if (c) buf.fill(c, i, i + run);
       i += run;
     }
-    if (i !== n) throw new Error('image incomplète');
+    if (i !== n) throw new Error('Une image de ce fichier est abîmée : elle est incomplète.');
     return buf;
   }
   // Une carte d'octets (la hauteur) : plages [longueur, valeur] puis base64.
@@ -634,14 +638,14 @@
     return btoa(s);
   }
   function decoderOctets(texte, n) {
-    var s = atob(texte), buf = new Uint8Array(n), i = 0, k, run;
+    var s = deBase64(texte), buf = new Uint8Array(n), i = 0, k, run;
     for (k = 0; k + 1 < s.length; k += 2) {
       run = s.charCodeAt(k);
-      if (i + run > n) throw new Error('hauteur trop longue');
+      if (i + run > n) throw new Error('Un relief de ce fichier est abîmé : il déborde de sa taille.');
       buf.fill(s.charCodeAt(k + 1), i, i + run);
       i += run;
     }
-    if (i !== n) throw new Error('hauteur incomplète');
+    if (i !== n) throw new Error('Un relief de ce fichier est abîmé : il est incomplet.');
     return buf;
   }
   E.coder = coder; E.decoder = decoder;

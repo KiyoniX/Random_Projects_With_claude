@@ -289,7 +289,9 @@
         k = c.getContext('2d');
         k.drawImage(img, 0, 0);
         if (!w || !h) { U.alerte('Ouverture impossible', 'Cette image n\'a pas de taille en pixels.'); return; }
-        E.docDepuisImage(new Uint32Array(k.getImageData(0, 0, w, h).data.buffer), w, h, sansExtension(fichier.name));
+        var pix = new Uint32Array(k.getImageData(0, 0, w, h).data.buffer);
+        if (!pix.some(function (c) { return c >>> 24; })) { U.alerte('Ouverture impossible', 'Cette image est entièrement transparente : il n\'y a rien à éclairer.'); return; }
+        E.docDepuisImage(pix, w, h, sansExtension(fichier.name));
         premierRelief(); E.change(true);
         apresOuverture('« ' + fichier.name + ' » ouvert, avec un dôme sur sa silhouette pour commencer : peins le relief par-dessus.' + (E.analyse().tronque ? ' Il a plus de 256 couleurs : les rampes ne gardent que les 256 premières.' : ''));
       };
@@ -517,8 +519,8 @@
     // Sur un clavier français, [ et ] demandent AltGr, que Windows annonce comme Ctrl+Alt.
     if (e.ctrlKey && e.altKey && (k === '[' || k === ']') && !saisie) { e.preventDefault(); agir(k === '[' ? 'tailleMoins' : 'taillePlus'); return; }
     if (ctrl && !e.altKey) {
-      // Dans un champ, Ctrl+Z et Ctrl+Y défont la saisie, pas le relief.
-      if (saisie && (k === 'z' || k === 'y')) return;
+      // Dans un champ, Ctrl+Z et Ctrl+Y défont la saisie, pas le relief. Un menu déroulant n'a pas de saisie à défaire.
+      if (saisie && tag !== 'SELECT' && (k === 'z' || k === 'y')) return;
       o = { z: e.shiftKey ? 'retablir' : 'annuler', y: 'retablir', s: 'enregistrer', o: 'ouvrir' }[k];
       if (o) { e.preventDefault(); agir(o); }
       return;
