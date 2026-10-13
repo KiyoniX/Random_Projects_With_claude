@@ -101,7 +101,7 @@
     json: function (t) {
       var o = JSON.parse(t), liste;
       // Notre format, un projet Atelier Pixel, le JSON de Lospec ou une simple liste.
-      liste = Array.isArray(o) ? o : o.couleurs || o.palette || o.colors;
+      liste = Array.isArray(o) ? o : o && (o.couleurs || o.palette || o.colors);
       if (!Array.isArray(liste)) throw new Error('Ce JSON ne contient pas de liste de couleurs.');
       return { nom: Array.isArray(o) ? '' : o.nom || o.name || '', couleurs: liste.map(function (c) { return typeof c === 'string' ? c.replace(/^(#?[0-9a-f]{6})[0-9a-f]{2}$/i, '$1') : ''; }) };
     }

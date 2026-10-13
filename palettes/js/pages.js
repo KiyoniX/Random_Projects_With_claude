@@ -90,6 +90,7 @@
     var E = P.E, neuves, avant = E.couleurs.length;
     if (remplacer) P.remplacer(liste.filter(function (h, i) { return liste.indexOf(h) === i; }), [], nom);
     else {
+      if (avant >= P.COULEURS_MAX) { U.message('Palette pleine : ' + P.COULEURS_MAX + ' couleurs au plus.'); return; }
       neuves = liste.filter(function (h, i) { return E.couleurs.indexOf(h) < 0 && liste.indexOf(h) === i; });
       if (!neuves.length) { U.message('Ces couleurs sont déjà toutes dans la palette.'); return; }
       P.remplacer(E.couleurs.concat(neuves), E.verrous);
@@ -244,6 +245,8 @@
     $('#seuil').addEventListener('input', function () { P.regler('seuil', this.value); U.rafraichir(); });
     m.addEventListener('pointermove', function (e) { var c = caseSous(e); infoMatrice(c.i, c.j); });
     m.addEventListener('pointerleave', function () { infoMatrice(-1, -1); });
+    // La matrice est taillée sur son cadre : elle se redessine quand la fenêtre change de taille.
+    window.addEventListener('resize', function () { if (P.R.onglet === 'verifier') dessinerMatrice(); });
     m.addEventListener('click', function (e) {
       var c = caseSous(e), n = P.E.couleurs.length;
       if (c.i >= n || c.j >= n || (c.i < 0 && c.j < 0)) return;
@@ -385,6 +388,7 @@
     var E = P.E, avant = E.couleurs.length, neuves;
     if ($('#ajouterImport').checked) {
       neuves = p.couleurs.filter(function (h, i) { return E.couleurs.indexOf(h) < 0 && p.couleurs.indexOf(h) === i; });
+      if (!neuves.length || avant >= P.COULEURS_MAX) { U.message(neuves.length ? 'Palette pleine : ' + P.COULEURS_MAX + ' couleurs au plus.' : 'Ces couleurs sont déjà toutes dans la palette.'); return; }
       P.remplacer(E.couleurs.concat(neuves), E.verrous);
       P.valider('Importer des couleurs');
       U.message(pluriel(P.E.couleurs.length - avant, 'couleur') + ' ajoutée' + (P.E.couleurs.length - avant > 1 ? 's' : '') + ' depuis ' + origine + '.');

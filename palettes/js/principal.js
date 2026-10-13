@@ -33,7 +33,8 @@
 
   function rafraichirBarre() {
     var E = P.E, h = P.histEtat(), v = E.verrous.filter(function (x) { return x; }).length;
-    if (document.activeElement !== $('#nom')) $('#nom').value = E.nom;
+    // Pendant la frappe le champ garde ses espaces ; il ne suit que si le nom a changé autrement (Ctrl+Z dans le champ).
+    if (document.activeElement !== $('#nom') || P.nomPropre($('#nom').value) !== E.nom) $('#nom').value = E.nom;
     $('#compte').textContent = U.pluriel(E.couleurs.length, 'couleur') + (v ? ', dont ' + v + ' verrouillée' + (v > 1 ? 's' : '') : '');
     $('#bAnnuler').disabled = !h.avant;
     $('#bRetablir').disabled = !h.apres;

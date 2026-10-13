@@ -7,11 +7,12 @@
   var ZOOMS = [0.125, 0.25, 1 / 3, 0.5, 2 / 3, 1, 2, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32];
   var MARGE = 16;                         // marge autour de l'image ajustée, en pixels
   var SEUIL_CLIC = 4;                     // en deçà, un appui sur une vue est un clic et non un déplacement
+  var DELAI_DOUBLE = 300;                 // un clic sur l'image d'origine attend ce délai : un double-clic ajuste la vue sans prélever
 
   // img : l'image chargée { nom, w, h, data, histo, toile, simulee: { vision: toile } }.
   // rendu : la même image avec la palette { indices, toile, erreur, usage }.
   // vue : le zoom et le point de l'image placé au centre des deux vues.
-  var img = null, rendu = null, vue = { z: 1, cx: 0, cy: 0 }, prise = null;
+  var img = null, rendu = null, vue = { z: 1, cx: 0, cy: 0 }, prise = null, prelevement = null;
 
   U.image = function () { return img; };
   U.usagePalette = function () { return img && P.E.couleurs.length ? P.usage(img.histo, P.rgbPalette()) : null; };
@@ -121,10 +122,10 @@
       }, { passive: false });
       cadre.addEventListener('pointerdown', function (e) {
         if (!img || e.button > 1) return;
-        prise = { cadre: cadre, x: e.clientX, y: e.clientY, cx: vue.cx, cy: vue.cy, bouge: false, e: e };
+        prise = { cadre: cadre, x: e.clientX, y: e.clientY, cx: vue.cx, cy: vue.cy, bouge: false, e: e, img: img };
         try { cadre.setPointerCapture(e.pointerId); } catch (err) { /* pointeur synthétique */ }
       });
-      cadre.addEventListener('dblclick', ajuster);
+      cadre.addEventListener('dblclick', function () { clearTimeout(prelevement); ajuster(); });
     });
     window.addEventListener('pointermove', function (e) {
       if (!prise) return;
@@ -140,7 +141,11 @@
       prise = null;
       if (!p) return;
       $('#vues').classList.remove('saisie');
-      if (!p.bouge && e.button === 0) cliquer(p.cadre, p.e);
+      if (p.bouge || e.button !== 0) return;
+      // Le prélèvement attend de savoir si c'est le premier clic d'un double-clic, qui ne doit rien ajouter.
+      clearTimeout(prelevement);
+      if (p.cadre.id === 'cadreOrigine') prelevement = setTimeout(function () { if (img === p.img) cliquer(p.cadre, p.e); }, DELAI_DOUBLE);
+      else cliquer(p.cadre, p.e);
     });
     $('#zoom').addEventListener('click', function (e) {
       var b = e.target.closest('[data-zoom]');
@@ -207,7 +212,10 @@
   // ---------- Chargement ----------
   // Reçoit une image RVBA et en tire aussitôt une palette.
   U.definirImage = function (data, w, h, nom) {
-    img = { nom: nom, w: w, h: h, data: data, histo: P.histogramme(data, w, h), toile: toileDe(data, w, h), simulee: {}, exact: false };
+    var histo = P.histogramme(data, w, h);
+    // Une image sans un pixel visible ne donnerait qu'une palette vide : elle est refusée, l'image en cours reste.
+    if (!histo.nb) { U.message('« ' + nom + ' » est entièrement transparente : il n\'y a aucune couleur à en tirer.'); return; }
+    img = { nom: nom, w: w, h: h, data: data, histo: histo, toile: toileDe(data, w, h), simulee: {}, exact: false };
     rendu = null;
     if (!P.E.verrous.some(function (v) { return v; })) P.E.nom = P.nomPropre(nom);
     U.montrerOnglet('extraire');
