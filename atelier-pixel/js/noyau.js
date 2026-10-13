@@ -595,15 +595,20 @@
     var w = Math.round(o.w), h = Math.round(o.h), max = 0, vus = {};
     if (tropGrand(w, h) || !o.calques.length || !o.images.length) throw new Error('Projet invalide.');
     var calques = o.calques.map(function (c) {
-      var id = Math.round(c.id);
+      var id = Math.round(c && c.id);
       if (!(id > 0) || vus[id]) throw new Error('Projet invalide.');
       vus[id] = true; max = Math.max(max, id);
       return { id: id, nom: String(c.nom || 'Calque').slice(0, 40), visible: c.visible !== false, opacite: c.opacite === undefined ? 1 : borne(Number(c.opacite), 0, 1) || 0, verrou: !!c.verrou };
     });
     idSuivant = Math.max(idSuivant, max + 1);
     var images = o.images.map(function (im) {
+      if (!im || typeof im !== 'object') throw new Error('Projet invalide.');
       var img = creerImage(duree(im.duree)), k;
-      for (k in (im.cels || {})) if (vus[k]) img.cels[k] = decoder(im.cels[k], w * h);
+      for (k in (im.cels || {})) {
+        if (!vus[k]) continue;
+        // Un base64 abîmé ou un celluloïd de la mauvaise longueur : on le dit sans jargon.
+        try { img.cels[k] = decoder(String(im.cels[k]), w * h); } catch (err) { throw new Error('Projet invalide : une image est illisible.'); }
+      }
       return img;
     });
     A.doc = {

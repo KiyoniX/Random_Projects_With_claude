@@ -291,6 +291,8 @@
       var el = e.target;
       if (!el.closest('#modal') && (el.tagName === 'SELECT' || el.type === 'range' || el.type === 'number')) el.blur();
     });
+    // La case de la frise et le menu Affichage montrent le même état de la pelure d'oignon.
+    $('#oignon').addEventListener('change', cocher);
     document.addEventListener('keydown', touche);
     document.addEventListener('keyup', relache);
     window.addEventListener('blur', function () { U.espace = false; $('#scene').classList.remove('main'); });

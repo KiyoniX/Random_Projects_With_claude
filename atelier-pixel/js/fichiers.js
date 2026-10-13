@@ -4,6 +4,7 @@
   var A = window.Atelier, U = A.ui;
 
   var CLE = 'atelier-pixel.projet';
+  var CLE_NOM = 'atelier-pixel.nom';     // nom de fichier du sprite repris
   var DELAI_SAUVE = 700;                 // millisecondes d'inactivité avant la sauvegarde automatique
   var PREREGLAGES = [16, 32, 64, 128];
   var ECHELLES = [1, 2, 3, 4, 5, 6, 8, 10, 12, 16];
@@ -273,6 +274,7 @@
     minuterie = null;
     try {
       localStorage.setItem(CLE, JSON.stringify(A.versProjet()));
+      localStorage.setItem(CLE_NOM, U.nom);
       $('#etatSauve').textContent = 'Sauvegarde auto ' + ('0' + h.getHours()).slice(-2) + ':' + ('0' + h.getMinutes()).slice(-2);
     } catch (err) {
       $('#etatSauve').textContent = 'Sauvegarde auto impossible (stockage plein ou interdit)';
@@ -290,6 +292,8 @@
       var t = localStorage.getItem(CLE);
       if (!t) return false;
       A.depuisProjet(JSON.parse(t));
+      // Les fichiers exportés après un rechargement gardent le nom du sprite.
+      U.nom = localStorage.getItem(CLE_NOM) || U.nom;
       return true;
     } catch (err) {
       return false;

@@ -297,7 +297,8 @@
       if (!l || e.target.tagName === 'INPUT') return;
       i = Number(l.dataset.i);
       if (b) A.calqueRegler(i, b.dataset.r, !A.doc.calques[i][b.dataset.r]);
-      else { A.allerCalque(i); U.rafraichir(); }
+      // La ligne n'est refaite que si le calque change : sinon le double-clic de renommage tomberait sur une ligne disparue.
+      else if (i !== A.doc.iCalque) { A.allerCalque(i); U.rafraichir(); }
     });
     el.addEventListener('dblclick', function (e) {
       var l = e.target.closest('.calque');
