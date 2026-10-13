@@ -1,0 +1,47 @@
+0x100000	function	entry
+0x1000a0	function	sm_service_loop
+0x1009a4	function	svcAcceptSession
+0x1009bc	function	svcReplyAndReceive
+0x100ee8	function	svcGetSystemInfo
+0x1010b4	function	svcCreateAddressArbiter
+0x1010cc	function	svcQueryMemory
+0x10131c	function	svcGetProcessInfo
+0x1015dc	function	svcCreateSessionToPort
+0x1015f4	function	svcDuplicateHandle
+0x1016f8	function
+0x101788	function
+0x10189c	function	process_can_access_service
+0x101c34	function	svcArbitrateAddress
+0x101efc	function	lock_leave
+0x101f1c	function	svcReleaseSemaphore
+0x102030	function	find_service
+0x102104	function	lock_enter
+0x10213c	function	validate_service_name
+0x1021f8	function	svcCreateSemaphore
+0x10222c	function	svcControlMemory
+0x102280	function	srv_RegisterService
+0x10241c	function	svcGetProcessId
+0x102434	function	svcCreatePort
+0x1028f4	function
+0x102900	function	srv_Unsubscribe
+0x102a1c	function	srvpm_PublishToAll
+0x102aa8	function	srv_GetPort
+0x102b78	function	srv_RegisterPort
+0x102cdc	function	srvpm_RegisterProcess
+0x102dfc	function	srv_GetServiceHandle
+0x102eec	function	srvpm_PublishToProcess
+0x102fb0	function	srv_UnregisterPort
+0x103090	function	srvpm_UnregisterProcess
+0x103238	function	srv_UnregisterService
+0x103318	function	srv_EnableNotification
+0x103448	function	srv_IsServiceRegistered
+0x1034d8	function	srv_PublishToSubscriber
+0x1035d0	function	srv_ReceiveNotification
+0x1036a8	function	srv_PublishAndGetSubscriber
+0x1037c8	function	srv_Subscribe
+0x103930	function	srvpm_handle_command
+0x103a44	function	srv_handle_command
+0x103e50	function
+0x104168	function
+0x104188	function
+0x10418c	function

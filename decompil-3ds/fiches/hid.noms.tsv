@@ -1,0 +1,230 @@
+0x100000	function	entry
+0x100024	function	clear_bss
+0x100048	function
+0x100178	function	svcExitProcess
+0x100180	function	hid_main
+0x100690	function	setup_heap
+0x1006c0	function	svcAcceptSession
+0x1006e4	function	set_heap_size
+0x100790	function	hid_initialize
+0x100a4c	function	start_session_thread
+0x100bf4	function	join_session_threads
+0x100c74	function	hid_finalize
+0x100e08	function	ptm_close
+0x100e5c	function	ptm_open
+0x100ec4	function	get_notification_semaphore
+0x100ef8	function	handle_srv_notification
+0x100fb4	function	srv_is_initialized
+0x100fd0	function	SRV_RegisterService
+0x10102c	function	SRV_UnregisterService
+0x101080	function	srv_exit
+0x1011ac	function	svcControlMemory
+0x1011d0	function	strcmp
+0x10128c	function	create_lock_arbiter
+0x1012c8	function	unmap_shared_memory
+0x101374	function	init_runtime
+0x1013d4	function	session_thread_main
+0x1014ec	function	init_shared_memory
+0x1017dc	function	MCUHID_GetMcuHidEventHandle
+0x101810	function	mcu_close
+0x101818	function	mcu_open
+0x101844	function	ptm_check_new_3ds_cached
+0x1018a4	function	SRV_RegisterClient
+0x1018e0	function	SRV_EnableNotification
+0x10191c	function	SRV_ReceiveNotification
+0x101958	function	cdc_close
+0x101960	function	cdc_open
+0x10198c	function	load_3d_slider_bounds
+0x101a0c	function	init_circle_pad_direction_params
+0x101a74	function	init_gyroscope_calibration
+0x101a84	function	init_touch_calibration
+0x101ab4	function	load_analog_stick_calibration
+0x101c58	function	init_accelerometer_calibration
+0x101d3c	function	init_button_state
+0x101e08	function	gyroscope_init
+0x101f44	function	gyroscope_shutdown
+0x101f60	function
+0x101f70	function	svcCreateAddressArbiter
+0x101f88	function	svcCreateEvent
+0x101fa0	function	create_shared_memory_block
+0x102088	function	create_thread
+0x102178	function	session_receive_loop
+0x102224	function	session_context_init
+0x102244	function	session_context_cleanup
+0x1022cc	function	sampling_thread_main
+0x102504	function	pad_thread_main
+0x102550	function	gyroscope_thread_main
+0x10259c	function	PTMSYSM_CheckNew3DS
+0x1025dc	function	SRV_GetServiceHandle
+0x102638	function	GPIOHID_cmd0002
+0x102670	function	GPIOHID_BindInterrupt
+0x1026c4	function	GPIOHID_UnbindInterrupt
+0x102714	function	GPIOHID_cmd0004
+0x10274c	function	GPIOHID_cmd0006
+0x102784	function	CDCHID_Finalize
+0x1027ac	function
+0x1027b8	function
+0x1027d4	function
+0x1027e8	function
+0x10280c	function
+0x102820	function
+0x102cd8	function
+0x102ce8	function
+0x102cf4	function
+0x102cf8	function	svcConnectToPort
+0x102d10	function	svcCreateMemoryBlock
+0x102d2c	function	svcCreateThread
+0x102d50	function	svcGetProcessInfo
+0x102d6c	function	svcReplyAndReceive
+0x102d84	function	wait_any_handle
+0x102e94	function	map_shared_memory
+0x102fc4	function
+0x102fc8	function	hid_handle_command
+0x1036e8	function	update_debug_pad
+0x1037d0	function	update_pad_and_touch
+0x103b64	function	rearm_heartbeat_timer
+0x103bb0	function	update_gyroscope
+0x103e38	function	set_touch_calibration
+0x103fa4	function	svcArbitrateAddress
+0x103fbc	function	I2CHID_WriteRegister8
+0x104004	function	I2CHID_WriteRegisterBuffer
+0x10428c	function	gyroscope_read_raw
+0x10436c	function	debug_pad_read
+0x1044f0	function	reset_pad_section
+0x104508	function	set_analog_stick_calibration
+0x104618	function	reset_gyroscope_section
+0x104630	function	reset_accelerometer_section
+0x104648	function	reset_touch_section
+0x104660	function	throw_fatal_error_typed
+0x1046c8	function	hid_DisableGyroscopeLow
+0x104780	function	hid_DisableAccelerometer
+0x1048c8	function	I2CHID_EnableRegisterBits8
+0x104910	function	I2CHID_DisableRegisterBits8
+0x104958	function	add_circle_pad_directions
+0x104a5c	function	GPIOHID_GetGPIOData
+0x104aa0	function	set_accelerometer_calibration
+0x104b44	function	load_touch_calibration
+0x104be8	function	load_gyroscope_calibration
+0x104d0c	function	cfg_close
+0x104d88	function	cfg_open
+0x104e3c	function	i2c_close
+0x104e4c	function	gyroscope_power_up
+0x104eb0	function	svcSetTimer
+0x104ec8	function	CDCHID_Initialize
+0x104ef0	function	reset_section_header
+0x104f5c	function	gyroscope_power_down
+0x105090	function	break_process
+0x1050e4	function	copy_service_name
+0x105114	function	stop_sampling
+0x1052d4	function	release_address_range
+0x10533c	function	lock_leave
+0x10535c	function	create_thread_on_heap_stack
+0x1053f8	function	thread_join
+0x105430	function	lock_enter
+0x105468	function	MCUHID_cmd0001
+0x1054a0	function	MCUHID_EnableAccelerometerInterrupt
+0x1054d8	function	start_sampling
+0x105784	function	create_event
+0x1057d0	function	svcCreateTimer
+0x1057e8	function	debug_pad_init
+0x10598c	function	srv_get_service_handle_by_name
+0x1059b8	function	srv_get_service_handle
+0x1059ec	function	lock_init
+0x105a08	function	panic_on_failure
+0x105a78	function	is_new_3ds
+0x105ad4	function	svcWaitSynchronizationN
+0x105af8	function	SRV_Subscribe
+0x105b30	function	register_notification_handler
+0x105bc0	function	strlen
+0x105c20	function	throw_fatal_error
+0x105c50	function	init_runtime_and_srv
+0x105c60	function	srv_init
+0x105d84	function	construct_array
+0x105da6	function	static_guard_acquire
+0x105db8	function	update_accelerometer
+0x105f20	function	I2CHID_ReadRegisterBuffer
+0x10625c	function	svcGetProcessId
+0x1063dc	function	reserve_address_range
+0x1065e0	function	service_close
+0x106624	function	service_open
+0x106720	function	CFG_GetConfigInfoBlk8
+0x106770	function	ERRF_Throw
+0x1067a8	function	hid_GetIPCHandles
+0x1067f0	function	MCUHID_GetSoundVolume
+0x106800	function	hid_EnableGyroscopeLow
+0x106908	function	hid_EnableAccelerometer
+0x10693c	function	MCUHID_cmd0006
+0x106974	function	MCUHID_GetMcuHidEventReason
+0x1069a8	function	MCUHID_GetRaw3DSliderPosition
+0x106a74	function	CDCHID_GetData
+0x106aa8	function	write_pad_entry
+0x106bd4	function	write_debug_pad_entry
+0x106d4c	function	write_touch_entry
+0x106e50	function	write_gyroscope_entry
+0x106f58	function	write_accelerometer_entry
+0x107060	function	update_3d_slider
+0x107138	function	hid_cmd0010
+0x10715c	function	hid_cmd000F
+0x1071c0	function	hid_cmd0008
+0x107258	function	hid_GetGyroscopeLowCalibrateParam
+0x1072ac	function	hid_cmd0007
+0x1072e4	function	hid_UpdateTouchConfig
+0x107340	function	hid_cmd0003
+0x10734c	function	hid_CalibrateTouch
+0x1073dc	function	convert_touch_position
+0x1074e0	function	compute_analog_stick_calibration
+0x107608	function	hid_StartAnalogStickCalibration
+0x107644	function	hid_GetAnalogStickCalibrateParam
+0x1076c8	function	convert_circle_pad
+0x107874	function	hid_cmd0005
+0x1078fc	function	hid_cmd0006
+0x1079dc	function	hid_cmd0004
+0x1079ec	function	apply_accelerometer_calibration
+0x107a24	function	read_buttons
+0x107cec	function	thread_trampoline
+0x107d38	function	svcSleepThread
+0x107e98	function	lock_wait
+0x107fe0	function	find_session_events
+0x108090	function	I2CHID_ReadRegisterBuffer8
+0x10845c	function	CFG_SetConfigInfoBlk4
+0x1084a8	function	CFG_UpdateConfigNANDSavegame
+0x108860	function	svcCreateMutex
+0x108878	function	svcDuplicateHandle
+0x108890	function
+0x1088a0	function
+0x1088bc	function
+0x1088ec	function
+0x108c50	function	session_slot_construct
+0x108c98	function	session_slot_destroy
+0x108d34	function	PTMSYSM_NotifySleepPreparationComplete
+0x108d7c	function	on_terminate_notification
+0x108d88	function
+0x108d9c	function
+0x108da0	function	on_sleep_or_shell_notification
+0x108e30	function
+0x108e34	function
+0x108e38	function
+0x108e3c	function
+0x108e8c	function
+0x108f6c	function
+0x108f80	function
+0x108fe0	function
+0x108ff4	function	static_init_hid_globals
+0x1091e0	function
+0x109214	function
+0x109228	function
+0x109284	function
+0x109298	function
+0x1092ac	function
+0x1092b0	function
+0x1092b4	function
+0x1092c8	function
+0x109300	function
+0x109314	function
+0x10934c	function
+0x109384	function
+0x109398	function
+0x1093ac	function
+0x1093c0	function
+0x1093d4	function
+0x109468	function

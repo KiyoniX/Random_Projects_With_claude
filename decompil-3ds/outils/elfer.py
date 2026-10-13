@@ -5,7 +5,9 @@ main, et REA, qui pilote Ghidra sans interface, ne sait imposer une adresse qu'a
 Un ELF minimal règle les deux : un en-tête, un segment chargeable à 0x00100000, le code tel quel.
 Si l'exheader extrait par ctrtool est à côté (exheader.bin), on lit les vraies tailles de .text,
 .rodata et .data et on les écrit en trois segments, lecture-exécution, lecture seule, lecture-écriture,
-plus le .bss. Sinon un seul segment en lecture-écriture-exécution.
+plus le .bss. Sinon un seul segment en lecture-écriture-exécution. L'adresse de .text vient de l'exheader :
+0x00100000 presque partout, 0x14000000 pour loader. Les modules rangés dans le FIRM ont leurs sections
+serrées dans code.bin, sans remplissage de page : c'est reconnu à la taille du fichier.
 
     python elfer.py local/extrait/exefs/code.bin                 écrit code.elf à côté
     python elfer.py local/extrait/exefs/code.bin sortie.elf
@@ -33,15 +35,19 @@ def segments_depuis_exheader(exheader, taille_code):
     ro = struct.unpack_from('<III', exheader, 0x20)
     data = struct.unpack_from('<III', exheader, 0x30)
     bss = struct.unpack_from('<I', exheader, 0x3C)[0]
-    if text[0] != BASE or ro[0] < text[0] + text[2] or data[0] < ro[0] + ro[2]:
+    if text[0] & 0xFFF or not text[2] or ro[0] < text[0] + text[2] or data[0] < ro[0] + ro[2]:
         return None
-    # Dans code.bin, chaque section est alignée sur une page de 0x1000 octets.
+    # Dans le code.bin d'un titre, chaque section est alignée sur une page de 0x1000 octets. Dans celui
+    # d'un module rangé dans le FIRM (sm, fs, pm, loader, pxi), les trois sections se suivent sans
+    # remplissage : le fichier fait alors exactement la somme des trois tailles.
     def pages(t):
         return (t + 0xFFF) & ~0xFFF
     dec_ro = pages(text[2])
     dec_data = dec_ro + pages(ro[2])
     if dec_data + data[2] > taille_code:
-        return None
+        if text[2] + ro[2] + data[2] != taille_code:
+            return None
+        dec_ro, dec_data = text[2], text[2] + ro[2]
     return [
         (text[0], 0, text[2], text[2], PF_R | PF_X),
         (ro[0], dec_ro, ro[2], ro[2], PF_R),
@@ -58,9 +64,11 @@ def envelopper(code, exheader=None):
     debut_code = (debut_code + 0xFFF) & ~0xFFF   # le code reste aligné sur une page, comme en mémoire
     entete = struct.pack('<4sBBBBB7xHHIIIIIHHHHHH',
                          b'\x7fELF', 1, 1, 1, 0, 0,   # 32 bits, little-endian, version 1, System V
-                         2, EM_ARM, 1, BASE, ehsize, 0, EF_ARM_EABI_VER5,
+                         2, EM_ARM, 1, segs[0][0], ehsize, 0, EF_ARM_EABI_VER5,
                          ehsize, phsize, len(segs), 40, 0, 0)
-    phdrs = b''.join(struct.pack('<IIIIIIII', 1, debut_code + dec, adr, adr, tf, tm, drap, 0x1000)
+    # Sections serrées (module du FIRM) : décalage et adresse ne tombent plus sur la même page, donc pas d'alignement annoncé.
+    alignement = 0x1000 if all(dec % 0x1000 == 0 for _, dec, _, _, _ in segs) else 1
+    phdrs = b''.join(struct.pack('<IIIIIIII', 1, debut_code + dec, adr, adr, tf, tm, drap, alignement)
                      for adr, dec, tf, tm, drap in segs)
     return entete + phdrs + b'\x00' * (debut_code - ehsize - len(phdrs)) + code
 
@@ -97,9 +105,18 @@ def test():
     assert [s[0] for s in segs] == [BASE, BASE + 0x2000, BASE + 0x3000]
     assert segs[2][3] == 0x200 + 0x1000 and segs[1][4] == PF_R
     assert elf[segs[1][1]:segs[1][1] + 4] == b'\xBB' * 4 and elf[segs[2][1]:segs[2][1] + 4] == b'\xCC' * 4
+    # Un module du FIRM : sections serrées, et .text ailleurs qu'à 0x00100000 (loader est à 0x14000000).
+    code = bytes([0xAA]) * 0x1800 + bytes([0xBB]) * 0x400 + bytes([0xCC]) * 0x200
+    struct.pack_into('<III', ex, 0x10, 0x14000000, 2, 0x1800)
+    struct.pack_into('<III', ex, 0x20, 0x14002000, 1, 0x400)
+    struct.pack_into('<III', ex, 0x30, 0x14003000, 1, 0x200)
+    elf = envelopper(code, bytes(ex))
+    segs = lire_segments(elf)
+    assert [s[0] for s in segs] == [0x14000000, 0x14002000, 0x14003000] and struct.unpack_from('<I', elf, 24)[0] == 0x14000000
+    assert elf[segs[1][1]:segs[1][1] + 0x400] == bytes([0xBB]) * 0x400 and elf[segs[2][1]:segs[2][1] + 0x200] == bytes([0xCC]) * 0x200
     # Un exheader incohérent retombe sur le segment unique.
     assert len(lire_segments(envelopper(code, b'\x00' * 0x400))) == 1
-    print('elfer : ELF à un segment et à trois segments relus, exheader faux ignoré.')
+    print('elfer : ELF à un segment, à trois segments alignés et à trois segments serrés relus, exheader faux ignoré.')
 
 
 if __name__ == '__main__':

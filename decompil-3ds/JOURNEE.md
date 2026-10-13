@@ -38,25 +38,27 @@ Luma remplace ou patche quelques-uns de ces modules (`loader`, `pm`, `sm`, `fs` 
 
 Tout avec GodMode9 (Start à l'allumage). Les sorties vont dans `0:/gm9/out` sur la SD.
 
-1. **Sauvegarde NAND, d'abord.** `[S:] SYSNAND VIRTUAL`, `nand.bin`, A, « Copy to 0:/gm9/out ». On ne touche jamais à la NAND après, mais on a le filet. **Fait le 13** : 1,98 Go, copie sur le PC dans `local/dump/nand.bin`. Reste à comparer son SHA-256 à celui de la console (A sur le fichier dans GodMode9), l'empreinte du PC est dans le journal.
+1. **Sauvegarde NAND, d'abord.** `[S:] SYSNAND VIRTUAL`, `nand.bin`, A, « Copy to 0:/gm9/out ». On ne touche jamais à la NAND après, mais on a le filet. **Fait le 13** : 1,98 Go, copie sur le PC dans `local/dump/nand.bin`. Son SHA-256 calculé par GodMode9 sur la carte est identique à celui de la copie du PC.
 2. **Les clés et les ROM de démarrage.** `[M:] MEMORY VIRTUAL` : `boot9.bin` et `boot11.bin`, « Copy to 0:/gm9/out ». Ce sont les ROM des deux processeurs : lisibles dans Ghidra (ARM9 pour boot9, ARM11 pour boot11), et ctrtool s'en sert pour déchiffrer.
-3. **Le FIRM.** `[S:] SYSNAND VIRTUAL`, `firm0.bin`, A, « FIRM image options », « Decrypt file (0:/gm9/out) ». Sur PC : `python outils/extraire.py local/dump/firm0.bin firm` en sort les sections ARM9 et ARM11 avec leur adresse de chargement.
+3. **Le FIRM.** Pas `firm0.bin` : sur une console sous boot9strap, les partitions FIRM0 et FIRM1 contiennent boot9strap, pas le système. Le vrai NATIVE_FIRM est un titre de la CTRNAND, que Luma charge de là : `[1:] SYSNAND CTRNAND`, `title/00040138/20000002/content/` (New 3DS), le fichier `.app`, A, « Options d'image NCCH… », « Monter l'image sur le lecteur ». Dans le lecteur monté, `exefs`, le fichier `.firm`, A, « Options d'image FIRM… », « Déchiffrer le fichier (0:/gm9/out) » (la section ARM9 d'une New 3DS est chiffrée) ; si ce choix n'apparaît pas, « Copier vers 0:/gm9/out ». Sur PC : `python outils/extraire.py local/dump/<fichier>.firm firm` en sort les sections ARM9 et ARM11 avec leur adresse de chargement. Écrit de mémoire le 13, à confirmer sur la console.
 4. **Les modules système.** Bouton HOME, « Title manager », `[1:] NAND / TWL`. (Entrer dans le dossier `title` avec A ne montre que des dossiers aux noms en chiffres : ce n'est pas le bon chemin.) Les modules sont les titres `00040130` ; sur New 3DS, certains ont une version `00040130 2…` qui prend le pas. Pour chacun, A, « Manage Title... », « Dump CXI/NDS file ». À prendre aujourd'hui :
    - `hid` (`0004013000001D02`) : le plus petit module utile, il écrit l'état des boutons en mémoire partagée. **C'est celui qu'on lit en premier.**
-   - `sm` (`0004013000001002`) : le registre des services, le cœur de l'IPC.
-   - `fs` (`0004013000001102`), `gsp` (`0004013000001C02`), `dsp` (`0004013000001A02`), `cfg` (`0004013000001702`), `ptm` (`0004013000002202`), `ns` (`0004013000008002`), `loader` (`0004013000001302`), `pm` (`0004013000001202`).
-   Les numéros viennent de 3dbrew (« Title list », « System Modules ») : à confirmer dans le gestionnaire, qui affiche le nom à côté.
+   - `dsp` (`0004013000001A02`), `cfg` (`0004013000001702`), `ns` (`0004013000008002`).
+   - `gsp` et `ptm` : sur cette New 3DS, seules leurs versions New 3DS sont installées, `0004013020001C02` et `0004013020002202` (les `00001C02` et `00002202` n'y sont pas, vu le 13).
+   - `sm`, `fs`, `pm`, `loader` et `pxi` (`1002` à `1402`) **ne sont pas des titres** : ils sont rangés dans le NATIVE_FIRM, section ARM11, et sortent avec le dump du FIRM de l'étape 3. La liste du gestionnaire commence donc à `0004013000001502` (`am`). À savoir aussi : Luma remplace `sm`, `pm`, `loader` et `pxi` par les siens, dont les sources sont lisibles ; ceux du FIRM sont les originaux de Nintendo.
+   - Autres versions New 3DS présentes dans la série `000401302000…` : caméra `1602`, `i2c` `1E02`, `mcu` `1F02`, `spi` `2302`, `nfc` `4002`, `mvd` `4102`, `qtm` `4202`.
+   Les numéros viennent de 3dbrew (« Title list », « System Modules ») : à confirmer sur la console. Les modules n'ont pas d'icône, le gestionnaire risque de n'afficher que leur numéro. S'il ne les liste pas : `[1:] SYSNAND CTRNAND`, `title/00040130/<numéro>/content/`, le `.app`, A, « Options d'image NCCH… », déchiffrer vers `0:/gm9/out`.
 5. **Pokémon X** et sa mise à jour, comme décrit dans « Le jeu » de la page du carnet. **Fait le 13** : dumpés, rapatriés, extraits dans `local/extrait/` et `local/extrait/maj/`.
-6. **Transférer** : soit la carte dans le lecteur, soit lancer `ftpd` depuis le Homebrew Launcher et ouvrir `ftp://IP:5000` depuis le PC. Tout va dans `local/dump/`, qui n'est jamais versionné.
+6. **Transférer** : soit la carte dans le lecteur, soit lancer `ftpd` depuis le Homebrew Launcher et ouvrir `ftp://IP:5000` depuis le PC. Tout va dans `local/dump/` (le jeu et la NAND) et `local/dump/systeme/` (boot9, FIRM, modules), jamais versionnés. **Fait le 13**, tout y est.
 
 Puis, pour chaque fichier : `python outils/inspecter.py local/dump/<fichier>`, et recopier les SHA-256 dans le journal.
 
 ## Midi : extraire et ouvrir
 
 ```powershell
-python outils/extraire.py local/dump/hid.cxi hid          # -> local/extrait/hid/exefs/code.bin
+python outils/extraire.py local/dump/systeme/hid.cxi hid  # -> local/extrait/hid/exefs/code.bin
 python outils/elfer.py local/extrait/hid/exefs/code.bin   # -> code.elf, chargé à 0x00100000 en trois segments
-python outils/extraire.py local/dump/firm0.bin firm       # -> local/extrait/firm/ : kernel11, kernel9, Process9
+python outils/extraire.py local/dump/systeme/native.firm firm   # -> local/extrait/firm/ : kernel11, ARM9, et sm, fs, pm, loader, pxi en .cxi
 ```
 
 Ghidra : `local/outils/ghidra/ghidraRun.bat`, nouveau projet dans `local/ghidra-projet/`, importer `code.elf` (langage `ARM:LE:32:v6`), analyser, puis les quatre scripts dans l'ordre (`outils/GHIDRA.md`, partie A). Pour `Label3dsHandles`, il faut d'abord nommer la fonction qui demande un handle à `srv:` : dans un module système, c'est celle qui écrit l'en-tête `0x00050100`.

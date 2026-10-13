@@ -4,7 +4,7 @@ window.ETAT = {
  "objectif": "Faire tourner Pokémon X nativement sur PC, sans émulateur.",
  "ouverture": "2026-10-13",
  "mise_a_jour": "2026-10-13",
- "prochaine_action": "Le 14 octobre : la journée de reverse de la console, programme dans JOURNEE.md. Tout le terrain est prêt (dumps de Pokémon X extraits, devkitPro, exercices sur la console, REA sous WSL). Restent à dumper dans GodMode9 : boot9, boot11, le FIRM et les modules système, à récupérer par ftpd (ftp://192.168.1.76:5000, dossier gm9/out). Puis lancer ex01 sur la console et l'ouvrir dans Ghidra.",
+ "prochaine_action": "Suite du reverse de la console, un module par fiche (fiches/sm.md et fiches/hid.md sont faites) : loader et pm, puis fs, gsp, et le reste. Méthode dans outils/REA.md, partie 4 bis : rea_bridge.py serve, prescan.py <module> --dump, puis lecture. À relire dans Ghidra par l'utilisateur : les sections « interprété » des deux fiches.",
  "fonctions": {
   "total": null,
   "identifiees": 0,
@@ -388,6 +388,30 @@ window.ETAT = {
   {
    "date": "2026-10-13",
    "texte": "Sauvegarde NAND faite dans GodMode9 et rapatriée par ftpd dans local/dump/nand.bin : 1 979 711 488 octets (0x76000000, la taille d'une NAND de New 3DS), en-tête NCSD présent, SHA-256 315b6becb9dcdc48664c47321bb1dae1704618708dc197858780b5c18b50b6fc. Cette empreinte est celle de la copie du PC : elle n'a pas encore été comparée à celle de la console (dans GodMode9, A sur 0:/gm9/out/nand.bin, calculer le SHA-256). Tant que ce n'est pas fait, garder la copie de la carte."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "La console elle-même, rapatriée dans local/dump/systeme/ : boot9.bin (65 536 octets, SHA-256 2f88744f…bf28166f), le NATIVE_FIRM de New 3DS (titre 0004013820000002, 999 424 octets, section ARM9 déchiffrée par GodMode9 : on y lit « Process9 ») et six modules dumpés par le gestionnaire de titres : dsp, cfg, ns, nwm, et gsp et ptm dans leur version New 3DS (0004013020001C02 et 0004013020002202, les seules installées). Manquent encore boot11.bin et hid (0004013000001D02 ; c'est nwm, 2D02, qui a été dumpé à sa place). Deux erreurs des notes corrigées : firm0.bin contient boot9strap et non le système, le vrai FIRM est un titre de la CTRNAND ; et sm, fs, pm, loader, pxi ne sont pas des titres, ils sont rangés dans le FIRM (3dbrew, « Title list »)."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Le FIRM a trois sections : les cinq modules de démarrage à 0x1FF00000, kernel11 à 0x1FF80000, l'ARM9 à 0x08006000. extraire.py sort maintenant ces cinq modules en .cxi (ce sont des NCCH posés bout à bout), et les onze modules sont extraits dans local/extrait/<nom>/. elfer.py corrigé sur deux points appris ici : dans le code.bin d'un module du FIRM les sections .text, .rodata et .data se suivent sans remplissage de page (vérifié : .text finit sur « bx lr », .rodata commence par « srv: »), et loader est chargé à 0x14000000, pas à 0x00100000. Les onze code.elf ont leurs trois segments."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Les deux manquants sont là : boot11.bin (65 536 octets, SHA-256 74daace1…a7a07512) et hid (0004013000001D02, 35 840 octets, SHA-256 16cf0794…1581b265), extrait dans local/extrait/hid/ avec son code.elf en trois segments (53 248 octets de code ; on y lit hid:USER, hid:SPVR, hid:QTM, hid:NFC). La sauvegarde NAND est vérifiée : le SHA-256 calculé par GodMode9 sur la carte (nand.bin.sha) est identique, sur ses 64 chiffres, à celui de la copie du PC. Tout le matériel de la journée du 14 est sur le PC."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Essai de reverse semi-automatique sur sm, avec REA sous WSL tenu ouvert en une seule session (15 s par question au lieu de 2 min 20). Résultat dans fiches/sm.md et fiches/sm.noms.tsv : la boucle de service à 0x1000a0, les deux gestionnaires (srv: à 0x103a44, srv:pm à 0x103930), les 18 commandes rattachées chacune à sa fonction et recoupées avec les en-têtes de 3dbrew, GetServiceHandle décrit pas à pas, 40 fonctions nommées sur 110. Piège à retenir pour tous les modules : Ghidra ne crée pas de fonction pour ce qui n'est appelé que par une table de pointeurs (ici le gestionnaire de srv: lui-même) ; il faut balayer les données à la recherche de pointeurs vers du code et les donner à REA en graines (REA_GHIDRA_SEED_FILE), ce qui a fait passer sm de 102 à 110 fonctions. Le pseudo-code brut reste dans local/analyse/sm/."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "La méthode de l'essai sur sm est rangée dans outils/ : rea_bridge.py (le pont qui garde REA ouvert sous WSL) et prescan.py (premier passage automatique d'un module : appels système, enveloppes nommées, boucle de service, fonctions manquées par Ghidra écrites en graines). Essayé sur hid : 19 secondes, 29 appels système, 250 puis 276 fonctions après un passage de graines. Règle posée par l'utilisateur ce jour : les identifiants sont en anglais (variables, fonctions, noms donnés en reverse), les textes restent en français ; les noms de fiches/sm.noms.tsv ont été renommés. La fiche de hid est en cours."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Fiche de hid écrite par un sous-agent sur le modèle de sm (fiches/hid.md, fiches/hid.noms.tsv : 186 fonctions nommées sur 301). hid n'a pas une boucle unique : un fil par session (sept au plus), un fil de lecture des capteurs, et un seul aiguillage de 24 commandes à 0x102fc8 pour hid:USER, hid:SPVR, hid:QTM et hid:NFC, le type de session décidant des droits. La mémoire partagée fait 0x2B0 octets en cinq sections (boutons, tactile, accéléromètre, gyroscope, pad de débogage), les boutons y sont écrits toutes les 4 ms. Recoupé à la main : la table de 25 sauts à 0x102fec, le « mov r1, #0x2B0 » à 0x101500, et les huit commandes de hid:USER qui sont exactement celles de 3dbrew. prescan.py corrigé d'après ce passage : il décode la table de distances des fonctions d'initialisation (22 fonctions de plus dans hid), écarte un pointeur vers un « bl » isolé, signale un appel système hors de toute fonction, ne pose plus deux fois le même nom, et sait ranger le pseudo-code de toutes les fonctions (--dump). Repassé sur hid sans graine : 46 fonctions manquées trouvées en un passage au lieu de 25, toutes confirmées."
   }
  ],
  "dump": {

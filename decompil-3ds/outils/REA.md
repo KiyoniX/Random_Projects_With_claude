@@ -82,6 +82,21 @@ Sous Windows, REA 6.4.0 a bien reconnu cet ELF, puis l'a refusé faute de fourni
 - **Le chemin Linux, essayé le 2026-10-13 : il marche.** Ubuntu 26.04 est installé sous WSL (`wsl --install -d Ubuntu --no-launch`, sans droits administrateur ni redémarrage puisque WSL 2 était déjà là pour Docker), avec `openjdk-21-jdk-headless` et le `nodejs` de la distribution (22.22.1). Le dossier Ghidra local sert tel quel par `/mnt/c/...` : il contient le décompilateur `linux_x86_64`. Avec `GHIDRA_INSTALL_DIR=/mnt/c/Users/krisr/Documents/RandomProjects/decompil-3ds/local/outils/ghidra` et `REA_GHIDRA_LANGUAGE_ID=ARM:LE:32:v6`, `npx -y rea-agents@6.4.0 search <ex01.elf> Exercice --provider ghidra` ouvre l'ELF ARM et rend `0x118000 "Exercice 01 : la boucle"`. Compter 2 min 20 par commande en ligne avec Ghidra lu à travers `/mnt/c` (chaque appel refait l'import). Depuis, `rea-agents` 6.4.0 est installé en global dans Ubuntu (`/usr/local/bin/rea`) et Ghidra est copié côté Linux dans `/opt/ghidra` ; `rea mcp doctor` y est sain (170 outils).
 - **Le serveur MCP côté WSL** est enregistré dans `~/.claude.json` sous le nom **`rea-wsl`**, à côté de `rea` (la version Windows, gardée pour les PE). Sa commande : `wsl.exe -d Ubuntu -- env GHIDRA_INSTALL_DIR=/opt/ghidra REA_GHIDRA_LANGUAGE_ID=ARM:LE:32:v6 REA_GHIDRA_STARTUP_TIMEOUT_MS=1800000 GHIDRA_HEADLESS_MAXMEM=4G rea mcp`. Le langage ARM v6 y est imposé : cette entrée ne sert qu'aux binaires 3DS. Les cibles se donnent en chemins `/mnt/c/...`. Sauvegarde de la configuration d'avant : `~/.claude.json.avant-rea-wsl.backup`. Pour la retirer : `claude mcp remove rea-wsl -s user`.
 
+## 4 bis. Le pont et le premier passage automatique (depuis le 2026-10-13)
+
+En ligne de commande, chaque question à REA refait l'import et l'analyse. `outils/rea_bridge.py` lance le serveur MCP de REA sous Ubuntu une seule fois et le garde ouvert sur un port local : une question prend alors une quinzaine de secondes.
+
+```powershell
+python outils/rea_bridge.py serve                 # dans un terminal à part, il ne rend pas la main
+python outils/prescan.py hid                      # ouvre local/extrait/hid/exefs/code.elf et fait le premier passage
+python outils/rea_bridge.py call procedure_pseudo_code '{"procedure": "0x102178"}' --save local/analyse/hid service_loop
+python outils/rea_bridge.py stop
+```
+
+`prescan.py <module>` repère les appels système (noms tirés de la Carte des services), nomme leurs enveloppes, trouve la fonction qui appelle `ReplyAndReceive`, et surtout les **fonctions que Ghidra a manquées** : celles qui ne sont appelées que par une table de pointeurs, comme les gestionnaires de commandes. Il les écrit en graines dans `fiches/<module>.noms.tsv`. Il faut alors relancer le pont avec `REA_GHIDRA_SEED_FILE=/mnt/c/.../fiches/<module>.noms.tsv` et repasser prescan jusqu'à « aucune ». Mesuré : `sm` passe de 102 à 110 fonctions, `hid` de 250 à 276.
+
+Le même fichier `.noms.tsv` porte les noms qu'on donne aux fonctions (troisième colonne, en anglais) : REA les applique à chaque ouverture, le pseudo-code sort avec.
+
 ## 5. Commandes CLI utiles sur un binaire natif
 
 Elles valent pour une cible que REA accepte : un PE sous Windows, ou ELF/Mach-O/brut sous Linux et macOS. `<bin>` est un chemin absolu.

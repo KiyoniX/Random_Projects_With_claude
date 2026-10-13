@@ -4,13 +4,15 @@
     python extraire.py local/dump/pokemon-x.3ds            image de cartouche (NCSD) : ctrtool prend la partition 0
     python extraire.py local/dump/hid.cxi hid               un module système, dans local/extrait/hid/ pour ne pas
                                                            écraser le jeu ; le nom est libre
-    python extraire.py local/dump/firm0.bin firm            un FIRM déchiffré (NATIVE_FIRM) : ctrtool en sort les
-                                                           sections ARM9 et ARM11 dans local/extrait/firm/
+    python extraire.py local/dump/systeme/native.firm firm  un FIRM déchiffré (NATIVE_FIRM) : ctrtool en sort les
+                                                           sections ARM9 et ARM11 dans local/extrait/firm/, et les
+                                                           modules de démarrage (sm, fs, pm, loader, pxi) en .cxi
 
 Le résultat : exefs/ (code.bin décompressé, icon, banner), romfs/ et exefs/exheader.bin (dont elfer.py se sert
 pour découper le code en segments). Puis un inventaire des GARC trouvés est écrit dans inventaire.txt.
 """
 import os
+import struct
 import subprocess
 import sys
 
@@ -36,11 +38,43 @@ def extraire_firm(dump, exe, sortie):
     code = subprocess.call(cmd)
     if code:
         sys.exit('ctrtool a rendu le code %d' % code)
+    sections = sorted(n for n in os.listdir(sortie) if n.startswith('firm_') and n.endswith('.bin'))
     print('\nSections écrites dans %s :' % sortie)
-    for n in sorted(os.listdir(sortie)):
+    for n in sections:
         print('  %-40s %d octets' % (n, os.path.getsize(os.path.join(sortie, n))))
-    print('\nLa section ARM11 contient le noyau (kernel11) ; la section ARM9, Process9 et kernel9. Les modules système'
-          '\n(fs, hid, gsp...) ne sont pas dedans : ce sont des titres à part dans la CTRNAND, à dumper un par un.')
+    modules = []
+    for n in sections:
+        modules += modules_du_firm(os.path.join(sortie, n), sortie)
+    if modules:
+        print('\nModules rangés dans le FIRM, écrits à côté (à extraire comme un .cxi dumpé) :')
+        for nom, titre, taille in modules:
+            print('  %-40s %d octets, titre %016X' % (nom + '.cxi', taille, titre))
+    print('\nUne section ARM11 contient le noyau (kernel11), une autre les cinq modules de démarrage (sm, fs, pm, loader,'
+          '\npxi) ; la section ARM9, Process9 et kernel9. Les autres modules système (hid, gsp, cfg...) ne sont pas'
+          '\ndedans : ce sont des titres à part dans la CTRNAND, à dumper un par un.')
+
+
+def modules_du_firm(section, sortie):
+    """Les modules de démarrage sont des NCCH posés bout à bout dans une section ARM11, alignés sur 0x200.
+    Chacun est écrit dans <nom>.cxi, le nom étant celui de son exheader ; rend la liste (nom, titre, taille)."""
+    with open(section, 'rb') as f:
+        donnees = f.read()
+    trouves, pos = [], 0
+    while pos + 0x208 <= len(donnees):
+        if donnees[pos + 0x100:pos + 0x104] != b'NCCH':
+            pos += inspecter.UNITE
+            continue
+        taille = struct.unpack_from('<I', donnees, pos + 0x104)[0] * inspecter.UNITE
+        titre = struct.unpack_from('<Q', donnees, pos + 0x108)[0]
+        nom = donnees[pos + 0x200:pos + 0x208].rstrip(b'\x00').decode('ascii', 'replace')
+        if not taille or pos + taille > len(donnees) or not nom.isalnum():
+            pos += inspecter.UNITE
+            continue
+        with open(os.path.join(sortie, nom + '.cxi'), 'wb') as f:
+            f.write(donnees[pos:pos + taille])
+        trouves.append((nom, titre, taille))
+        pos += taille
+    return trouves
 
 
 def extraire(dump, nom=None):
