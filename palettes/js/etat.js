@@ -10,7 +10,7 @@
   // Les réglages : [clé dans l'adresse, défaut, minimum, maximum] ou [clé, défaut, valeurs permises].
   var REGLAGES = {
     n: ['k', 16, 2, 64],
-    methode: ['m', 'kmoy', ['kmoy', 'mediane']],
+    methode: ['m', 'kmoy', P.METHODES.map(function (m) { return m.id; })],
     equilibre: ['e', 60, 0, 100],
     trame: ['t', 'aucune', ['aucune', 'ordonnee', 'diffusion']],
     force: ['f', 50, 0, 100],
