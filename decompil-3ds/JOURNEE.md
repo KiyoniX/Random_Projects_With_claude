@@ -6,9 +6,9 @@ Le but du jour n'est pas Pokémon X, c'est la console : comprendre comment elle 
 
 - [ ] Charger la console. Vérifier qu'elle démarre bien sur Luma (Select à l'allumage ouvre son menu).
 - [ ] Libérer **4 Go** sur la microSD : la sauvegarde NAND d'une New 3DS fait environ 1,3 Go, le dump de Pokémon X avec sa mise à jour environ 2 Go.
-- [ ] Copier sur la microSD le contenu de `local/sd/` (préparé) : `luma/payloads/GodMode9.firm` (GodMode9 2.2.3, à jour), `gm9/` (ses scripts), `3ds/ftpd.3dsx` (le serveur FTP, pour envoyer les fichiers au PC sans sortir la carte). Si tu as déjà GodMode9 dans `luma/payloads`, le nouveau le remplace.
-- [ ] Installer **devkitPro** : `local/telechargements/devkitProUpdater-3.0.3.exe`, cocher « 3DS Development ». Puis dans son terminal MSYS2, `pacman -Syu` et vérifier `arm-none-eabi-gcc --version`. `python outils/verifier.py` doit alors dire devkitPro présent.
-- [ ] Si tu veux REA sur l'ARM demain : dans un PowerShell administrateur, `wsl --install -d Ubuntu`, redémarrer, puis dans Ubuntu : `sudo apt install openjdk-21-jdk nodejs npm` (Node 22 au moins, sinon par nvm). Ce n'est pas bloquant pour la journée ; sans ça, tout se fait à la main dans Ghidra, et c'est très bien pour apprendre.
+- [x] Copier sur la microSD le contenu de `local/sd/` (préparé) : `luma/payloads/GodMode9.firm` (GodMode9 2.2.3, à jour), `gm9/` (ses scripts et ses langues). Fait le 13 par FTP, relu à l'identique ; l'ancien 2.2.1 est gardé dans `local/sauvegarde-sd/`. `ftpd` était déjà installé sur la console, `3ds/ftpd.3dsx` n'a pas été copié.
+- [x] Installer **devkitPro** : fait le 13 par `local/telechargements/devkitProUpdater-3.0.3.exe`, tous les composants (`arm-none-eabi-gcc` 16.1.0, GDB, libctru dans `C:\devkitPro`). Les trois exercices sont compilés et posés dans `3ds/` sur la console.
+- [x] REA sur l'ARM : Ubuntu 26.04 installé sous WSL le 13, avec Java 21 et Node 22 ; REA y ouvre l'ELF de l'exercice 01 (`outils/REA.md`, partie 4). Reste à enregistrer son serveur MCP côté Claude Code. À la première ouverture d'Ubuntu, il demande un nom d'utilisateur et un mot de passe.
 - [ ] PC et console sur le **même Wi-Fi** (pour ftpd et pour le débogueur GDB de Rosalina). Noter l'adresse IP de la console : Paramètres de la console, Internet, Paramètres de connexion, ta connexion, Changer les paramètres, Paramètres IP.
 - [ ] Un lecteur de microSD sous la main quand même : pour la NAND, c'est plus rapide que le Wi-Fi.
 
@@ -38,15 +38,15 @@ Luma remplace ou patche quelques-uns de ces modules (`loader`, `pm`, `sm`, `fs` 
 
 Tout avec GodMode9 (Start à l'allumage). Les sorties vont dans `0:/gm9/out` sur la SD.
 
-1. **Sauvegarde NAND, d'abord.** `[S:] SYSNAND VIRTUAL`, `nand.bin`, A, « Copy to 0:/gm9/out ». Environ 1,3 Go. On ne touche jamais à la NAND après, mais on a le filet.
+1. **Sauvegarde NAND, d'abord.** `[S:] SYSNAND VIRTUAL`, `nand.bin`, A, « Copy to 0:/gm9/out ». On ne touche jamais à la NAND après, mais on a le filet. **Fait le 13** : 1,98 Go, copie sur le PC dans `local/dump/nand.bin`. Reste à comparer son SHA-256 à celui de la console (A sur le fichier dans GodMode9), l'empreinte du PC est dans le journal.
 2. **Les clés et les ROM de démarrage.** `[M:] MEMORY VIRTUAL` : `boot9.bin` et `boot11.bin`, « Copy to 0:/gm9/out ». Ce sont les ROM des deux processeurs : lisibles dans Ghidra (ARM9 pour boot9, ARM11 pour boot11), et ctrtool s'en sert pour déchiffrer.
 3. **Le FIRM.** `[S:] SYSNAND VIRTUAL`, `firm0.bin`, A, « FIRM image options », « Decrypt file (0:/gm9/out) ». Sur PC : `python outils/extraire.py local/dump/firm0.bin firm` en sort les sections ARM9 et ARM11 avec leur adresse de chargement.
-4. **Les modules système.** `[1:] SYSNAND CTRNAND`, dossier `title`, A, « Open title manager ». Les modules sont les titres `00040130` ; sur New 3DS, certains ont une version `00040130 2…` qui prend le pas. Pour chacun, A, « Dump CXI/NDS file ». À prendre aujourd'hui :
+4. **Les modules système.** Bouton HOME, « Title manager », `[1:] NAND / TWL`. (Entrer dans le dossier `title` avec A ne montre que des dossiers aux noms en chiffres : ce n'est pas le bon chemin.) Les modules sont les titres `00040130` ; sur New 3DS, certains ont une version `00040130 2…` qui prend le pas. Pour chacun, A, « Manage Title... », « Dump CXI/NDS file ». À prendre aujourd'hui :
    - `hid` (`0004013000001D02`) : le plus petit module utile, il écrit l'état des boutons en mémoire partagée. **C'est celui qu'on lit en premier.**
    - `sm` (`0004013000001002`) : le registre des services, le cœur de l'IPC.
    - `fs` (`0004013000001102`), `gsp` (`0004013000001C02`), `dsp` (`0004013000001A02`), `cfg` (`0004013000001702`), `ptm` (`0004013000002202`), `ns` (`0004013000008002`), `loader` (`0004013000001302`), `pm` (`0004013000001202`).
    Les numéros viennent de 3dbrew (« Title list », « System Modules ») : à confirmer dans le gestionnaire, qui affiche le nom à côté.
-5. **Pokémon X** et sa mise à jour, comme décrit dans « Le jeu » de la page du carnet.
+5. **Pokémon X** et sa mise à jour, comme décrit dans « Le jeu » de la page du carnet. **Fait le 13** : dumpés, rapatriés, extraits dans `local/extrait/` et `local/extrait/maj/`.
 6. **Transférer** : soit la carte dans le lecteur, soit lancer `ftpd` depuis le Homebrew Launcher et ouvrir `ftp://IP:5000` depuis le PC. Tout va dans `local/dump/`, qui n'est jamais versionné.
 
 Puis, pour chaque fichier : `python outils/inspecter.py local/dump/<fichier>`, et recopier les SHA-256 dans le journal.

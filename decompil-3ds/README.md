@@ -14,7 +14,7 @@ Tu travailles uniquement sur ton propre jeu, acheté et installé sur ta propre 
 
 ## La marche à suivre
 
-1. **Dumper.** Le jeu est une copie numérique (la cartouche est morte). Sur la console, démarre GodMode9 (Start au démarrage), va dans `[A:] SYSNAND SD`, pose-toi sur le dossier `title`, appuie sur A et choisis « Open title manager ». Sélectionne Pokémon X, A, « Dump CXI/NDS file » : le fichier `.cxi`, déjà déchiffré, arrive dans `0:/gm9/out`. Si une mise à jour du jeu est installée, dumpe-la aussi : c'est elle qui porte le code qui tourne vraiment.
+1. **Dumper.** Le jeu est une copie numérique (la cartouche est morte). Sur la console, démarre GodMode9 (Start au démarrage), appuie sur HOME, choisis « Title manager » puis `[A:] SD CARD`. Sélectionne Pokémon X, A, « Manage Title... », « Dump CXI/NDS file » : le fichier `.cxi`, déjà déchiffré, arrive dans `0:/gm9/out`. Si une mise à jour du jeu est installée, dumpe-la aussi : c'est elle qui porte le code qui tourne vraiment.
 2. **Inspecter.** Copie le `.cxi` dans `local/dump/`, puis : `python outils/inspecter.py local/dump/pokemon-x.cxi`. Le script dit si le dump est bien déchiffré et donne son empreinte SHA-256, à noter dans le journal. Une image de cartouche `.3ds` marche aussi.
 3. **Installer les outils.** Pose les zips de ctrtool, makerom et Ghidra dans `local/telechargements/` (les liens sont sur la page), puis : `python outils/installer.py`. Il les déballe dans `local/outils/` et clone les scripts Ghidra 3DS.
 4. **Extraire.** `python outils/extraire.py local/dump/pokemon-x.cxi`. Le code va dans `local/extrait/exefs/code.bin`, l'en-tête étendu dans `local/extrait/exefs/exheader.bin`, les fichiers dans `local/extrait/romfs/`, et la liste des GARC dans `local/extrait/inventaire.txt`.

@@ -4,7 +4,7 @@ window.ETAT = {
  "objectif": "Faire tourner Pokémon X nativement sur PC, sans émulateur.",
  "ouverture": "2026-10-13",
  "mise_a_jour": "2026-10-13",
- "prochaine_action": "Le 14 octobre : la journée de reverse de la console, programme dans JOURNEE.md. Ce soir, installer devkitPro et copier local/sd/ sur la microSD.",
+ "prochaine_action": "Le 14 octobre : la journée de reverse de la console, programme dans JOURNEE.md. Tout le terrain est prêt (dumps de Pokémon X extraits, devkitPro, exercices sur la console, REA sous WSL). Restent à dumper dans GodMode9 : boot9, boot11, le FIRM et les modules système, à récupérer par ftpd (ftp://192.168.1.76:5000, dossier gm9/out). Puis lancer ex01 sur la console et l'ouvrir dans Ghidra.",
  "fonctions": {
   "total": null,
   "identifiees": 0,
@@ -20,23 +20,23 @@ window.ETAT = {
    "taches": [
     {
      "t": "Dumper le titre installé avec GodMode9 (gestionnaire de titres, « Dump CXI/NDS file »)",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Dumper aussi la mise à jour du jeu si elle est installée (titre 0004000E…), c'est elle qui porte le code qui tourne",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Poser le fichier dans local/dump/ et lancer outils/inspecter.py",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Extraire exefs et romfs avec outils/extraire.py",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Noter l'empreinte SHA-256 du dump dans le journal",
-     "fait": false
+     "fait": true
     }
    ]
   },
@@ -48,7 +48,7 @@ window.ETAT = {
    "taches": [
     {
      "t": "Installer devkitPro avec le paquet 3ds-dev",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Brancher REA à Claude Code (paquet rea-agents, enregistrement par « rea setup »)",
@@ -56,7 +56,7 @@ window.ETAT = {
     },
     {
      "t": "Installer WSL avec Ubuntu, et y brancher REA et un Ghidra Linux : sous Windows, REA n'ouvre que des exécutables PE",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Compiler et lancer l'exercice 01 sur la console",
@@ -132,11 +132,11 @@ window.ETAT = {
     },
     {
      "t": "Valider GARC et LZ11 sur les vrais fichiers du romfs",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Décoder les textes du jeu (décodeur écrit, à valider sur le romfs)",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Lire les tables des Pokémon (stats, types, apprentissages)",
@@ -233,8 +233,8 @@ window.ETAT = {
   {
    "id": "rea",
    "nom": "REA (Reverse Engineer Anything)",
-   "role": "L'outil principal du parcours : un serveur MCP qui donne à Claude Code la main sur Ghidra (pseudo-code, chaînes, références, symboles) et exige les preuves de chaque conclusion. On lui demande, puis on vérifie dans Ghidra. Limite vue le 2026-10-13 : la version Windows n'ouvre que des exécutables PE x86, pas notre ARM ; il faut le faire tourner sous WSL. Voir outils/REA.md.",
-   "ou": "Paquet npm rea-agents 6.4.0, enregistré dans ~/.claude.json",
+   "role": "L'outil principal du parcours : un serveur MCP qui donne à Claude Code la main sur Ghidra (pseudo-code, chaînes, références, symboles) et exige les preuves de chaque conclusion. On lui demande, puis on vérifie dans Ghidra. La version Windows n'ouvre que des exécutables PE x86 : pour notre ARM, c'est l'entrée « rea-wsl » (REA et Ghidra dans Ubuntu sous WSL, ARM v6 imposé), branchée le 2026-10-13. Voir outils/REA.md.",
+   "ou": "Paquet npm rea-agents 6.4.0 : « rea » (Windows) et « rea-wsl » (Ubuntu) dans ~/.claude.json",
    "lieu": "pc",
    "present": true,
    "lien": "https://github.com/morluto/rea",
@@ -253,9 +253,9 @@ window.ETAT = {
    "id": "godmode9",
    "nom": "GodMode9",
    "role": "Explorateur de fichiers de la console. Son gestionnaire de titres dumpe un jeu installé, déchiffré, en .cxi.",
-   "ou": "Sur la console (Start au démarrage)",
+   "ou": "Sur la console (Start au démarrage), version 2.2.3 dans luma/payloads",
    "lieu": "console",
-   "present": null,
+   "present": true,
    "lien": "https://github.com/d0k3/GodMode9"
   },
   {
@@ -296,11 +296,11 @@ window.ETAT = {
   },
   {
    "id": "devkitpro",
-   "nom": "devkitPro, libctru, GDB",
+   "nom": "devkitPro, libctru, GDB (devkitARM gcc 16.1.0)",
    "role": "La chaîne de compilation des homebrews et le GDB qui parle à Rosalina. Installateur graphique, puis le paquet 3ds-dev.",
    "ou": "C:\\devkitPro",
    "lieu": "pc",
-   "present": false,
+   "present": true,
    "lien": "https://devkitpro.org/wiki/Getting_Started"
   },
   {
@@ -368,14 +368,42 @@ window.ETAT = {
   {
    "date": "2026-10-13",
    "texte": "Terrain préparé pour la journée du 14 : programme dans JOURNEE.md (sauvegarde NAND, boot9/boot11, FIRM déchiffré, modules système hid, sm, fs… dumpés par le gestionnaire de titres, puis hid lu dans Ghidra avant Pokémon X). Téléchargés dans local/ : l'installateur devkitPro 3.0.3, GodMode9 2.2.3 et ftpd 3.2.1, assemblés dans local/sd/ prêts à copier sur la microSD. extraire.py sait maintenant ouvrir un FIRM et ranger plusieurs dumps côte à côte (local/extrait/<nom>/). Trois outils voisins livrés sur le site : Explorateur de romfs, Visionneuse BCH, et la Carte des services en cours."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Console jointe par Wi-Fi : le port USB ne fait que charger, tout passe par ftpd (déjà installé sur la console, port 5000, environ 1,2 Mo/s mesuré). GodMode9 y était en 2.2.1 : sauvegardé dans local/sauvegarde-sd/, remplacé par le 2.2.3 avec ses fichiers de langue, relu par FTP et identique à l'octet (SHA-256 596a3d5a…49c9cc). Les scripts gm9 étaient déjà les mêmes. Vu sur la carte : Pokémon X est bien installé (titre 0004000000055D00, 1,8 Go) avec sa mise à jour (0004000E00055D00, 32 Mo). Aucune sauvegarde NAND sur la carte : gm9/backups est vide, gm9/out n'existe pas encore."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Les dumps sont sur le PC, rapatriés par ftpd : Pokémon X (pokemon-x.cxi, 1 801 052 160 octets, titre 0004000000055D00, CTR-P-EKJA, SHA-256 2d8e60a50b13feb3e3e140ea2735aa42ac37c354ca2b7a41f056e7bfba65e018) et sa mise à jour (pokemon-x_maj.cxi, 31 715 328 octets, titre 0004000E00055D00, CTR-U-EKJA, SHA-256 7ad0f74531dfc18aaee70a9705f408561dbf65c06e373d95df00cf1e975e3c66), tous deux déchiffrés. Dans GodMode9, le gestionnaire de titres s'ouvre par le bouton HOME (« Gestionnaire d'applications », puis [A:] CARTE SD), pas par le dossier title : notes corrigées. Extraction : le jeu dans local/extrait/ (code.bin de 5 156 864 octets, romfs de 653 fichiers pour 1,7 Go, 272 GARC), la mise à jour dans local/extrait/maj/ (code.bin de 5 169 152 octets, 147 fichiers, 12 GARC). C'est le code de la mise à jour qui tourne : c'est maj/exefs/code.elf qu'il faudra ouvrir dans Ghidra (.text de 4,45 Mo à 0x00100000, .rodata à 0x0053F000, .data à 0x005A9000)."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Premier contact des outils avec les vrais fichiers. GARC : les 272 conteneurs du jeu et les 12 de la mise à jour sont lus sans erreur. Textes : texte.py décode tous les fichiers des seize GARC de texte, 151 fichiers et 27 605 lignes par langue dans a/0/7/2 à 9 (gametext), 424 fichiers et 7 607 lignes dans a/0/8/0 à 7 (storytext). Ordre des langues vérifié : japonais kana, japonais kanji, anglais, français, italien, allemand, espagnol, coréen ; le français est donc a/0/7/5 et a/0/8/3. À traiter plus tard : le caractère privé U+E07F qui sort devant « ? » en français (l'espace fine de la police du jeu). LZ11 : 3 993 sous-fichiers compressés décompressés à la taille annoncée, 105,6 Mo en tout ; les 7 refus sont de petites tables non compressées (16 à 490 octets) qui commencent par hasard par 0x11."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Poste prêt. devkitPro installé par son installateur (tous les composants, devkitARM gcc 16.1.0, GDB, libctru) : son mode silencieux saute l'installation, il faut passer par ses fenêtres. Les trois exercices compilent du premier coup en -O0 et sont posés dans 3ds/ sur la console. Ubuntu 26.04 installé sous WSL sans redémarrage, avec Java 21, Node 22, rea-agents 6.4.0 en global et Ghidra copié dans /opt/ghidra : REA y ouvre l'ELF ARM de l'exercice 01 et retrouve « Exercice 01 : la boucle » à 0x118000, ce que la version Windows refusait. Serveur MCP enregistré sous le nom rea-wsl, à côté de rea."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Sauvegarde NAND faite dans GodMode9 et rapatriée par ftpd dans local/dump/nand.bin : 1 979 711 488 octets (0x76000000, la taille d'une NAND de New 3DS), en-tête NCSD présent, SHA-256 315b6becb9dcdc48664c47321bb1dae1704618708dc197858780b5c18b50b6fc. Cette empreinte est celle de la copie du PC : elle n'a pas encore été comparée à celle de la console (dans GodMode9, A sur 0:/gm9/out/nand.bin, calculer le SHA-256). Tant que ce n'est pas fait, garder la copie de la carte."
   }
  ],
  "dump": {
-  "present": false,
-  "fichiers": []
+  "present": true,
+  "fichiers": [
+   "pokemon-x.cxi",
+   "pokemon-x_maj.cxi"
+  ],
+  "titre": "0004000000055D00",
+  "produit": "CTR-P-EKJA",
+  "dechiffre": true,
+  "exefs": 3164160,
+  "romfs": 1797873664
  },
  "extrait": {
-  "present": false,
-  "code_octets": 0
+  "present": true,
+  "code_octets": 5156864
  }
 };
