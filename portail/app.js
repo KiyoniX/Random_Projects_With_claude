@@ -54,6 +54,7 @@
         { id: 'tuiles', title: 'Tuiles', dir: 'tuiles', kind: 'Outil', w: 70, h: 294, text: 'Éditeur de cartes en tuiles : calques, collisions, objets, et un personnage pour essayer le niveau.' },
         { id: 'police', title: 'Police Pixel', dir: 'police-pixel', kind: 'Outil', w: 68, h: 284, text: 'Dessiner un alphabet case par case, accents français compris, et l\'exporter en vraie police.' },
         { id: 'chiptune', title: 'La Puce à l\'oreille', dir: 'chiptune', kind: 'Outil', w: 82, h: 304, text: 'Séquenceur 8 bits à cinq voix : morceaux, bruitages, export WAV et lecteur pour les jeux.' },
+        { id: 'decompil', title: 'Décompil 3DS', dir: 'decompil-3ds', kind: 'Carnet de rétro-ingénierie', w: 70, h: 296, text: 'La New 3DS XL ouverte sur l\'établi : où en est la rétro-ingénierie de Pokémon X vers le PC, palier par palier, avec les outils, la carte du système et des exercices.' },
         { id: 'erosion', title: 'Érosion', dir: 'erosion-rust', cmd: 'cargo run --release', link: 'https://github.com/KiyoniX/Random_Projects_With_claude/tree/main/erosion-rust', kind: 'Simulateur en Rust', w: 58, h: 262, text: 'Eau, gel, vent, glaciers et végétation sculptent un relief.' },
         { id: 'feu', title: 'Feu de forêt', dir: 'feu-rust', cmd: 'cargo run --release', link: 'https://github.com/KiyoniX/Random_Projects_With_claude/tree/main/feu-rust', kind: 'Simulateur en Rust', w: 58, h: 270, text: 'Vent, rafales, humidité, pente et sept essences : on allume, on trace des pare-feu, on largue de l\'eau.' }
       ]

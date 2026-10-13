@@ -1,0 +1,62 @@
+# Règles communes aux exercices. Chaque exercice a un Makefile de quatre lignes qui définit
+# TARGET, TITRE et DESCRIPTION, puis inclut ce fichier.
+#
+#   make            compile en -O0 : le binaire ressemble au code source
+#   make OPT=-O2    compile optimisé : le compilateur réorganise tout, c'est l'exercice de fin
+#   make clean
+#
+# Produit : TARGET.elf (avec symboles, pour Ghidra en mode « corrigé »), TARGET.bin (le code nu,
+# comme un code.bin de jeu : sans symboles, c'est le vrai exercice), TARGET.3dsx (à lancer sur la console
+# depuis le Homebrew Launcher ou via « 3dslink »).
+#
+# À lancer depuis le terminal MSYS2 de devkitPro. Calqué sur le gabarit officiel
+# (3ds-examples/templates/application/Makefile), en plus court : pas de dossier build/, un seul .c par
+# exercice. 3ds_rules (via base_tools) fournit CC, OBJCOPY, le PATH vers les outils, CTRULIB, et les
+# règles « %.smdh » (smdhtool, avec APP_TITLE, APP_DESCRIPTION, APP_AUTHOR, APP_ICON) et
+# « %.3dsx: %.elf » (3dsxtool avec _3DSXFLAGS).
+
+ifeq ($(strip $(DEVKITPRO)),)
+$(error DEVKITPRO n'est pas défini : installer devkitPro puis le paquet 3ds-dev, et rouvrir le terminal)
+endif
+ifeq ($(strip $(DEVKITARM)),)
+$(error DEVKITARM n'est pas défini : le paquet 3ds-dev de devkitPro n'est pas installé, ou le terminal n'a pas été rouvert)
+endif
+
+# Lus par la règle %.smdh de 3ds_rules : à poser avant l'inclusion.
+APP_TITLE       := $(TITRE)
+APP_DESCRIPTION := $(DESCRIPTION)
+APP_AUTHOR      := Décompil 3DS
+
+include $(DEVKITARM)/3ds_rules
+
+OPT      ?= -O0
+SOURCES  := $(wildcard source/*.c)
+ARCH     := -march=armv6k -mtune=mpcore -mfloat-abi=hard -mtp=soft
+CFLAGS   := -g -Wall $(OPT) -mword-relocations -ffunction-sections $(ARCH) -I$(CTRULIB)/include -D__3DS__
+LDFLAGS  := -specs=3dsx.specs -g $(ARCH) -Wl,-Map,$(TARGET).map -L$(CTRULIB)/lib
+LIBS     := -lctru -lm
+
+# Sans ce drapeau, la règle %.3dsx de 3ds_rules appelle 3dsxtool sans l'icône ni le titre.
+_3DSXFLAGS += --smdh=$(TARGET).smdh
+
+# On retient le niveau d'optimisation du dernier passage dans .opt : si on passe de -O0 à -O2,
+# le fichier change et make recompile, au lieu de dire que tout est à jour.
+ifneq ($(strip $(shell cat .opt 2>/dev/null)),$(strip $(OPT)))
+$(shell echo '$(OPT)' > .opt)
+endif
+
+all: $(TARGET).3dsx $(TARGET).bin
+
+$(TARGET).elf: $(SOURCES) .opt
+	$(CC) $(CFLAGS) $(SOURCES) $(LDFLAGS) $(LIBS) -o $@
+
+$(TARGET).bin: $(TARGET).elf
+	$(OBJCOPY) -O binary $< $@
+
+# La recette vient de « %.3dsx: %.elf » dans 3ds_rules ; on ajoute seulement la dépendance à l'icône.
+$(TARGET).3dsx: $(TARGET).elf $(TARGET).smdh
+
+clean:
+	rm -f $(TARGET).elf $(TARGET).bin $(TARGET).3dsx $(TARGET).smdh $(TARGET).map .opt
+
+.PHONY: all clean

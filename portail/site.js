@@ -36,7 +36,8 @@
     'palettes': ['#3b2e63', '#ffe7a4', 'P'],
     'tuiles': ['#3f9a3c', '#f4f4f6', 'T'],
     'police-pixel': ['#ebe8e1', '#16171a', 'a'],
-    'chiptune': ['#9bbc0f', '#1c2a5a', 'P']
+    'chiptune': ['#9bbc0f', '#1c2a5a', 'P'],
+    'decompil-3ds': ['#1b5e36', '#eef1ea', '3']
   };
 
   var script = document.currentScript, home = script ? script.src.replace(/portail\/site\.js.*$/, 'index.html') : '';

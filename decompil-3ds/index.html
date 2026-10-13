@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Décompil 3DS</title>
+  <meta name="description" content="Carnet de bord d'une rétro-ingénierie : de la cartouche de Pokémon X à un jeu qui tourne nativement sur PC.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1 class="cache">Décompil 3DS, le carnet de bord</h1>
+
+  <div class="etabli">
+    <div class="colonne-carte">
+      <figure class="carte-mere">
+        <svg id="carte-mere" viewBox="0 0 1000 440" role="group" aria-labelledby="carte-titre">
+          <title id="carte-titre">La carte mère de la console, qui sert de sommaire : chaque composant mène à sa feuille.</title>
+        </svg>
+      </figure>
+
+      <section class="feuille bande" id="ici" aria-labelledby="t-ici">
+        <h2 class="dymo" id="t-ici">Tu es ici</h2>
+        <div id="ici-corps"><p class="absent-etat">Lance <code>python outils/verifier.py</code> pour savoir où en est le chantier.</p></div>
+      </section>
+    </div>
+
+    <section class="feuille fiche" id="fiche" aria-labelledby="t-fiche">
+      <h2 class="dymo" id="t-fiche">Fiche d'intervention</h2>
+      <div id="fiche-corps">
+        <p class="absent-etat">La fiche n'a pas pu être lue : le fichier <code>etat.js</code> manque. Dans le dossier du projet, lance <code>python outils/verifier.py</code>, puis recharge la page.</p>
+      </div>
+    </section>
+  </div>
+
+  <main class="feuilles">
+
+    <section class="feuille" id="jeu" aria-labelledby="t-jeu">
+      <h2 class="dymo" id="t-jeu">Le jeu</h2>
+      <div class="deux">
+        <div>
+          <p class="chapo">Tout part de la cartouche. Tant qu'elle n'est pas copiée et déchiffrée sur le PC, il n'y a rien à ouvrir dans Ghidra. Le dump reste dans <code>local/</code>, que le dépôt ne publie jamais.</p>
+          <ol class="etapes">
+            <li>Console éteinte, insère la cartouche de Pokémon X. Allume en maintenant <kbd>Start</kbd> : Luma lance GodMode9.</li>
+            <li>Ouvre <code>[C:] GAMECART</code>, choisis le fichier <code>.3ds</code>, appuie sur <kbd>A</kbd> puis « Copy to 0:/gm9/out ». La copie prend plusieurs minutes.</li>
+            <li>Va dans <code>0:/gm9/out</code>, choisis la copie, <kbd>A</kbd>, « NCSD image options » puis « Decrypt file ». Sans ce passage, le PC ne lit que du bruit chiffré.</li>
+            <li>Éteins, sors la microSD et copie le fichier dans <code>local/dump/</code> du projet (crée le dossier s'il n'existe pas).</li>
+            <li><code>python outils/inspecter.py local/dump/pokemon-x.3ds</code> doit répondre « déchiffré, prêt à extraire ». Recopie l'empreinte SHA-256 dans le journal.</li>
+            <li><code>python outils/extraire.py local/dump/pokemon-x.3ds</code> pose le code dans <code>local/extrait/exefs/code.bin</code>, les fichiers dans <code>local/extrait/romfs/</code>, et l'inventaire des GARC dans <code>local/extrait/inventaire.txt</code>. Puis <code>python outils/elfer.py local/extrait/exefs/code.bin</code> en fait un <code>code.elf</code> prêt pour Ghidra.</li>
+            <li><code>python outils/verifier.py</code> remet la fiche et ce relevé à jour.</li>
+          </ol>
+        </div>
+        <div>
+          <p class="legende-releve">Relevé du poste, tel que l'a laissé <code>verifier.py</code> :</p>
+          <pre class="releve" id="releve">etat.js absent : lance python outils/verifier.py</pre>
+        </div>
+      </div>
+    </section>
+
+    <section class="feuille" id="route" aria-labelledby="t-route">
+      <h2 class="dymo" id="t-route">Feuille de route</h2>
+      <p class="chapo">Sept paliers, chacun relié à un point de test de la carte (TP1 à TP7). Un palier pèse plus lourd quand il demande plus de travail : le pourcentage global en tient compte. Les tâches cochées viennent de <code>etat.json</code> ; <code>verifier.py</code> coche seul celles qu'il peut constater.</p>
+      <ol class="paliers" id="paliers"></ol>
+    </section>
+
+    <section class="feuille" id="outils" aria-labelledby="t-outils">
+      <h2 class="dymo" id="t-outils">Outils</h2>
+      <p class="chapo">Le travail se fait surtout avec <strong>REA</strong> : on pose une question à Claude Code, il pilote Ghidra et rend sa réponse avec les preuves. Les autres outils fabriquent le matériau (le dump, le code extrait) et servent à vérifier.</p>
+      <table class="outils">
+        <thead><tr><th scope="col">Outil</th><th scope="col">À quoi il sert</th><th scope="col">Où</th><th scope="col">État</th></tr></thead>
+        <tbody id="outils-corps"></tbody>
+      </table>
+      <p class="legende-pastilles" id="legende-outils"></p>
+      <div class="deux">
+        <div>
+          <h3>Installer ce qui manque</h3>
+          <ol class="etapes">
+            <li><strong>REA d'abord.</strong> Il faut Node 22.19 ou plus récent. Indique-lui notre Ghidra par la variable <code>GHIDRA_INSTALL_DIR</code> (le dossier <code>local/outils/ghidra</code>), puis lance <code>npx -y rea-agents@latest setup</code> dans le même terminal : il montre ce qu'il va écrire et demande confirmation. Relance Claude Code ; <code>/mcp</code> doit montrer <code>rea</code> connecté. Limite : sous Windows, REA 6.4 n'ouvre que des exécutables PE x86 et refuse notre ARM, brut comme en ELF ; il faudra le faire tourner sous WSL (Ubuntu) avec un Ghidra pour Linux. Tout est noté dans <code>outils/REA.md</code>.</li>
+            <li><strong>ctrtool, makerom, Ghidra.</strong> Dépose leurs archives .zip dans <code>local/telechargements/</code>, puis <code>python outils/installer.py</code> : il les déballe dans <code>local/outils/</code>, clone les scripts Ghidra 3DS (git requis) et prépare Jython pour eux.</li>
+            <li><strong>devkitPro.</strong> Son installateur graphique, puis dans le terminal MSYS2 qu'il installe : <code>pacman -S 3ds-dev</code>. Rouvre le terminal pour que <code>DEVKITPRO</code> et <code>DEVKITARM</code> existent.</li>
+            <li><strong>Azahar</strong> s'installe à part. Il ne sert qu'à tracer sans toucher à la console.</li>
+            <li>Pour finir, <code>python outils/verifier.py</code> constate ce qui est là.</li>
+          </ol>
+        </div>
+        <div>
+          <h3>Ghidra, réglages pour la 3DS</h3>
+          <ol class="etapes">
+            <li>Ghidra 12 ne lance plus Jython par défaut, or les scripts 3DS sont écrits en Python 2. <code>installer.py</code> s'en charge : il déballe l'extension Jython livrée avec Ghidra et pose l'en-tête <code>@runtime Jython</code> sur les quatre scripts.</li>
+            <li>Lance <code>local/outils/ghidra/ghidraRun.bat</code>. Ghidra veut Java 21. Crée un projet.</li>
+            <li>Le plus simple : <code>python outils/elfer.py local/extrait/exefs/code.bin</code> écrit <code>code.elf</code>, que File, Import File ouvre directement à <code>0x00100000</code>, sans réglage.</li>
+            <li>Sinon, importe <code>code.bin</code> en « Raw Binary », langage <code>ARM:LE:32:v6</code>, et dans Options l'adresse de base <code>0x00100000</code> : c'est là que la console charge le code d'un jeu.</li>
+            <li>Ouvre le programme. Avant d'accepter l'analyse, va en <code>0x00100000</code> (touche <kbd>G</kbd>), appuie sur <kbd>D</kbd> puis <kbd>F</kbd> : en binaire brut, Ghidra ne connaît pas le point d'entrée. Lance ensuite l'analyse automatique.</li>
+            <li>Script Manager, « Manage Script Directories », ajoute <code>local/outils/ghidra-scripts/</code>. Lance les quatre scripts dans cet ordre :
+              <ol class="scripts">
+                <li><code>Label3dsSVCs.py</code> nomme les appels système (<code>svc</code>). </li>
+                <li><code>Label3dsHandles.py</code> nomme les handles de services. Il exige qu'on ait d'abord nommé à la main <code>ctr::srv::GetServiceHandleDirect</code> la fonction qui demande un handle à <code>srv:</code> (en-tête IPC <code>0x00050100</code>).</li>
+                <li><code>Label3dsCTRFns.py</code> reconnaît les fonctions IPC de la bibliothèque.</li>
+                <li><code>Set3dsTlsType.py</code> type la zone de stockage par fil où passent les messages.</li>
+              </ol>
+            </li>
+          </ol>
+          <p class="renvoi-doc">Le détail, les options d'analyse et la ligne de commande : <code>outils/GHIDRA.md</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="feuille" id="carte" aria-labelledby="t-carte">
+      <h2 class="dymo" id="t-carte">Carte du système</h2>
+      <p class="chapo">Ce qu'il faut avoir en tête avant d'ouvrir le binaire : qui exécute quoi, à qui le jeu parle, et où les choses tombent en mémoire. Chaque fois que REA affirme « ceci est le service <code>fs:USER</code> », c'est cette carte qui permet de juger si c'est plausible.</p>
+      <div class="deux">
+        <div>
+          <h3>Deux processeurs, et deux coprocesseurs</h3>
+          <table class="puces">
+            <tbody>
+              <tr><th scope="row">ARM11 MPCore</th><td>2 cœurs à 268 MHz, 4 à 804 MHz sur New 3DS. Fait tourner le jeu et le système Horizon. C'est le seul code qu'on décompile.</td></tr>
+              <tr><th scope="row">ARM9 (ARM946)</th><td>134 MHz. Sécurité, NAND, cartouche, chiffrement. C'est lui que boot9strap détourne pour lancer Luma ; le jeu ne le voit jamais.</td></tr>
+              <tr><th scope="row">GPU PICA200</th><td>Le jeu ne le commande pas en direct : il passe par le service <code>gsp::Gpu</code>.</td></tr>
+              <tr><th scope="row">DSP</th><td>Le son, par le service <code>dsp::DSP</code>.</td></tr>
+            </tbody>
+          </table>
+
+          <h3>Les services que le jeu appelle</h3>
+          <p>Un jeu ne touche jamais le matériel. Il envoie des messages (IPC) à des services du système, chacun connu par son nom. C'est ce que les scripts Ghidra étiquettent, et c'est ce qu'il faudra fournir sur PC au palier 7.</p>
+          <table class="services">
+            <tbody>
+              <tr><th scope="row"><code>fs:USER</code></th><td>fichiers : romfs, sauvegarde</td></tr>
+              <tr><th scope="row"><code>gsp::Gpu</code></th><td>écrans et GPU</td></tr>
+              <tr><th scope="row"><code>hid:USER</code></th><td>boutons, écran tactile, gyroscope</td></tr>
+              <tr><th scope="row"><code>dsp::DSP</code></th><td>son</td></tr>
+              <tr><th scope="row"><code>apt:U</code></th><td>vie de l'application : menu Home, mise en veille</td></tr>
+              <tr><th scope="row"><code>cfg:u</code></th><td>réglages de la console : langue, région</td></tr>
+              <tr><th scope="row"><code>ptm:u</code></th><td>alimentation, batterie, podomètre</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3>La mémoire vue par le jeu</h3>
+          <table class="memoire">
+            <thead><tr><th scope="col">Adresse</th><th scope="col">Ce qu'on y trouve</th></tr></thead>
+            <tbody>
+              <tr><td><code>0x00100000</code></td><td>Le code du jeu. C'est l'adresse à donner à Ghidra.</td></tr>
+              <tr><td><code>0x08000000</code></td><td>Le tas.</td></tr>
+              <tr><td><code>0x10000000</code></td><td>La mémoire partagée avec les services. Le sommet de la pile est juste dessous.</td></tr>
+              <tr><td><code>0x14000000</code></td><td>Le tas linéaire, que le GPU peut lire. Sur New 3DS, aussi à <code>0x30000000</code>.</td></tr>
+              <tr><td><code>0x1EC00000</code></td><td>Les registres d'entrées-sorties.</td></tr>
+              <tr><td><code>0x1F000000</code></td><td>La VRAM, 6 Mo.</td></tr>
+              <tr><td><code>0x1FF80000</code></td><td>La configuration partagée par le noyau.</td></tr>
+              <tr><td><code>0x1FF82000</code></td><td>Le stockage par fil (TLS), où passent les messages IPC.</td></tr>
+              <tr><td><code>0xFFFF0000</code></td><td>Le noyau. Inaccessible au jeu.</td></tr>
+            </tbody>
+          </table>
+          <h3>Pour aller plus loin, sur 3dbrew</h3>
+          <ul class="renvois">
+            <li><a href="https://www.3dbrew.org/wiki/Memory_layout">Memory layout</a> : la carte complète de la mémoire.</li>
+            <li><a href="https://www.3dbrew.org/wiki/Services_API">Services API</a> : chaque service et ses commandes.</li>
+            <li><a href="https://www.3dbrew.org/wiki/SVC">SVC</a> : les appels système par numéro.</li>
+            <li><a href="https://www.3dbrew.org/wiki/IPC">IPC</a> : la forme d'un message.</li>
+            <li><a href="https://www.3dbrew.org/wiki/NCSD">NCSD</a>, <a href="https://www.3dbrew.org/wiki/NCCH">NCCH</a>, <a href="https://www.3dbrew.org/wiki/ExeFS">ExeFS</a>, <a href="https://www.3dbrew.org/wiki/RomFS">RomFS</a> : les couches d'un dump, de l'extérieur vers l'intérieur.</li>
+            <li><a href="https://www.3dbrew.org/wiki/GPU">GPU</a> : le PICA200 et ses registres.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="feuille" id="pokemon" aria-labelledby="t-pokemon">
+      <h2 class="dymo" id="t-pokemon">Pokémon X, ce qu'on sait</h2>
+      <p class="chapo">Le romfs de Pokémon X est un arbre de dossiers numérotés, <code>a/0/0/0</code>, <code>a/0/0/1</code> et ainsi de suite. Chaque feuille est un conteneur GARC. La communauté Project Pokémon a déjà cartographié lequel contient quoi ; on s'appuie sur son travail pour écrire nos propres lecteurs.</p>
+      <table class="formats" id="formats">
+        <thead><tr><th scope="col">Format</th><th scope="col">Ce que c'est</th><th scope="col">Chez nous</th></tr></thead>
+        <tbody>
+          <tr data-etat="plein"><th scope="row">GARC</th><td>Le conteneur. Version 4 pour X et Y. Des fichiers numérotés ; chaque numéro peut porter jusqu'à 32 sous-fichiers, annoncés par un vecteur de bits. Les magics sont écrits à l'envers sur le disque (« CRAG »).</td><td>Lecteur écrit, <code>outils/garc.py</code>, testé en aller-retour.</td></tr>
+          <tr data-etat="plein"><th scope="row">LZ11</th><td>La compression. Un octet <code>0x11</code>, puis la taille décompressée sur trois octets, puis des blocs de huit éléments annoncés par un octet de drapeaux.</td><td>Décompresseur écrit, <code>outils/lz11.py</code>, avec LZ10.</td></tr>
+          <tr data-etat="moitie"><th scope="row">Textes</th><td>De l'UTF-16 chiffré par une clé tournante : elle part de <code>0x7C89</code>, avance de <code>0x2983</code> à chaque ligne et tourne de 3 bits à chaque caractère. Des commandes (<code>0x0010</code>) y glissent les variables et les pauses.</td><td>Décodeur écrit, <code>outils/texte.py</code>, testé sur des données fabriquées. Reste à le valider sur le romfs.</td></tr>
+          <tr data-etat="vide"><th scope="row">Tables</th><td>Statistiques, types, apprentissages : des enregistrements de taille fixe, un par Pokémon.</td><td>À écrire au palier 4.</td></tr>
+          <tr data-etat="vide"><th scope="row">BCH</th><td>Les modèles 3D de Game Freak. Références : Ohana3DS et SPICA.</td><td>À écrire au palier 4.</td></tr>
+        </tbody>
+      </table>
+
+      <div class="deux">
+        <div>
+          <h3>Les scripts du dossier <code>outils/</code></h3>
+          <table class="scripts-py">
+            <tbody>
+              <tr><th scope="row"><code>verifier.py</code></th><td>Regarde ce qui est installé et ce qui est fait, met à jour <code>etat.json</code> et écrit <code>etat.js</code> pour cette page.</td></tr>
+              <tr><th scope="row"><code>installer.py</code></th><td>Déballe les archives de <code>local/telechargements/</code> et clone les scripts Ghidra 3DS.</td></tr>
+              <tr><th scope="row"><code>inspecter.py</code></th><td>Dit ce qu'est un dump sans aucun outil extérieur : titre, code produit, tailles, chiffré ou non, empreinte SHA-256.</td></tr>
+              <tr><th scope="row"><code>extraire.py</code></th><td>Sépare le code (exefs) des fichiers (romfs) avec ctrtool, puis inventorie les GARC.</td></tr>
+              <tr><th scope="row"><code>elfer.py</code></th><td>Enveloppe <code>code.bin</code> dans un ELF chargé à <code>0x00100000</code> (trois segments si <code>exheader.bin</code> est à côté), pour que Ghidra et REA l'ouvrent à la bonne adresse sans réglage.</td></tr>
+              <tr><th scope="row"><code>garc.py</code></th><td>Lit, liste, extrait et fabrique les GARC.</td></tr>
+              <tr><th scope="row"><code>texte.py</code></th><td>Décode et encode les fichiers de texte de X et Y.</td></tr>
+              <tr><th scope="row"><code>lz11.py</code></th><td>Décompresse LZ10 et LZ11, et compresse en LZ11 pour les tests.</td></tr>
+              <tr><th scope="row"><code>tests.py</code></th><td>Lance les tests de tous les lecteurs de formats.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3>Ce que « natif sur PC » demande</h3>
+          <p>Il y a deux voies.</p>
+          <p><strong>La décompilation</strong> : réécrire tout le jeu en C, jusqu'à ce que ce C, recompilé, redonne le binaire à l'octet près. C'est ainsi qu'ont été faits les portages de jeux N64. Pour un jeu 3DS, personne ne l'a terminée. Le jeu a été compilé avec RVCT, le compilateur d'ARM de l'époque, absent des outils qui comparent le résultat fonction par fonction.</p>
+          <p><strong>La recompilation statique</strong> : traduire mécaniquement le code ARM11 en C, puis fournir sur PC tout ce que le jeu demande au système. C'est la voie de N64Recomp. L'outil n'existe pas pour la 3DS : il faudrait l'écrire.</p>
+          <p>Les paliers 1 à 6 servent aux deux voies. Le choix se fait au palier 7, quand on saura combien de fonctions et de services il y a.</p>
+          <p class="note-rea">REA pilote Ghidra à notre place et va vite. On garde Ghidra à la main pour vérifier chacune de ses affirmations : une adresse citée doit exister, une référence croisée doit se retrouver.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="feuille" id="exercices" aria-labelledby="t-exercices">
+      <h2 class="dymo" id="t-exercices">Exercices à vérité connue</h2>
+      <p class="chapo">Trois petits homebrews dont on a le code, dans <code>exercices/</code>. On les compile avec <code>make</code> (en <code>-O0</code>), on ouvre le code nu <code>exNN.bin</code> comme un vrai jeu (ARM v6, base <code>0x00100000</code>), et on retrouve ce qu'il fait. Le <code>.elf</code>, qui garde les noms, sert de corrigé quand on est bloqué. Puis on recommence avec <code>make OPT=-O2</code> : le même programme, méconnaissable, c'est l'état d'un jeu livré. Tant que REA ne tourne pas sous WSL, on fait les exercices à la main dans Ghidra ; REA sert ensuite à comparer ses réponses aux tiennes, et les blocs « Avec REA » disent quoi lui demander.</p>
+      <div class="exos">
+        <article class="exo">
+          <h3><span class="num">01</span> La boucle</h3>
+          <p class="but">Un écran texte, un compteur, <kbd>Start</kbd> pour sortir. Tout jeu a cette forme.</p>
+          <ol class="questions">
+            <li>Trouve la chaîne « Exercice 01 ». Qui s'en sert ? Remonte de la chaîne à la fonction par ses références.</li>
+            <li>Décris le prologue et l'épilogue de cette fonction.</li>
+            <li>Où vit la variable <code>tours</code> ? Pourquoi là ?</li>
+            <li>Comment reconnaît-on le haut de la boucle ? Descends dans la première fonction appelée jusqu'à une instruction <code>svc</code>.</li>
+            <li>Que devient <code>(tours &amp; 63) == 0</code> ?</li>
+          </ol>
+          <div class="rea">
+            <p><strong>Avec REA.</strong> Demande à Claude Code :</p>
+            <blockquote>Avec REA, ouvre exercices/01-boucle/ex01.bin comme ARM v6 à 0x00100000 et dis-moi quelle fonction appelle printf avec la chaîne « Exercice 01 », avec les preuves.</blockquote>
+            <p>La réponse doit citer l'adresse de la chaîne et celle de la fonction, les instructions qui chargent l'adresse et font l'appel, et la liste des références croisées. Ensuite, refais le chemin à la main dans Ghidra : si une adresse ne mène pas où REA le dit, c'est lui qui se trompe.</p>
+          </div>
+          <details>
+            <summary>Correction</summary>
+            <ol>
+              <li>La chaîne est dans les données en lecture seule, avec une seule référence : depuis <code>main</code>. Elle est chargée dans <code>r0</code> par un <code>ldr</code> qui lit une adresse posée juste après la fonction (la réserve de constantes), puis vient un <code>bl</code>. Ne sois pas surpris d'y voir <code>puts</code> et une chaîne sans retour à la ligne : GCC remplace un <code>printf</code> sans format par <code>puts</code>.</li>
+              <li>À l'entrée, <code>push {…, lr}</code> range sur la pile les registres que la fonction va abîmer et l'adresse de retour. À la sortie, <code>pop {…, pc}</code> les remet, et charger <code>pc</code> fait le retour.</li>
+              <li>En <code>-O0</code>, sur la pile, lue et réécrite à chaque tour. En <code>-O2</code>, dans un registre sauvegardé, <code>r4</code> à <code>r7</code>, parce qu'il survit aux appels : <code>r0</code> à <code>r3</code> sont écrasés par toute fonction appelée.</li>
+              <li>Un <code>bl</code> vers <code>aptMainLoop</code>, puis un test de <code>r0</code> et un saut vers la sortie s'il vaut zéro ; tout en bas, un saut qui remonte ici. En descendant dans les enveloppes de libctru, on finit sur un <code>svc</code> : <code>0x32</code> pour envoyer un message IPC, <code>0x24</code> pour attendre un événement.</li>
+              <li><code>tst r4, #63</code> (ou <code>#0x3f</code>), suivi d'un <code>bne</code> qui saute par-dessus l'affichage.</li>
+            </ol>
+          </details>
+        </article>
+
+        <article class="exo">
+          <h3><span class="num">02</span> L'aiguillage</h3>
+          <p class="but">Huit modes qu'on fait tourner avec <kbd>A</kbd>, chacun sa formule, choisis par un <code>switch</code>.</p>
+          <ol class="questions">
+            <li>Comment la fonction de calcul choisit-elle son cas ? Compare <code>-O0</code> et <code>-O2</code>.</li>
+            <li>Retrouve le tableau des huit noms de modes. Qu'y a-t-il dedans ?</li>
+            <li>Le cas 7 divise par 7. L'ARM11 n'a pas d'instruction de division : que vois-tu à la place ?</li>
+            <li>Que devient la rotation du cas 4, <code>(x &lt;&lt; 5) | (x &gt;&gt; 27)</code> ?</li>
+          </ol>
+          <div class="rea">
+            <p><strong>Avec REA.</strong> Demande à Claude Code :</p>
+            <blockquote>Avec REA, ouvre exercices/02-aiguillage/ex02.bin comme ARM v6 à 0x00100000, trouve la table de sauts et dis-moi combien de cas elle a et où va chacun, avec les preuves.</blockquote>
+            <p>La réponse doit donner l'adresse de la comparaison de bornes, celle de la table, les huit adresses qu'elle contient et le désassemblage cité de chaque cas. Vérifie ensuite dans Ghidra : la table doit avoir huit entrées, ni plus ni moins.</p>
+          </div>
+          <details>
+            <summary>Correction</summary>
+            <ol>
+              <li>Soit une cascade de <code>cmp</code> et de sauts, un test par cas : la forme de <code>-O0</code>. Soit une table de sauts : <code>cmp r0, #7</code>, puis <code>ldrls pc, [pc, r0, lsl #2]</code> qui pioche l'adresse du cas dans une liste de huit mots, et un saut vers le cas par défaut si la valeur dépasse 7. C'est la forme de <code>-O2</code>. Ghidra la reconnaît et réécrit un <code>switch</code>.</li>
+              <li>Huit mots de 4 octets à la suite, chacun l'adresse d'une chaîne (« plus un », « triple »…). Le code y lit avec <code>ldr rX, [rY, rZ, lsl #2]</code>, le mode servant d'index. Dans Ghidra, il faut parfois dire « ceci est un pointeur » pour voir les chaînes.</li>
+              <li>En <code>-O0</code>, un appel à <code>__aeabi_uidiv</code>, la division de la bibliothèque. En <code>-O2</code>, une multiplication par l'inverse : <code>umull</code> avec la constante <code>0x24924925</code>, puis quelques décalages.</li>
+              <li>Une seule instruction : <code>ror</code> de 27. Le compilateur reconnaît la rotation écrite en deux décalages.</li>
+            </ol>
+          </details>
+        </article>
+
+        <article class="exo">
+          <h3><span class="num">03</span> La sauvegarde</h3>
+          <p class="but">Une structure écrite telle quelle sur la carte SD, avec un magic, une version et une somme de contrôle.</p>
+          <ol class="questions">
+            <li>Trouve l'appel qui écrit le fichier. Quelle taille passe-t-il ?</li>
+            <li>Retrouve les champs et leurs décalages à partir des écritures dans la structure.</li>
+            <li>Le magic vaut <code>0x56415344</code>. Quels sont les quatre premiers octets du fichier sur la carte SD ?</li>
+            <li>Reconstruis l'algorithme de la somme de contrôle.</li>
+            <li>La lecture peut être refusée de trois façons. Lesquelles ?</li>
+          </ol>
+          <div class="rea">
+            <p><strong>Avec REA.</strong> Demande à Claude Code :</p>
+            <blockquote>Avec REA, ouvre exercices/03-sauvegarde/ex03.bin comme ARM v6 à 0x00100000, trouve la fonction qui calcule la somme de contrôle et réécris-la en C, avec les preuves.</blockquote>
+            <p>La réponse doit donner l'adresse de la fonction, la boucle désassemblée et citée (la rotation, la lecture d'octet, la borne de 24) et les références croisées vers l'écriture et la lecture du fichier. Puis vérifie à la main dans Ghidra, et compare son C avec <code>source/main.c</code>.</p>
+          </div>
+          <details>
+            <summary>Correction</summary>
+            <ol>
+              <li>28 octets (<code>0x1C</code>), passés à <code>fwrite</code>.</li>
+              <li>magic à 0 (4 octets), version à 4 (2), vies à 6 (1), niveau à 7 (1), nom à 8 (12), score à 20, somme à 24. Aucun remplissage : chaque champ tombe déjà sur son alignement. Les tailles se lisent aux instructions : <code>str</code> pour 4 octets, <code>strh</code> pour 2, <code>strb</code> pour 1.</li>
+              <li><code>44 53 41 56</code>, « DSAV » : la console range l'octet de poids faible en premier. Cherche donc la valeur (Search, For Scalars), pas la chaîne.</li>
+              <li>On part de <code>0x1234</code>. Pour chacun des 24 premiers octets : rotation à gauche d'un bit (<code>ror #31</code>), puis on ajoute l'octet (<code>ldrb</code>).</li>
+              <li>Magic faux (code -1), version différente de 3 (code -2), somme fausse (code -3).</li>
+            </ol>
+          </details>
+        </article>
+      </div>
+    </section>
+
+    <section class="feuille" id="journal" aria-labelledby="t-journal">
+      <h2 class="dymo" id="t-journal">Journal</h2>
+      <ol class="journal" id="journal-liste"></ol>
+    </section>
+
+  </main>
+
+  <script src="etat.js"></script>
+  <script src="app.js"></script>
+  <script src="../portail/site.js"></script>
+</body>
+</html>

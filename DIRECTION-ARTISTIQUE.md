@@ -294,6 +294,24 @@ Les outils graphiques gardent un fond gris parce qu'on y juge des couleurs. Le v
 
 Sans la couleur, les avertissements se lisent à leur forme : un cercle sur un coin fautif (pointe, angle rentrant), des tirets autour d'une pièce fautive tout entière, une croix au bout d'un plomb qui ne rejoint rien. Une pièce sans verre est hachurée. La pièce choisie est cernée d'un double trait blanc et plomb, tireté, qui se lit sur n'importe quel verre. Les plaques de verre portent leur chiffre de clavier, et le carton numérote chaque pièce avec une pastille de sa couleur.
 
+### `decompil-3ds` : l'établi du réparateur
+
+La console est ouverte sur un tapis antistatique bleu, et sa carte mère sert de sommaire. Chaque composant renvoie à sa feuille : le connecteur de cartouche J1 au jeu, le processeur U1 à la carte du système, la FCRAM U2 aux formats de Pokémon X, la NAND U3 aux outils, le lecteur microSD J2 aux exercices, le port UART J3 au journal. L'avancement se lit en sérigraphie dans le cartouche, en bas à droite. Sept points de test, TP1 à TP7, sont les sept paliers : vides, à moitié ou pleins d'or, et leur piste passe à l'or quand le palier est terminé. Tout ce qu'on écrit est sur des feuilles de papier posées à plat, avec une ombre franche couleur de tapis, sans arrondi. Elles sont titrées par une étiquette Dymo qui déborde du coin : bande noire, lettres blanches en capitales, parce que l'étiqueteuse n'écrit qu'en capitales. Une bande « Tu es ici », sous la carte, donne le palier en cours et le prochain geste. C'est la seule audace : la carte. Le reste est sobre.
+
+| Rôle | Valeur |
+| --- | --- |
+| Tapis antistatique (fond), ombre des feuilles | `#2e4d63`, ombre `#243d4e` |
+| Vernis épargne, pistes, sérigraphie | `#1b5e36`, `#154a2b`, `#eef1ea` |
+| Or des pastilles (ce qui est acquis : palier fait, outil présent, piste raccordée ; focus clavier) | `#d6a73b`, ombre `#9c7420` |
+| Étain (broches, lecteur microSD), plastique des connecteurs, boîtier des puces et bande Dymo | `#c3c9cd`, `#3a3f45`, `#15181c` |
+| Papier, filets, encre, encre pâle | `#f6f5ef`, `#dedcd2`, `#1e2226`, `#5a6168` |
+| Marqueur rouge (ce qui bloque : outil absent, dump chiffré ; lien survolé) | `#c8321f` |
+| Sérigraphie et étiquettes Dymo | OCR A Extended, puis OCR A Std, Consolas |
+| Texte des feuilles | Segoe UI, puis Tahoma, Verdana |
+| Adresses, commandes, chemins, relevé | Consolas, puis Lucida Console, Courier New |
+
+Sans la couleur, les états se lisent à leur forme. Une pastille est pleine si c'est fait ou présent, en demi-disque si c'est entamé, vide si c'est à faire ou absent, barrée d'une diagonale pour un outil que le PC ne peut pas voir, comme GodMode9 sur la console. Les tâches ont des cases à cocher imprimées, et une tâche faite passe en encre pâle. Ce qui bloque est en rouge, précédé d'un ✗.
+
 ### `mondes` : le guide de voyage
 
 `atlas-des-mondes`, `chroniques`, `langues-inventees`, `steles`.

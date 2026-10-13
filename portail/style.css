@@ -114,6 +114,8 @@ a { color: inherit; text-decoration: none; }
 .b-police .name { font-family: Consolas, 'Lucida Console', 'Courier New', monospace; font-weight: 700; margin-top: 22px; }
 .b-chiptune { background: linear-gradient(#cbc7ba 0 12%, #5a5c6e 12% 14%, #9bbc0f 14% 34%, #5a5c6e 34% 36%, #cbc7ba 36% 94%, #8b1d4f 94% 97%, #cbc7ba 97%); color: #1c2a5a; }
 .b-chiptune .name { font-family: Bahnschrift, 'Franklin Gothic Medium', 'Arial Narrow', sans-serif; font-weight: 700; font-style: italic; margin-top: 112px; }
+.b-decompil { background: radial-gradient(circle at 50% 22px, #2e4d63 0 4px, #d6a73b 4px 8px, transparent 8.5px), radial-gradient(circle at 50% calc(100% - 22px), #2e4d63 0 4px, #d6a73b 4px 8px, transparent 8.5px), linear-gradient(90deg, transparent 0 11px, #154a2b 11px 14px, transparent 14px calc(100% - 14px), #154a2b calc(100% - 14px) calc(100% - 11px), transparent calc(100% - 11px)), #1b5e36; color: #eef1ea; }
+.b-decompil .name { font-family: 'OCR A Extended', 'OCR A Std', Consolas, monospace; margin-top: 36px; }
 .b-erosion { background: linear-gradient(100deg, #7a3a16, #c2622a 45%, #8a4a22 70%, #5c2c12); color: #ffe9d2; }
 .b-erosion .name, .b-feu .name { font-family: var(--display); font-weight: 700; }
 .b-feu { background: linear-gradient(100deg, #2f3a1e, #55682f 40%, #b8501a 72%, #3a1c10); color: #ffe9d2; }

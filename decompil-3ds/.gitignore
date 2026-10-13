@@ -1,0 +1,8 @@
+# Ce que produit « make » dans les exercices : se refabrique, ne se versionne pas.
+exercices/*/*.elf
+exercices/*/*.bin
+exercices/*/*.3dsx
+exercices/*/*.smdh
+exercices/*/*.map
+exercices/*/.opt
+__pycache__/
