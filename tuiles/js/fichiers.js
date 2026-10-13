@@ -96,12 +96,16 @@
         '<p class="rang">' + liste('Taille d\'une case', 'tc', M.TAILLES_TUILE.map(function (t) { return [t, t + ' px']; }), c.tc) + liste('Essai', 'mode', MODES, c.mode) + '</p>' +
         '<p class="rang"><label><input type="checkbox" name="avecFond"' + (c.fond ? ' checked' : '') + '> Couleur de fond</label><input type="color" name="fond" value="' + (c.fond || '#7fb4e6') + '"></p>' +
         '<p class="note">Changer la taille d\'une case ne redessine pas les tuiles : un jeu d\'une autre taille déborde de la case, comme dans Tiled.</p>',
+      // Choisir une couleur, c'est vouloir un fond : la case se coche d'elle-même.
+      pret: function (f) { f.elements.fond.addEventListener('input', function () { f.elements.avecFond.checked = true; }); },
       action: function (f) {
         var a = Number(f.elements.ancre.value), w = entier(f, 'w', 1, M.CARTE_MAX), h = entier(f, 'h', 1, M.CARTE_MAX), change;
-        change = M.redimensionner(w, h, (a % 3) / 2, Math.floor(a / 3) / 2);
-        M.carteRegler('tc', f.elements.tc.value);
-        M.carteRegler('mode', f.elements.mode.value);
-        M.carteRegler('fond', f.elements.avecFond.checked ? f.elements.fond.value : '');
+        // Une seule étape d'historique pour tout « Appliquer ».
+        change = M.redimensionner(w, h, (a % 3) / 2, Math.floor(a / 3) / 2, true);
+        M.carteRegler('tc', f.elements.tc.value, true);
+        M.carteRegler('mode', f.elements.mode.value, true);
+        M.carteRegler('fond', f.elements.avecFond.checked ? f.elements.fond.value : '', true);
+        M.valider('Réglages de la carte');
         if (change) U.cadrer();
         U.toutRepeindre();
       }
@@ -197,7 +201,7 @@
   };
 
   U.exporterJeu = function () {
-    var j = U.jeuMontre();
+    var j = jeuMontre();
     if (j) telechargerToile(U.toileJeu(j), F.fichierJeu(j));
   };
 
@@ -419,8 +423,15 @@
   };
 
   // ---------- Réglages d'un jeu ----------
-  U.dlgJeuRenommer = function () {
+  // Le jeu affiché ; sans jeu, les commandes du menu Tuiles le disent au lieu de ne rien faire.
+  function jeuMontre() {
     var j = U.jeuMontre();
+    if (!j) U.message('Aucun jeu de tuiles : importe une image, génère des tuiles avec Textures ou ajoute les tuiles de démonstration.');
+    return j;
+  }
+
+  U.dlgJeuRenommer = function () {
+    var j = jeuMontre();
     if (!j) return;
     U.dialogue({
       titre: 'Renommer le jeu de tuiles', ok: 'Renommer',
@@ -430,7 +441,7 @@
   };
 
   U.jeuSupprimer = function () {
-    var j = U.jeuMontre(), n;
+    var j = jeuMontre(), n;
     if (!j) return;
     n = M.jeuEmploi(j.id);
     U.dialogue({
@@ -442,7 +453,7 @@
 
   // Les tuiles choisies dans la palette deviennent les images d'une animation portée par la première.
   U.dlgAnimer = function () {
-    var j = U.jeuMontre(), s = U.selJeu, rangs = [], x, y, k, anims, i;
+    var j = jeuMontre(), s = U.selJeu, rangs = [], x, y, k, anims, i;
     if (!j) return;
     for (y = 0; y < s.h; y++) for (x = 0; x < s.w; x++) { k = (s.y + y) * j.cols + s.x + x; if (k < j.nb) rangs.push(k); }
     if (rangs.length < 2) { U.message('Choisis d\'abord, dans le jeu, les tuiles qui forment l\'animation (glisse pour en prendre plusieurs).'); return; }
@@ -464,7 +475,7 @@
   };
 
   U.retirerAnimation = function () {
-    var j = U.jeuMontre(), s = U.selJeu, k, anims = {}, i;
+    var j = jeuMontre(), s = U.selJeu, k, anims = {}, i;
     if (!j) return;
     k = s.y * j.cols + s.x;
     if (!j.anims[k]) { U.message('La tuile choisie n\'est pas animée.'); return; }
@@ -474,7 +485,7 @@
   };
 
   U.dlgTerrain = function () {
-    var j = U.jeuMontre(), s = U.selJeu, k;
+    var j = jeuMontre(), s = U.selJeu, k;
     if (!j) return;
     k = s.y * j.cols + s.x;
     if (k >= j.nb || j.tw !== j.th) { U.message('Choisis une tuile carrée dans le jeu.'); return; }

@@ -78,7 +78,8 @@
     aide: function () { aide(); },
     format: function () { format(); }
   };
-  U.agir = function (act) { if (ACTIONS[act]) ACTIONS[act](); };
+  // Une commande de l'en-tête pendant l'essai ramène d'abord à l'éditeur : l'essai garde sinon un monde périmé.
+  U.agir = function (act) { if (U.essai && act !== 'essayer') finEssai(); if (ACTIONS[act]) ACTIONS[act](); };
 
   // ---------- Menus ----------
   var MENUS = [
@@ -305,7 +306,8 @@
     var k = e.key.length === 1 ? e.key.toLowerCase() : e.key, ctrl = e.ctrlKey || e.metaKey, chiffre = /^Digit([0-4])$/.exec(e.code), type, o;
     // Les chiffres se lisent sur la position de la touche : un clavier français les donne sans Maj.
     if (chiffre && k !== '#') k = chiffre[1];
-    if (U.essai) { toucheEssai(e, true); return; }
+    // Le champ du nom de carte reste à l'écran pendant l'essai : on doit pouvoir y écrire toutes les lettres.
+    if (U.essai && !saisie) { toucheEssai(e, true); return; }
     if (k === 'Escape') {
       if (U.fenetreOuverte()) U.fermer();
       else if (menuOuvert()) fermerMenus();

@@ -392,8 +392,9 @@
     cya = Math.max(0, Math.floor((r - U.oy) / pas)); cyb = Math.min(Math.ceil(c.h / TRONC) - 1, Math.floor((H - 1 - U.oy) / pas));
     prochainChangement = Infinity;
     c.calques.forEach(function (cal) {
-      if (!cal.visible || cal.opacite <= 0) return;
-      if (U.essai && cal.type !== 'tuiles' && !U.essai.reperes) return;
+      // Pendant l'essai, collisions et objets ne suivent que la touche C, même masqués dans l'éditeur.
+      if (U.essai && cal.type !== 'tuiles' ? !U.essai.reperes : !cal.visible) return;
+      if (cal.opacite <= 0) return;
       g.globalAlpha = cal.opacite;
       if (cal.type === 'objets') { dessinerObjets(cal); return; }
       for (cy = cya; cy <= cyb; cy++) {

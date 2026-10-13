@@ -398,8 +398,8 @@
   };
 
   // ---------- Carte entière ----------
-  // ax, ay : ancrage du contenu, 0 (début), 0.5 (centre) ou 1 (fin).
-  M.redimensionner = function (nw, nh, ax, ay) {
+  // ax, ay : ancrage du contenu, 0 (début), 0.5 (centre) ou 1 (fin). Avec sansValider, l'étape d'historique est laissée à l'appelant.
+  M.redimensionner = function (nw, nh, ax, ay, sansValider) {
     var c = M.carte, w = c.w, h = c.h, dx, dy;
     nw = dim(nw); nh = dim(nh);
     if (nw === w && nh === h) return false;
@@ -424,12 +424,12 @@
     c.w = nw; c.h = nh;
     M.sel = null;
     structSale = true;
-    M.valider('Redimensionner la carte');
+    if (!sansValider) M.valider('Redimensionner la carte');
     return true;
   };
 
-  // cle : nom, tc, mode ou fond.
-  M.carteRegler = function (cle, valeur) {
+  // cle : nom, tc, mode ou fond. Avec sansValider, l'étape d'historique est laissée à l'appelant.
+  M.carteRegler = function (cle, valeur, sansValider) {
     var c = M.carte, k;
     if (cle === 'nom') valeur = nomPropre(valeur, c.nom);
     if (cle === 'mode') valeur = valeur === 'plateformes' ? 'plateformes' : 'dessus';
@@ -442,7 +442,7 @@
     if (c[cle] === valeur) return false;
     c[cle] = valeur;
     structSale = true;
-    M.valider('Carte : ' + cle);
+    if (!sansValider) M.valider('Carte : ' + cle);
     return true;
   };
 

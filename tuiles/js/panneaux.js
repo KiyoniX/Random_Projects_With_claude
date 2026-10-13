@@ -142,7 +142,7 @@
   U.selJeu = { x: 0, y: 0, w: 1, h: 1 };  // tuiles choisies dans ce jeu
   U.zoomPalette = 0;                      // 0 : ajusté à la largeur du volet
 
-  var signaturePalette = '', gestePalette = null;
+  var signaturePalette = '', gestePalette = null, ficheLue = false;
 
   function jeuMontre() {
     var j = M.jeuParId(U.jeuActif);
@@ -255,6 +255,8 @@
     }
     if (cal.type === 'objets') {
       objets = cal.objets; o = U.objSel ? M.objet(U.objSel) : null;
+      // Juste après une saisie dans la fiche, elle reste en place : la refaire volerait le focus (Tab) et le clic en cours.
+      if (ficheLue && o && $('#fiche') && majListeObjets(objets)) return;
       h = '<h2>Objets <span class="compte">' + (objets.length || '') + '</span></h2>';
       if (!objets.length) h += '<p class="note">Aucun objet. Pose un point (P) pour le départ du joueur, ou trace une zone (R) pour une porte, un coffre, un déclencheur.</p>';
       h += '<div class="liste' + (o ? '' : ' seule') + '" id="listeObjets">' + objets.map(function (ob) {
@@ -297,6 +299,14 @@
   U.construireSource = construireSource;
 
   // ---------- Fiche d'objet ----------
+  // Met à jour sur place les noms de la liste d'objets ; rend faux si la liste a changé de longueur.
+  function majListeObjets(objets) {
+    var l = document.querySelectorAll('#listeObjets .ligneObjet');
+    if (l.length !== objets.length) return false;
+    objets.forEach(function (ob, k) { l[k].querySelector('span').textContent = ob.nom || '(sans nom)'; l[k].querySelector('em').textContent = ob.type; });
+    return true;
+  }
+
   function lireFiche() {
     var f = $('#fiche'), o = U.objSel ? M.objet(U.objSel) : null, champs, props = [];
     if (!f || !o) return;
@@ -308,7 +318,9 @@
     });
     champs.props = props;
     M.objetModifier(o.id, champs);
+    ficheLue = true;
     M.valider('Modifier l\'objet');
+    ficheLue = false;
   }
 
   U.surObjet = function (saisir) {
