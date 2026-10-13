@@ -150,7 +150,19 @@
 
   // Les teintes de la matière, rampe par rampe. Celles que la limite de couleurs a fondues dans une voisine sont estompées.
   function construireTeintes() {
-    var libre = E.palette === 'matiere', t = libre ? T.teintes(E) : tex.pleine.map(T.hexDepuisRgb), k = 0, h = '';
+    var libre = E.palette === 'matiere', t = libre ? T.teintes(E) : tex.pleine.map(T.hexDepuisRgb), k = 0, h = '', cle = E.matiere + '|' + libre;
+    // Même matière, même mode : on retouche les nuances en place. Les reconstruire ferait perdre
+    // le clavier à celle dont on est en train de changer la teinte par la pipette.
+    if ($('#teintes').dataset.cle === cle) {
+      document.querySelectorAll('#teintes .nuance').forEach(function (el, q) {
+        el.classList.toggle('fondue', T.hexDepuisRgb(tex.couleurs[tex.table[q]]) !== t[q]);
+        el.style.setProperty('--c', '#' + t[q]);
+        el.title = '#' + t[q] + (libre ? ' — cliquer pour changer cette teinte' : '');
+      });
+      $('#bTeintes').disabled = !E.teintes;
+      return;
+    }
+    $('#teintes').dataset.cle = cle;
     matiere().rampes.forEach(function (ra) {
       h += '<div class="rampe"><span>' + echapper(ra.nom) + '</span><div>';
       ra.hex.forEach(function () {
@@ -429,12 +441,17 @@
 
     $('#collection').addEventListener('click', function (e) {
       var o = e.target.closest('[data-oter]'), b = e.target.closest('.image');
-      if (o) { collection.splice(Number(o.dataset.oter), 1); ecrireCollection(); afficherCollection(); }
+      if (o) {
+        collection.splice(Number(o.dataset.oter), 1); ecrireCollection(); afficherCollection();
+        // Au clavier, on reste dans la collection : sur la voisine de celle qu'on vient de retirer.
+        if (e.detail === 0 && collection.length) $('#collection [data-k="' + Math.min(Number(o.dataset.oter), collection.length - 1) + '"]').focus();
+      }
       else if (b) { memoire = {}; charger(collection[Number(b.dataset.k)].t); message('« ' + collection[Number(b.dataset.k)].nom + ' » reprise.'); }
     });
+    // Seulement sur la vignette elle-même : la croix garde son propre Entrée.
     $('#collection').addEventListener('keydown', function (e) {
       var b = e.target.closest('.image');
-      if (b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); b.click(); }
+      if (b && b === e.target && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); b.click(); }
     });
     $('#bAtlas').addEventListener('click', exporterAtlas);
     $('#bVider').addEventListener('click', function () {

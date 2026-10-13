@@ -97,6 +97,7 @@ input[type=checkbox] { accent-color: var(--accent); vertical-align: -2px; }
 .rampe div { display: flex; gap: 2px; }
 .nuance { width: 20px; height: 20px; border-radius: 2px; background: var(--c); outline: 1px solid rgba(0, 0, 0, .5); }
 button.nuance:hover { outline: 1px solid #fff; }
+button.nuance:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .nuance.fondue { opacity: .3; }
 .pipette { position: fixed; right: 300px; top: 300px; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 
@@ -111,7 +112,7 @@ button.nuance:hover { outline: 1px solid #fff; }
 .image span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .image:hover { border-color: var(--muted); color: var(--text); }
 .image .oter { position: absolute; top: 1px; right: 1px; width: 17px; height: 17px; border-radius: 3px; background: rgba(24, 24, 26, .85); color: var(--muted); line-height: 15px; display: none; }
-.image:hover .oter { display: block; }
+.image:hover .oter, .image:focus-within .oter { display: block; }
 .image .oter:hover { color: var(--red); }
 
 /* ---------- Barre d'état ---------- */
