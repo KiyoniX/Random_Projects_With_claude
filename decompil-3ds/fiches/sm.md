@@ -11,7 +11,7 @@ Fiche d'essai du 13 octobre 2026, produite avec REA et Ghidra sur le module extr
 | Titre | `0004013000001002`, rangé dans le NATIVE_FIRM (pas un titre de la CTRNAND) |
 | Fichier lu | `local/extrait/sm/exefs/code.elf` |
 | Taille | 16 784 octets de code, 584 de données en lecture seule, 80 de données, 20 808 de mémoire à zéro |
-| Fonctions | 110, dont 40 nommées dans `sm.noms.tsv` |
+| Fonctions | 117, dont 40 nommées dans `sm.noms.tsv` |
 | Services offerts | `srv:` (14 commandes) et `srv:pm` (4 commandes) |
 | Sur cette console | Luma remplace `sm` par le sien au démarrage : ce qui est lu ici est l'original de Nintendo |
 
@@ -138,7 +138,7 @@ Le découpage des 20 octets d'une entrée est lu dans les écritures de `srv_Reg
 
 **Pas lu**
 - Le corps de 13 des 18 commandes : seuls GetServiceHandle, RegisterService, EnableNotification, PublishToProcess et RegisterProcess ont été décompilés, et seuls les deux premiers sont décrits.
-- Les 70 fonctions sans nom, dont la gestion de la mémoire et le démarrage.
+- Les 77 fonctions sans nom, dont la gestion de la mémoire et le démarrage.
 
 ## Comment cette fiche a été faite
 
@@ -152,5 +152,7 @@ Le découpage des 20 octets d'une entrée est lu dans les écritures de `srv_Reg
 | Rédiger et recouper | Claude | le reste |
 
 **Le piège rencontré.** Ghidra n'avait pas vu `srv_handle_command` comme une fonction : elle n'est appelée que par la table de pointeurs à `0x105014`, jamais directement. Huit fonctions étaient dans ce cas. Il a fallu chercher dans les données tous les pointeurs vers du code, vérifier lesquels ne tombaient dans aucune fonction, et les donner à REA dans un fichier de graines. Ghidra est passé de 102 à 110 fonctions. Ce sera pareil dans tous les modules : c'est une étape à faire d'office.
+
+**Mise à jour du même jour.** Repassé plus tard avec `prescan.py` corrigé, `sm` compte 117 fonctions et non 110 : il restait sept fonctions d'initialisation des objets globaux, atteintes seulement par une table de distances que le premier essai ne décodait pas. L'une d'elles, à `0x103f38`, met le compteur `0x109f68` à zéro et prépare 0xA0 entrées de 0x14 octets à `0x109f70` : c'est la table des services de la partie 5, avec la taille d'entrée et le maximum de 160 lus ailleurs. Le reste de la fiche n'a pas changé.
 
 **Pour reprendre.** `sm.noms.tsv` est le fichier de graines : une adresse, `function`, un nom. REA le recharge par la variable `REA_GHIDRA_SEED_FILE`, et toutes les fonctions sortent alors avec leur nom. Depuis, les deux étapes automatiques sont rangées dans `outils/` : `rea_bridge.py` tient REA ouvert, `prescan.py <module>` repère les appels système, nomme leurs enveloppes et trouve les fonctions manquées. Le pseudo-code brut rendu par REA est dans `local/analyse/sm/`, non versionné.

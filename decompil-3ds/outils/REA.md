@@ -97,6 +97,14 @@ python outils/rea_bridge.py stop
 
 Le même fichier `.noms.tsv` porte les noms qu'on donne aux fonctions (troisième colonne, en anglais) : REA les applique à chaque ouverture, le pseudo-code sort avec.
 
+Ce que six modules ont appris (sm, hid, loader, pm, gsp, fs) :
+
+- **`prescan.py <module> --dump`** range le pseudo-code de toutes les fonctions (`local/analyse/<module>/pseudo/`) et l'assembleur du module (`code.asm`, par l'objdump de devkitPro). Le pseudo-code de Ghidra perd les registres autour d'un `svc` écrit sur place : la poignée d'une requête, les arguments de `ControlMemory` ou de `CreateCodeSet` se lisent dans l'assembleur. Pour un module du FIRM, seul `.text` y est à la bonne adresse (les sections sont serrées).
+- **Le Thumb.** Une graine `function` est toujours désassemblée en ARM. Pour nommer une fonction Thumb, écrire une ligne `label` au lieu de `function` : quand Ghidra crée la fonction, elle prend le nom. Si le nom ne prend pas quand même (`run_static_initializers` dans plusieurs modules), le noter dans la fiche et le poser à la main. prescan ne suit pas les pointeurs impairs, il les compte seulement.
+- **`fs` est aux trois quarts en Thumb**, avec des méthodes appelées seulement par tables : par le pont, REA n'y voit que 1 637 fonctions sur 1 995. Sa fiche a été faite avec Ghidra lancé directement sous WSL et deux scripts gardés dans `local/analyse/fs/ghidra/` (`run.sh`, `FsPre.java`, `FsDump.java`), et les aiguillages vérifiés par émulation (capstone et unicorn installés dans `local/analyse/fs/pylib/` seulement). Les « switch » Thumb demandent le réglage Call Fixup `switch8_r3` sur l'aide `__ARM_common_switch8`.
+- **Ne pas se fier aux tailles de fonctions de Ghidra** : il ne compte pas les tables d'adresses posées au milieu du code.
+- **Un début de fonction se cherche parfois à la main** : une fonction qui ne revient jamais ne sauve aucun registre, et prescan ne la reconnaît pas. Il signale alors « appel système hors de toute fonction ».
+
 ## 5. Commandes CLI utiles sur un binaire natif
 
 Elles valent pour une cible que REA accepte : un PE sous Windows, ou ELF/Mach-O/brut sous Linux et macOS. `<bin>` est un chemin absolu.

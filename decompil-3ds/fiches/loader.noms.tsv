@@ -1,0 +1,112 @@
+0x14000000	function	entry
+0x14000024	function	clear_bss
+0x14000054	function	loader_main
+0x140003e0	function	run_init_array
+0x14000414	function	init_c_locale
+0x14000468	function	svcAcceptSession
+0x14000480	function	svcReplyAndReceive
+0x140004a4	function	fs_init
+0x14000540	function	open_pxipm_and_fsreg
+0x140005b8	function	get_notification_semaphore
+0x140005ec	function	handle_srv_notification
+0x140006a8	function	register_notification_handler
+0x14000738	function	SRV_RegisterService
+0x14000794	function	SRV_UnregisterService
+0x140007e8	function	srv_exit
+0x14000914	function	svcConnectToPort
+0x1400092c	function	fs_initialize_session
+0x14000958	function	FS_SetPriority
+0x14000988	function	fs_get_session
+0x140009cc	function	create_lock_arbiter
+0x14000a08	function	init_runtime
+0x14000abc	function	SRV_RegisterClient
+0x14000af8	function	SRV_EnableNotification
+0x14000b34	function	SRV_ReceiveNotification
+0x14000b70	function	svcCreateAddressArbiter
+0x14000b88	function	svcQueryMemory
+0x14000bb8	function	svcSleepThread
+0x14000bc4	function	FS_InitializeWithSdkVersion
+0x14000d08	function	svcGetProcessInfo
+0x14000d3c	function	lock_wait
+0x14000e20	function	svcBreak
+0x14000e28	function	lzss_decompress_backward
+0x14000ebc	function	svcCreateCodeSet
+0x14000ed8	function	svcCreateProcess
+0x14000ef0	function	svcDuplicateHandle
+0x14000f0c	function	memcpy
+0x14000f80	function	loader_RegisterProgram
+0x1400109c	function
+0x140010ac	function
+0x140010b0	function	file_read
+0x1400113c	function	open_file_directly
+0x14001280	function
+0x14001294	function	file_close_and_free
+0x14001304	function	file_read_impl
+0x14001344	function	file_close_handle
+0x1400136c	function	FS_OpenFileDirectly
+0x1400169c	function	strcmp
+0x14001758	function	pool_init
+0x140017f8	function	random_below
+0x1400187c	function	SRV_GetServiceHandle
+0x140018b0	function	file_close
+0x140018c8	function	srv_is_initialized
+0x140018e4	function	FSREG_CheckHostLoadId
+0x1400194c	function	static_guard_acquire
+0x14001960	function	svcControlMemory
+0x14001984	function	init_runtime_and_srv
+0x14001994	function	srv_init
+0x14001ab8	function	construct_array
+0x14001adc	function	strlen
+0x14001b40	function	unsigned_divide
+0x14001b70	function	get_program_info
+0x14001be8	function	svcArbitrateAddress
+0x14001c54	function	file_get_handle
+0x14001c7c	function	copy_8_bytes
+0x14001c90	function	panic_on_failure
+0x14001d08	function	break_process
+0x14001d5c	function	svcExitProcess
+0x14001d64	function	lock_init
+0x14001d80	function	lock_enter
+0x14001db8	function	lock_leave
+0x14001dd8	function	FSREG_LoadProgram
+0x14001e28	function	loader_UnregisterProgram
+0x14001e84	function	FSREG_UnloadProgram
+0x14001eb4	function	FSREG_GetProgramInfo
+0x14001f14	function	FSFILE_Read
+0x14001f6c	function	FSFILE_Close
+0x14001f98	function	FSFILE_GetSize
+0x14001fd0	function	file_read_all
+0x14002058	function
+0x14002118	function
+0x1400211c	function
+0x140021ac	function
+0x140022b8	function	loader_LoadProcess
+0x1400276c	function	free_code_memory
+0x14002798	function	allocate_code_memory
+0x14002818	function	commit_code_pages
+0x14002a70	function	load_code_file
+0x14002c5c	function	loader_handle_command
+0x14002e48	function	PXIPM_RegisterProgram
+0x14002eb0	function	PXIPM_UnregisterProgram
+0x14002ee0	function	PXIPM_GetProgramInfo
+0x14002f20	function
+0x14002f24	function
+0x14002f28	function	random_init
+0x14002f64	function	random_next_below
+0x14002fac	function
+0x14002fb8	function
+0x14002fbc	function
+0x14002fc0	function	file_get_size_impl
+0x14002fe0	function	file_get_size
+0x14003040	function
+0x14003514	function
+0x14003548	function
+0x1400354c	function
+0x14003550	function
+0x14003588	function
+0x140035c0	function	init_memory_pools
+0x14003778	function
+0x1400378c	function	on_terminate_notification
+0x140037a0	function	pool_alloc
+0x14003804	function
+0x14003824	function	invoke_notification_callback

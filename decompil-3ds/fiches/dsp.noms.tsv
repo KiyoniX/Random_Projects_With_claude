@@ -1,0 +1,233 @@
+0x100024	function	clear_bss
+0x100048	function
+0x100110	function	memcmp
+0x100184	label	run_static_initializers
+0x1001a8	function	dsp_main
+0x1006dc	function	svcAcceptSession
+0x100700	function	dsp_initialize
+0x1007a0	function	dsp_finalize
+0x100868	function	ptm_close
+0x1008bc	function	ptm_open
+0x100924	function	srv_enable_notification
+0x100958	function	handle_srv_notification
+0x100a14	function	SRV_RegisterService
+0x100a70	function	SRV_UnregisterService
+0x100ac4	function	srv_exit
+0x100bf0	function	strcmp
+0x100cac	function	create_lock_arbiter
+0x100ce8	function	is_new_3ds
+0x100d44	function	init_runtime
+0x100de4	function	save_main_thread_tls
+0x100df8	function	interrupt_manager_finalize
+0x100e04	function	interrupt_manager_init
+0x100e68	function	SRV_RegisterClient
+0x100ea4	function	SRV_EnableNotification
+0x100ee0	function	SRV_ReceiveNotification
+0x100f1c	function	cdc_close
+0x100f24	function	cdc_open
+0x100f50	function	mem_block_shadow_init
+0x101070	function	dsp_hw_power_init
+0x1010f0	function	svcCreateAddressArbiter
+0x101108	function	svcQueryMemory
+0x10117c	function	dsp_irq_dispatch
+0x101208	function	ptm_check_new_3ds_once
+0x101268	function	SRV_GetServiceHandle_send
+0x1012c4	function	interrupt_manager_start
+0x101480	function	interrupt_manager_stop
+0x1015d4	function
+0x1015e4	function
+0x1015f0	function
+0x1015f4	function	svcCreateThread
+0x101618	function	svcGetProcessInfo
+0x101634	function	tls_clear_slots
+0x1016e4	function	PTMSYSM_CheckNew3DS
+0x101724	function
+0x101730	function	interrupt_thread_main
+0x101888	function	svcBindInterrupt
+0x101898	function	thread_trampoline
+0x1018e4	function	svcGetProcessId
+0x1018fc	function	svcUnbindInterrupt
+0x101978	function	wait_on_handle_pointers
+0x101adc	function	ERRF_Throw
+0x101b48	function	svcSleepThread
+0x102150	function	sha256_transform
+0x102288	function	memcpy_unaligned
+0x1029ac	function	svcDuplicateHandle
+0x1029c4	function	svcReplyAndReceive
+0x1029dc	function	strcpy
+0x102a44	function	memclr_bytes
+0x102a84	function
+0x102aa0	function
+0x102abc	function	light_event_signal
+0x102bb4	function
+0x102bb8	function
+0x102bbc	function
+0x102cc0	function
+0x102cf4	function
+0x102d34	function	verify_rsa_sha256_signature
+0x102d8c	function	ps_close
+0x102db8	function	ps_open
+0x102e08	function	PS_VerifyRsaSha256
+0x102f24	function	dsp_mem_write_byte
+0x10303c	function	dsp_boot
+0x103148	function	linear_vaddr_to_paddr
+0x1031a4	function	svcGetThreadId
+0x1031bc	function	pipe_commit_position
+0x10321c	function	dsp_mem_write_bytes
+0x10331c	function	dsp_mem_read_bytes
+0x1034f4	function	memclr
+0x103548	function	component_check_segment_range
+0x1035a4	function	mem_region_base
+0x1035b4	function	mem_block_set_owner
+0x10366c	function	pipe_get_readable_size
+0x103698	function	pipe_read
+0x1037f0	function	pipe_load
+0x10388c	function	dsp_MaskSemaphore
+0x1038a0	function	dsp_ClearSemaphore
+0x1038b4	function	dsp_GetSemaphore
+0x1038d4	function	dsp_RecvFifoEx
+0x103a50	function	dsp_SendFifoEx
+0x103b4c	function	dsp_RecvDataIsReady
+0x103c0c	function	memcpy
+0x103c9c	function	destroy_array
+0x103cc0	function	memcpy_words
+0x103d34	function	svcArbitrateAddress
+0x103d4c	function	dsp_SetSemaphore
+0x103d6c	function	light_event_wait
+0x103e34	function	light_event_init
+0x103e68	function	delay_loop
+0x103e78	function	svcCreateEvent
+0x103e90	function	throw_error_typed
+0x103ec8	function	dsp_hw_power_down
+0x103ef0	function	PDND_Control
+0x103f40	function	pdn_close
+0x10406c	function	dsp_hw_assert_reset
+0x1040a8	function	dsp_RecvData
+0x1040e0	function	dsp_SendData
+0x10410c	function	process_set_irq_hook
+0x1041c0	function	break_process
+0x104214	function	copy_service_name
+0x104228	function	svcConnectToPort
+0x104240	function	srv_get_service_handle_by_name
+0x10426c	function	SRV_GetServiceHandle
+0x1042a0	function	mutex_unlock
+0x1042c0	function	CDCDSP_cmd0008
+0x1042f8	function	CDCDSP_cmd0007
+0x104330	function	component_unload
+0x1043d0	function	mutex_lock
+0x104408	function	mutex_init
+0x104424	function	create_thread
+0x104514	function	thread_join
+0x10454c	function	panic_on_failure
+0x1045bc	function	svcWaitSynchronizationN
+0x1045e0	function	SRV_Subscribe
+0x104618	function	srv_is_initialized
+0x104634	function	strlen
+0x104694	function	notification_handler_register
+0x104724	function	panic_on_error
+0x10476c	function	init_runtime_and_srv
+0x10477c	function	srv_init
+0x1048a0	function	construct_array
+0x1048c4	function	svcExitProcess
+0x1048cc	function	CFG_GetConfigInfoBlk8
+0x10491c	function	cfg_init
+0x1049d0	function	cfg_exit
+0x104a4c	function	dsp_session_receive_loop
+0x104b28	function	dsp_handle_command
+0x105528	function	component_verify_and_copy
+0x105b24	function	set_semaphore_mask
+0x105b34	function
+0x105b68	function	pipe_signal_client_event
+0x105bb8	function	interrupt_event_register
+0x105ca0	function	on_reply0_interrupt
+0x105ce4	function	on_reply1_interrupt
+0x105d28	function	get_semaphore_event_handle
+0x105dc0	function	dsp_LoadComponent
+0x105ed8	function	pipe_write
+0x106038	function	dsp_FlushDataCache
+0x106094	function	dsp_SetIirFilterEQ
+0x1060dc	function	pipe_set_callback
+0x1060f4	function	dsp_UnloadComponent
+0x106160	function	dsp_ReadMultiEx_SPI2
+0x1061b0	function	dsp_SetIirFilterI2S1
+0x1061f0	function	dsp_SetIirFilterI2S2
+0x106230	function	dsp_SetSemaphoreMask
+0x106244	function	dsp_ForceHeadphoneOut
+0x1062ac	function	cfg_read_block_70000
+0x1062d8	function	dsp_WriteMultiEx_SPI2
+0x106328	function	component_load_and_boot
+0x106518	function	dsp_GetHeadphoneStatus
+0x106550	function	dsp_suspend_for_sleep
+0x1065bc	function	dsp_InvalidateDCache
+0x106648	function	pipe_interrupt_hook
+0x106794	function	dsp_WriteProcessPipe
+0x1067c8	function	pipe0_drain_callback
+0x10685c	function	reply_irq_set_hook
+0x1068b4	function	dsp_GetPhysicalAddress
+0x1068f4	function	process_context_init
+0x106984	function	dsp_GetSemaphoreEventHandle
+0x106998	function	dsp_RegisterInterruptEvents
+0x1069ec	function	dsp_ConvertProcessAddressFromDspDram
+0x106a4c	function	dsp_session_close
+0x106aec	function	pipes_init
+0x106b74	function	ptm_notify_sleep_preparation_complete
+0x106b7c	function	PTMSYSM_NotifySleepPreparationComplete
+0x106bbc	function	on_terminate_notification
+0x106bc8	function
+0x106bcc	function	CDCDSP_cmd0003
+0x106c18	function	CDCDSP_cmd0004
+0x106c80	function	CDCDSP_cmd0001
+0x106cc0	function	CDCDSP_cmd0002
+0x106d00	function	CDCDSP_cmd0005
+0x106d5c	function	CDCDSP_cmd0006
+0x106d90	function	sha256_init
+0x106dfc	function	sha256_final
+0x106e70	function	sha256_digest
+0x106f58	function	sha256_pad
+0x106fdc	function	sha256_update
+0x107078	function	rsa_key_set
+0x107130	function	rsa_key_clear
+0x10715c	function	rsa_key_construct
+0x107190	function
+0x107204	function
+0x107208	function	program_block_set_enable
+0x107230	function	data_block_set_enable
+0x107258	function
+0x10725c	function	program_block_set_owner
+0x107278	function	data_block_set_owner
+0x107294	function	dsp_hw_release_reset
+0x107320	function	dsp_SendDataIsEmpty
+0x107344	function	dsp_CheckSemaphoreRequest
+0x10735c	function	dsp_hw_power_up_and_reset
+0x1073c8	function	mem_region0_base
+0x1073d4	function	program_mem_base
+0x1073e0	function	data_mem_base
+0x1073ec	function	on_sleep_wake_notification
+0x1074b4	function
+0x1074b8	function
+0x1074bc	function
+0x1074c0	function
+0x1074d4	function
+0x107524	function
+0x10759c	function
+0x107664	function
+0x10768c	function
+0x1076ec	function
+0x107700	function
+0x107734	function
+0x107748	function
+0x10775c	function
+0x107770	function
+0x107774	function
+0x107778	function
+0x1077a8	function
+0x1077e0	function
+0x1077f8	function
+0x10780c	function
+0x107844	function
+0x10787c	function
+0x107890	function
+0x1078a4	function
+0x10794c	function
+0x107960	function
+0x107974	function	dsp_session_thread_main

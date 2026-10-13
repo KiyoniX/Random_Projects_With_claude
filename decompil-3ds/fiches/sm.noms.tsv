@@ -39,9 +39,17 @@
 0x1035d0	function	srv_ReceiveNotification
 0x1036a8	function	srv_PublishAndGetSubscriber
 0x1037c8	function	srv_Subscribe
+0x1038e0	function
 0x103930	function	srvpm_handle_command
 0x103a44	function	srv_handle_command
+0x103e44	function
 0x103e50	function
+0x103ec4	function
+0x103ef8	function
+0x103efc	function
+0x103f00	function
+0x103f38	function
+0x103fd4	function
 0x104168	function
 0x104188	function
 0x10418c	function

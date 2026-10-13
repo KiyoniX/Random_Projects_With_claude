@@ -352,7 +352,7 @@ Les verrous du module (`lock_enter` à `0x105430`, `lock_leave` à `0x10533c`) r
 - Les quatre sortes de fils : `svcCreateThread` n'est appelé qu'à un endroit, et les fonctions au-dessus n'ont en tout que quatre appels.
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
-- Le sens des notifications : `0x104` et `0x105` pour la veille et le réveil, `0x213` et `0x214` pour le couvercle. Le code montre seulement ce qu'il en fait ; ces numéros ne sont pas dans la Carte des services.
+- Le sens des notifications : `0x104` et `0x105` pour la veille et le réveil, `0x213` et `0x214` pour le couvercle. Depuis, la fiche de `ptm` confirme les deux premières (c'est `ptm` qui les publie, à l'entrée en veille et au réveil, et qui attend la réponse de chaque abonné) et le sens des deux autres (ouvert pour `0x213`, fermé pour `0x214`) ; ce n'est pas `ptm` qui publie ces deux-là, et la fiche de `ns` montre `ns` publier `0x214`. Le code montre seulement ce qu'il en fait ; ces numéros ne sont pas dans la Carte des services.
 - Le contenu des en-têtes de section (heure, numéro d'entrée) : Ghidra ne montre pas la valeur que rend `GetSystemTick`, seulement que l'appel est juste avant l'écriture.
 - Le nombre flottant de la section des boutons vu comme la position du curseur 3D.
 - Ce que font les neuf commandes sans nom, et la commande 24 de `hid:NFC`.
