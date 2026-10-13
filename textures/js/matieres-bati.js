@@ -115,13 +115,14 @@
       var dalle = new Int32Array(G * G).fill(-1), cel = new Int32Array(n * n), poids = new Float32Array(n * n), r = c.alea(1), f = Math.max(3, Math.round(6 * c.e));
       var x, y, i, gi, gj, a, b, d, sid, bis, t, m, k, px, py, an, pas, voisins;
       function g(ci, cj) { return mod(cj, G) * G + mod(ci, G); }
-      // Assemblage : certaines cases se soudent en dalles de 2 × 1, 1 × 2 ou 2 × 2.
+      // Assemblage : certaines cases se soudent en dalles de 2 × 1, 1 × 2 ou 2 × 2. Sur une grille de 2 × 2
+      // (petites tuiles), seules les soudures en long restent possibles : une dalle de 2 × 2 avalerait toute la tuile.
       for (gj = 0; gj < G; gj++) {
         for (gi = 0; gi < G; gi++) {
           if (dalle[g(gi, gj)] >= 0) continue;
           sid = gj * G + gi; dalle[sid] = sid; a = r(); b = r();
-          if (G < 4 || a > p.assemblage * 0.75) continue;
-          if (b < 0.3 && dalle[g(gi + 1, gj)] < 0 && dalle[g(gi, gj + 1)] < 0 && dalle[g(gi + 1, gj + 1)] < 0) dalle[g(gi + 1, gj)] = dalle[g(gi, gj + 1)] = dalle[g(gi + 1, gj + 1)] = sid;
+          if (G < 2 || a > p.assemblage * 0.75) continue;
+          if (b < 0.3 && G >= 4 && dalle[g(gi + 1, gj)] < 0 && dalle[g(gi, gj + 1)] < 0 && dalle[g(gi + 1, gj + 1)] < 0) dalle[g(gi + 1, gj)] = dalle[g(gi, gj + 1)] = dalle[g(gi + 1, gj + 1)] = sid;
           else if (b < 0.65 && dalle[g(gi + 1, gj)] < 0) dalle[g(gi + 1, gj)] = sid;
           else if (dalle[g(gi, gj + 1)] < 0) dalle[g(gi, gj + 1)] = sid;
         }
