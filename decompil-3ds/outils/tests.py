@@ -31,3 +31,9 @@ if __name__ == '__main__':
     banc_tests = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(banc_tests)
     banc_tests.test()
+    # La recompilation (recomp/tests.py) : instructions fabriquées, natif comparé à unicorn s'il y a clang.
+    spec = importlib.util.spec_from_file_location('recomp_tests', os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'recomp', 'tests.py'))
+    recomp_tests = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(recomp_tests)
+    recomp_tests.test()

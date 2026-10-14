@@ -3,7 +3,7 @@
   "objectif": "Faire tourner Pokémon X nativement sur PC, sans émulateur.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-10-14",
-  "prochaine_action": "Le jeu tourne jusqu'au terrain au banc d'essai, sans image. Suite au choix : exécuter les listes PICA et les transferts vers l'écran pour voir la première image (banc/README.md, « L'image ») ; ou commencer la recompilation de l'ARM pour remplacer unicorn ; ou commit du jalon.",
+  "prochaine_action": "Le jeu montre l'écran-titre et le menu sur PC, et son code se recompile en natif sans divergence connue. Suite : brancher le natif dans le banc derrière cpu.py (NativeCpu, plan dans recomp/README.md : d'abord côte à côte avec unicorn jusqu'à P1, puis hybride pour les .cro) ; et l'éclairage par fragment du PICA pour voir le terrain.",
   "fonctions": {
     "total": null,
     "identifiees": 0,
@@ -211,7 +211,7 @@
         },
         {
           "t": "Choisir la voie : recompilation statique de l'ARM11 ou décompilation",
-          "fait": false
+          "fait": true
         },
         {
           "t": "Fichiers et manette",
@@ -227,7 +227,7 @@
         },
         {
           "t": "Premier écran du jeu affiché sur PC",
-          "fait": false
+          "fait": true
         }
       ]
     }
@@ -491,6 +491,14 @@
     {
       "date": "2026-10-14",
       "texte": "Premier démarrage de Pokémon X sur PC, au banc d'essai (banc/run.py) : le processeur est émulé par unicorn, échafaudage isolé dans cpu_unicorn.py ; noyau (41 appels système, fils, ordonnanceur, horloge propre), IPC et services (srv:, APT:U, fs:USER, gsp::Gpu, dsp::DSP, hid, cfg, ptm, ldr:ro par outils/cro_loader.py) sont écrits en Python d'après les fiches. En 25 s de console simulée (180 s de PC) : P1 à 0,8 ms, P2 à 1,0 ms, P3 à 86 ms (DllLangSelect), P4 à 102 ms ; puis DllTitle, DllBackGround, DllSequence, DllStartMenu à 3,3 s et DllField à 5,6 s, avec la vraie sauvegarde lue. 10 792 listes PICA envoyées et comptées, pas dessinées : aucune image encore. Seules erreurs : l'archive 0x2345678A (contenu d'un autre titre) et les données supplémentaires 0x6, que le jeu tolère. Aucun écart relevé avec les fiches. Sorties dans local/analyse/banc/ ; le banc est lancé par outils/tests.py."
+    },
+    {
+      "date": "2026-10-14",
+      "texte": "Première image : le banc dessine (banc/pica/, numpy) avec python banc/run.py --dessiner. Transferts vers l'écran, shaders de sommets, 14 formats de texture dont ETC1, les six étages TEV, profondeur, mélange, et y2r:u pour la vidéo du titre. On voit l'écran-titre (« APPUYEZ SUR START ») puis le menu « Continuer » avec la vraie sauvegarde (Kris, Palais Chaydeuvre, 1 badge, Pokédex 47, 2:31). Manquent l'éclairage par fragment (nécessaire au terrain), le brouillard, les mipmaps, le pochoir, les shaders de géométrie ; flottants en float32 au lieu de float24. Images dans local/analyse/banc/images/."
+    },
+    {
+      "date": "2026-10-14",
+      "texte": "La voie est choisie : recompilation statique de l'ARM11 vers C (recomp/, avec capstone), compilée par clang de llvm-mingw 20261006, portable, dans local/outils/llvm-mingw/. 23 877 des 23 882 fonctions de code.bin traduites entièrement (ARM 99,9994 %, Thumb 100 %, VFP compris) ; le jeu entier fait 61 Mo de C et une DLL de 77 Mo, dans local/recomp/ seulement. Comparées à unicorn sur des états tirés au hasard : 6 145 fonctions identiques (4 329 feuilles, 1 816 avec tout leur arbre d'appels), 0 divergence ; les autres ne sont pas encore exercées. 24 à 41 fois plus rapide qu'unicorn. Pas encore branché dans le banc."
     }
   ],
   "dump": {

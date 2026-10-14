@@ -8,6 +8,9 @@
         --appels-systeme-rares  ne pas écrire au journal les appels système courants qui réussissent tout de suite
         --2a07                  rendre 0x2A07 au premier RegisterInterruptRelayQueue (contrat de gsp, partie 2)
         --sortie DOSSIER        écrire ailleurs que dans local/analyse/banc/
+        --dessiner              exécuter les listes de commandes PICA (voir banc/pica/) ; plus lent
+        --dessiner-de S         ne dessiner qu'à partir de la seconde S du banc ; --dessiner-jusqu-a S : jusqu'à S
+        --images-chaque S       une image PNG toutes les S secondes du banc dans la fenêtre (local/analyse/banc/images/)
         --appuis LISTE          des boutons à tenir, en secondes du banc : « 12:A,14:START,15.5:A+UP »
                                 (chaque appui dure 0,25 s ; boutons A B X Y L R START SELECT UP DOWN LEFT RIGHT)
 
@@ -40,40 +43,59 @@ def write_png(path, width, height, rows):
     open(path, 'wb').write(png)
 
 
-def dump_screens(bench):
+def write_png_array(path, image):
+    """image : tableau numpy (hauteur, largeur, 3) uint8."""
+    write_png(path, image.shape[1], image.shape[0], [image[y].tobytes() for y in range(image.shape[0])])
+
+
+def np_rgb(pixels):
+    import numpy as np
+    return np.ascontiguousarray(pixels[..., :3])
+
+
+def screen_image(bench, screen):
     """Ce qu'un écran montrerait : la dernière image annoncée par le jeu, lue telle quelle en mémoire vidéo.
 
     Les tampons d'écran de la 3DS sont rangés tournés d'un quart de tour (une « ligne » mémoire est une colonne de
-    240 points, de bas en haut). Seuls RGB8 et RGBA8 sont décodés. Le banc ne dessine rien : ce qui sort ici est ce
-    que les remplissages et les copies ont laissé, pas le rendu du jeu.
+    240 points, de bas en haut). Rend (image RGB, adresse, nom du format) ou None.
     """
+    import numpy as np
+    from pica import formats
+    width = 400 if screen == 0 else 320
+    frames = bench.gsp.frames[screen]
+    if not frames:
+        return None
+    when, address, fmt, stride = frames[-1]
+    if bench.gsp.gpu is not None and screen in bench.gsp.latest_transfer:
+        # en mode dessin, des images sautées laissent l'un des deux tampons du jeu périmé : on prend le dernier transfert fait
+        address, fmt, stride = bench.gsp.latest_transfer[screen]
+    name = formats.GX_FORMATS.get(fmt & 7)
+    if name is None:
+        return None
+    unit = formats.BYTES_PER_PIXEL[name]
+    try:
+        data = bench.memory.read(address, stride * width)
+    except Exception:
+        return None
+    columns = np.frombuffer(data, dtype=np.uint8).reshape(width, stride)[:, :240 * unit].reshape(width, 240, unit)
+    rgba = formats.decode_pixels(name, columns)                 # [x][r], r = 0 en bas
+    image = rgba.transpose(1, 0, 2)[::-1, :, :3]
+    return np.ascontiguousarray(image), address, name
+
+
+def dump_screens(bench, folder=None, prefix=''):
     out = []
-    for screen, width in ((0, 400), (1, 320)):
-        frames = bench.gsp.frames[screen]
-        if not frames:
+    for screen in (0, 1):
+        found = screen_image(bench, screen)
+        if found is None:
             continue
-        when, address, fmt, stride = frames[-1]
-        kind = fmt & 7
-        if kind not in (0, 1):
-            continue
-        size = 3 if kind == 1 else 4
-        try:
-            data = bench.memory.read(address, stride * width)
-        except Exception:
-            continue
-        rows = []
-        for y in range(240):
-            row = bytearray()
-            for x in range(width):
-                at = x * stride + (239 - y) * size
-                pixel = data[at:at + size]
-                row += bytes((pixel[size - 1], pixel[size - 2], pixel[size - 3]))
-            rows.append(bytes(row))
-        name = os.path.join(bench.paths['out'], 'ecran-%s.png' % ('haut' if screen == 0 else 'bas'))
-        write_png(name, width, 240, rows)
-        distinct = len({bytes(r) for r in rows})
-        out.append('%s : image de %#x (%s), %d lignes différentes' % (os.path.basename(name), address,
-                                                                       'RGB8' if kind == 1 else 'RGBA8', distinct))
+        image, address, name = found
+        label = 'haut' if screen == 0 else 'bas'
+        path = os.path.join(folder or bench.paths['out'], '%secran-%s.png' % (prefix, label) if folder is None
+                            else '%s%s.png' % (prefix, label))
+        write_png_array(path, image)
+        distinct = len({image[y].tobytes() for y in range(image.shape[0])})
+        out.append('%s : image de %#x (%s), %d lignes différentes' % (os.path.basename(path), address, name, distinct))
     return out
 
 
@@ -156,6 +178,16 @@ def write_summary(bench, reason, path):
                 'haut' if screen == 0 else 'bas', len(frames), address, fmt, stride))
     for text in getattr(bench, 'screen_dumps', []):
         lines.append('- ' + text)
+    if g.gpu is not None:
+        lines.append('- processeur graphique (pica/) : %s ; %.1f s de PC dans les listes' % (
+            ', '.join('%s %d' % (k, v) for k, v in sorted(g.gpu.stats.items())) or 'rien', g.draw_seconds))
+        for text, n in sorted(g.gpu.notes.items()):
+            if not text.startswith(('trace', '_')):
+                lines.append('- pica : %s (%d fois)' % (text, n))
+    y2r = bench.services.get('y2r:u')
+    if y2r is not None and getattr(y2r, 'conversions', 0):
+        lines.append('- y2r:u : %d conversions YUV vers RGB%s' % (y2r.conversions, ' ; problèmes : ' + ', '.join(
+            sorted(set(y2r.problems))) if y2r.problems else ''))
     lines.append('')
     lines.append('## Son')
     lines.append('')
@@ -208,10 +240,44 @@ def main(argv=None):
     parser.add_argument('--2a07', dest='first', action='store_true')
     parser.add_argument('--appuis', default='')
     parser.add_argument('--sortie', default='')
+    parser.add_argument('--dessiner', action='store_true',
+                        help="exécuter les listes de commandes PICA (rastérisation) ; l'état est toujours suivi")
+    parser.add_argument('--dessiner-de', type=float, default=None, metavar='S',
+                        help="ne dessiner qu'à partir de cette seconde du banc (implique --dessiner)")
+    parser.add_argument('--dessiner-jusqu-a', type=float, default=None, metavar='S',
+                        help='ne plus dessiner à partir de cette seconde du banc')
+    parser.add_argument('--dessiner-un-sur', type=int, default=1, metavar='N',
+                        help="ne dessiner qu'une image sur N (les autres ne sont ni dessinées ni transférées à l'écran)")
+    parser.add_argument('--images-chaque', type=float, default=1.0, metavar='S',
+                        help='une image PNG toutes les S secondes du banc dans la fenêtre de dessin (défaut 1)')
     args = parser.parse_args(argv)
     options = {'seconds': args.secondes, 'turns': args.tours, 'wall_seconds': args.minutes_pc * 60,
                'log_all_svc': not args.appels_systeme_rares, 'gsp_first_result': 0x2A07 if args.first else 0,
                'presses': parse_presses(args.appuis)}
+    if args.dessiner or args.dessiner_de is not None or args.dessiner_jusqu_a is not None:
+        options['draw'] = True
+        options['draw_from'] = args.dessiner_de or 0.0
+        options['draw_until'] = args.dessiner_jusqu_a if args.dessiner_jusqu_a is not None else float('inf')
+        options['snapshot_every'] = args.images_chaque
+        options['draw_every'] = args.dessiner_un_sur
+        counter = [0]
+        folder = os.path.join(args.sortie or os.path.join(os.path.dirname(HERE), 'local', 'analyse', 'banc'), 'images')
+        if os.path.isdir(folder):
+            for old in os.listdir(folder):
+                if old.endswith('.png'):
+                    os.remove(os.path.join(folder, old))
+
+        def snapshot(bench):
+            folder = os.path.join(bench.paths['out'], 'images')
+            os.makedirs(folder, exist_ok=True)
+            counter[0] += 1
+            prefix = '%03d-%06.2fs-' % (counter[0], bench.kernel.now / 1e9)
+            dump_screens(bench, folder, prefix)
+            if os.environ.get('PICA_CIBLES'):
+                for surface in bench.gsp.gpu.color_surfaces.values():
+                    write_png_array(os.path.join(folder, '%scible-%x.png' % (prefix, surface.address)),
+                                    np_rgb(surface.pixels))
+        options['snapshot'] = snapshot
     bench = Bench(UnicornCpu, paths={'out': args.sortie} if args.sortie else None, options=options)
     reason = bench.run()
     bench.journal.close()
@@ -221,6 +287,10 @@ def main(argv=None):
     print('Palier atteint : %s' % bench.highest_milestone())
     print('Arrêt : %s' % reason)
     print('Temps du banc %.3f s, temps du PC %.1f s' % (bench.kernel.now / 1e9, bench.elapsed))
+    if bench.gsp.gpu is not None:
+        print('Temps du PC passé dans les listes PICA : %.1f s ; %s' % (bench.gsp.draw_seconds, dict(bench.gsp.gpu.stats)))
+        for text, n in bench.gsp.gpu.notes.items():
+            print('  PICA : %s (%d)' % (text, n))
     print('Journal : %s' % bench.journal.path)
     print('Résumé : %s' % summary)
 

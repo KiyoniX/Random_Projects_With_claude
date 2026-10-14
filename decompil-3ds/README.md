@@ -39,7 +39,8 @@ Trois projets du dépôt accompagnent le carnet, dans l'étagère « La 3DS ouve
 | `outils/lz11.py` | Décompresse le LZ10 et le LZ11 de Nintendo, et compresse en LZ11. |
 | `outils/texte.py` | Décode et encode les fichiers de texte de X/Y (clé tournante par ligne, variables). |
 | `outils/tests.py` | Lance les tests de tous les lecteurs. |
-| `banc/run.py` | Le banc d'essai : fait démarrer Pokémon X sur PC (processeur émulé pour l'instant, couche système écrite d'après les fiches), et écrit le journal de chaque appel dans `local/analyse/banc/`. Mode d'emploi dans `banc/README.md`. |
+| `banc/run.py` | Le banc d'essai : fait démarrer Pokémon X sur PC (processeur émulé pour l'instant, couche système écrite d'après les fiches), et écrit le journal de chaque appel dans `local/analyse/banc/`. Mode d'emploi dans `banc/README.md`. Avec `--dessiner`, il dessine aussi les images du jeu dans `local/analyse/banc/images/`. |
+| `recomp/recomp.py` | Traduit le code ARM et Thumb de `code.bin` en C, que clang compile pour le PC ; `recomp/validate.py` compare chaque fonction à unicorn. Le C produit reste dans `local/recomp/`. Mode d'emploi dans `recomp/README.md`. |
 | `outils/verifier.py` | Mesure ce qui est installé et fait, met `etat.json` à jour, écrit `etat.js` pour la page. |
 | `outils/REA.md` | Brancher REA à Claude Code, lui désigner notre Ghidra, ce qu'il sait faire et ce qui bloque sous Windows. |
 | `outils/GHIDRA.md` | Ghidra pas à pas pour la 3DS : import, scripts, ligne de commande, et le débogueur GDB de Rosalina sur la console. |
@@ -55,6 +56,7 @@ decompil-3ds/
   etat.js                         écrit par verifier.py, à ne pas éditer
   outils/                         les scripts Python, et les procédures REA.md et GHIDRA.md
   banc/                           le banc d'essai : le jeu qui démarre sur PC (voir banc/README.md)
+  recomp/                         la recompilation du code ARM du jeu en C (voir recomp/README.md)
   exercices/                      les homebrews à vérité connue, avec leur Makefile
   local/                          jamais versionné
     dump/                         le .cxi de ton jeu installé

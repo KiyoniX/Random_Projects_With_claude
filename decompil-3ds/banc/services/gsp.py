@@ -7,15 +7,18 @@ Réel :
   (6 transfert mémoire, 5 liste de commandes, 0 ou 1 remplissage — une seule —, 4 transfert ou copie, rien pour 5) ;
 - les fins d'image : toutes les 1/60 s du banc, les interruptions 2 et 3 (écran du haut, du bas), après avoir pris
   la description d'image que le jeu a annoncée.
-Simplifié : rien n'est dessiné. Les remplissages, transferts mémoire et copies de texture sont faits octet pour
-octet ; les listes de commandes PICA sont lues et comptées (nombre, taille, registres visés, ordres de dessin),
-pas exécutées ; les transferts vers l'écran sont seulement notés.
+Les remplissages, transferts mémoire, copies de texture et transferts vers l'écran (tuiles, formats, réduction,
+retournement) sont faits pour de bon (`pica/transfer.py`). Les listes de commandes PICA sont toujours lues et
+comptées (nombre, taille, registres visés, ordres de dessin). Avec l'option `draw` (`run.py --dessiner`), elles sont
+aussi exécutées par `pica/` : l'état des registres est toujours suivi, les ordres de dessin ne sont rastérisés que
+dans la fenêtre de temps demandée. Sans cette option, rien n'est dessiné.
 """
 import collections
 import struct
 
 from ipc import Reply, Service
 from kernel import SharedMemory
+from pica import transfer
 
 VBLANK_NS = 16_715_000
 RELAY, QUEUE, FRAMEBUFFERS = 0x000, 0x800, 0x200
@@ -51,6 +54,24 @@ class Gsp(Service):
         self.black = None
         self.hw_writes = []
         self.unknown_ops = []
+        self.gpu = None
+        self.draw_from = bench.options.get('draw_from', 0.0)
+        self.draw_until = bench.options.get('draw_until', float('inf'))
+        self.snapshot_every = bench.options.get('snapshot_every', 1.0)
+        self.next_snapshot = self.draw_from
+        self.draw_every = max(1, bench.options.get('draw_every', 1))
+        self.transfers = 0
+        self.drawn_transfers = 0
+        self.latest_transfer = {}               # écran -> (adresse, format, octets par colonne) du dernier transfert fait
+        self.snapshot_transfers = 0
+        self.draw_seconds = 0.0
+        if bench.options.get('draw'):
+            from pica.gpu import Gpu
+            self.gpu = Gpu(bench.memory)
+
+    def drawing_now(self):
+        now = self.kernel.now / 1e9
+        return self.draw_from <= now < self.draw_until and (self.transfers // 2) % self.draw_every == 0
 
     def ok(self, req):
         return Reply(0)
@@ -141,6 +162,11 @@ class Gsp(Service):
         self.stats[name] += 1
         memory = self.memory
         journal = self.bench.journal
+        if self.gpu is not None and command in (0, 2, 3, 4):
+            if command == 3:
+                self.gpu.flush()                 # le transfert lit le tampon de rendu
+            else:
+                self.gpu.invalidate()            # ces commandes réécrivent la mémoire sous les recopies du PC
         if command == 0:
             source, destination, size = words[1:4]
             try:
@@ -153,6 +179,8 @@ class Gsp(Service):
             address, size = words[1], words[2]
             summary = self.read_command_list(address, size)
             journal.write(self.kernel, 'gsp file : ProcessCommandList %#x, %#x octets : %s' % (address, size, summary))
+            if self.gpu is not None:
+                self.run_gpu_list(address, size)
             self.deposit(5)
             self.bench.on_command_list(address, size)
         elif command == 2:
@@ -173,26 +201,52 @@ class Gsp(Service):
             self.deposit(0 if words[1] else 1)
         elif command == 3:
             source, destination, in_dim, out_dim, flags = words[1:6]
-            journal.write(self.kernel, 'gsp file : DisplayTransfer %#x (%dx%d, %s) -> %#x (%dx%d, %s), drapeaux %#x '
-                          '(pas fait par le banc)' % (
-                              source, in_dim & 0xFFFF, in_dim >> 16, FORMATS.get(flags >> 8 & 7, '?'), destination,
-                              out_dim & 0xFFFF, out_dim >> 16, FORMATS.get(flags >> 12 & 7, '?'), flags))
+            problem = ''
+            skipped = self.gpu is not None and not self.drawing_now()
+            self.transfers += 1
+            try:
+                if skipped:
+                    problem = "sauté : cette image n'est pas dessinée"
+                else:
+                    problem = transfer.display_transfer(memory, source, destination, in_dim, out_dim, flags)
+                    self.drawn_transfers += 1
+                    if not problem and out_dim & 0xFFFF == 240:
+                        from pica import formats as _formats
+                        unit = _formats.BYTES_PER_PIXEL[_formats.GX_FORMATS[flags >> 12 & 7]]
+                        self.latest_transfer[0 if out_dim >> 16 == 400 else 1] = (destination, flags >> 12 & 7, 240 * unit)
+            except Exception as exc:
+                problem = 'refusé (%s)' % exc
+            self.stats['transferts vers écran faits'] += 0 if problem else 1
+            journal.write(self.kernel, 'gsp file : DisplayTransfer %#x (%dx%d, %s) -> %#x (%dx%d, %s), drapeaux %#x%s' % (
+                source, in_dim & 0xFFFF, in_dim >> 16, FORMATS.get(flags >> 8 & 7, '?'), destination,
+                out_dim & 0xFFFF, out_dim >> 16, FORMATS.get(flags >> 12 & 7, '?'), flags,
+                ' : ' + problem if problem else ''))
             self.deposit(4)
         elif command == 4:
-            source, destination, size, in_gap, out_gap, flags = words[1:7]
-            if in_gap == 0 and out_gap == 0:
-                try:
-                    memory.write(destination, memory.read(source, size))
-                except Exception:
-                    pass
+            source, destination, size, in_dim, out_dim, flags = words[1:7]
+            try:
+                transfer.texture_copy(memory, source, destination, size, in_dim, out_dim, flags)
+            except Exception as exc:
+                journal.write(self.kernel, 'gsp : copie de texture refusée (%s)' % exc)
             journal.write(self.kernel, 'gsp file : TextureCopy %#x -> %#x, %#x octets, lignes %#x/%#x' % (
-                source, destination, size, in_gap, out_gap))
+                source, destination, size, in_dim, out_dim))
             self.deposit(4)
         elif command == 5:
             pass
         else:
             self.unknown_ops.append(words)
         return name
+
+    def run_gpu_list(self, address, size):
+        """Fait suivre la liste à `pica/` : l'état est toujours suivi, le dessin seulement dans la fenêtre de temps."""
+        import time
+        try:
+            data = self.memory.read(address, size)
+        except Exception:
+            return
+        start = time.perf_counter()
+        self.gpu.process_list(data, draw=self.drawing_now())
+        self.draw_seconds += time.perf_counter() - start
 
     def read_command_list(self, address, size):
         try:
@@ -243,6 +297,14 @@ class Gsp(Service):
         for screen in (0, 1):
             self.take_framebuffer(screen)
         self.bench.on_vblank()
+        snapshot = self.bench.options.get('snapshot')
+        now = self.kernel.now / 1e9
+        if snapshot is not None and self.gpu is not None and self.draw_from <= now < self.draw_until \
+                and now >= self.next_snapshot and self.drawn_transfers != self.snapshot_transfers:
+            self.snapshot_transfers = self.drawn_transfers
+            self.gpu.flush()
+            self.next_snapshot = now + self.snapshot_every
+            snapshot(self.bench)
         self.deposit(2)
         self.deposit(3)
         self.process_queue()

@@ -242,6 +242,153 @@ def test_pieces():
     print('banc : alias de mémoire, poignées réutilisées, relogement d\'une police fabriquée.')
 
 
+# --- le processeur graphique (pica/), sans dump : des données fabriquées ---
+
+def test_pica():
+    import numpy as np
+    from pica import formats, transfer
+    from pica.gpu import Gpu
+    from pica.shader import VertexShader, f24_to_f32, f32_to_f24
+
+    # 1. le détuilage de Morton : (1,0) est le point 1 de la tuile, (0,1) le 2, (2,0) le 4 ; aller-retour exact
+    assert formats.MORTON[0, 1] == 1 and formats.MORTON[1, 0] == 2 and formats.MORTON[0, 2] == 4
+    assert formats.MORTON[7, 7] == 63
+    rng = np.random.default_rng(1)
+    image = rng.integers(0, 256, size=(16, 24, 4), dtype=np.uint8)
+    tiled = formats.linear_to_tiled(image, 4)
+    assert np.array_equal(formats.tiled_to_linear(tiled.tobytes(), 24, 16, 4), image)
+    # la deuxième tuile (x de 8 à 15) commence 256 octets plus loin
+    assert np.array_equal(tiled[256:260], image[0, 8])
+    # 2. des formats : RGB565 pur rouge, RGBA4, LA8, A4, et un bloc ETC1 uni
+    px = formats.decode_pixels('RGB565', np.array([[[0x00, 0xF8]]], dtype=np.uint8))
+    assert px[0, 0].tolist() == [255, 0, 0, 255]
+    px = formats.decode_pixels('RGBA4', np.array([[[0x0F, 0xF0]]], dtype=np.uint8))
+    assert px[0, 0].tolist() == [255, 0, 0, 255]
+    la = np.zeros(8 * 8 * 2, dtype=np.uint8)
+    la[0], la[1] = 0x40, 0xC0                       # alpha 0x40, luminance 0xC0 pour le point (0,0)
+    assert formats.decode_texture('LA8', la.tobytes(), 8, 8)[0, 0].tolist() == [0xC0, 0xC0, 0xC0, 0x40]
+    a4 = np.zeros(32, dtype=np.uint8)
+    a4[0] = 0xF1                                    # point 0 : alpha 1 (nibble bas), point 1 : alpha 15
+    out = formats.decode_texture('A4', a4.tobytes(), 8, 8)
+    assert out[0, 0, 3] == 17 and out[0, 1, 3] == 255
+    block = bytes([0, 0, 0, 0, 0x02, 0x80, 0x80, 0x80])          # ETC1 uni : base 16 (-> 132), modificateur +2
+    flat = formats.decode_etc1_blocks(np.frombuffer(block, dtype=np.uint8).reshape(1, 8))
+    assert (flat == 134).all()
+    # 3. un transfert vers l'écran : RGBA8 en tuiles, 16 x 8 -> RGB8 en lignes, rogné à 12 x 8, retourné
+    mem = AddressSpace()
+    mem.map(0x1F000000, 0x10000, PERM_RW, 'vram')
+    src = np.zeros((8, 16, 4), dtype=np.uint8)
+    src[..., 0] = np.arange(16)[None, :]            # R = x
+    src[..., 1] = np.arange(8)[:, None]             # G = y
+    src[..., 3] = 255
+    mem.write(0x1F000000, formats.linear_to_tiled(formats.encode_pixels('RGBA8', src), 4).tobytes())
+    transfer.display_transfer(mem, 0x1F000000, 0x1F004000, 16 | 8 << 16, 12 | 8 << 16, 1 | 1 << 12 | 4)
+    out = np.frombuffer(mem.read(0x1F004000, 12 * 8 * 3), dtype=np.uint8).reshape(8, 12, 3)[..., ::-1]
+    assert out[0, 5].tolist() == [5, 7, 0] and out[7, 3].tolist() == [3, 0, 0]     # retourné : la ligne 0 est y = 7
+    # une copie de texture par lignes : 2 lignes de 16 octets prises tous les 32 octets, posées à la suite
+    mem.write(0x1F008000, bytes(range(256)) * 1)
+    transfer.texture_copy(mem, 0x1F008000, 0x1F009000, 32, 1 | 1 << 16, 1 | 0 << 16, 8)
+    assert mem.read(0x1F009000, 32) == mem.read(0x1F008000, 16) + mem.read(0x1F008020, 16)
+    # 4. des flottants 24 bits
+    assert abs(float(f24_to_f32(f32_to_f24(np.float32(-3.5)))) + 3.5) < 1e-6
+    # 5. des instructions de shader : DP4 avec une constante, puis MUL et ADD d'entrées, sorties dans o0 et o1
+    sh = VertexShader()
+    ident1 = (0 << 11) | (1 << 9) | (2 << 7) | (3 << 5)
+    ident2 = (0 << 20) | (1 << 18) | (2 << 16) | (3 << 14)
+    desc = 0xF | ident1 | ident2
+    sh.swizzle[0] = desc
+    sh.swizzle[1] = 0xF | ident1 | ident2 | (1 << 4)                # source 1 niée
+    sh.uniforms[0] = (1, 2, 3, 4)
+    sh.code[0] = 0x02 << 26 | 0 << 21 | 0x20 << 12 | 0 << 7 | 0              # DP4 o0, c0, v0
+    sh.code[1] = 0x08 << 26 | 1 << 21 | 0 << 12 | 1 << 7 | 0                 # MUL o1, v0, v1
+    sh.code[2] = 0x00 << 26 | 2 << 21 | 0 << 12 | 1 << 7 | 1                 # ADD o2, -v0, v1
+    sh.code[3] = 0x22 << 26
+    inputs = np.zeros((2, 16, 4), dtype=np.float32)
+    inputs[0, 0] = (1, 1, 1, 1)
+    inputs[1, 0] = (2, 0, 0, 1)
+    inputs[:, 1] = (0.5, 2, 3, 4)
+    out = sh.run(inputs)
+    assert out[0, 0].tolist() == [10] * 4 and out[1, 0].tolist() == [6] * 4          # 1+2+3+4, 2+0+0+4
+    assert out[1, 1].tolist() == [1, 0, 0, 4]
+    assert out[0, 2].tolist() == [-0.5, 1, 2, 3]
+    # 6. une liste de commandes : écritures consécutives et masque d'octets
+    gpu = Gpu(mem)
+    gpu.process_list(struct.pack('<4I', 0x11, 0x000F00C1 | 2 << 20 | 1 << 31, 0x22, 0x33), draw=False)
+    assert gpu.regs[0xC1:0xC4] == [0x11, 0x22, 0x33]
+    gpu.process_list(struct.pack('<2I', 0xAABBCCDD, 0x00050101), draw=False)      # octets 0 et 2 seulement
+    assert gpu.regs[0x101] == 0x00BB00DD
+    # 7. un triangle de bout en bout : shader MOV, attributs flottants, combinateur « couleur du sommet », 16 x 16
+    memory = AddressSpace()
+    memory.map(0x1F000000, 0x10000, PERM_RW, 'vram')
+    memory.map(0x14000000, 0x10000, PERM_RW, 'tas')
+    vertices = np.array([[-1, -1, 0, 1, 1, 0, 0, 1], [1, -1, 0, 1, 1, 0, 0, 1], [-1, 1, 0, 1, 1, 0, 0, 1]],
+                        dtype=np.float32)
+    memory.write(0x14000000, vertices.tobytes())
+    gpu = Gpu(memory)
+    w = gpu.write
+    w(0x2CB, 0)
+    gpu.stream(0x2CC, (0x13 << 26 | 0 << 21 | 0 << 12, 0x13 << 26 | 1 << 21 | 1 << 12, 0x22 << 26))
+    w(0x2D5, 0)
+    gpu.stream(0x2D6, (desc,))
+    w(0x2BA, 0)
+    w(0x200, 0x20000000 >> 3)
+    w(0x201, 0xFF)
+    w(0x202, 1 << 28)
+    w(0x203, 0)
+    w(0x204, 0x10)
+    w(0x205, 32 << 16 | 2 << 28)
+    w(0x2BB, 0x10)
+    w(0x2BD, 3)
+    w(0x50, 0x03020100)
+    w(0x51, 0x0B0A0908)
+    w(0x41, int(f32_to_f24(np.float32(8))))
+    w(0x43, int(f32_to_f24(np.float32(8))))
+    w(0x4D, int(f32_to_f24(np.float32(1))))
+    w(0xC0, 0)                                           # étage 0 : couleur du sommet, « remplacer »
+    w(0x11D, 0x18000000 >> 3)
+    w(0x11E, 16 | 15 << 12)
+    w(0x117, 0)
+    w(0x228, 3)
+    w(0x22E, 1)
+    gpu.flush()
+    pic = formats.decode_pixels('RGBA8', formats.tiled_to_linear(memory.read(0x1F000000, 16 * 16 * 4), 16, 16, 4))
+    # les lignes de la mémoire sont à l'envers : le bas du triangle (y = -1) est la dernière ligne
+    assert pic[13, 2].tolist() == [255, 0, 0, 255], pic[13, 2]         # dans le triangle, en bas à gauche
+    assert pic[2, 13].tolist() == [0, 0, 0, 0], pic[2, 13]             # de l'autre côté de la diagonale
+    covered = int((pic[..., 3] > 0).sum())
+    assert 120 <= covered <= 136, covered                              # la moitié de 16 x 16, bord compris
+    # 8. un étage du combinateur : texture 0 fois couleur du sommet, doublée
+    from pica import raster
+    gpu = Gpu(memory)
+    gpu.regs[0xC0] = 3 | 0 << 4 | 3 << 16 | 0 << 20           # sources 1 : texture 0, 2 : couleur primaire
+    gpu.regs[0xC2] = 1 | 1 << 16                              # modulation
+    gpu.regs[0xC4] = 1                                        # couleur x2
+    attributes = np.zeros((2, 10), dtype=np.float32)
+    attributes[:, 0:4] = (0.25, 0.5, 1.0, 0.5)
+    tex = np.tile(np.array([[0.5, 0.5, 0.25, 1.0]], dtype=np.float32), (2, 1))
+    color = raster.run_combiner(gpu, attributes, {0: tex, 1: tex * 0, 2: tex * 0})
+    assert np.allclose(color[0], [0.25, 0.5, 0.5, 0.5]), color[0]
+    # 8 bis. une texture : la ligne 0 de la mémoire est le haut (v = 1) ; répétition et bordure
+    pixels = np.zeros((8, 8, 4), dtype=np.uint8)
+    pixels[0] = (255, 0, 0, 255)
+    pixels[1:] = (0, 255, 0, 255)
+    border = np.array([0, 0, 1, 1], dtype=np.float32)
+    top = raster.sample((pixels, 2, 2, False, border), np.array([0.5]), np.array([0.95]))
+    low = raster.sample((pixels, 2, 2, False, border), np.array([0.5]), np.array([0.2]))
+    assert top[0].tolist() == [1, 0, 0, 1] and low[0].tolist() == [0, 1, 0, 1]
+    wrapped = raster.sample((pixels, 2, 2, False, border), np.array([1.5]), np.array([0.2]))
+    assert wrapped[0].tolist() == [0, 1, 0, 1]                                # répétition
+    outside = raster.sample((pixels, 1, 1, False, border), np.array([1.5]), np.array([0.2]))
+    assert outside[0].tolist() == [0, 0, 1, 1]                                # couleur de bordure
+    # 9. la conversion YUV vers RGB de y2r:u : gris moyen et rouge pur (Rec. 601, pleine plage)
+    from services.stubs import yuv_to_rgb
+    gray = yuv_to_rgb(np.full((1, 1), 128, np.float32), np.zeros((1, 1), np.float32), np.zeros((1, 1), np.float32), 2)
+    assert gray[0, 0].tolist() == [128, 128, 128]
+    red = yuv_to_rgb(np.full((1, 1), 76, np.float32), np.full((1, 1), -43, np.float32), np.full((1, 1), 127, np.float32), 2)
+    assert red[0, 0, 0] > 250 and red[0, 0, 1] < 5 and red[0, 0, 2] < 5, red
+    print('banc : pica : Morton, formats, transferts, shader, liste de commandes, triangle, combinateur.')
+
+
 def test_real_game():
     code = bench_module.DEFAULT_PATHS['code']
     if not os.path.isfile(code):
@@ -262,6 +409,7 @@ def test_real_game():
 
 def test():
     test_pieces()
+    test_pica()
     test_synthetic()
     test_real_game()
 
