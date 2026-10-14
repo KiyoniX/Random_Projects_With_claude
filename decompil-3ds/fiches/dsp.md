@@ -324,6 +324,8 @@ Une position, ce sont 15 bits de décalage en octets, plus le bit 15 qui change 
 
 **Une retouche au passage.** Avant d'écrire, l'aiguillage (`0x104f50`) modifie les données du jeu : pour le canal 2, il écrit le mot `0x109002` aux octets 2 et 3 du tampon ; pour le canal 3, aux octets 6 et 7. Ce mot vaut 2 sur une New 3DS, 0 sinon.
 
+Le [contrat de `dsp::DSP`](contrat-dsp.md) a lu l'autre côté. Sur le canal 2, Pokémon X envoie 4 octets : un mot d'état aux octets 0 et 1 (0 « démarre », 1 « arrête », 2 « redémarre après une veille », 3 « arrête pour une veille ») et **rien** aux octets 2 et 3, qui gardent ce qui traînait sur sa pile ; c'est ce module qui les remplit. 3dbrew place l'ordre de changement d'état à la position 2 : le jeu et le module s'accordent contre lui. Sur le canal 3, les messages du décodeur AAC font `0x20` octets dans les deux sens, et le jeu n'écrit rien aux octets 4 à 7. Le jeu ne lit jamais plus de `0x20` octets d'un coup (2, 30 ou `0x20`) : la limite de `dsp_RecvFifoEx` (partie 5) ne le touche pas. Il n'envoie que ReadPipeIfPossible, jamais ReadPipe, et toujours après avoir attendu le signal du canal.
+
 **Le tuyau 0** a un traitement à part : à chaque message du DSP à son sujet, `pipe0_drain_callback` (`0x1067c8`) le vide par paquets de `0x80` octets et jette ce qu'il a lu.
 
 ## Partie 7 : les interruptions et le sémaphore
@@ -580,6 +582,8 @@ Les verrous (`mutex_lock` à `0x1043d0`, `mutex_unlock` à `0x1042a0`) et les é
 - Les fils : `svcCreateThread` n'est appelé qu'à un endroit, `create_thread` à deux, et l'adresse de chaque fonction de fil n'apparaît qu'une fois dans le module.
 - Les 26 appels système sont dans la liste que l'exheader autorise.
 - Le nom `synthe` : dans le code à `0x105ec8`, et cité par 3dbrew à propos de LoadComponent.
+- Les 13 commandes que Pokémon X envoie : la fonction d'envoi du jeu, l'aiguillage de ce module, et les mots relevés en exécutant les fonctions du jeu dans un émulateur ([contrat de `dsp::DSP`](contrat-dsp.md)). Le jeu charge bien `rom:/sound/dspaudio.cdc`, avec les masques `0xFF` et `0xFF` ; il garde dans son code un second composant, à `0x5dbc88`, que le chemin lu n'envoie pas.
+- Le signal du rang 1 est déclenché par le jeu : deux `svcSignalEvent` sur la poignée reçue de GetSemaphoreEventHandle (`0x148e3c` et `0x18b604` dans le jeu). Une fois le son démarré, la boucle de son du jeu n'envoie plus aucune commande : tout passe par ce signal, celui du canal 2 et la mémoire partagée.
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Le sens des registres. La partie 8 dit ce que le code lit et écrit ; les mots « arrêter », « lancer », « écoute », « un mot est prêt » sont les miens. Je n'ai pas recoupé ces registres avec une documentation du matériel.
@@ -593,7 +597,8 @@ Les verrous (`mutex_lock` à `0x1043d0`, `mutex_unlock` à `0x1042a0`) et les é
 - Les priorités des fils. Le code passe des constantes codées (`0x6C8DA518` pour une session, `0x6C8DA50A` pour les interruptions) qu'une addition ramène à `0x18` et `0x0A`.
 - Les deux requêtes à `pdn:d` envoyées avant l'ouverture du service.
 - Le réveil après une veille : `on_sleep_wake_notification` relance le DSP par `dsp_boot` sans recopier le composant.
-- La limite de 16 mots de `dsp_RecvFifoEx` et ce qu'elle implique pour une lecture de tuyau de plus de 32 octets.
+- La limite de 16 mots de `dsp_RecvFifoEx` et ce qu'elle implique pour une lecture de tuyau de plus de 32 octets. Pokémon X ne lit jamais plus de 32 octets à la fois : pour lui la question ne se pose pas.
+- Les bits 10 à 12 de `0x1ED0300C` : ce module rend « prêt » quand le bit vaut 1, comme le dit la page RecvDataIsReady de 3dbrew ; sa page des registres dit l'inverse et semble se tromper (contrat de `dsp::DSP`, désaccords).
 - `interrupt_event_register` accepte un rang de 0 à 10, alors que la table des rangs n'a que 10 cases : le rang 10 (type 2, canal 8) tombe sur la première poignée de signal.
 - GetPhysicalAddress.
 

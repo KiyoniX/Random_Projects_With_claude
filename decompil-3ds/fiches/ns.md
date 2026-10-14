@@ -11,7 +11,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Titre | `0004013000008002` (lu dans l'exheader) |
 | Fichier lu | `local/extrait/ns/exefs/code.elf` |
 | Taille | 129 596 octets de code, 5 544 de données en lecture seule, 9 376 de données, 995 764 de mémoire à zéro |
-| Fonctions | 919, dont 309 nommées dans `ns.noms.tsv` |
+| Fonctions | 919, dont 321 nommées dans `ns.noms.tsv` (309 à l'écriture de la fiche, 12 de plus venus du contrat APT) |
 | Services offerts | `APT:A`, `APT:U`, `APT:S` (les mêmes 93 commandes, une session à la fois) ; `ns:s` (22 commandes, 3 sessions), `ns:p` (2 commandes, 1 session), `ns:c` (2 commandes, 1 session) |
 | Services appelés | `srv:`, `pm:app`, `am:u`, `fs:USER`, `ptm:sysm`, `cfg:s`, `ps:ps`, `cam:s`, `qtm:sp`, `nwm::EXT`, et le port `err:f` |
 | Dépendances déclarées | `ptm` (`0004013000002202`) et `cfg` (`0004013000001702`) |
@@ -194,6 +194,19 @@ Les quatre commandes réservées à `APT:S` sont exactement les quatre que 3dbre
 - 27 commandes vérifient l'en-tête entier : celles qui reçoivent une poignée, un tampon ou un numéro de processus. Une requête mal formée rend `0xD9001830`. Les autres ne regardent que le numéro.
 - `apt_HardwareResetAsync` (`0x111e90`) tient en trois instructions et continue dans `reboot_with_firm_params` (`0x111e98`) : Ghidra montre deux fonctions qui se recouvrent.
 
+**Les 29 commandes que Pokémon X envoie** ont été relues des deux côtés, la fonction d'envoi du jeu en face de la fonction de cette table, dans le [contrat APT](contrat-apt.md) (partie 4, une rubrique par commande). Ce qu'il a établi côté module, et qui précise 3dbrew :
+
+| Commande | Ce que fait `ns` | Ce que dit 3dbrew |
+| --- | --- | --- |
+| GetLockHandle | le mot 3 de la réponse vaut **toujours 0** ; le jeu en lit pourtant les bits 0 (bouton d'alimentation) et 1 (fermeture demandée). Ces deux états arrivent par les notifications 8, 7 et 11, que Enable dépose (partie 4, étape 3) | le mot 3 porte l'état d'APT |
+| SendParameter | la taille est prise dans le descripteur du mot 7, le mot 4 n'est pas lu. **La commande `0x10` n'est pas transmise** : `send_parameter` garde ses données et dépose aussitôt, pour l'expéditeur, un paramètre de commande 3 qui vient du destinataire (branche à `0x10f59c`, `parameter_store` avec 3 à `0x10f5d0`). Le bit `0x10000` de la commande désinscrit l'expéditeur après l'envoi | le mot 4 est la taille |
+| ReceiveParameter, GlanceParameter | le mot 7 de la réponse porte la taille demandée, plafonnée à 0x1000 | la taille copiée |
+| CancelLibraryApplet | le paramètre n'est pas lu | un octet « l'application se ferme » |
+| SleepSystem | le mot 1 est masqué par `0x40000002`, le mot 2 par `0x64`, puis `PTMSYSM_RequestSleep` : un masque, pas une durée | « une durée ? » |
+| NotifyToWait | l'aiguillage répond 0 sans lire le mot 1 | la même chose |
+
+Les trois refus que les fonctions « Prepare… » rendent quand elles sont occupées (`0xC8A0CC02`, `0xC8A0CFF0`, `0xE0A0CC08`) sont exactement les trois codes sur lesquels le jeu réessaie toutes les 10 millisecondes.
+
 ## Partie 4 : le démarrage d'une application, pas à pas
 
 C'est la séquence que Pokémon X envoie juste après avoir obtenu sa session `APT:U`. Elle s'appuie sur deux tables décrites dans la partie 5 : les quatre **cases** des programmes inscrits, et le **paramètre en attente**, une boîte aux lettres à une seule place.
@@ -215,7 +228,7 @@ Quand on touche l'icône du jeu, le menu HOME envoie deux commandes par `APT:S`.
 | --- | --- |
 | 1 | le résultat, 0 |
 | 2 | les attributs, renvoyés tels quels pour une application |
-| 3 | 0 |
+| 3 | 0, toujours. Pokémon X y lit deux bits (bouton d'alimentation, fermeture demandée) : ils doivent rester nuls, sinon `main` part vers la sortie ([contrat APT](contrat-apt.md), partie 2) |
 | 4 | 0, ce qui annonce au noyau « une poignée à copier » |
 | 5 | **le verrou d'APT**, un mutex créé par `apt_init` et rangé à `0x123584` |
 
@@ -260,7 +273,7 @@ Le fil ouvrier, qui attendait depuis `StartApplication`, voit l'octet « inscrit
 3. `send_parameter` range dans la boîte aux lettres : expéditeur le programme qui était actif au moment de `StartApplication`, donc le menu HOME ; destinataire `0x300` ; **commande 1** ; et les données s'il y en a (0x1000 octets au plus).
 4. `slot_signal_parameter_event` (`0x10e1d0`) règle le processeur par `PTMSYSM_ConfigureNew3DSCPU`, **lève le signal des paramètres de la case 0** (`svcSignalEvent`), et note `0x300` comme programme actif (`0x1240f0`).
 
-Le jeu, qui attendait sur ce signal, est réveillé.
+Le jeu, qui attendait sur ce signal, est réveillé. Côté Pokémon X, ce n'est pas le fil principal qui attend ce signal mais un fil à lui, le fil d'APT (`apt_event_thread_main`, `0x11a958` dans le jeu) : il envoie d'abord GlanceParameter, et ne réveille le fil principal, qui enverra ReceiveParameter, que si la commande lue n'est ni 2, ni 5, ni 8, ni 9 ([contrat APT](contrat-apt.md), partie 2).
 
 ### Étape 5 : ReceiveParameter ou GlanceParameter
 
@@ -279,9 +292,23 @@ Les deux commandes passent par `receive_parameter` (`0x10eff8`). Elles reçoiven
 | 4 | le nombre d'octets copiés |
 | 5 | `0x10` pour `ReceiveParameter` (la poignée change de propriétaire), 0 pour `GlanceParameter` (elle est copiée) |
 | 6 | la poignée jointe au paramètre, ou 0 |
-| 7, 8 | la taille et l'adresse des données |
+| 7, 8 | la taille et l'adresse des données. La taille du mot 7 est celle que le client a demandée, plafonnée à 0x1000, et non celle des octets copiés, qui est au mot 4 |
 
-**Ce qu'il faut pour faire tourner le jeu sur PC.** Répondre à `GetLockHandle` par un mutex libre, à `Initialize` par deux signaux, à `Enable` par 0, puis lever le second signal et tenir prêt un paramètre « expéditeur `0x101`, commande 1 ». L'identifiant `0x101` est celui que `ns` range au départ à `0x1240e8` pour le menu HOME.
+**Ce qu'il faut pour faire tourner le jeu sur PC.** Cette partie disait : répondre à `GetLockHandle` par un mutex libre, à `Initialize` par deux signaux, à `Enable` par 0, puis lever le second signal et tenir prêt un paramètre « expéditeur `0x101`, commande 1 ». L'identifiant `0x101` est celui que `ns` range au départ à `0x1240e8` pour le menu HOME. Le code du jeu, lu dans le [contrat APT](contrat-apt.md) (partie 2), montre qu'il en faut un peu plus : neuf réponses, dans cet ordre.
+
+| Ordre | Requête du jeu | Réponse à rendre |
+| --- | --- | --- |
+| 1 | GetLockHandle | résultat 0, mots 2, 3 et 4 à 0, mot 5 un mutex libre |
+| 2 | Initialize | résultat 0, mot 2 `0x04000000`, mots 3 et 4 deux signaux distincts |
+| 3 | Enable | résultat 0 |
+| 4 | NotifyToWait | résultat 0 ; puis lever une fois le signal du mot 4 d'Initialize |
+| 5 | GlanceParameter, depuis le fil d'APT du jeu | résultat 0, expéditeur `0x101`, commande 1, taille 0, poignée 0 |
+| 6 | ReceiveParameter, depuis le fil principal | la même chose |
+| 7 | AppletUtility, opération 7 (4 octets valant `0x10`) | résultat 0 |
+| 8 | AppletUtility, opération 4 | résultat 0 |
+| 9 | GetSharedFont, plus tard dans `game_init_systems` | résultat 0, l'adresse du bloc, un vrai bloc de mémoire partagée dont le premier mot vaut 2 et qui porte la police à `+0x80` |
+
+Trois pièges : le mot 3 de GetLockHandle doit être nul ; il ne faut jamais lever le signal des notifications sans notification à rendre (le jeu arrête tout par `svcBreak` si InquireNotification rend 0) ; et le jeu efface lui-même le signal des paramètres, il doit donc rester levé jusqu'à ce que son fil d'APT le lise. Que ces neuf réponses suffisent n'est pas vérifié : rien n'a été exécuté.
 
 ## Partie 5 : les tables d'APT
 
@@ -332,6 +359,7 @@ Les numéros de commande que le code écrit lui-même :
 | Commande | Envoyée par | À qui |
 | --- | --- | --- |
 | 1 | `schedule_application_wakeup`, `apt_Initialize` | le programme qui démarre |
+| 3 | `send_parameter`, quand SendParameter porte la commande `0x10` (`0x10f5d0`) | l'expéditeur, de la part du destinataire nommé : une réponse fabriquée par `ns` |
 | `0x0A` | `apt_CloseApplication` | le programme qui reprend la main |
 | `0x0B` | `apt_JumpToHomeMenu` | le menu HOME |
 | `0x0B` | `apt_LeaveHomeMenu` | l'application |
@@ -406,6 +434,24 @@ Le jeu n'est donc pas seul prévenu : le menu HOME, s'il est inscrit, reçoit la
 | 4 | attendre son signal des paramètres | Rien ne se passe pour le jeu tant que le menu a la main |
 | 5 | ReceiveParameter (`0x0D`) | Quand on revient au jeu, le menu a envoyé `PrepareToLeaveHomeMenu` puis `LeaveHomeMenu` : `apt_LeaveHomeMenu` (`0x106a7c`) rend la case 0 active et envoie au jeu le paramètre « commande `0x0B` », de la part du menu |
 
+Ce tableau suit l'ordre de libctru. **Pokémon X en envoie davantage**, et le [contrat APT](contrat-apt.md) (partie 3) l'a lu dans son code. La notification 1 ne fait que poser un drapeau ; c'est la boucle principale qui agit, par `0x109de0` (appelée par `main_loop` à `0x106998`), puis `0x1100a8` et `0x11af2c` :
+
+| Ordre | Commande envoyée par le jeu | Où, dans le jeu |
+| --- | --- | --- |
+| 1 | IsRegistered(`0x400`) : un applet de bibliothèque est-il ouvert ? | `0x11b5d8` |
+| 2 | PrepareToJumpToHomeMenu, rejouée toutes les 10 millisecondes sur les trois codes « occupé » | `0x11b520` |
+| 3 | GetAppletManInfo(`0xFF`) : le mot 4 donne l'identifiant du menu HOME | `0x11af5c` |
+| 4 | IsRegistered(menu HOME), en boucle jusqu'à lire 1 | `0x11af98` |
+| 5 | sauvegarde de la mémoire vidéo (`gspgpu_SaveVramSysArea`) | `0x11afc4` |
+| 6 | SendParameter, commande `0x10`, 0x20 octets, au menu HOME ; puis GlanceParameter et ReceiveParameter jusqu'à recevoir la commande 3 que `ns` fabrique (partie 5) | `0x134cb0`, par `0x149c58` |
+| 7 | SendCaptureBufferInfo, 0x20 octets | `0x134cb0`, par `0x149b40` |
+| 8 | le son est arrêté (`dsp::DSP` UnloadComponent), le droit d'affichage rendu | `0x11afe8`, `0x11aff4` |
+| 9 | JumpToHomeMenu | `0x11b01c` |
+| 10 | NotifyToWait, AppletUtility 4, attente, GlanceParameter, ReceiveParameter (commande `0x0B`) | `apt_wait_for_wakeup` (`0x11b074`), appelée à `0x109e6c` |
+| 11 | AppletUtility 7 (`0x10`) puis 4, AppletUtility 7 (1) puis 4 | la même |
+
+L'ordre des appels de cette liste a été relu dans l'assembleur du jeu pour cette fiche (les adresses de la colonne de droite). La condition qui fait choisir au jeu entre accepter et refuser, elle, n'est pas lue.
+
 **Pour refuser le menu HOME**, le jeu ne répond rien de tout cela, mais il doit baisser le drapeau 1, sans quoi plus aucun appui ne sera pris en compte. Cela se fait par `AppletUtility` (`0x4B`) : dans `apt_AppletUtility` (`0x1103e0`), l'opération 7 baisse les drapeaux qu'on lui donne, l'opération 6 essaie d'en lever, l'opération 3 les baisse tous.
 
 **Si on ferme le jeu depuis le menu**, le menu envoie `OrderToCloseApplication` : le jeu reçoit le paramètre « commande `0x0C` », et doit répondre par `PrepareToCloseApplication` puis `CloseApplication`. `apt_CloseApplication` (`0x106f84`) vide la case 0 et rend la main.
@@ -423,10 +469,12 @@ Tous les envois passent par `broadcast_notification`. Dix appels dans le code, t
 | 6 | la fonction à `0x11824c` | les notifications système `0x102` et `0x106` |
 | 7 | la fonction à `0x118c48` | la notification système `0x203`, suivie de `PTMSYSM_ShutdownAsync` |
 | 8 | `on_notification_202` (`0x10f310`) | la notification système `0x202`, et l'opération 12 d'`AppletUtility` |
-| 9 | la fonction à `0x112f64` | l'opération 0 d'`AppletUtility` |
+| 9 | `job_cancel_power_button` (`0x112f64`) | l'opération 0 d'`AppletUtility` |
 | 11 | les fonctions à `0x118794` et `0x102914`, deux appels | la notification système `0x100`, et l'arrêt de `ns` |
 
 Les numéros 2 et 10 ne sont déposés nulle part dans ce module.
+
+Le code de Pokémon X confirme le sens de ces numéros, par ce qu'il fait de chacun ([contrat APT](contrat-apt.md), partie 3, table de saut à 12 cases à `0x11aae4` dans le jeu) : 1 et 2 posent le drapeau du bouton HOME (2 est une seconde forme de 1, que `ns` n'envoie jamais) ; 3 est la question de veille, à laquelle le jeu répond par ReplySleepQuery ; 4 l'annulation de la veille, sans réponse ; 5 l'endormissement, suivi de ReplySleepNotificationComplete ; 6 le réveil ; 7 l'arrêt et 11 la fermeture, qui lèvent le drapeau « fermeture demandée » ; 8 et 9 lèvent et baissent l'état du bouton d'alimentation ; 10 fait envoyer SleepSystem, mais `ns` ne la dépose jamais. **0, ou 12 et plus, arrêtent le jeu par `svcBreak`.** Pour la 9, `ns` remet à zéro son propre état du bouton (`0x1241bc`) au même moment.
 
 ## Partie 7 : les notifications système que ns écoute
 
@@ -715,17 +763,21 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 - L'ordre des trois services d'APT (0 pour `APT:A`, 1 pour `APT:U`, 2 pour `APT:S`) : la table de pointeurs à `0x124180`, les trois chaînes, et le calcul du rang lu dans le désassemblage à `0x102cec`.
 - La notification 1 pour le bouton HOME : l'argument de `broadcast_notification` lu dans le désassemblage à `0x118e14`, parce que le pseudo-code de Ghidra ne le montrait pas.
 - Les 35 appels système utilisés font tous partie des 68 que l'exheader de `ns` autorise.
+- Les 29 commandes d'`APT:U` que Pokémon X envoie : les mots écrits par sa fonction d'envoi et ceux que lit l'aiguillage de `ns`, et inversement pour la réponse ([contrat APT](contrat-apt.md)). 27 sont lues des deux côtés en entier, StartSystemApplet et GetAppletProgramInfo sont survolées côté module.
+- Le sens des notifications 1 à 11 : ce que `ns` dépose (partie 6) et ce que le jeu fait de chaque valeur (table de saut à 12 cases à `0x11aae4` dans le jeu, relue pour cette fiche).
+- Le traitement à part de la commande `0x10` de SendParameter : le jeu attend la commande 3 avant JumpToHomeMenu, et `send_parameter` la fabrique (`0x10f5d0`, relu dans l'assembleur pour cette fiche).
 - La table des titres : son contenu vient de l'exécution de `static_init_title_tables` dans un émulateur. Recoupement : le titre de secours que le démarrage écrit en dur pour le menu HOME, `0004003000008102`, s'y retrouve à la ligne `0x103`, et `PrepareToStartApplication` écrit bien à la ligne `0x300`.
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Les mots « inscrit », « prêt », « actif », « opération préparée », « drapeaux d'occupation » : le code montre ce qu'il fait de ces octets, les mots sont les miens.
-- Le sens des numéros. Les notifications d'APT (1 le bouton HOME, 3 à 6 la veille, 7 l'arrêt, 8 le bouton d'alimentation, 11 la fermeture) et les commandes de paramètre (1 le réveil, `0x0B` la reprise après une pause, `0x0C` l'annulation) portent ces noms dans libctru ; ils sont donnés de mémoire et ne sont pas dans la Carte des services. Ce que fait le code colle à ces noms.
+- Le sens des numéros. Les notifications d'APT (1 le bouton HOME, 3 à 6 la veille, 7 l'arrêt, 8 le bouton d'alimentation, 11 la fermeture) et les commandes de paramètre (1 le réveil, `0x0B` la reprise après une pause, `0x0C` l'annulation) portent ces noms dans libctru ; ils sont donnés de mémoire et ne sont pas dans la Carte des services. Ce que fait le code colle à ces noms, et le code de Pokémon X les confirme tous (partie 6). Restent interprétés les mots « question », « endormissement », « réveil », « annulation » pour 3 à 6 : ils sont déduits de la réponse que le jeu renvoie.
 - Le sens des notifications système : `0x204` et `0x205` pour le bouton HOME appuyé puis relâché, `0x202` et `0x203` pour le bouton d'alimentation, `0x101` à `0x106` pour la veille. Seul le lien entre `0x204` et la notification 1 d'APT est lu dans le code.
 - Ce que le client fait du verrou de `GetLockHandle` : connu par libctru. Dans `ns`, seule la règle « une session à la fois » est lue.
 - Le rôle de chaque case, et les noms « applet système » et « applet de bibliothèque » pour les positions 1 à 5.
 - Les noms des applets et des régions de la table des titres.
 - La séquence du menu HOME avant le jeu (`PrepareToStartApplication` puis `StartApplication`) : les deux fonctions sont lues, mais c'est le menu, pas `ns`, qui décide de les envoyer dans cet ordre.
-- L'ordre des commandes que le jeu envoie après une notification (partie 6) : c'est celui de libctru. `ns` montre seulement ce que chaque commande exige et ce qu'elle produit.
+- L'ordre des commandes que le jeu envoie après une notification (partie 6) : la première version de cette fiche donnait celui de libctru. Celui de Pokémon X est maintenant lu dans son code (contrat APT, et l'assembleur relu pour cette fiche) ; ce qui reste interprété est la condition qui le fait accepter ou refuser le menu HOME, et le fait que ces envois partent vraiment : rien n'a été exécuté.
+- Les neuf réponses minimales du démarrage (partie 4) : déduites des deux côtés, jamais essayées.
 - Les priorités des fils : le code passe des constantes codées (`0x6C8DA535` pour les fils d'APT, `0x6C8DA530` et `0x6C8DA52F` pour deux autres), qu'une addition dans `create_thread` ramène à `0x35`, `0x30` et `0x2F`.
 - Le fil de la police : lu en diagonale. Il ouvre l'archive `font:` d'un des quatre titres de `0x1201c8`, y lit un fichier `cbf_….bcfnt.lz` et le range dans la mémoire partagée.
 - Les titres lancés au démarrage : `0004003000008A02` serait le programme d'affichage des erreurs.
@@ -766,4 +818,4 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 - Les travaux du fil ouvrier (`0x10b604`, `0x10b684`, `0x10d9a0`, `0x112fa0`) finissent tous dans le même morceau de code, autour de `0x10da30`. Ghidra l'affiche dans chacun avec des avertissements « bloc inatteignable ».
 - Le début du fichier, de `0x100048` à `0x10022c`, est en Thumb. Les noms qu'on y poserait par une ligne `function` seraient désassemblés en ARM : rien n'y est nommé.
 
-**Pour reprendre.** `ns.noms.tsv` porte 309 noms. Ceux en `apt_`, `nss_`, `nsp_` et `nsc_` sont les commandes reçues ; ceux en majuscules (`SRV_`, `PMAPP_`, `AM_`, `FSUSER_`, `FSFILE_`, `PTMSYSM_`, `CFG_`…) les requêtes envoyées ; ceux en `slot_`, `parameter_`, `worker_job_` et `job_` la mécanique des parties 4 et 5 ; ceux en `on_notification_` les gestionnaires de la partie 7. Le pseudo-code brut, l'assembleur et les scripts sont dans `local/analyse/ns/`, non versionné. `capstone` et `unicorn` sont ceux installés par la fiche de `fs`, dans `local/analyse/fs/pylib/`.
+**Pour reprendre.** `ns.noms.tsv` porte 321 noms : les 309 de cette fiche, et 12 posés d'après le contrat APT (`busy_flags_set_wait`, `slot_from_position`, `request_sleep`…). Ceux en `apt_`, `nss_`, `nsp_` et `nsc_` sont les commandes reçues ; ceux en majuscules (`SRV_`, `PMAPP_`, `AM_`, `FSUSER_`, `FSFILE_`, `PTMSYSM_`, `CFG_`…) les requêtes envoyées ; ceux en `slot_`, `parameter_`, `worker_job_` et `job_` la mécanique des parties 4 et 5 ; ceux en `on_notification_` les gestionnaires de la partie 7. Le pseudo-code brut, l'assembleur et les scripts sont dans `local/analyse/ns/`, non versionné. `capstone` et `unicorn` sont ceux installés par la fiche de `fs`, dans `local/analyse/fs/pylib/`.

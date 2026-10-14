@@ -136,6 +136,7 @@ C'est la liste que 3dbrew donne pour chaque service, à deux commandes près (`0
 - Les quatre commandes d'état (5 à 8) ne gardent rien en mémoire : chacune pose la question au microcontrôleur au moment où on la lui pose (partie 6).
 - RegisterAlarmClient range dans le contexte de la session le signal que le client fournit (`alarm_client_set_event`, `0x101704`). Les alarmes sont tenues dans une liste triée par heure (`alarm_set`, `alarm_get`, `alarm_cancel`).
 - SetPedometerRecordingMode tient un compteur de clients qui veulent le podomètre en marche (`pedometer_add_recording_client`, `pedometer_remove_recording_client`) et un octet par session. Une valeur autre que 0 ou 1 rend `0xE0E0D7FD`.
+- GetStepHistory (`0x000B00C2`) est la seule commande que Pokémon X envoie à `ptm:u`. Le [contrat des petits services](contrat-petits-services.md) (partie 4) l'a lue des deux côtés. **Le nombre d'heures n'est pas pris dans le mot 1** (3dbrew l'y met) mais dans la taille du tampon, divisée par 2. Si le podomètre n'est pas en service, la fonction rend 0 sans toucher au tampon ; sinon elle vérifie la date (`0xE0E0D7FD` si le début ou la fin de la période dépasse une borne fixée à l'an 2100), met le tampon à zéro, relit l'historique gardé par le microcontrôleur (168 heures), recopie les heures qui tombent dans la période et plafonne chaque valeur à 18 000 (`0x4650`). Le jeu demande les 24 heures de la journée en cours et arrête tout si la commande échoue.
 
 **Les commandes de `ptm:sysm` et `ptm:s`** en plus des quinze :
 
@@ -172,8 +173,8 @@ C'est la liste que 3dbrew donne pour chaque service, à deux commandes près (`0
 | `0x0813` | `0x08130000` | FormatSavedata | `ptmsysm_FormatSavedata` | `0x1097c8` | `0x08130040` |
 | `0x0814` | `0x08140000` | GetLegacyJumpProhibitedFlag | `ptmsysm_GetLegacyJumpProhibitedFlag` | `0x109994` | `0x08140080` |
 | `0x0815` | `0x08150040` | SetPlayHistoryRecordingMode | `ptmsysm_SetPlayHistoryRecordingMode` | `0x1099a8` | `0x08150040` |
-| `0x0816` | pas dans 3dbrew | sans nom | `ptmsysm_GetRtcTime` | `0x1099b8` | `0x081600C0` |
-| `0x0817` | pas dans 3dbrew | sans nom | `ptmsysm_SetRtcTime` | `0x1099d0` | `0x08170040` |
+| `0x0816` | en-tête incomplet sur 3dbrew | sans nom | `ptmsysm_GetRtcTime` | `0x1099b8` | `0x081600C0` |
+| `0x0817` | en-tête incomplet sur 3dbrew | sans nom | `ptmsysm_SetRtcTime` | `0x1099d0` | `0x08170040` |
 | `0x0818` | `0x08180040` | ConfigureNew3DSCPU | `ptmsysm_ConfigureNew3DSCPU` | `0x1097a8` | `0x08180040` |
 
 - CheckNew3DS ne calcule rien : elle rend toujours 1. C'est normal, ce module est la version New 3DS ; `hid` lui pose cette question au démarrage (voir `hid.md`).
@@ -525,6 +526,7 @@ Les verrous du module (`critical_section_enter` à `0x106da4`, `critical_section
 - Les services appelés : l'exheader autorise six noms (`mcu::RTC`, `fs:USER`, `cfg:s`, `pxi:mc`, `pm:app`, `pdn:s`), et ce sont les six que le code ouvre. Sur les 55 requêtes à `mcu::RTC`, 53 ont exactement l'en-tête de 3dbrew.
 - Les sept événements du signal du microcontrôleur : les bits testés par `handle_main_event` sont ceux que 3dbrew donne pour `GetPowerEventHandle`.
 - `svcReplyAndReceive`, `svcAcceptSession` et `svcCreateThread` n'ont chacun qu'un appelant.
+- GetStepHistory : la requête que Pokémon X fabrique (`0x124d24` dans le jeu) et ce que l'aiguillage de `ptm:u` en lit (cas à `0x109bf2`), mot pour mot ([contrat des petits services](contrat-petits-services.md), partie 4). Le mot 1 n'est pas lu par le module.
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Le sens en clair des notifications (`0x101` à `0x108`, `0x211`, `0x212`) : le code montre l'ordre, les occasions et les réponses attendues, pas les noms. Ils sont absents de la Carte des services ; les mots de la partie 4 sont les miens.
@@ -541,7 +543,7 @@ Les verrous du module (`critical_section_enter` à `0x106da4`, `critical_section
 - `on_hourly_timer` vu comme un contrôle de la dérive de l'horloge.
 
 **Pas lu**
-- Le podomètre : la lecture de l'historique des pas (`0x106a6a`, `0x105afc`, `0x10491c`), le fichier `Pedometer.dat`, les commandes `0x0009` à `0x000C` et `0x000F` au-delà de leur première fonction.
+- Le podomètre : la lecture de l'historique des pas (`0x106a6a`, `0x105afc`, `0x10491c`), le fichier `Pedometer.dat`, les commandes `0x0009` à `0x000C` et `0x000F` au-delà de leur première fonction. Seul le chemin de GetStepHistory a été suivi depuis, par le contrat des petits services, et le calcul des dates (`0x105afc`) n'y est que survolé.
 - Le journal de jeu : le format d'une entrée, le fichier `PlayHistory.dat`, la relecture des registres du microcontrôleur au démarrage (`0x101368`), les commandes `0x0807` à `0x080B`.
 - Les alarmes au-delà de leur liste triée : `0x1031d8`, `0x10692a`, `0x107a0c`, `on_rtc_alarm_event`.
 - L'heure : les conversions (`0x105fb8`, `0x106800`, `0x10331c`), SetUserTime, GetSystemTime, SetSystemTime, InvalidateSystemTime.

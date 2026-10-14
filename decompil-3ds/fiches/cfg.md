@@ -1,6 +1,6 @@
 # cfg, les réglages de la console
 
-`cfg` garde les réglages de la console : la langue, le nom d'utilisateur, le pays, les étalonnages des capteurs, le modèle de la machine. Tout tient dans une table de « blocs de configuration » de 0x8000 octets, lue au démarrage dans un fichier de la sauvegarde système `0x00010017` et gardée en mémoire. Un jeu comme Pokémon X lui demande au démarrage la langue, la région et le modèle : presque toutes ces réponses sortent de cette table, ou de deux petits fichiers signés de la NAND.
+`cfg` garde les réglages de la console : la langue, le nom d'utilisateur, le pays, les étalonnages des capteurs, le modèle de la machine. Tout tient dans une table de « blocs de configuration » de 0x8000 octets, lue au démarrage dans un fichier de la sauvegarde système `0x00010017` et gardée en mémoire. Un jeu comme Pokémon X lui demande la langue, la région et une quinzaine d'autres réglages : presque toutes ces réponses sortent de cette table, ou de deux petits fichiers signés de la NAND. Il ne lui demande jamais le modèle, contrairement à ce que disait d'abord cette fiche : GetSystemModel ne fait pas partie des quatre commandes qu'il envoie ([contrat des petits services](contrat-petits-services.md), partie 3).
 
 Fiche du 13 octobre 2026, produite avec Ghidra, REA et un émulateur sur le module dumpé de la console. Les adresses sont celles du module chargé à `0x00100000`.
 
@@ -147,14 +147,14 @@ Les noms et les en-têtes de requête viennent de 3dbrew ; les adresses et les e
 | `0x0816` | `0x08160000` | SecureInfoGetRegion | `0x10664c` | `secure_info_get_region_locked` (`0x104e58`) | La région : la même chose que `0x0002` | numéro | `0x08160080` |
 | `0x0817` | `0x08170000` | SecureInfoGetByte101 | `0x106604` | `secure_info_get_byte101_locked` (`0x1044c0`) | L'octet 0x101 du fichier | numéro | `0x08170080` |
 | `0x0818` | `0x08180042` | SecureInfoGetSerialNo | `0x1066ac` | `secure_info_get_serial_locked` (`0x10442c`) | Le numéro de série, 0xF octets | entier | `0x08180042` |
-| `0x0819` | pas dans 3dbrew | sans nom | `0x1067b0` | `write_config_to_evac` (`0x108844`) | La même chose que `0x040A` | numéro | `0x08190040` |
-| `0x081A` | pas dans 3dbrew | sans nom | `0x1067f0` | `build_block_00060000` (`0x104d7c`) | Rend la valeur recalculée du bloc `0x00060000`, sans l'écrire | entier | `0x081A0042` |
-| `0x081B` | pas dans 3dbrew | sans nom | `0x1068a8` | `build_block_00040001` (`0x104c74`) | Rend la valeur recalculée du bloc `0x00040001`, sans l'écrire | entier | `0x081B0042` |
-| `0x081C` | pas dans 3dbrew | sans nom | `0x106878` | `delete_evac_save` (`0x108828`) | La même chose que `0x040B` | numéro | `0x081C0040` |
-| `0x081D` | pas dans 3dbrew | sans nom | `0x1068f8` | `reset_block_00040004` (`0x107fac`) | Recalcule le bloc `0x00040004`, enregistre | numéro | `0x081D0040` |
-| `0x081E` | pas dans 3dbrew | sans nom | `0x106888` | `build_block_00040004` (`0x1052b0`) | Rend la valeur recalculée du bloc `0x00040004` (tampon de 0x1C octets exigé) | entier | `0x081E0042` |
-| `0x081F` | pas dans 3dbrew | sans nom | `0x1068c8` | `reset_block_00180001` (`0x107f78`) | Recalcule le bloc `0x00180001`, enregistre | numéro | `0x081F0040` |
-| `0x0820` | pas dans 3dbrew | sans nom | `0x106848` | `build_block_00180001` (`0x104120`) | Rend la valeur recalculée du bloc `0x00180001` (tampon de 0x18 octets exigé) | entier | `0x08200042` |
+| `0x0819` | en-tête incomplet sur 3dbrew | sans nom | `0x1067b0` | `write_config_to_evac` (`0x108844`) | La même chose que `0x040A` | numéro | `0x08190040` |
+| `0x081A` | en-tête incomplet sur 3dbrew | sans nom | `0x1067f0` | `build_block_00060000` (`0x104d7c`) | Rend la valeur recalculée du bloc `0x00060000`, sans l'écrire | entier | `0x081A0042` |
+| `0x081B` | en-tête incomplet sur 3dbrew | sans nom | `0x1068a8` | `build_block_00040001` (`0x104c74`) | Rend la valeur recalculée du bloc `0x00040001`, sans l'écrire | entier | `0x081B0042` |
+| `0x081C` | en-tête incomplet sur 3dbrew | sans nom | `0x106878` | `delete_evac_save` (`0x108828`) | La même chose que `0x040B` | numéro | `0x081C0040` |
+| `0x081D` | en-tête incomplet sur 3dbrew | sans nom | `0x1068f8` | `reset_block_00040004` (`0x107fac`) | Recalcule le bloc `0x00040004`, enregistre | numéro | `0x081D0040` |
+| `0x081E` | en-tête incomplet sur 3dbrew | sans nom | `0x106888` | `build_block_00040004` (`0x1052b0`) | Rend la valeur recalculée du bloc `0x00040004` (tampon de 0x1C octets exigé) | entier | `0x081E0042` |
+| `0x081F` | en-tête incomplet sur 3dbrew | sans nom | `0x1068c8` | `reset_block_00180001` (`0x107f78`) | Recalcule le bloc `0x00180001`, enregistre | numéro | `0x081F0040` |
+| `0x0820` | en-tête incomplet sur 3dbrew | sans nom | `0x106848` | `build_block_00180001` (`0x104120`) | Rend la valeur recalculée du bloc `0x00180001` (tampon de 0x18 octets exigé) | entier | `0x08200042` |
 
 Les huit dernières ne sont pas dans la Carte des services : l'aiguillage va jusqu'à `0x0820`.
 
@@ -358,7 +358,7 @@ Ces commandes ne rendent pas un bloc tel quel.
 | SecureInfoGetSerialNo | `secure_info_get_serial` (`0x1091f8`) | Les 0xF octets suivants, à partir de `0x102` |
 | GetSystemModel | `get_system_model` (`0x104454`) | Le premier octet du bloc `0x000F0004`. Si la lecture échoue, 0 |
 | GetModelNintendo2DS | `get_model_nintendo_2ds` (`0x10440c`) | 0 si GetSystemModel a réussi et rendu 3, sinon 1 |
-| GetRegionCanadaUSA | `get_region_canada_usa` (`0x1043ac`) | 1 si la région vaut 1 et si l'octet de poids fort du bloc `0x000B0000` vaut `0x12` ou `0x31`, sinon 0 |
+| GetRegionCanadaUSA | `get_region_canada_usa` (`0x1043ac`) | 1 si la région vaut 1 et si l'octet de poids fort du bloc `0x000B0000` vaut `0x12` ou `0x31`, sinon 0. Le bloc est lu d'abord, la région ensuite (3dbrew dit l'inverse, le résultat est le même) ; si l'une des deux lectures échoue, l'octet rendu vaut 0 avec l'erreur de la lecture |
 | IsFangateSupported | `is_fangate_supported` (`0x1043a4`) | Toujours 1 |
 | GenHashConsoleUnique | `gen_hash_console_unique` (`0x105eac`) | Les 8 derniers octets du SHA-256 de 12 octets : le bloc `0x00090001`, puis les 20 bits du bas du paramètre |
 | TranslateCountryInfo | `translate_country_info` (`0x1042d0`) | Une table de 5 paires à `0x10b000` ; le second paramètre choisit le sens de la traduction |
@@ -507,6 +507,9 @@ Les seize sont des enveloppes en ARM, chacune avec un seul `svc`.
 - Les services appelés : l'exheader autorise quatre noms, ce sont les quatre que le code ouvre. Les 35 fonctions de requête correspondent aux 35 appels à `svcSendSyncRequest`, et leurs en-têtes ont été relevés en exécutant chacune.
 - La sauvegarde système : l'archive `0x00000008` et son chemin binaire de 8 octets sont lus ici, et `fs.md` dit la même chose de son côté.
 - Les ordres SPI de `cfg:nor` : lus dans le code, et décrits pareil dans les commentaires de 3dbrew.
+- Les quatre commandes de `cfg:u` que Pokémon X envoie (GetConfigInfoBlk2, SecureInfoGetRegion, GenHashConsoleUnique, GetRegionCanadaUSA) : requête et réponse lues dans le jeu et dans ce module, mot pour mot ([contrat des petits services](contrat-petits-services.md), partie 3).
+- Les 16 blocs que le jeu demande (23 appels dans 19 fonctions) : chacun est dans la table de la partie 5, avec exactement la taille que le jeu demande et les droits `0xE`. Le jeu ne demande aucun bloc réservé au système. Sur une console du commerce il n'en lit que 15 : les deux fonctions qui lisent `0x00130000` reviennent sans rien envoyer quand le bit 0 de `0x1FF80014` est levé (relu dans l'assembleur du jeu à `0x10ef6c`).
+- L'ordre des deux lectures de GetRegionCanadaUSA (le bloc du pays, puis la région) : le contrat, et l'assembleur Thumb de `0x1043ac`.
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Le rôle de la sauvegarde `evac:`. Le code montre ce qu'il en fait ; ce que choisit l'octet à 1 de son chemin (un autre support, sans doute) est décidé dans `fs` et n'a pas été lu.
@@ -536,6 +539,7 @@ Ce que cette fiche permet d'affirmer pour répondre à la place de `cfg:u` :
 - La langue est le bloc `0x000A0002`, 1 octet. Le nom d'utilisateur est `0x000A0000`, 0x1C octets. Le pays est `0x000B0000`, 4 octets.
 - SecureInfoGetRegion rend un octet, GetSystemModel un octet, GenHashConsoleUnique deux mots : il suffit de valeurs fixes et cohérentes entre elles.
 - La réponse de GetConfigInfoBlk2 doit reprendre le descripteur et l'adresse du tampon dans ses mots 2 et 3.
+- Pour Pokémon X, la liste exacte est connue : les 15 blocs du tableau du [contrat des petits services](contrat-petits-services.md) (partie 3), et le bit 0 de `0x1FF80014` à 1, sans quoi le jeu se croit sur une console de développement et lit en plus le bloc `0x00130000` par `cfg:u`, `cfg:s` ou `cfg:i`. Seul `cfg:u` est à fournir.
 
 ## Comment cette fiche a été faite
 

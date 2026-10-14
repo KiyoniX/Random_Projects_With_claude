@@ -33,11 +33,13 @@ Trois projets du dépôt accompagnent le carnet, dans l'étagère « La 3DS ouve
 | `outils/inspecter.py` | Lit l'en-tête d'un dump, `.cxi` de titre installé ou `.3ds` de cartouche : titre, code produit, chiffré ou non, empreinte. |
 | `outils/installer.py` | Déballe ctrtool, makerom et Ghidra dans `local/outils/`, installe l'extension Jython de Ghidra, clone les scripts Ghidra 3DS et leur pose l'en-tête `@runtime Jython`. |
 | `outils/extraire.py` | Sépare le dump en exefs et romfs avec ctrtool, puis inventorie les GARC. |
+| `outils/nand.py` | Lit la sauvegarde NAND sur PC (clés tirées à l'exécution de boot9 et de l'OTP, par pyctr) : liste les titres de la CTRNAND, en sort les modules et archives système déchiffrés, la police partagée et la configuration de `cfg`. Mode d'emploi dans `outils/REA.md`, partie 4 quater. |
 | `outils/elfer.py` | Enveloppe `code.bin` dans un ELF ARM chargé à `0x00100000`, en trois segments si `exheader.bin` est à côté, pour Ghidra et REA. |
 | `outils/garc.py` | Lit, liste, extrait et fabrique les conteneurs GARC des jeux Pokémon. |
 | `outils/lz11.py` | Décompresse le LZ10 et le LZ11 de Nintendo, et compresse en LZ11. |
 | `outils/texte.py` | Décode et encode les fichiers de texte de X/Y (clé tournante par ligne, variables). |
 | `outils/tests.py` | Lance les tests de tous les lecteurs. |
+| `banc/run.py` | Le banc d'essai : fait démarrer Pokémon X sur PC (processeur émulé pour l'instant, couche système écrite d'après les fiches), et écrit le journal de chaque appel dans `local/analyse/banc/`. Mode d'emploi dans `banc/README.md`. |
 | `outils/verifier.py` | Mesure ce qui est installé et fait, met `etat.json` à jour, écrit `etat.js` pour la page. |
 | `outils/REA.md` | Brancher REA à Claude Code, lui désigner notre Ghidra, ce qu'il sait faire et ce qui bloque sous Windows. |
 | `outils/GHIDRA.md` | Ghidra pas à pas pour la 3DS : import, scripts, ligne de commande, et le débogueur GDB de Rosalina sur la console. |
@@ -52,6 +54,7 @@ decompil-3ds/
   etat.json                       l'état du carnet, à éditer à la main
   etat.js                         écrit par verifier.py, à ne pas éditer
   outils/                         les scripts Python, et les procédures REA.md et GHIDRA.md
+  banc/                           le banc d'essai : le jeu qui démarre sur PC (voir banc/README.md)
   exercices/                      les homebrews à vérité connue, avec leur Makefile
   local/                          jamais versionné
     dump/                         le .cxi de ton jeu installé

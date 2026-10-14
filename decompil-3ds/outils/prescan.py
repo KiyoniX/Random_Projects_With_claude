@@ -25,6 +25,8 @@ puis relancer prescan, jusqu'à ce qu'il ne trouve plus de fonction manquée.
 
 Ce qu'il ne fait pas : le code Thumb. Il signale les pointeurs impairs vers .text, sans les suivre. Une fonction Thumb
 se nomme par une ligne « label » (une graine « function » serait désassemblée en ARM) : voir REA.md, partie 4 bis.
+Pour un module en Thumb (fs, cfg, ptm), le bon outil est ghidra_direct.py, puis emulate_dispatch.py pour les tables de
+commandes ; prescan le dit quand il reconnaît le cas.
 """
 import json
 import os
@@ -262,7 +264,13 @@ def prescan(module, port, dump=False):
               'surtout des nombres qui ressemblaient à des adresses).' % thumb_targets)
     if uncovered_percent >= 10 and not missed:
         print('ATTENTION : beaucoup de code hors de toute fonction alors qu\'aucune fonction manquée n\'est trouvée. Le module est '
-              'sans doute en Thumb : ne pas se fier à ce passage, lancer Ghidra directement (voir REA.md, partie 4 bis).')
+              'sans doute en Thumb : ne pas se fier à ce passage. Lancer à la place :\n'
+              '    python outils/ghidra_direct.py %s\n'
+              '        (Ghidra sans REA : il crée les fonctions Thumb, règle les « switch », range fonctions et pseudo-code '
+              'dans local/analyse/%s/gh/)\n'
+              '    python outils/emulate_dispatch.py %s <adresse de l\'aiguillage>\n'
+              '        (la table des commandes d\'un aiguillage, par émulation)\n'
+              'Voir REA.md, partie 4 bis.' % (module, module, module))
     if missed:
         print('-> relancer le pont avec REA_GHIDRA_SEED_FILE=%s puis relancer prescan.' % rea_bridge.to_wsl_path(names_path))
     if dump:

@@ -1,0 +1,409 @@
+service	en_tete	commande	fonction	appelants	module	preuve	atteinte
+srv:	0x00010002	RegisterClient	0x119c68	1	sm	port	entrée
+srv:	0x00020000	EnableNotification	0x10f980	1	sm	port	entrée
+srv:	0x00050100	GetServiceHandle	0x163c10	3	sm	port	entrée
+srv:	0x00090040	Subscribe	0x10f9bc	1	sm	port	entrée
+srv:	0x000B0000	ReceiveNotification	0x119ca4	1	sm	port	entrée
+err:f	0x00010800	Throw	0x124780	1	errdisp	port	entrée
+APT:U	0x00010040	GetLockHandle	0x110388	1	ns	directe	entrée
+APT:U	0x00020080	Initialize	0x110338	1	ns	directe	entrée
+APT:U	0x00030040	Enable	0x109da8	1	ns	directe	entrée
+APT:U	0x00050040	GetAppletManInfo	0x134f58	2	ns	directe	entrée
+APT:U	0x00090040	IsRegistered	0x134d80	4	ns	directe	entrée
+APT:U	0x000B0040	InquireNotification	0x126078	1	ns	directe	entrée
+APT:U	0x000C0104	SendParameter	0x134dc4	1	ns	directe	entrée
+APT:U	0x000D0080	ReceiveParameter	0x125fb0	2	ns	directe	entrée
+APT:U	0x000E0080	GlanceParameter	0x134ecc	1	ns	directe	entrée
+APT:U	0x000F0100	CancelParameter	0x134e70	1	ns	directe	entrée
+APT:U	0x00180040	PrepareToStartLibraryApplet	0x16490c	1	ns	directe	entrée
+APT:U	0x00190040	PrepareToStartSystemApplet	0x135048	1	ns	directe	entrée
+APT:U	0x001E0084	StartLibraryApplet	0x164870	1	ns	directe	entrée
+APT:U	0x001F0084	StartSystemApplet	0x134fc8	1	ns	directe	entrée
+APT:U	0x00220040	PrepareToCloseApplication	0x109d6c	1	ns	directe	entrée
+APT:U	0x00270044	CloseApplication	0x109d18	1	ns	directe	entrée
+APT:U	0x002B0000	PrepareToJumpToHomeMenu	0x135018	1	ns	directe	entrée
+APT:U	0x002C0044	JumpToHomeMenu	0x134e1c	1	ns	directe	entrée
+APT:U	0x00310100	PrepareToDoApplicationJump	0x110448	1	ns	directe	entrée
+APT:U	0x00320084	DoApplicationJump	0x1103e4	1	ns	directe	entrée
+APT:U	0x003B0040	CancelLibraryApplet	0x12603c	1	ns	directe	entrée
+APT:U	0x003E0080	ReplySleepQuery	0x125f6c	1	ns	directe	entrée
+APT:U	0x003F0040	ReplySleepNotificationComplete	0x135080	1	ns	directe	entrée
+APT:U	0x00400042	SendCaptureBufferInfo	0x1648c0	1	ns	directe	entrée
+APT:U	0x00420080	SleepSystem	0x125e70	1	ns	directe	entrée
+APT:U	0x00430040	NotifyToWait	0x11b74c	1	ns	directe	entrée
+APT:U	0x00440000	GetSharedFont	0x125f24	1	ns	directe	entrée
+APT:U	0x004B00C2	AppletUtility	0x125ea8	1	ns	directe	entrée
+APT:U	0x004D0080	GetAppletProgramInfo	0x2c9f84	1	ns	directe	.cro
+fs:USER	0x080201C2	OpenFile	0x1e2f4c	1	fs	objet	entrée
+fs:USER	0x08030204	OpenFileDirectly	0x1239f0	3	fs	copie	entrée
+fs:USER	0x08040142	DeleteFile	0x1e27d8	1	fs	objet	entrée
+fs:USER	0x08050244	RenameFile	0x1e2828	1	fs	objet	entrée
+fs:USER	0x08060142	DeleteDirectory	0x1e2bfc	1	fs	objet	entrée
+fs:USER	0x08070142	DeleteDirectoryRecursively	0x1e2ea4	1	fs	objet	entrée
+fs:USER	0x08080202	CreateFile	0x1e277c	1	fs	objet	entrée
+fs:USER	0x08090182	CreateDirectory	0x1e2ba8	1	fs	objet	entrée
+fs:USER	0x080A0244	RenameDirectory	0x1e2c4c	1	fs	objet	entrée
+fs:USER	0x080B0102	OpenDirectory	0x1e2a10	1	fs	objet	entrée
+fs:USER	0x080C00C2	OpenArchive	0x1e28b8	4	fs	copie	entrée
+fs:USER	0x080D0144	ControlArchive	0x1e2a74	1	fs	copie	entrée
+fs:USER	0x080E0080	CloseArchive	0x1e2918	11	fs	objet	entrée
+fs:USER	0x08120080	GetFreeBytes	0x1e2948	1	fs	objet	entrée
+fs:USER	0x08170000	IsSdmcDetected	0x1e2b38	1	fs	directe	entrée
+fs:USER	0x08180000	IsSdmcWritable	0x1e2b70	1	fs	directe	.cro
+fs:USER	0x084500C2	GetFormatInfo	0x1e2984	2	fs	copie	entrée
+fs:USER	0x08490040	GetArchiveResource	0x1e2db0	1	fs	copie	entrée
+fs:USER	0x084C0242	FormatSaveData	0x1e2ae0	1	fs	copie	entrée
+fs:USER	0x08510242	CreateExtSaveData	0x1e2cdc	1	fs	copie	entrée
+fs:USER	0x08520100	DeleteExtSaveData	0x1e2d38	1	fs	directe	entrée
+fs:USER	0x08540100	GetExtDataBlockSize (la Carte donne 0x08540010, une coquille ; le module ne vérifie que le numéro)	0x1e2e38	1	fs	directe	entrée
+fs:USER	0x085A00C0	SetArchivePriority	0x1e2e00	1	fs	objet	entrée
+fs:USER	0x085B0080	GetArchivePriority	0x1e2d74	1	fs	objet	entrée
+fs:USER	0x08610042	InitializeWithSdkVersion	0x123a90	1	fs	directe	entrée
+fs:USER	0x08620040	SetPriority	0x118368	2	fs	directe	entrée
+fs:USER	0x08630000	GetPriority	0x1468ec	1	fs	directe	entrée
+fs:USER	0x086E00C0	SetThisSaveDataSecureValue	0x118398	1	fs	copie	entrée
+fs:USER	0x086F0040	GetThisSaveDataSecureValue	0x1e2ef4	1	fs	copie	entrée
+FSFile	0x08010100	OpenSubFile	0x1e2ff8	1	fs	objet	entrée
+FSFile	0x080200C2	Read	0x1e30ac	1	fs	objet	entrée
+FSFile	0x08030102	Write	0x1e3130	2	fs	objet	entrée
+FSFile	0x08040000	GetSize	0x1e31dc	1	fs	objet	entrée
+FSFile	0x08050080	SetSize	0x1e3214	1	fs	objet	entrée
+FSFile	0x08080000	Close	0x1e3104	1	fs	objet	entrée
+FSFile	0x080A0040	SetPriority	0x1e3044	1	fs	objet	entrée
+FSFile	0x080B0000	GetPriority	0x1e2fc0	1	fs	objet	entrée
+FSFile	0x080C0000	OpenLinkFile	0x1e3074	1	fs	objet	entrée
+FSFile	0x0C010100	GetAvailable	0x1e3190	1	fs	objet	entrée
+FSDir	0x08010042	Read	0x1e32ac	1	fs	objet	entrée
+FSDir	0x08020000	Close	0x1e3300	1	fs	objet	entrée
+FSDir	0x08030040	SetPriority	0x1e327c	1	fs	objet	entrée
+FSDir	0x08040000	GetPriority	0x1e3244	1	fs	objet	entrée
+gsp::Gpu	0x00010082	WriteHWRegs	0x1645b0	1	gsp	copie	entrée
+gsp::Gpu	0x00020084	WriteHWRegsWithMask	0x164634	1	gsp	copie	entrée
+gsp::Gpu	0x00040080	ReadHWRegs	0x16455c	1	gsp	copie	entrée
+gsp::Gpu	0x00080082	FlushDataCache	0x1645f8	1	gsp	copie	entrée
+gsp::Gpu	0x000B0040	SetLcdForceBlack	0x125674	3	gsp	copie	entrée
+gsp::Gpu	0x000C0000	TriggerCmdReqQueue	0x179dbc	1	gsp	copie	entrée
+gsp::Gpu	0x00100040	SetAxiConfigQoSMode	0x2c8eac	1	gsp	copie	.cro
+gsp::Gpu	0x00130042	RegisterInterruptRelayQueue	0x173478	1	gsp	copie	entrée
+gsp::Gpu	0x00140000	UnregisterInterruptRelayQueue	0x179de4	1	gsp	copie	entrée
+gsp::Gpu	0x00160042	AcquireRight	0x134b9c	2	gsp	copie	entrée
+gsp::Gpu	0x00170000	ReleaseRight	0x12564c	1	gsp	copie	entrée
+gsp::Gpu	0x00180000	ImportDisplayCaptureInfo	0x173428	1	gsp	copie	entrée
+gsp::Gpu	0x00190000	SaveVramSysArea	0x1494c8	1	gsp	copie	entrée
+gsp::Gpu	0x001A0000	RestoreVramSysArea	0x1256ac	1	gsp	copie	entrée
+hid:USER	0x000A0000	GetIPCHandles	0x1247b8	1	hid	directe	entrée
+hid:USER	0x00110000	EnableAccelerometer	0x1ef348	1	hid	directe	entrée
+hid:USER	0x00120000	DisableAccelerometer	0x1ef378	1	hid	directe	entrée
+hid:USER	0x00130000	EnableGyroscopeLow	0x1ef2e8	1	hid	directe	entrée
+hid:USER	0x00140000	DisableGyroscopeLow	0x1ef318	1	hid	directe	entrée
+hid:USER	0x00150000	GetGyroscopeLowRawToDpsCoefficient	0x1ef404	1	hid	directe	entrée
+hid:USER	0x00160000	GetGyroscopeLowCalibrateParam	0x1ef3a8	1	hid	directe	entrée
+dsp::DSP	0x00010040	RecvData	0x16f9f0	1	dsp	copie	entrée
+dsp::DSP	0x00020040	RecvDataIsReady	0x16f8c0	1	dsp	copie	entrée
+dsp::DSP	0x00070040	SetSemaphore	0x16f888	1	dsp	copie	entrée
+dsp::DSP	0x000C0040	ConvertProcessAddressFromDspDram	0x16f9b4	1	dsp	copie	entrée
+dsp::DSP	0x000D0082	WriteProcessPipe	0x16f904	1	dsp	copie	entrée
+dsp::DSP	0x001000C0	ReadPipeIfPossible	0x16f94c	1	dsp	copie	entrée
+dsp::DSP	0x001100C2	LoadComponent	0x1342fc	4	dsp	copie	entrée
+dsp::DSP	0x00120000	UnloadComponent	0x124148	3	dsp	copie	entrée
+dsp::DSP	0x00130082	FlushDataCache	0x17d9ec	1	dsp	copie	entrée
+dsp::DSP	0x00140082	InvalidateDCache	0x1ec658	1	dsp	copie	entrée
+dsp::DSP	0x00150082	RegisterInterruptEvents	0x160038	2	dsp	copie	entrée
+dsp::DSP	0x00160000	GetSemaphoreEventHandle	0x160004	1	dsp	copie	entrée
+dsp::DSP	0x00170040	SetSemaphoreMask	0x15ffcc	1	dsp	copie	entrée
+cfg:u	0x00010082	GetConfigInfoBlk2	0x1240f8	23	cfg	directe	entrée
+cfg:u	0x00020000	SecureInfoGetRegion	0x118a24	1	cfg	directe	entrée
+cfg:u	0x00030040	GenHashConsoleUnique	0x1240b0	1	cfg	directe	entrée
+cfg:u	0x00040000	GetRegionCanadaUSA	0x146bd4	2	cfg	directe	entrée
+ptm:u	0x000B00C2	GetStepHistory	0x124d24	1	ptm	directe	entrée
+ldr:ro	0x000100C2	Initialize	0x133fa8	1	ro	directe	entrée
+ldr:ro	0x00020082	LoadCRR	0x118548	1	ro	directe	entrée
+ldr:ro	0x000402C2	LoadExeCRO	0x1e793c	1	ro	directe	entrée
+ldr:ro	0x000500C2	UnloadCRO	0x146a0c	1	ro	directe	entrée
+ndm:u	0x00010042	EnterExclusiveState	0x1efc74	4	ndm	directe	entrée
+ndm:u	0x00020002	LeaveExclusiveState	0x16fc78	7	ndm	directe	entrée
+ndm:u	0x00030000	QueryExclusiveMode	0x1efc38	1	ndm	directe	.cro
+ndm:u	0x00060040	SuspendDaemons	0x118e38	1	ndm	directe	entrée
+ndm:u	0x00070040	ResumeDaemons	0x118dfc	1	ndm	directe	entrée
+ndm:u	0x00080040	SuspendScheduler	0x1efbf8	1	ndm	directe	entrée
+ndm:u	0x00090000	ResumeScheduler	0x1efbc4	1	ndm	directe	entrée
+ndm:u	0x00140040	OverrideDefaultDaemons	0x118e70	1	ndm	directe	entrée
+ndm:u	0x00170000	ClearHalfAwakeMacFilter	0x1efcb8	1	ndm	directe	entrée
+ac:u	0x00010000	CreateDefaultConfig	0x1dd0b0	1	ac	directe	entrée
+ac:u	0x00040006	ConnectAsync	0x1dceb8	1	ac	directe	entrée
+ac:u	0x00050002	GetConnectResult	0x1dcfe4	1	ac	directe	entrée
+ac:u	0x00080004	CloseAsync	0x15f30c	1	ac	directe	entrée
+ac:u	0x00090002	GetCloseResult	0x15f354	1	ac	directe	entrée
+ac:u	0x000A0000	GetLastErrorCode	0x11800c	1	ac	directe	entrée
+ac:u	0x000D0000	GetWifiStatus	0x1dd100	1	ac	directe	entrée
+ac:u	0x000E0042	GetCurrentAPInfo	0x1dd1f4	1	ac	directe	entrée
+ac:u	0x001D0042	ScanAPs	0x1dcf70	1	ac	directe	entrée
+ac:u	0x00240042	AddDenyApType	0x1dcf10	1	ac	directe	entrée
+ac:u	0x00270002	GetInfraPriority	0x1dd020	1	ac	directe	entrée
+ac:u	0x002D0082	SetRequestEulaVersion	0x1dd13c	1	ac	directe	entrée
+ac:u	0x00300004	RegisterDisconnectEvent	0x1dd1ac	1	ac	directe	entrée
+ac:u	0x003E0042	IsConnected	0x117fc0	1	ac	directe	entrée
+ac:u	0x00400042	SetClientVersion	0x1dd070	1	ac	directe	entrée
+frd:u	0x00010000	HasLoggedIn	0x173870	3	friends	directe	entrée
+frd:u	0x00030002	Login	0x1654f0	1	friends	directe	entrée
+frd:u	0x00040000	Logout	0x165530	1	friends	directe	entrée
+frd:u	0x00050000	GetMyFriendKey	0x13547c	2	friends	directe	entrée
+frd:u	0x00060000	GetMyPreference	0x2d2434	1	friends	directe	.cro
+frd:u	0x00080000	GetMyPresence	0x11b7c4	1	friends	directe	entrée
+frd:u	0x00090000	GetMyScreenName	0x2d2488	1	friends	directe	.cro
+frd:u	0x00100040	GetMyPassword	0x2d23d8	1	friends	directe	entrée
+frd:u	0x00110080	GetFriendKeyList	0x11b814	1	friends	directe	entrée
+frd:u	0x00130142	GetFriendScreenName	0x2d2510	1	friends	directe	.cro
+frd:u	0x00170042	GetFriendAttributeFlags	0x11b8bc	1	friends	directe	entrée
+frd:u	0x001C0042	UnscrambleLocalFriendCode	0x2d287c	1	friends	directe	entrée
+frd:u	0x00230000	GetLastResponseResult	0x2d265c	1	friends	directe	entrée
+frd:u	0x00270040	ResultToErrorCode	0x2d24cc	1	friends	directe	entrée
+frd:u	0x00280244	RequestGameAuthentication	0x2d27ec	2	friends	directe	entrée
+frd:u	0x00290000	GetGameAuthenticationData	0x2d279c	1	friends	directe	entrée
+frd:u	0x002A0204	RequestServiceLocator	0x2d2718	2	friends	directe	entrée
+frd:u	0x002B0000	GetServiceLocatorData	0x2d26c8	1	friends	directe	entrée
+frd:u	0x002E0000	GetServerTimeDifference	0x2d268c	1	friends	directe	.cro
+frd:u	0x00320042	SetClientSdkVersion	0x11b87c	1	friends	directe	entrée
+frd:u	0x00330000	GetMyApproachContext	0x2d25a8	1	friends	directe	.cro
+frd:u	0x00340046	AddFriendWithApproach	0x2d25f8	1	friends	directe	.cro
+boss:U	0x00010082	InitializeSession	0x134b3c	1	boss	copie	entrée
+boss:U	0x00030000	UnregisterStorage	0x119ed4	1	boss	copie	entrée
+boss:U	0x000B00C2	RegisterTask	0x2b6fcc	1	boss	copie	entrée
+boss:U	0x000C0082	UnregisterTask	0x2b71a8	1	boss	copie	entrée
+boss:U	0x000D0082	ReconfigureTask	0x2b724c	1	boss	copie	.cro
+boss:U	0x000E0000	GetTaskIdList	0x2b70c0	1	boss	copie	.cro
+boss:U	0x00120102	GetNsDataIdList2	0x2b7484	1	boss	copie	entrée
+boss:U	0x00140082	SendProperty	0x2b7020	1	boss	copie	entrée
+boss:U	0x00150042	SendPropertyHandle	0x2b7298	1	boss	copie	entrée
+boss:U	0x00160082	ReceiveProperty	0x2b71f4	1	boss	copie	entrée
+boss:U	0x001B0042	GetTaskServiceStatus	0x2b73a4	1	boss	copie	.cro
+boss:U	0x001D0042	StartTaskImmediate	0x2b72dc	1	boss	copie	entrée
+boss:U	0x001E0042	CancelTask	0x2b6ddc	1	boss	copie	entrée
+boss:U	0x001F0000	GetTaskFinishHandle	0x2b7370	2	boss	copie	entrée
+boss:U	0x00200082	GetTaskState	0x2b6f64	1	boss	copie	entrée
+boss:U	0x00210042	GetTaskResult	0x2b70e8	1	boss	copie	entrée
+boss:U	0x002300C2	GetTaskStatus	0x2b7148	1	boss	copie	entrée
+boss:U	0x00240082	GetTaskError	0x2b6f10	1	boss	copie	entrée
+boss:U	0x00250082	GetTaskInfo	0x2b6e80	1	boss	copie	.cro
+boss:U	0x00260040	DeleteNsData	0x119ea4	1	boss	copie	entrée
+boss:U	0x002700C2	GetNsDataHeaderInfo	0x2b731c	2	boss	copie	entrée
+boss:U	0x00280102	ReadNsData	0x2b6e1c	1	boss	copie	entrée
+boss:U	0x002E0040	GetErrorCode	0x2b6ecc	1	boss	copie	.cro
+boss:U	0x002F0140	RegisterStorageEntry	0x119f3c	1	boss	copie	entrée
+boss:U	0x00300000	GetStorageEntryInfo	0x119efc	1	boss	copie	entrée
+boss:U	0x00330042	StartBgImmediate	0x2b73f0	1	boss	copie	entrée
+boss:U	0x003500C2	RegisterImmediateTask	0x2b7430	1	boss	copie	entrée
+boss:U	0x00360084	SetTaskQuery	0x2b706c	1	boss	copie	entrée
+boss:P ?	0x00030000	UnregisterStorage	0x119d3c	1	boss	jamais ouverte	entrée
+boss:P ?	0x000B00C2	RegisterTask	0x2b5760	1	boss	jamais ouverte	entrée
+boss:P ?	0x000C0082	UnregisterTask	0x2b593c	1	boss	jamais ouverte	entrée
+boss:P ?	0x000D0082	ReconfigureTask	0x2b59e0	1	boss	jamais ouverte	.cro
+boss:P ?	0x000E0000	GetTaskIdList	0x2b5854	1	boss	jamais ouverte	.cro
+boss:P ?	0x00120102	GetNsDataIdList2	0x2b5c8c	1	boss	jamais ouverte	entrée
+boss:P ?	0x00140082	SendProperty	0x2b57b4	1	boss	jamais ouverte	entrée
+boss:P ?	0x00150042	SendPropertyHandle	0x2b5a2c	1	boss	jamais ouverte	entrée
+boss:P ?	0x00160082	ReceiveProperty	0x2b5988	1	boss	jamais ouverte	entrée
+boss:P ?	0x001B0042	GetTaskServiceStatus	0x2b5b38	1	boss	jamais ouverte	.cro
+boss:P ?	0x001D0042	StartTaskImmediate	0x2b5a70	1	boss	jamais ouverte	entrée
+boss:P ?	0x001E0042	CancelTask	0x2b5570	1	boss	jamais ouverte	entrée
+boss:P ?	0x001F0000	GetTaskFinishHandle	0x2b5b04	2	boss	jamais ouverte	entrée
+boss:P ?	0x00200082	GetTaskState	0x2b56f8	1	boss	jamais ouverte	entrée
+boss:P ?	0x00210042	GetTaskResult	0x2b587c	1	boss	jamais ouverte	entrée
+boss:P ?	0x002300C2	GetTaskStatus	0x2b58dc	1	boss	jamais ouverte	entrée
+boss:P ?	0x00240082	GetTaskError	0x2b56a4	1	boss	jamais ouverte	entrée
+boss:P ?	0x00250082	GetTaskInfo	0x2b5614	1	boss	jamais ouverte	.cro
+boss:P ?	0x00260040	DeleteNsData	0x119d0c	1	boss	jamais ouverte	entrée
+boss:P ?	0x002700C2	GetNsDataHeaderInfo	0x2b5ab0	2	boss	jamais ouverte	entrée
+boss:P ?	0x00280102	ReadNsData	0x2b55b0	1	boss	jamais ouverte	entrée
+boss:P ?	0x002E0040	GetErrorCode	0x2b5660	1	boss	jamais ouverte	.cro
+boss:P ?	0x002F0140	RegisterStorageEntry	0x119da4	1	boss	jamais ouverte	entrée
+boss:P ?	0x00300000	GetStorageEntryInfo	0x119d64	1	boss	jamais ouverte	entrée
+boss:P ?	0x00330042	StartBgImmediate	0x2b5bf8	1	boss	jamais ouverte	entrée
+boss:P ?	0x003500C2	RegisterImmediateTask	0x2b5c38	1	boss	jamais ouverte	entrée
+boss:P ?	0x00360084	SetTaskQuery	0x2b5800	1	boss	jamais ouverte	entrée
+boss:P ?	0x041500C0	DeleteNsDataPrivileged	0x119dec	1	boss	jamais ouverte	entrée
+boss:P ?	0x04160142	GetNsDataHeaderInfoPrivileged	0x2b5cf8	2	boss	jamais ouverte	entrée
+boss:P ?	0x04170182	ReadNsDataPrivileged	0x2b5b84	1	boss	jamais ouverte	entrée
+cecd:u	0x000100C2	OpenRawFile	0x1eac08	1	cecd	directe	entrée
+cecd:u	0x00020042	ReadRawFile	0x1eac58	1	cecd	directe	entrée
+cecd:u	0x00030104	ReadMessage	0x1ea8c4	1	cecd	directe	entrée
+cecd:u	0x00040106	ReadMessageWithHMAC	0x1eaab8	1	cecd	directe	entrée
+cecd:u	0x00050042	WriteRawFile	0x1ead18	1	cecd	directe	entrée
+cecd:u	0x00060104	WriteMessage	0x1ea980	1	cecd	directe	entrée
+cecd:u	0x00070106	WriteMessageWithHMAC	0x1eab4c	1	cecd	directe	entrée
+cecd:u	0x00080102	Delete	0x1ead60	1	cecd	directe	entrée
+cecd:u	0x000900C2	SetData	0x1eadbc	1	cecd	directe	entrée
+cecd:u	0x000A00C4	ReadData	0x1eae04	1	cecd	directe	entrée
+cecd:u	0x000B0040	Start	0x1eace0	1	cecd	directe	entrée
+cecd:u	0x000C0040	Stop	0x1eaca8	1	cecd	directe	entrée
+cecd:u	0x000E0000	GetCecdState	0x1ea944	1	cecd	directe	entrée
+cecd:u	0x00100000	GetChangeStateEventHandle	0x1eabcc	1	cecd	directe	entrée
+cecd:u	0x00110104	OpenAndWrite	0x1eaa60	1	cecd	directe	entrée
+cecd:u	0x00120104	OpenAndRead	0x1ea9f0	1	cecd	directe	entrée
+cecd:s ?	0x000100C2	OpenRawFile (nom lu sous cecd:u)	0x1eb2d0	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00020042	ReadRawFile (nom lu sous cecd:u)	0x1eb320	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00030104	ReadMessage (nom lu sous cecd:u)	0x1eaf8c	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00040106	ReadMessageWithHMAC (nom lu sous cecd:u)	0x1eb180	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00050042	WriteRawFile (nom lu sous cecd:u)	0x1eb3e0	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00060104	WriteMessage (nom lu sous cecd:u)	0x1eb048	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00070106	WriteMessageWithHMAC (nom lu sous cecd:u)	0x1eb214	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00080102	Delete (nom lu sous cecd:u)	0x1eb428	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x000900C2	SetData (nom lu sous cecd:u)	0x1eb484	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x000A00C4	ReadData (nom lu sous cecd:u)	0x1eb4cc	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x000B0040	Start (nom lu sous cecd:u)	0x1eb3a8	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x000C0040	Stop (nom lu sous cecd:u)	0x1eb370	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x000E0000	GetCecdState (nom lu sous cecd:u)	0x1eb00c	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00100000	GetChangeStateEventHandle (nom lu sous cecd:u)	0x1eb294	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00110104	OpenAndWrite (nom lu sous cecd:u)	0x1eb128	1	cecd	jamais ouverte	entrée
+cecd:s ?	0x00120104	OpenAndRead (nom lu sous cecd:u)	0x1eb0b8	1	cecd	jamais ouverte	entrée
+http:C	0x00010044	Initialize	0x172f00	1	http	copie	entrée
+http:C	0x00020082	CreateContext	0x2b9394	1	http	copie	entrée
+http:C	0x00030040	CloseContext	0x2b944c	3	http	copie	entrée
+http:C	0x00040040	CancelConnection	0x2b9364	1	http	copie	entrée
+http:C	0x00060040	GetDownloadSizeState	0x2b94e0	1	http	copie	entrée
+http:C	0x00080042	InitializeConnectionSession	0x2b9604	1	http	objet	entrée
+http:C	0x000A0040	BeginRequestAsync	0x2b94b0	1	http	objet	entrée
+http:C	0x000B0082	ReceiveData	0x2b967c	1	http	objet	entrée
+http:C	0x000E0040	SetProxyDefault	0x2b92d4	1	http	objet	entrée
+http:C	0x001100C4	AddRequestHeader	0x2b9180	1	http	objet	entrée
+http:C	0x001200C4	AddPostDataAscii	0x2b9304	1	http	objet	entrée
+http:C	0x001300C4	AddPostDataBinary	0x2b93ec	1	http	objet	entrée
+http:C	0x00140082	AddPostDataRaw	0x2b91e0	1	http	objet	entrée
+http:C	0x00150080	SetPostDataType	0x2b9598	1	http	objet	entrée
+http:C	0x001A0082	SendPostDataRaw	0x2b9290	1	http	objet	entrée
+http:C	0x001D0040	NotifyFinishSendPostData	0x2b95d4	1	http	objet	entrée
+http:C	0x001E00C4	GetResponseHeader	0x2b9224	1	http	objet	entrée
+http:C	0x00220040	GetResponseStatusCode	0x2b9144	1	http	objet	entrée
+http:C	0x00240082	AddTrustedRootCA	0x2b96c0	1	http	objet	entrée
+http:C	0x00250080	AddDefaultCert	0x2b947c	1	http	objet	entrée
+http:C	0x00280080	SetClientCertDefault	0x2b9564	1	http	objet	entrée
+http:C	0x002A0040	Inconnue	0x2b9528	1	http	copie	entrée
+http:C	0x003800C0	SetPostDataTypeSize	0x2b963c	1	http	objet	entrée
+http:C	0x00390000	Finalize	0x163c6c	1	http	copie	entrée
+ssl:C	0x00010002	Initialize	0x2b0064	1	ssl	copie	.cro
+ssl:C	0x00100000	SeedRNG	0x2afffc	1	ssl	copie	entrée
+ssl:C	0x00110042	GenerateRandomData	0x2b0024	1	ssl	copie	entrée
+soc:U	0x00010044	InitializeSockets	0x17372c	1	socket	directe	entrée
+soc:U	0x000200C2	socket	0x2cfc04	1	socket	directe	entrée
+soc:U	0x00050084	bind	0x2cfa04	1	socket	objet	entrée
+soc:U	0x00060084	connect	0x2cfc50	1	socket	objet	entrée
+soc:U	0x00070104	recvfrom_other	0x2cfcb0	1	socket	objet	entrée
+soc:U	0x00080102	recvfrom	0x2cf8e8	1	socket	objet	entrée
+soc:U	0x00090106	sendto_other	0x2cfb80	1	socket	objet	entrée
+soc:U	0x000A0106	sendto	0x2cf864	1	socket	objet	entrée
+soc:U	0x000B0042	close	0x2cfaf0	1	socket	objet	entrée
+soc:U	0x000C0082	shutdown	0x2cfd34	1	socket	objet	entrée
+soc:U	0x000D0082	gethostbyname	0x1937e8	1	socket	objet	entrée
+soc:U	0x00120104	setsockopt	0x2cf790	1	socket	directe	entrée
+soc:U	0x001300C2	fcntl	0x2cfb34	1	socket	directe	entrée
+soc:U	0x00140084	poll	0x2cfa64	1	socket	objet	entrée
+soc:U	0x00160000	gethostid	0x2cfd78	1	socket	directe	entrée
+soc:U	0x00170082	getsockname	0x2cf7f8	1	socket	directe	entrée
+soc:U	0x00190000	ShutdownSockets	0x173770	1	socket	directe	entrée
+soc:U	0x001A00C0	GetNetworkOpt	0x173798	1	socket	directe	entrée
+soc:U	0x001F0040	GetResolverInfo	0x173814	1	socket	directe	entrée
+soc:U	0x00200146	SendToMultiple	0x2cf98c	1	socket	objet	entrée
+soc:P ?	0x00060000	gethostid	0x2cde08	1	socket	jamais ouverte	entrée
+nwm::UDS	0x00030000	Finalize	0x2b25c0	1	nwm	directe	entrée
+nwm::UDS	0x00050040	EjectClient	0x2b2018	1	nwm	directe	entrée
+nwm::UDS	0x00070080	UpdateNetworkAttribute	0x2b23d0	2	nwm	directe	entrée
+nwm::UDS	0x00080000	DestroyNetwork	0x2b20a4	1	nwm	directe	entrée
+nwm::UDS	0x000A0000	DisconnectNetwork	0x2b21a8	1	nwm	directe	entrée
+nwm::UDS	0x000B0000	GetConnectionStatus	0x2b22c4	1	nwm	directe	entrée
+nwm::UDS	0x000D0040	GetNodeInformation	0x2b2230	1	nwm	directe	entrée
+nwm::UDS	0x000F0404	StartScan	0x2b25e8	2	nwm	directe	entrée
+nwm::UDS	0x00100042	SetApplicationData	0x2b2280	1	nwm	directe	entrée
+nwm::UDS	0x00110040	GetApplicationData	0x2b21d0	1	nwm	directe	entrée
+nwm::UDS	0x00120100	Bind	0x2b24b8	1	nwm	directe	entrée
+nwm::UDS	0x00130040	Unbind	0x2b2578	1	nwm	directe	entrée
+nwm::UDS	0x001400C0	PullPacket	0x2b1fac	1	nwm	directe	entrée
+nwm::UDS	0x00170182	SendTo	0x2b2504	1	nwm	directe	entrée
+nwm::UDS	0x001A0000	GetChannel	0x2b1f78	1	nwm	directe	entrée
+nwm::UDS	0x001B0302	InitializeWithVersion	0x2b2314	1	nwm	directe	entrée
+nwm::UDS	0x001D0044	CreateNetwork2	0x2b2050	1	nwm	directe	entrée
+nwm::UDS	0x001E0084	ConnectNetwork2	0x2b20cc	1	nwm	directe	entrée
+nwm::UDS	0x001F0006	GetNodeInformationList	0x2b2410	1	nwm	directe	entrée
+nwm::UDS	0x00210080	SetProbeResponseParam	0x2b2388	1	nwm	directe	entrée
+nwm::UDS	0x00220402	ScanOnConnection	0x2b2130	1	nwm	directe	entrée
+nwm::UDS	0x00230000	Inconnue	0x2b2484	2	nwm	directe	entrée
+ir:USER	0x00020000	FinalizeIrnop	0x1e66f4	1	ir	directe	entrée
+ir:USER	0x00030000	ClearReceiveBuffer	0x1e67fc	1	ir	directe	entrée
+ir:USER	0x000702C0	AutoConnection	0x1e6724	1	ir	directe	entrée
+ir:USER	0x00090000	Disconnect	0x1e6688	1	ir	directe	entrée
+ir:USER	0x000A0000	GetReceiveEvent	0x1e67c0	1	ir	directe	entrée
+ir:USER	0x000B0000	GetSendEvent	0x1e66b8	1	ir	directe	entrée
+ir:USER	0x000C0000	GetConnectionStatusEvent	0x1e691c	1	ir	directe	entrée
+ir:USER	0x000D0042	SendIrnop	0x1e69a4	1	ir	directe	entrée
+ir:USER	0x000E0042	SendIrnopLarge	0x1e6778	1	ir	directe	entrée
+ir:USER	0x00110040		0x1e6958	1	ir	directe	entrée
+ir:USER	0x00160000		0x1e68bc	1	ir	directe	entrée
+ir:USER	0x00180182	InitializeIrnopShared	0x1e6864	1	ir	directe	entrée
+ir:USER	0x00190040	ReleaseReceivedData	0x1e682c	2	ir	directe	entrée
+mic:u	0x00010042	MapSharedMem	0x1ef948	1	mic	directe	entrée
+mic:u	0x00020000	UnmapSharedMem	0x1ef814	2	mic	directe	entrée
+mic:u	0x00030140	StartSampling	0x1ef8f4	1	mic	directe	entrée
+mic:u	0x00050000	StopSampling	0x1ef8c4	1	mic	directe	entrée
+mic:u	0x00060000	IsSampling	0x1ef844	2	mic	directe	entrée
+mic:u	0x00080040	SetGain	0x1efa4c	2	mic	directe	entrée
+mic:u	0x00090000	GetGain	0x1efa0c	1	mic	directe	entrée
+mic:u	0x000A0040	SetPower	0x1ef880	2	mic	directe	entrée
+mic:u	0x000C0042	SetIirFilterMic	0x1ef98c	1	mic	directe	entrée
+mic:u	0x00100040	Inconnue	0x1ef9d4	1	mic	directe	entrée
+cam:u	0x00010040	StartCapture	0x2cadb4	1	camera	directe	entrée
+cam:u	0x00020040	StopCapture	0x2cac38	1	camera	directe	entrée
+cam:u	0x00030040	IsBusy	0x2cb2a4	1	camera	directe	entrée
+cam:u	0x00040040	ClearBuffer	0x2caa7c	1	camera	directe	.cro
+cam:u	0x00050040	GetVsyncInterruptEvent	0x2cb110	1	camera	directe	.cro
+cam:u	0x00060040	GetBufferErrorInterruptEvent	0x2cb21c	1	camera	directe	.cro
+cam:u	0x00070102	SetReceiving	0x2cad04	1	camera	directe	entrée
+cam:u	0x00090100	SetTransferLines	0x2cafc8	1	camera	directe	.cro
+cam:u	0x000A0080	GetMaxLines	0x2cab0c	1	camera	directe	.cro
+cam:u	0x000B0100	SetTransferBytes	0x2caf74	1	camera	directe	.cro
+cam:u	0x000C0040	GetTransferBytes	0x2caf28	1	camera	directe	.cro
+cam:u	0x000D0080	GetMaxBytes	0x2caab8	1	camera	directe	.cro
+cam:u	0x000E0080	SetTrimming	0x2cabf0	1	camera	directe	.cro
+cam:u	0x00120140	SetTrimmingParamsCenter	0x2cb15c	1	camera	directe	.cro
+cam:u	0x00130040	Activate	0x126290	3	camera	directe	entrée
+cam:u	0x00150080	SetExposure	0x2caba8	1	camera	directe	.cro
+cam:u	0x00160080	SetWhiteBalance	0x2caeb0	1	camera	directe	.cro
+cam:u	0x00180080	SetSharpness	0x2cad6c	1	camera	directe	.cro
+cam:u	0x00190080	SetAutoExposure	0x2cae68	1	camera	directe	.cro
+cam:u	0x001B0080	SetAutoWhiteBalance	0x2cb068	1	camera	directe	.cro
+cam:u	0x001D00C0	FlipImage	0x2cb340	1	camera	directe	.cro
+cam:u	0x001F00C0	SetSize	0x2cb2f0	1	camera	directe	.cro
+cam:u	0x00200080	SetFrameRate	0x2cac74	1	camera	directe	.cro
+cam:u	0x00210080	SetPhotoMode	0x2cacbc	1	camera	directe	.cro
+cam:u	0x002200C0	SetEffect	0x2cb390	1	camera	directe	.cro
+cam:u	0x00230080	SetContrast	0x2cab60	1	camera	directe	.cro
+cam:u	0x00240080	SetLensCorrection	0x2cb020	1	camera	directe	.cro
+cam:u	0x00260140	SetAutoExposureWindow	0x2cb0b0	1	camera	directe	.cro
+cam:u	0x00270140	SetAutoWhiteBalanceWindow	0x2cb1bc	1	camera	directe	.cro
+cam:u	0x00280080	SetNoiseFilter	0x2cae20	1	camera	directe	.cro
+cam:u	0x00360000	GetSuitableY2rStandardCoefficient	0x2cb268	1	camera	directe	.cro
+cam:u	0x00390000	DriverInitialize	0x2caef8	1	camera	directe	.cro
+cam:u	0x003A0000	DriverFinalize	0x2cadf0	1	camera	directe	entrée
+cam:u	0x003B0000	GetActivatedCamera	0x126254	1	camera	directe	entrée
+cam:u	0x003C0000	GetSleepCamera	0x1261dc	1	camera	directe	entrée
+cam:u	0x003D0040	SetSleepCamera	0x126218	2	camera	directe	entrée
+y2r:u	0x00010040	SetInputFormat	0x2b2ddc	1	camera	directe	.cro
+y2r:u	0x00030040	SetOutputFormat	0x2b2e48	1	camera	directe	entrée
+y2r:u	0x00050040	SetRotation	0x2b2b68	1	camera	directe	entrée
+y2r:u	0x00070040	SetBlockAlignment	0x2b2f20	1	camera	directe	entrée
+y2r:u	0x000D0040	SetTransferEndInterrupt	0x2b3088	1	camera	directe	.cro
+y2r:u	0x000F0000	GetTransferEndEvent	0x2b2f98	1	camera	directe	.cro
+y2r:u	0x00100102	SetSendingY	0x2b2c5c	1	camera	directe	.cro
+y2r:u	0x00110102	SetSendingU	0x2b2ba4	1	camera	directe	.cro
+y2r:u	0x00120102	SetSendingV	0x2b2c00	1	camera	directe	.cro
+y2r:u	0x00130102	SetSendingYuv	0x2b2d50	1	camera	directe	entrée
+y2r:u	0x00140000	IsFinishedSendingYuv	0x2b3010	1	camera	directe	.cro
+y2r:u	0x00180102	SetReceiving	0x2b2cb8	1	camera	directe	entrée
+y2r:u	0x00190000	IsFinishedReceiving	0x2b2fd4	1	camera	directe	.cro
+y2r:u	0x001A0040	SetInputLineWidth	0x2b2f5c	1	camera	directe	entrée
+y2r:u	0x001C0040	SetInputLines	0x2b2d14	1	camera	directe	entrée
+y2r:u	0x00200040	SetStandardCoefficient	0x2b304c	1	camera	directe	.cro
+y2r:u	0x00220040	SetAlpha	0x2b30c4	1	camera	directe	entrée
+y2r:u	0x00260000	StartConversion	0x2b2e84	1	camera	directe	entrée
+y2r:u	0x00270000	StopConversion	0x2b2e18	1	camera	directe	entrée
+y2r:u	0x00280000	IsBusyConversion	0x2b2ee4	1	camera	directe	entrée
+y2r:u	0x002B0000	DriverInitialize	0x2b2eb4	1	camera	directe	.cro
+y2r:u	0x002C0000	DriverFinalize	0x2b2dac	1	camera	directe	entrée

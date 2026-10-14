@@ -1,0 +1,159 @@
+# Les cibles préréglées de ghidra_raw.py : des binaires qui ne sont pas des modules (ni exheader, ni code.bin à
+# 0x00100000). Une section par cible ; `python outils/ghidra_raw.py <cible>` range le résultat dans
+# local/analyse/<cible>/gh/.
+#
+# Les adresses sont celles du NATIVE_FIRM et des mémoires de démarrage de CETTE console (New 3DS XL). Un autre FIRM a
+# d'autres adresses : les plages de code, les graines et la carte de kernel11 sont à relire.
+#
+#   input            le fichier, relatif à la racine du carnet (decompil-3ds/)
+#   made_by          la commande qui le fabrique, rappelée s'il manque
+#   format           « raw » : image brute chargée à `base` ; « elf » : ELF déjà construit ; « code » : un code.bin
+#                    avec son exheader.bin à côté, enveloppé en ELF par elfer.py comme le fait ghidra_direct.py
+#   language         « v5t » (ARM9 : ARM946E-S, ARMv5TE) ou « v6 » (ARM11 MPCore)
+#   code             les plages de code [début, fin) ; tout le reste de l'image est rendu non exécutable AVANT
+#                    l'analyse (MarkDataBlocks.java). Sans elles, Ghidra invente des fonctions dans les données.
+#                    Absent : toute l'image (brute) ou les segments exécutables (ELF).
+#   pointer_sources  « all » (défaut) : les pointeurs sont cherchés dans tout le fichier ; « code » : seulement dans
+#                    les plages de code (les réserves de littéraux), pour ne jamais lire les clés de boot9
+#   thumb_pointers   false : un mot impair n'est jamais pris pour un pointeur vers du Thumb (code tout en ARM)
+#   relative_tables  true : chercher les tables de distances (constructeurs globaux du compilateur ARM)
+#   vectors          true : les huit vecteurs d'exception sont au début de l'image, des « b » dont la cible est semée
+#   seed_tables      des tables lues à la main : « pointers » (adresses) ou « offsets » (distances à la case)
+#   seeds            des graines à la main, chacune avec sa raison
+#   names            le fichier de noms posé après l'analyse (ApplyNames.java)
+
+[boot9]
+input = "local/dump/systeme/boot9.bin"
+made_by = "le dump de boot9 par GodMode9 (voir fiches/boot9-boot11.md)"
+format = "raw"
+base = 0xFFFF0000
+language = "v5t"
+# Moitié publique : code jusqu'à 0xFFFF5D40, puis données et bourrage. Moitié protégée : code de 0xFFFF8000 à
+# 0xFFFFB088, puis les clés. Bornes lues à l'entropie par blocs de 0x400 octets, puis à la main.
+code = [[0xFFFF0000, 0xFFFF5D40], [0xFFFF8000, 0xFFFFB088]]
+pointer_sources = "code"
+relative_tables = false
+vectors = true
+seeds = [
+    { at = 0xFFFF8068, mode = "arm", why = "le « b . » ARM où revient main ; sans graine, Ghidra le décode en Thumb, invente un appel et coupe init_aes_keyslots_impl en deux" },
+]
+names = "fiches/boot9.noms.tsv"
+
+[boot11]
+input = "local/dump/systeme/boot11.bin"
+made_by = "le dump de boot11 par GodMode9 (voir fiches/boot9-boot11.md)"
+format = "raw"
+# boot11 s'exécute à 0x00010000, pas à 0 : chargé à 0, aucun pointeur du code ne tombe juste.
+base = 0x00010000
+language = "v6"
+code = [[0x00010000, 0x00010100], [0x00011000, 0x00013BA0], [0x00018000, 0x0001817C], [0x000181F4, 0x00019400]]
+pointer_sources = "code"
+relative_tables = false
+vectors = true
+seeds = [
+    { at = 0x00018004, mode = "arm", why = "l'entrée protégée, atteinte par « ldr pc » depuis 0x18000 ; le reset lit aussi ce mot comme une donnée, et Ghidra en ferait une donnée" },
+]
+names = "fiches/boot11.noms.tsv"
+
+[kernel11]
+input = "local/extrait/firm/kernel11/kernel11.elf"
+made_by = "python outils/firm.py local/dump/systeme/native.firm"
+format = "elf"
+language = "v6"
+# Le noyau est en ARM : les deux seules fonctions Thumb sont semées à la main. Sa table de constructeurs, la seule
+# table de distances, est donnée dans seed_tables.
+thumb_pointers = false
+relative_tables = false
+seed_tables = [
+    { at = 0xFFF0230C, count = 0x7E, kind = "pointers", why = "la table des appels système (svc), entrées non nulles" },
+    { at = 0x1FFB045C, count = 21, kind = "offsets", why = "la table des constructeurs du démarrage (distances, bit 0 pour le Thumb)" },
+]
+# Les points d'entrée du démarrage, puis les six gestionnaires d'exception (leurs relais sont lus par l'analyse).
+seeds = [
+    { at = 0x1FFAF000, mode = "arm", why = "boot_core0_stack_pointers" },
+    { at = 0x1FFAF01C, mode = "arm", why = "boot_core1_stack_pointers" },
+    { at = 0x1FFAF034, mode = "arm", why = "boot_core2_stack_pointers" },
+    { at = 0x1FFAF04C, mode = "arm", why = "boot_core3_stack_pointers" },
+    { at = 0x1FFAF064, mode = "arm", why = "boot_entry, le point d'entrée ARM11 du FIRM" },
+    { at = 0x1FFAF168, mode = "arm", why = "boot_finish_core_setup" },
+    { at = 0x1FFAF44C, mode = "arm", why = "boot_enable_vfp_access" },
+    { at = 0x1FFAF464, mode = "arm", why = "boot_delay_loop" },
+    { at = 0x1FFAF474, mode = "arm", why = "boot_reset_control_and_caches" },
+    { at = 0x1FFAF4A0, mode = "arm", why = "boot_secondary_core_wait" },
+    { at = 0x1FFAF528, mode = "arm", why = "fonction du démarrage, appelée avant la MMU" },
+    { at = 0x1FFAF5A4, mode = "arm", why = "boot_build_page_tables (exécutée par firm.py map)" },
+    { at = 0x1FFAFC78, mode = "arm", why = "boot_setup_core_and_enable_mmu" },
+    { at = 0x1FFB02D4, mode = "arm", why = "boot_get_boot_info" },
+    { at = 0x1FFB02DC, mode = "arm", why = "boot_memmove" },
+    { at = 0x1FFB0438, mode = "thumb", why = "boot_run_static_constructors, en Thumb" },
+    { at = 0xFFF00030, mode = "arm", why = "kernel_main, où saute le démarrage une fois la MMU en marche" },
+    { at = 0xFFFF0020, mode = "arm", why = "core_park_wait_interrupts, dans la page des vecteurs" },
+    { at = 0xFFFF0058, mode = "arm", why = "vecteur reset : boucle wfe d'un cœur garé" },
+    { at = 0xFFF02504, mode = "arm", why = "gestionnaire d'instruction indéfinie" },
+    { at = 0xFFF021F0, mode = "arm", why = "gestionnaire de svc" },
+    { at = 0xFFF02068, mode = "arm", why = "gestionnaire d'abandon de lecture d'instruction" },
+    { at = 0xFFF020B0, mode = "arm", why = "gestionnaire d'abandon de données" },
+    { at = 0xFFF02128, mode = "arm", why = "gestionnaire d'IRQ" },
+    { at = 0xFFF005E0, mode = "arm", why = "gestionnaire de FIQ" },
+]
+names = "fiches/kernel11.noms.tsv"
+
+# La carte de kernel11, utilisée par firm.py pour fabriquer kernel11.elf. Lue dans le code de démarrage (les appels de
+# recopie de 0x1FFB0100 à 0x1FFB0184 et 0x1FFB00AC) et dans les tables de pages qu'il construit (firm.py map, qui
+# vérifie chaque morceau : adresse physique et droit d'exécution).
+[kernel11.firm]
+load = 0x1FF80000
+entry = 0x1FFAF064
+page_table_builder = 0x1FFAF5A4
+l1_table_pointers = 0x1FFB03D4
+# va : adresse virtuelle ; offset et size : où le morceau est dans la section ; memsize : avec sa .bss ; pa : où le
+# démarrage le recopie (ce que la carte des pages doit montrer).
+pieces = [
+    { name = "text_low", va = 0xFFF00000, offset = 0x00000, size = 0x20000, memsize = 0x20000, flags = "rx", pa = 0x1FF80000 },
+    { name = "text_high", va = 0xFFF20000, offset = 0x20000, size = 0x0E000, memsize = 0x0E000, flags = "rx", pa = 0x1FFDE000 },
+    { name = "rodata", va = 0xFFF2E000, offset = 0x32000, size = 0x01000, memsize = 0x01000, flags = "r", pa = 0x1FFEC000 },
+    { name = "data", va = 0xFFF2F000, offset = 0x33000, size = 0x00180, memsize = 0x05000, flags = "rw", pa = 0x1FFED000 },
+    { name = "vectors", va = 0xFFFF0000, offset = 0x2E000, size = 0x01000, memsize = 0x01000, flags = "rx", pa = 0x1FFF4000 },
+    { name = "boot", va = 0x1FFAF000, offset = 0x2F000, size = 0x03000, memsize = 0x03000, flags = "rx", pa = 0x1FFAF000 },
+]
+# La mémoire qui n'existe qu'à l'exécution : des segments vides, pour que les références se résolvent dans Ghidra.
+runtime = [
+    { name = "slab_heap", va = 0xFFF70000, size = 0x3E000, flags = "rw", why = "réserves d'objets, PA 0x1FFA0000-0x1FFDE000 (l'ancienne image, réutilisée)" },
+    { name = "mmio_private", va = 0xFFFB8000, size = 0x15000, flags = "rw", why = "fenêtres de registres et pages par cœur" },
+    { name = "core_pages", va = 0xFFFCD000, size = 0x23000, flags = "rw", why = "piles et contextes par cœur, jusqu'aux vecteurs" },
+    { name = "core_pages_high", va = 0xFFFF1000, size = 0x0F000, flags = "rw", why = "au-dessus des vecteurs" },
+    { name = "fcram", va = 0xE0000000, size = 0x10000000, flags = "rw", why = "vue linéaire de la FCRAM (supersections)" },
+    { name = "vram_axi", va = 0xDF000000, size = 0x01000000, flags = "rw", why = "VRAM à 0xDF000000, AXI WRAM à 0xDFF00000" },
+    { name = "io", va = 0xD8000000, size = 0x00600000, flags = "rw", why = "registres GPU et IO de 0x18000000" },
+]
+
+[kernel9]
+input = "local/extrait/firm/arm9/kernel9.bin"
+made_by = "python outils/firm.py local/dump/systeme/native.firm"
+format = "raw"
+base = 0x08006800
+language = "v5t"
+# Le code est en deux zones ; le reste est des données et des zéros, où des mots pris pour des tables de distances
+# faisaient inventer 1 255 fonctions Thumb à Ghidra. Pas de tables de distances : aucune n'est vraie dans kernel9.
+# La seconde zone, celle du point d'entrée, finit à 0x0801C080 (après la réserve de littéraux de 0x0801C03C) ; la
+# première chaîne l'arrêtait à 0x0801B6C0, ce qui coupait la fonction 0x0801B6E0. Le compte (497) est le même.
+code = [[0x08006800, 0x08019000], [0x0801B000, 0x0801C080]]
+relative_tables = false
+seeds = [
+    { at = 0x0801B01C, mode = "arm", why = "le point d'entrée ARM9 du FIRM" },
+]
+names = "fiches/kernel9.noms.tsv"
+
+[process9]
+input = "local/extrait/firm/arm9/process9/exefs/code.bin"
+made_by = "python outils/firm.py local/dump/systeme/native.firm"
+format = "code"
+language = "v5t"
+names = "fiches/process9.noms.tsv"
+
+[arm9loader]
+input = "local/extrait/firm/arm9/arm9loader.bin"
+made_by = "python outils/firm.py local/dump/systeme/native.firm"
+format = "raw"
+base = 0x0808A900
+language = "v5t"

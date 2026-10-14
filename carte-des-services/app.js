@@ -29,6 +29,36 @@
   function lien3dbrew(url, texte) {
     return '<a class="lien-3dbrew" href="' + echap(url) + '" target="_blank" rel="noopener">' + echap(texte || 'Lire la page 3dbrew') + '</a>';
   }
+  /* Notes « vu dans le code » (champ seen, posé par corrections.js) : ce qu'un module lu dans le code de la console
+     dit d'une entrée, à côté de ce que dit 3dbrew. */
+  const codeSource = D.codeSource || { fiches: '../decompil-3ds/fiches/', modules: [] };
+  function ficheLink(moduleId, label) {
+    return '<a class="lien-fiche" href="' + echap(codeSource.fiches + moduleId + '.md') + '" target="_blank" rel="noopener">' + echap(label || 'fiche de ' + moduleId) + '</a>';
+  }
+  // reference : l'en-tête de 3dbrew, pour dire en quoi celui du code diffère.
+  function seenText(note, reference) {
+    let h = '<b>Vu dans le code de ' + echap(note.module) + ' :</b> ';
+    if (note.h && reference) h += 'l\'en-tête est <code>' + echap(note.h) + '</code>, et non <code>' + echap(reference) + '</code> comme sur 3dbrew. ';
+    return h + echap(note.text) + ' ' + ficheLink(note.module);
+  }
+  function seenNotes(entry, reference) {
+    return (entry.seen || []).map(n => '<p class="note vu-code">' + seenText(n, reference) + '</p>').join('');
+  }
+  // D'où vient un lien entre un module et un service : 3dbrew, le code, ou les deux quand ils ne disent pas la même chose.
+  function callSource(call) {
+    if (!call.url) return (call.seen || []).map(n => ficheLink(n.module, 'vu dans le code de ' + n.module)).join(' ');
+    return lien3dbrew(call.url, '3dbrew') + (call.seen || []).map(n => '<br><span class="note">' + seenText(n) + '</span>').join('');
+  }
+  const headerFromCode = c => (c.seen || []).some(n => n.byCode);
+  function seenMark(c) {
+    if (!c.seen || !c.seen.length) return '';
+    const other = c.seen.find(n => n.h);
+    const title = headerFromCode(c) ? 'En-tête lu dans le code de la console : 3dbrew ne le donne pas en entier'
+      : other ? 'Le code de la console écrit ' + other.h + ' et non ' + c.h
+      : 'Le code de la console en dit plus : ouvre la commande';
+    return ' <span class="marque-vu" title="' + echap(title) + '">vu dans le code</span>';
+  }
+
   function plaque(m, petite) {
     const f = famille[m.famille];
     const carre = m.famille === 'materiel';
@@ -426,10 +456,13 @@
       h += liste('Requête, après l\'en-tête', det.req) + liste('Réponse, après l\'en-tête', det.rep);
     } else if (c.nonLue) {
       h += '<p class="non-lue">Page non lue : la page 3dbrew de cette commande n\'a pas pu être consultée. L\'en-tête suffit pour compter les paramètres.</p>';
+    } else if (headerFromCode(c)) {
+      h += '<p class="non-lue">3dbrew ne donne pas l\'en-tête entier de cette commande : celui-ci vient du code de la console.</p>';
     } else {
       h += '<p class="non-lue">3dbrew n\'a pas de page à part pour cette commande : tout ce qu\'il en dit est ici.</p>';
     }
     if (c.corrige) h += '<p class="note"><b>Correction :</b> ' + echap(c.corrige) + '</p>';
+    h += seenNotes(c, c.h);
     if (c.note) h += '<p class="note" lang="en">' + echap(c.note) + '</p>';
     if (c.entree) h += '<p class="note"><b>Entrée :</b> <span lang="en">' + echap(c.entree) + '</span></p>';
     if (c.sortie) h += '<p class="note"><b>Sortie :</b> <span lang="en">' + echap(c.sortie) + '</span></p>';
@@ -443,19 +476,29 @@
   function tableCommandes(sv, ouvrir) {
     const cmds = sv.commandes;
     if (!cmds.length) {
-      return '<p class="vide">' + (sv.sansTable ? '3dbrew ne liste pas de commandes pour ce service.' : 'Aucune commande complète.') + '</p>';
+      return '<p class="vide">' + (sv.sansTable ? '3dbrew ne liste pas de commandes pour ce service.' : 'Aucune commande complète.') + '</p>' + incompleteHeaders(sv);
     }
     let h = '<div class="filtre"><label>Filtrer les horaires <input type="search" class="filtre-cmd" placeholder="nom ou en-tête"></label><span class="compte">' + cmds.length + ' commande' + (cmds.length > 1 ? 's' : '') + '</span></div>';
     h += '<table class="horaires"><thead><tr><th>En-tête</th><th>Commande</th><th title="Paramètres normaux + mots de traduction">Param.</th></tr></thead><tbody>';
     for (const c of cmds) {
-      h += '<tr class="cmd' + (c.h === ouvrir ? ' ouverte' : '') + '" data-h="' + c.h + '" tabindex="0"><td><code>' + c.h + '</code></td><td>' + echap(c.n) + (c.nonLue ? ' <span class="marque-nl" title="La page 3dbrew de cette commande n\'a pas pu être lue">page non lue</span>' : '') + '</td><td class="num">' + enTeteTexte(c.h) + '</td></tr>';
+      h += '<tr class="cmd' + (c.h === ouvrir ? ' ouverte' : '') + '" data-h="' + c.h + '" tabindex="0"><td><code>' + c.h + '</code></td><td>' + echap(c.n) + (c.nonLue ? ' <span class="marque-nl" title="La page 3dbrew de cette commande n\'a pas pu être lue">page non lue</span>' : '') + seenMark(c) + '</td><td class="num">' + enTeteTexte(c.h) + '</td></tr>';
       if (c.h === ouvrir) h += '<tr class="ligne-detail"><td colspan="3">' + detailCommande(c) + '</td></tr>';
     }
     h += '</tbody></table>';
-    if (sv.partiels && sv.partiels.length) {
-      h += '<p class="note">En-têtes incomplets sur 3dbrew : ' + sv.partiels.map(p => '<code>' + echap(p.brut) + '</code> ' + echap(p.n)).join(', ') + '.</p>';
+    return h + incompleteHeaders(sv);
+  }
+  // Les en-têtes que 3dbrew ne donne pas en entier : une phrase, ou une liste quand il y a plus à dire sur l'un d'eux.
+  function incompleteHeaders(sv) {
+    const list = sv.partiels || [];
+    if (!list.length) return '';
+    if (!list.some(p => p.note || p.seen)) {
+      return '<p class="note">En-têtes incomplets sur 3dbrew : ' + list.map(p => '<code>' + echap(p.brut) + '</code> ' + echap(p.n)).join(', ') + '.</p>';
     }
-    return h;
+    let h = '<p class="note">En-têtes incomplets sur 3dbrew :</p><ul class="partiels">';
+    for (const p of list) {
+      h += '<li><code>' + echap(p.brut) + '</code> ' + echap(p.n) + (p.note ? ' <span class="pale" lang="en">' + echap(p.note) + '</span>' : '') + seenNotes(p) + '</li>';
+    }
+    return h + '</ul>';
   }
   function brancherTable(sv) {
     const table = panneau.querySelector('.horaires');
@@ -506,12 +549,13 @@
     h += '<div class="fiche-corps">';
     if (sv.role) h += '<p class="role">' + echap(sv.role) + '</p>';
     h += '<p>Exposé par le module <button type="button" class="renvoi" data-module="' + m.id + '">' + echap(m.nom) + '</button>. ' + lien3dbrew(sv.url) + '</p>';
+    h += seenNotes(sv);
     if (sv.appelants && sv.appelants.length) {
       h += '<h3>Correspondances</h3><ul class="corresp-liste">';
       for (const a of sv.appelants) {
         const am = module_[a];
         const ap = am.appelle.find(x => x.service === id);
-        h += '<li>' + plaque(am, true) + ' <button type="button" class="renvoi" data-module="' + a + '">' + echap(am.nom) + '</button> appelle ce service. <span class="pale">' + echap(ap.note) + '</span> ' + lien3dbrew(ap.url, '3dbrew') + '</li>';
+        h += '<li>' + plaque(am, true) + ' <button type="button" class="renvoi" data-module="' + a + '">' + echap(am.nom) + '</button> appelle ce service. <span class="pale">' + echap(ap.note) + '</span> ' + callSource(ap) + '</li>';
       }
       h += '</ul>';
     }
@@ -546,7 +590,7 @@
       h += '<h3>Ce module appelle</h3><ul class="corresp-liste">';
       for (const a of m.appelle) {
         const cible = module_[service[a.service].module];
-        h += '<li>' + plaque(cible, true) + ' <button type="button" class="renvoi code" data-service="' + echap(a.service) + '">' + echap(a.service) + '</button> <span class="pale">' + echap(a.note) + '</span> ' + lien3dbrew(a.url, '3dbrew') + '</li>';
+        h += '<li>' + plaque(cible, true) + ' <button type="button" class="renvoi code" data-service="' + echap(a.service) + '">' + echap(a.service) + '</button> <span class="pale">' + echap(a.note) + '</span> ' + callSource(a) + '</li>';
       }
       h += '</ul>';
     }
@@ -554,7 +598,9 @@
     if (appelePar.length) {
       h += '<h3>Il est appelé par</h3><p>' + appelePar.map(x => plaque(x, true) + ' <button type="button" class="renvoi" data-module="' + x.id + '">' + echap(x.nom) + '</button>').join(' ') + '</p>';
     }
-    h += '<p>' + lien3dbrew(m.url) + '</p></div>';
+    h += '<p>' + lien3dbrew(m.url) + '</p>';
+    if (codeSource.modules.includes(mid)) h += '<p class="note vu-code">Ce module a été lu dans le code de la console : ' + ficheLink(mid, 'lire la fiche de ' + mid) + '</p>';
+    h += '</div>';
     panneau.innerHTML = h;
     panneau.scrollTop = 0;
     brancherRenvois();
@@ -657,7 +703,14 @@
     }
     if ((m = ql.match(/^(?:0x)?([0-9a-f]{8})$/))) {
       const t = trouverEnTete('0x' + m[1]);
-      res.commandes = t.exactes; res.proches = t.proches.slice(0, 40);
+      const sought = parseInt(m[1], 16) >>> 0;
+      const seen = [];
+      for (const s of D.services) for (const c of s.commandes) {
+        const note = (c.seen || []).find(n => n.h && (parseInt(n.h, 16) >>> 0) === sought);
+        if (note) seen.push({ service: s.id, module: s.module, commande: c, seen: note });
+      }
+      res.commandes = seen.concat(t.exactes);
+      res.proches = t.proches.filter(r => !seen.some(x => x.commande === r.commande)).slice(0, 40);
     }
     if ((m = ql.match(/^0x([0-9a-f]{4})$/))) {
       const id = parseInt(m[1], 16);
@@ -676,7 +729,8 @@
         if (n === ql) exact.push({ service: s.id, module: s.module, commande: c });
         else if (ql.length >= 3 && n.includes(ql)) partiel.push({ service: s.id, module: s.module, commande: c });
       }
-      res.commandes = exact.concat(partiel);
+      // à la suite des commandes déjà trouvées par leur en-tête : le « x » de « 0x » fait aussi passer par ici
+      res.commandes = res.commandes.concat(exact, partiel);
       for (const s of D.svc) if (s.nom.toLowerCase().includes(ql)) res.svc.push(s);
     }
     res.services.sort((a, b) => (a.id.toLowerCase() === ql ? -1 : 0) - (b.id.toLowerCase() === ql ? -1 : 0));
@@ -704,7 +758,7 @@
     }
     if (res.commandes.length) {
       h += '<h3>Commandes IPC</h3><ul class="resultats">';
-      for (const r of res.commandes.slice(0, 120)) h += '<li>' + plaque(module_[r.module], true) + ' <button type="button" class="renvoi code" data-service="' + echap(r.service) + '" data-h="' + r.commande.h + '">' + echap(r.service) + '</button> <code>' + r.commande.h + '</code> ' + echap(r.commande.n) + '</li>';
+      for (const r of res.commandes.slice(0, 120)) h += '<li>' + plaque(module_[r.module], true) + ' <button type="button" class="renvoi code" data-service="' + echap(r.service) + '" data-h="' + r.commande.h + '">' + echap(r.service) + '</button> <code>' + r.commande.h + '</code> ' + echap(r.commande.n) + (r.seen ? ' <span class="marque-vu">' + echap(r.seen.h) + ' dans le code de ' + echap(r.seen.module) + '</span>' : '') + '</li>';
       h += '</ul>';
       if (res.commandes.length > 120) h += '<p class="pale">Et ' + (res.commandes.length - 120) + ' autres : précise ta question.</p>';
     }

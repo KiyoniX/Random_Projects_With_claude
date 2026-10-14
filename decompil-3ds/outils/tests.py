@@ -1,8 +1,14 @@
-"""Lance les tests de tous les lecteurs de formats : python outils/tests.py"""
+"""Lance les tests de tous les lecteurs de formats et du repérage des graines de Ghidra : python outils/tests.py"""
+import cro_loader
 import elfer
+import firm
 import garc
+import ghidra_direct
+import ghidra_raw
 import inspecter
 import lz11
+import nand
+import svc_check
 import texte
 
 if __name__ == '__main__':
@@ -11,3 +17,17 @@ if __name__ == '__main__':
     inspecter.test()
     texte.test()
     elfer.test()
+    ghidra_direct.test()
+    ghidra_raw.test()
+    firm.test()
+    svc_check.test()
+    cro_loader.test()
+    nand.test()
+    # Le banc d'essai (banc/tests.py) : programme ARM fabriqué, et le vrai jeu jusqu'au palier P1 s'il est là.
+    import importlib.util
+    import os
+    spec = importlib.util.spec_from_file_location('banc_tests', os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'banc', 'tests.py'))
+    banc_tests = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(banc_tests)
+    banc_tests.test()

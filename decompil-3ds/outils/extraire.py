@@ -6,7 +6,9 @@
                                                            écraser le jeu ; le nom est libre
     python extraire.py local/dump/systeme/native.firm firm  un FIRM déchiffré (NATIVE_FIRM) : ctrtool en sort les
                                                            sections ARM9 et ARM11 dans local/extrait/firm/, et les
-                                                           modules de démarrage (sm, fs, pm, loader, pxi) en .cxi
+                                                           modules de démarrage (sm, fs, pm, loader, pxi) en .cxi,
+                                                           puis firm.py découpe kernel9, Process9 et le chargeur
+                                                           (arm9/) et fabrique kernel11/kernel11.elf
 
 Le résultat : exefs/ (code.bin décompressé, icon, banner), romfs/ et exefs/exheader.bin (dont elfer.py se sert
 pour découper le code en segments). Puis un inventaire des GARC trouvés est écrit dans inventaire.txt.
@@ -52,6 +54,10 @@ def extraire_firm(dump, exe, sortie):
     print('\nUne section ARM11 contient le noyau (kernel11), une autre les cinq modules de démarrage (sm, fs, pm, loader,'
           '\npxi) ; la section ARM9, Process9 et kernel9. Les autres modules système (hid, gsp, cfg...) ne sont pas'
           '\ndedans : ce sont des titres à part dans la CTRNAND, à dumper un par un.')
+    # kernel9, Process9 et le chargeur sortis de la section ARM9, kernel11 remis à ses adresses : voir firm.py.
+    import firm
+    print('\nMorceaux pour ghidra_raw.py (firm.py) :')
+    firm.split_pieces(dump, sortie)
 
 
 def modules_du_firm(section, sortie):

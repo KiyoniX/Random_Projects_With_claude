@@ -161,6 +161,9 @@
 0x10ac88	function	PMAPP_SetFIRMLaunchParams
 0x10acd8	function	PMAPP_LaunchFIRM
 0x10adf0	function	slot_register
+0x10ae20	function	busy_flags_set_wait
+0x10aea0	function	applet_pos_from_attributes
+0x10b0a4	function	application_jump_select_target
 0x10b1b0	function	require_not_apt_a
 0x10b56c	function	job_wakeup_first_applet
 0x10bc90	function	thread_trampoline
@@ -192,9 +195,12 @@
 0x10f310	function	on_notification_202
 0x10f408	function	send_parameter
 0x10f630	function	slot_from_applet_id
+0x10f73c	function	request_sleep
+0x10f77c	function	is_power_button_pending
 0x10f78c	function	worker_job_submit
 0x10f7a0	function	worker_job_set_parameter
 0x10f7f4	function	worker_job_begin
+0x10f86c	function	is_order_to_close_pending
 0x10f87c	function	slot_post_notification_wait
 0x10f980	function	require_apt_s
 0x10f99c	function	slot_from_attributes
@@ -204,11 +210,15 @@
 0x110058	function	sleep_ms
 0x1100b0	function	set_prepared_operation
 0x1101fc	function	busy_flags_try_set
+0x110278	function	busy_flags_exchange
 0x110378	function	has_prepared_operation
 0x110390	function	set_active_slot
+0x1103a0	function	slot_from_position
 0x1103e0	function	apt_AppletUtility
 0x110698	function	apt_SendDeliverArg
+0x1106b8	function	is_sleep_state_4_to_6
 0x110704	function	schedule_application_wakeup
+0x110798	function	request_sleep_if_sleeping
 0x1107d8	function	busy_flags_clear
 0x110820	function	clear_prepared_operation
 0x110834	function	start_application_title
@@ -217,6 +227,7 @@
 0x110d70	function	svcCreateEvent
 0x110d88	function	launch_non_application_title
 0x110e0c	function	broadcast_notification
+0x110e98	function	is_shutdown_pending
 0x11154c	function	apt_GetProgramInfo
 0x111924	function	SRV_Unsubscribe
 0x1119b8	function	construct_array
@@ -234,7 +245,7 @@
 0x112794	function	strlen
 0x112830	function	srv_init
 0x112ed8	function	parameter_copy_out
-0x112f64	function
+0x112f64	function	job_cancel_power_button
 0x1134c0	function	job_wakeup_application
 0x113bc8	function
 0x113fc4	function	AM_GetProgramList

@@ -101,9 +101,78 @@ Ce que six modules ont appris (sm, hid, loader, pm, gsp, fs) :
 
 - **`prescan.py <module> --dump`** range le pseudo-code de toutes les fonctions (`local/analyse/<module>/pseudo/`) et l'assembleur du module (`code.asm`, par l'objdump de devkitPro). Le pseudo-code de Ghidra perd les registres autour d'un `svc` écrit sur place : la poignée d'une requête, les arguments de `ControlMemory` ou de `CreateCodeSet` se lisent dans l'assembleur. Pour un module du FIRM, seul `.text` y est à la bonne adresse (les sections sont serrées).
 - **Le Thumb.** Une graine `function` est toujours désassemblée en ARM. Pour nommer une fonction Thumb, écrire une ligne `label` au lieu de `function` : quand Ghidra crée la fonction, elle prend le nom. Si le nom ne prend pas quand même (`run_static_initializers` dans plusieurs modules), le noter dans la fiche et le poser à la main. prescan ne suit pas les pointeurs impairs, il les compte seulement.
-- **`fs` est aux trois quarts en Thumb**, avec des méthodes appelées seulement par tables : par le pont, REA n'y voit que 1 637 fonctions sur 1 995. Sa fiche a été faite avec Ghidra lancé directement sous WSL et deux scripts gardés dans `local/analyse/fs/ghidra/` (`run.sh`, `FsPre.java`, `FsDump.java`), et les aiguillages vérifiés par émulation (capstone et unicorn installés dans `local/analyse/fs/pylib/` seulement). Les « switch » Thumb demandent le réglage Call Fixup `switch8_r3` sur l'aide `__ARM_common_switch8`.
+- **Les modules en Thumb (`fs`, `cfg`, `ptm`) ne passent pas par le pont.** REA n'y voit qu'une partie des fonctions (1 637 sur 1 995 dans `fs`) et prescan annonce « aucune fonction manquée » ; quand il reconnaît le cas, il donne les deux commandes à lancer à la place :
+
+```powershell
+python outils/ghidra_direct.py cfg                                    # Ghidra sans REA, sous Ubuntu : une minute
+python outils/emulate_dispatch.py cfg 0x107d40=cfg:u 0x106db4=cfg:s   # la table des commandes de chaque aiguillage
+```
+
+  `ghidra_direct.py` pose les graines Thumb (pointeurs impairs, table de distances), écarte les nombres qui ressemblent à des pointeurs, reconnaît à son code l'aide de « switch » `__ARM_common_switch8`, lui donne le réglage Call Fixup `switch8_r3` et impose les tables de saut, applique `fiches/<module>.noms.tsv` après l'analyse, puis range dans `local/analyse/<module>/gh/` la liste des fonctions (`funcs.tsv`), le pseudo-code (`pseudo/`) et le projet Ghidra. Ses scripts Ghidra sont dans `outils/ghidra_scripts/`. `emulate_dispatch.py` exécute un aiguillage pour chaque numéro de commande et rend la fonction appelée, l'en-tête de réponse et ce que le code vérifie de l'en-tête de requête ; il marche aussi sur un module ARM, et sa docstring dit ce que l'émulation suppose. Il lui faut `unicorn` et `capstone` dans `local/pylib/` : `python -m pip install --target local/pylib unicorn capstone`. Mesuré le 2026-10-14 : `ptm` 813 fonctions (comme sa fiche), `cfg` 689 (686 dans sa fiche), et les 239 lignes des tables de commandes de `cfg`, `ptm` et `hid` retrouvées à l'identique.
 - **Ne pas se fier aux tailles de fonctions de Ghidra** : il ne compte pas les tables d'adresses posées au milieu du code.
 - **Un début de fonction se cherche parfois à la main** : une fonction qui ne revient jamais ne sauve aucun registre, et prescan ne la reconnaît pas. Il signale alors « appel système hors de toute fonction ».
+
+## 4 ter. Ce qui n'est pas un module : l'image brute (depuis le 2026-10-14)
+
+boot9, boot11, kernel11, kernel9, Process9 et le chargeur ARM9 n'ont ni `code.bin` à `0x00100000` ni exheader qui découpe le code (sauf Process9, qui est rangé dans le FIRM). Ni le pont REA ni `ghidra_direct.py` ne les ouvrent tels quels. Trois chaînes avaient été écrites à part, une par fiche ; elles sont réunies dans `outils/` :
+
+```powershell
+python outils/firm.py local/dump/systeme/native.firm   # sections, modules de démarrage, arm9/ et kernel11/kernel11.elf
+python outils/firm.py map 0 1 2 3                      # carte virtuelle de kernel11 (unicorn), morceaux vérifiés
+python outils/ghidra_raw.py list                       # les cibles préréglées, et si leur fichier est là
+python outils/ghidra_raw.py boot9                      # puis boot11, kernel11, kernel9, process9, arm9loader
+python outils/svc_check.py                             # les svc des fiches contre kernel11 et les exheaders
+```
+
+- **`firm.py`** lit l'en-tête du FIRM lui-même (empreintes SHA-256 vérifiées, sans ctrtool) et écrit dans `local/extrait/firm/` : les sections `firm_<n>_<adresse>.bin`, les modules de démarrage en `.cxi`, `arm9/kernel9.bin`, `arm9/process9/exefs/code.bin` et son `exheader.bin` (rangés comme un module extrait), `arm9/arm9loader.bin`, et `kernel11/kernel11.elf`. Les 0x800 octets de l'en-tête du binaire ARM9 (champs de clés) ne sont recopiés nulle part. `extraire.py native.firm firm` l'appelle après ctrtool. Pour kernel11, la carte des morceaux (adresse virtuelle, place dans la section, adresse physique où le démarrage les recopie) est dans `raw_targets.toml` ; `firm.py map` exécute sous unicorn le constructeur des tables de pages (`0x1FFAF5A4`), décode les tables et vérifie chaque morceau. Si le point d'entrée ARM11 du FIRM n'est pas celui de la carte, il n'écrit pas l'ELF : la carte est à relire.
+- **`ghidra_raw.py <cible>`** prend tout dans **`outils/raw_targets.toml`**, un fichier commenté : fichier d'entrée, format (`raw`, `elf`, ou `code` pour un `code.bin` avec exheader), adresse de base, langage (`v5t` pour l'ARM9, `v6` pour l'ARM11), plages de code, graines données à la main avec leur raison, tables lues à la main (table des svc, table des constructeurs), fichier de noms. Il réutilise de `ghidra_direct.py` la recherche des pointeurs (`Image`, `find_pointers`), des aides de switch et le lancement de Ghidra (`run_headless`), et range dans `local/analyse/<cible>/gh/` les mêmes fichiers, plus l'assembleur (`asm/0xADRESSE.s`, `listing.txt`). Pour un essai : `ghidra_raw.py kernel9 --name essai --code 0x...-0x...,...` (le dossier change, la cible préréglée reste), ou `ghidra_raw.py --image <fichier> --base 0x... --language v5t --code ... --seeds graines.tsv --names noms.tsv`.
+- **Deux scripts Ghidra de plus** dans `outils/ghidra_scripts/` : `MarkDataBlocks.java`, avant l'analyse, fait de chaque plage qui n'est pas du code un bloc non exécutable (sans cela, 1 255 fausses fonctions Thumb dans les zéros de kernel9, et la recherche des trous irait jusqu'aux clés de boot9) ; `DumpListing.java`, après, écrit l'assembleur, sans jamais lire un bloc de données.
+- **`svc_check.py`** recoupe les svc cités par chaque fiche de module, et ceux du code de Pokémon X, avec la table des svc de kernel11 (présents, pas une souche « non implémenté »), avec les noms de 3dbrew recopiés dans `fiches/kernel11.md`, et avec le masque des svc de l'exheader. `tests.py` le lance quand `kernel11.elf` et les exheaders sont là.
+
+Revalidation du 2026-10-14, chaque cible relancée avec ces outils et les `.noms.tsv` des fiches :
+
+| Cible | Fonctions au premier passage | Fonctions obtenues | Noms posés | Noms sans fonction |
+| --- | --- | --- | --- | --- |
+| boot9 | 572 | 564 | 258 | 0 |
+| boot11 | 229 | 227 | 109 | 0 |
+| kernel11 | 988 | 988, les mêmes | 359, et 68 étiquettes | 0 |
+| kernel9 | 497 | 497, les mêmes | 46 | 0 |
+| Process9 | 4 797 | 4 797, les mêmes | 385 | 0 |
+| chargeur ARM9 | 185 | 185, les mêmes | — | — |
+| cfg (`ghidra_direct.py`, contrôle du partage de code) | 689 | 689, les mêmes | 440 | 0 |
+
+Les écarts : dans boot9 et boot11, l'aide de switch est la variante à lectures inversées (`0xFFFF0CDC`, `0x0001841C`), que `ghidra_direct.py` ne reconnaissait pas encore lors de la première analyse. Reconnue, ses tables sont imposées et les cas de switch ne sont plus pris pour des fonctions à part : les 8 fonctions de `0xFFFF10B4` à `0xFFFF10D6` rentrent dans `0xFFFF1098`, `0x000184E4` dans `0x000184CC`, `0x000188FC` dans `0x000188E4`. Aucune n'était nommée. Dans kernel11, la 68e étiquette est la ligne `data` de `svc_table`, ajoutée au fichier de noms depuis. Dans kernel9, la seconde plage de code va maintenant jusqu'à `0x0801C080` au lieu de `0x0801B6C0`, qui coupait la fonction `0x0801B6E0` (une fois les données rendues non exécutables, son corps tombait à un octet) ; le compte ne change pas.
+
+Les pièges, en plus de ceux de la partie 4 bis :
+
+- **Le `;` de `-scriptPath`** : `wsl.exe` refait une ligne qu'un shell relit. `run_headless` protège chaque argument ; à la main, mettre des apostrophes autour.
+- **La mémoire de Ghidra** se règle par `GHIDRA_HEADLESS_MAXMEM` (lu par `analyzeHeadless`) ; `MAXMEM=3G` seul n'a aucun effet, et le tas reste à 2 Go. `ghidra_raw.py` passe `GHIDRA_HEADLESS_MAXMEM=3G`. Pas plus de deux Ghidra à la fois.
+- **Une donnée au milieu du code** (la table des svc de kernel11) s'écrit en ligne `data` dans le fichier de noms : une ligne `label` y créerait une fonction Thumb.
+- **Les aiguillages ARM par table de saut** (`ldrlo pc, [pc, r0, lsl #2]`, les commandes de Process9) restent des cas d'une seule fonction : ne pas mettre les cas dans le fichier de noms.
+
+Restent dans `local/analyse/` (propres à une fiche, pas rangés) : les outils de lecture (`tree.py`, `profile.py`, `show.py`, `peek.py`, `xref_value.py`, `q.py`), la lecture des tables de commandes de Process9 (`tables.py`, `services.py`), les générateurs de noms et de tableaux (`build_names.py`, `gen_names.py`, `make_names.py`, `mk_svc_md.py`, `gen_doc.py`), et `survey.py` (l'entropie des mémoires de démarrage, qui a donné leurs plages de code).
+
+## 4 quater. Les titres système tirés de la NAND (depuis le 2026-10-14)
+
+Plus besoin de repasser par GodMode9 pour un module : `outils/nand.py` ouvre sur PC la sauvegarde NAND (`local/dump/nand.bin`), avec `boot9.bin` et la sauvegarde « essentielle » que GodMode9 range dans l'image (OTP et CID). Il faut une fois `python -m pip install --target local/pylib pyctr` : pyctr tire les clés de ces fichiers à l'exécution et déchiffre la CTRNAND ; aucune clé n'est écrite dans l'outil, et tout ce qu'il produit va sous `local/`.
+
+```powershell
+python outils/nand.py                       # partitions, puis les 133 titres : identifiant, nom, version, taille
+python outils/nand.py titles module         # filtre (ici : les modules système)
+python outils/nand.py title ndm errdisp     # NCCH déchiffré dans local/dump/systeme/<nom>.cxi, puis extraire.py
+python outils/nand.py config                # sauvegarde de cfg (00010017) et son fichier config
+python outils/nand.py file /dbs/title.db    # un fichier de la CTRNAND, dans local/dump/ctrnand/
+python outils/nand.py all                   # modules, applets, archives, police, config, et local/extrait/inventaire-nand.txt
+python outils/nand.py verify                # comparaison octet pour octet aux .cxi de GodMode9, et au native.firm
+python outils/nand.py sd "local/dump/sd/Nintendo 3DS" 0004000000055D00   # sauvegarde et extdata d'un jeu
+```
+
+- **Noms** : celui de l'exheader, en minuscules. La version du mode sans échec d'un module (identifiant en `…03`) prend `-safe` (`cfg-safe`) ; celle qui tourne sous NATIVE_FIRM garde le nom nu (sur la New 3DS, `gsp`, `ptm`, `mcu`, `i2c`, `camera`... n'existent qu'en `2000xx02`). Les archives sans exheader sont `data-<bas de l'identifiant>`, sauf celles reconnues par leur contenu (`police-std`, `mii-ressources`, `mots-interdits`, `pays`, `certificats-ca`, `clcerta`, `cver`, `nver`).
+- **Rien n'est écrasé** : si `<nom>.cxi` existe avec d'autres octets, la version de la NAND va en `<nom>.nand.cxi` ; `verify` l'écrit toujours à côté pour la comparaison.
+- **La police partagée** (`cbf_std.bcfnt`, celle que `ns` charge pour GetSharedFont) est décompressée dans `local/extrait/police-partagee/`.
+- **Piège** : sous Git Bash, un chemin qui commence par `/` est réécrit en chemin Windows ; mettre `MSYS_NO_PATHCONV=1`.
+- **La sauvegarde d'un jeu** : copier d'abord par ftpd, sous `local/dump/sd/`, le dossier `Nintendo 3DS/<id0>/<id1>/title/<haut>/<bas>/data/` et `extdata/00000000/<bas>/` en gardant l'arborescence. `sd` les déchiffre avec le `movable.sed` **de la CTRNAND** : celui de la sauvegarde « essentielle » de GodMode9 est plus ancien sur cette console et ne donne pas l'id0 de la carte. Il ouvre ensuite le conteneur DISA de la sauvegarde (fichiers dans `sauvegarde/fichiers/`) et les DIFF des données étendues. Vérifié sur Pokémon X : `main` fait `0x65600` octets et ses 55 blocs ont tous leur CRC16-CCITT juste.
+- **Piège** : pyctr réécrit, en lisant l'OTP, les clés X des emplacements 0x18 à 0x1B ; les NCCH « New 3DS » (gsp, ptm) en ont besoin intactes. `nand.py` garde donc un second moteur de clés, sans OTP, pour les NCCH.
 
 ## 5. Commandes CLI utiles sur un binaire natif
 

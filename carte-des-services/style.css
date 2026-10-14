@@ -264,6 +264,10 @@ a { color: inherit; }
 .vide, .non-lue { color: var(--encre-pale); font-size: 14px; }
 .non-lue { border-left: 4px solid var(--encre-pale); padding-left: 10px; }
 .note { font-size: 13.5px; color: #3a3d42; }
+/* ce que dit le code de la console, à côté de 3dbrew */
+.vu-code { border-left: 4px solid var(--encre); padding-left: 10px; }
+.lien-fiche { font-weight: 600; text-decoration-thickness: 1px; text-underline-offset: 3px; white-space: nowrap; }
+.lien-fiche:hover { background: var(--surligneur); }
 .desc { font-size: 14px; }
 .decodage { font-size: 14px; background: #f2f2ee; padding: 6px 10px; }
 .signature { white-space: pre-wrap; background: #f2f2ee; padding: 10px 12px; font-size: 13.5px; margin: 12px 0; }
@@ -285,6 +289,10 @@ a { color: inherit; }
 .horaires tr.cmd td.num { font-family: var(--code); font-size: 13px; white-space: nowrap; color: var(--encre-pale); }
 .horaires .ligne-detail > td { background: #fbfbf8; border-bottom: 2px solid var(--encre); padding: 2px 8px 10px; }
 .marque-nl { font-size: 11px; color: var(--encre-pale); border: 1px solid var(--encre-pale); padding: 0 4px; white-space: nowrap; font-weight: 400; }
+.marque-vu { font-size: 11px; color: var(--blanc); background: var(--encre); border: 1px solid var(--encre); padding: 0 4px; white-space: nowrap; font-weight: 400; }
+.partiels { list-style: none; padding: 0; margin: 0 0 10px; font-size: 13.5px; }
+.partiels li { padding: 4px 0; border-bottom: 1px dotted var(--filet); }
+.partiels .vu-code { margin: 4px 0 2px; }
 .mots { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
 .mots td { overflow-wrap: anywhere; }
 .mots th { font-family: var(--code); font-weight: 400; color: var(--encre-pale); width: 3.2em; text-align: right; padding: 2px 8px 2px 0; vertical-align: top; }

@@ -67,8 +67,10 @@ PyGhidra n'est pas nécessaire pour ces scripts ; il est décrit en annexe.
 Syntaxe tirée de `support/analyzeHeadlessREADME.md` :
 
 - `-postScript` prend un **nom** de script, sans chemin, et se répète pour chaque script ;
-- `-scriptPath` prend des chemins séparés par `;`, entre guillemets ;
+- `-scriptPath` prend des chemins séparés par `;`, entre guillemets. Sous WSL, `wsl.exe -- …` passe la ligne à un shell : un `;` sans apostrophes autour de l'argument coupe la commande, Ghidra importe et aucun script ne tourne, sans erreur (relevé le 2026-10-14 sur boot9) ;
 - `-loader-baseAddr` n'existe qu'avec `-loader BinaryLoader`.
+
+Pour les binaires du carnet, cette ligne est construite par `run_headless` dans `outils/ghidra_direct.py` (chaque argument protégé pour le shell de WSL) : `ghidra_direct.py` pour un module, `ghidra_raw.py` pour une image brute ou un ELF déjà construit (boot9, boot11, kernel11, kernel9, Process9 ; voir `REA.md`, partie 4 ter).
 
 Le projet ne doit pas être ouvert dans l'interface pendant ce temps.
 

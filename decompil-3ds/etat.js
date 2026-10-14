@@ -3,8 +3,8 @@ window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
  "objectif": "Faire tourner Pokémon X nativement sur PC, sans émulateur.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-10-13",
- "prochaine_action": "Onze fiches de modules sont faites (fiches/README.md). Suite possible, dans l'ordre d'utilité : ranger dans outils/ la méthode Thumb (Ghidra direct, émulation des aiguillages) aujourd'hui éparpillée dans local/analyse/fs, cfg et ptm ; corriger la Carte des services sur les écarts relevés ; lire le corps des commandes que Pokémon X appelle vraiment (fs:USER, APT, gsp::Gpu, dsp::DSP, cfg:u, hid:USER) plutôt que tout ; puis kernel11, Process9, boot9 et boot11, qui ne sont pas des modules. À relire dans Ghidra par l'utilisateur : les sections « interprété » des fiches.",
+ "mise_a_jour": "2026-10-14",
+ "prochaine_action": "Le jeu tourne jusqu'au terrain au banc d'essai, sans image. Suite au choix : exécuter les listes PICA et les transferts vers l'écran pour voir la première image (banc/README.md, « L'image ») ; ou commencer la recompilation de l'ARM pour remplacer unicorn ; ou commit du jalon.",
  "fonctions": {
   "total": null,
   "identifiees": 0,
@@ -204,7 +204,11 @@ window.ETAT = {
    "taches": [
     {
      "t": "Lister tous les services que le jeu appelle",
-     "fait": false
+     "fait": true
+    },
+    {
+     "t": "Banc d'essai (banc/) : le code du jeu sous unicorn, la couche système en Python d'après les contrats, jusqu'au terrain",
+     "fait": true
     },
     {
      "t": "Choisir la voie : recompilation statique de l'ARM11 ou décompilation",
@@ -428,6 +432,66 @@ window.ETAT = {
   {
    "date": "2026-10-13",
    "texte": "Le Thumb est la limite de la méthode : fs, cfg (641 fonctions sur 686) et ptm (746 sur 813) sont presque entièrement en Thumb, REA ne sait donner en graine que de l'ARM, et prescan.py y annonçait « aucune fonction manquée » alors que les aiguillages eux-mêmes manquaient. Les trois agents ont lancé Ghidra directement sous WSL avec leurs scripts (local/analyse/<module>/ghidra/) et vérifié les aiguillages par émulation. prescan.py sonde maintenant la part de .text hors de toute fonction et avertit quand elle est forte sans fonction manquée (20 % dans ptm) ; l'enveloppe de SendSyncRequest n'est plus confondue avec une petite fonction d'envoi. Repassé sur sm, il y trouve sept fonctions d'initialisation de plus (117 fonctions, fiche mise à jour), dont celle qui prépare la table des services : 160 entrées de 20 octets, comme la fiche le disait. Écarts relevés avec la Carte des services du site, à corriger : en-têtes de cdc:HID et de cdc:DSP, une commande de mcu::HID mal nommée, deux en-têtes de mcu::RTC, services appelés manquants pour gsp (cfg:s) et dsp (ptm:s, cfg:s, ps:ps), huit commandes de cfg:i et deux de ptm:sysm absentes, quelques noms de commandes d'APT tronqués, pas de table pour les services de pxi."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "Ce que Pokémon X demande à la console, lu dans les chaînes du code de sa mise à jour : 34 services de la Carte y sont nommés. Huit des onze modules déjà en fiche en font partie (cfg, dsp, fs, gsp, hid, ns pour APT, ptm, sm). Treize modules sans fiche et pas encore dumpés sont nommés aussi : ro (ldr:ro), ac, boss, camera (cam:u, y2r:u), cecd, errdisp, friends, http, ir, mic, ndm, socket, ssl. Le plus important est ro : le code du jeu ne tient pas dans code.bin. Le romfs contient 134 modules chargés à la demande (fichiers .cro, 7,7 Mo en tout, dont DllField de 1,3 Mo et DllBattle de 1,0 Mo, plus .crr/static.crr), présents dans le jeu et dans sa mise à jour, que le module ro charge et relie par le service ldr:ro. Le code à lire fait donc près de 13 Mo et non 5,2, et un portage sur PC devra refaire ce chargeur. À dumper : le titre 0004013000003702 (ro)."
+  },
+  {
+   "date": "2026-10-13",
+   "texte": "La Carte des services est corrigée d'après les fiches, par un script de corrections (carte-des-services/corrections.js, rejouable, puisque le script d'origine n'est pas dans le dépôt). Défauts d'extraction corrigés : 208 noms de commandes tronqués, les neuf tables des services de pxi (218 lignes, sur six autres pages de 3dbrew), les descripteurs IPC de type 4 et 6. Divergences entre 3dbrew et le code de la console affichées côte à côte par un nouveau champ « vu dans le code », sans remplacer la valeur de 3dbrew : en-têtes de cdc:HID, cdc:DSP et mcu::RTC, usage de la commande 6 de mcu::HID, 29 liens module vers service que le code ouvre. La Carte passe de 3 569 à 4 053 commandes ; ses tests passent (29 139 vérifications). Les 83 requêtes PxiFS de la fiche de fs ont exactement les en-têtes de 3dbrew. Retour sur les fiches : 13 commandes notées « pas dans 3dbrew » y sont en fait, avec un en-tête incomplet ; les fiches de cfg, ptm et hid sont corrigées. Les quatre en-têtes de cfg:i complétés dans la Carte ne reposent que sur l'émulation de l'aiguillage (le code Thumb ne les contient pas en littéral)."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "La méthode Thumb est rangée dans outils/ : ghidra_direct.py <module> (Ghidra lancé directement sous WSL avec quatre scripts de outils/ghidra_scripts/ : graines Thumb, tables de switch imposées, noms posés après l'analyse, pseudo-code dans local/analyse/<module>/gh/) et emulate_dispatch.py <module> <adresse> (exécute un aiguillage pour chaque numéro de commande avec unicorn, installé dans local/pylib/). Preuve refaite : les tables émulées redonnent les 239 lignes des fiches de cfg (115), ptm (100) et hid (24), sans une différence ; ptm retrouve ses 813 fonctions, cfg 689 pour 686 dans la fiche (trois vraies fonctions que rien ne référence). Sur fs, 1 996 fonctions pour 1 995 : la liste d'origine comptait trois fausses fonctions nées de constantes prises pour des pointeurs Thumb et trois étiquettes de cas, et en manquait sept. Limites : une seule variante de l'aide de switch connue, des avertissements de table de saut restent dans le pseudo-code (les tables sûres viennent de l'émulation), l'émulation ne suit que le chemin « mémoire à zéro », peu essayé sur les modules ARM et pas sur loader."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Inventaire de ce que Pokémon X peut demander à la console (fiches/pokemon-x-services.md et .tsv, statique) : le code de la mise à jour contient 408 instructions svc 0x32, toutes en ARM, dans 408 fonctions d'envoi distinctes, une commande par fonction. Il demande 23 noms de services par GetServiceHandle, plus les ports srv: et err:f. Par service : fs:USER 29 commandes (plus 10 sur un fichier ouvert et 4 sur un dossier), APT:U 29, gsp::Gpu 14, dsp::DSP 13, hid:USER 7, cfg:u 4, ldr:ro 4, ptm:u 1, srv: 5 ; le reste est du réseau et des accessoires (boss, cam, http, frd, y2r, nwm::UDS, soc, cecd, ac, ir, mic, ndm, ssl). Aucune fonction d'envoi n'est sans appelant. Démarrage : entry ouvre srv:, APT:U et ndm:u ; main ouvre cfg:u et ptm:u ; la fonction d'installation 0x107cbc ouvre fs:USER, hid:USER, gsp::Gpu, dsp::DSP, frd:u, boss:U puis ldr:ro (Initialize, LoadCRR) ; la boucle principale est à 0x1066ec. Correction de la note précédente : il y a 133 fichiers .cro et un static.crs, pas 134 .cro. Les .cro ne contiennent aucun appel système : tout passe par le code principal, auquel ils sont reliés par adresse (4 958 imports de code). Leur format est décrit, les empreintes SHA-256 de leurs en-têtes et de static.crr sont recalculées et retrouvées. Écart à trancher : GetExtDataBlockSize, 0x08540010 pour la Carte et la fiche de fs, 0x08540100 dans le jeu."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Lecture détaillée des commandes que Pokémon X envoie, un « contrat » par service, lu des deux côtés (la fonction d'envoi du jeu, la fonction du module qui reçoit). Arrivés : fiches/contrat-gsp.md (14 commandes et les 6 de la file graphique lues des deux côtés ; la séquence jusqu'à la première image ; le jeu n'envoie jamais SetBufferSwap et annonce ses images par la mémoire partagée) et fiches/contrat-apt.md (27 commandes sur 29 lues des deux côtés ; le dialogue de démarrage minimal en neuf réponses, dont la police partagée, la plus lourde ; les numéros de notification de la fiche de ns confirmés par le code du jeu). À reporter : l'ordre du démarrage d'APT dans pokemon-x-services.md (Enable, NotifyToWait, GlanceParameter, ReceiveParameter, AppletUtility 7 puis 4) et la séquence du bouton HOME dans ns.md. Noms de fonctions proposés par les agents, gardés dans local/analyse/contrat-*/noms-proposes*.tsv en attendant la décision sur pokemon-x.noms.tsv. En cours au moment de la pause : contrat-fs.md, contrat-dsp.md, contrat-petits-services.md."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Les trois derniers contrats sont arrivés pendant la pause, vérifiés sans rien enchaîner. contrat-dsp.md : 13 commandes lues des deux côtés et rejouées dans un émulateur ; le son démarre par LoadComponent de sound/dspaudio.cdc, un échange sur le tuyau 2 et la lecture de 15 adresses (la liste est telle quelle dans le composant, à la position 0x408), puis la boucle de son n'envoie plus aucune commande. contrat-petits-services.md : 17 commandes sur 22 lues des deux côtés ; le jeu demande 16 blocs de configuration (15 sur une console du commerce) et jamais le modèle ; il lit quatre sections de la mémoire de hid ; un gestionnaire de modules charge les .cro par leur nom, écran par écran, et c'est le jeu qui recopie .data et efface .bss après LoadExeCRO. contrat-fs.md : 43 commandes lues des deux côtés pour le message ; le jeu ouvre le romfs entier comme un seul fichier (OpenFileDirectly, archive 0x00000003, chemin binaire de 12 octets à zéro) et cherche les noms lui-même ; dans fs, cette archive est l'archive 0x2345678E de Process9, et fs lit lui-même l'en-tête IVFC et les niveaux. GetExtDataBlockSize : le module ne vérifie que le numéro 0x0854, les deux en-têtes passent. Noms de fonctions proposés par les cinq agents, à fusionner : local/analyse/contrat-*/noms-proposes*.tsv et la fin de chaque contrat."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Le module ro est dumpé et rapatrié pendant la pause, sans rien relancer d'autre : local/dump/systeme/ro.cxi (titre 0004013000003702, 26 624 octets, déchiffré, SHA-256 d289f3e9…1a09eaac), extrait dans local/extrait/ro/ avec son code.elf en trois segments (45 056 octets de code). On y lit ldr:ro, CRO0, CRR0, fs:USER et ps:ps ; aucun pointeur impair vers le code, donc a priori de l'ARM, que la méthode ordinaire lit bien. Sa fiche et le chargeur de .cro restent à faire."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Décisions de l'utilisateur à la reprise : le lot en cours ne sera commité et poussé qu'à la fin d'un gros jalon ; les 285 noms C++ tirés de static.crs restent dans fiches/pokemon-x.noms.tsv ; la correction du guichet de la Carte des services (app.js) est gardée ; ro est dumpé et récupéré (déjà extrait). Lancés ensemble : l'intégration des contrats dans les fiches, la fiche de ro, un chargeur de .cro sur PC, et les binaires qui ne sont pas des modules (kernel11, Process9, boot9 et boot11), par une méthode d'image brute."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Les cinq contrats sont reportés dans les fiches (pokemon-x-services, ns, fs, cfg, hid, et aussi gsp, dsp, ptm, sm) ; 172 noms ajoutés au jeu (pokemon-x.noms.tsv, 920 lignes) et 11 à ns ; fiches/README.md présente l'inventaire et les contrats. Recoupé dans les octets : le repli de cfg sur le bit 0 de 0x1FF80014 (0x10ef6c), l'ordre des axes de la commande 22 de hid (0x103580-0x1035cc), les svc 0x18 du son, la comparaison à 0x2A07. La Carte des services reçoit 27 notes « vu dans le code » de plus (corrections.js, tests verts). emulate_dispatch.py corrigé : un en-tête lu dans une comparaison était jeté quand le refus passait par les mêmes adresses (Initialize de fs) ; les quatorze tables de cfg, ptm, hid et fs ne changent qu'aux deux lignes visées."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Fiche de ro (fiches/ro.md, 123 fonctions nommées sur 180) : 9 commandes de ldr:ro, LoadExeCRO en 15 étapes, relocations 0, 2, 3, 10, 28, 29, 38, 42 en formules (comparées à l'exécution du code de ro), liaison dans les deux sens ; ro n'appelle ni OnLoad ni OnExit et ne touche ni .data ni .bss, ce que fait le jeu. Chargeur de .cro sur PC (outils/cro_loader.py) : 133 modules et static.crs liés sans import manquant, 536 empreintes justes, et un résultat identique octet pour octet à celui du code de ro exécuté sur cinq modules (code, .data, 22 mots du code principal). 3dbrew se trompe sur l'ordre des cases de la table des modules importés (début puis nombre)."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Binaires qui ne sont pas des modules, lus comme images brutes : fiches/kernel11.md (noyau 2.58-0, table des 126 appels système à 0xFFF0230C, 20 classes d'objets, IPC et ControlMemory pas à pas, 293 appels des fiches recoupés sans écart), fiches/process9.md (section ARM9 déjà déchiffrée par GodMode9, kernel9 et ses 40 appels, 222 commandes PXI sur six services, le romfs : premier octet du chemin 0 pour le jeu de base, 5 pour la mise à jour), fiches/boot9-boot11.md (démarrage jusqu'au saut dans le FIRM, ce que le FIRM trouve en mémoire ; aucune clé ni octet de la moitié protégée). Outils : rea_bridge garde le journal de REA et répare les chemins réécrits par Git Bash, ApplyNames accepte un genre data, ghidra_direct reconnaît l'aide de switch de boot9. En cours : ranger dans outils/ la méthode image brute des trois agents."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "La méthode image brute est rangée : outils/ghidra_raw.py (cibles boot9, boot11, kernel11, kernel9, process9, arm9loader, réglées dans outils/raw_targets.toml), outils/firm.py (découpe native.firm, refait la carte de kernel11), outils/svc_check.py (13 sources recoupées avec le noyau). Relancées : kernel11, kernel9, Process9 et cfg redonnent les mêmes fonctions ; boot9 564 et boot11 227 au lieu de 572 et 229, parce que leur aide de switch est maintenant reconnue (les cas écartés n'étaient pas nommés)."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "La NAND est lue sur PC (outils/nand.py, avec pyctr dans local/pylib/ ; l'outil ne contient aucune clé, il les tire de boot9.bin et de la sauvegarde essentielle rangée par GodMode9 dans nand.bin). Les 8 modules dumpés par GodMode9 en ressortent identiques octet pour octet, et les deux sections ARM11 du NATIVE_FIRM de la CTRNAND sont celles de native.firm. Extraits : 59 modules (errdisp, ndm, ac, friends, boss, cecd, http, ssl, socket, ir, mic, camera, mcu...), 22 applets, 28 archives, dont la police partagée (local/extrait/police-partagee/cbf_std.bcfnt) et le fichier config de cfg. Inventaire : local/extrait/inventaire-nand.txt."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Sauvegarde de Pokémon X rapatriée par ftpd (console à 172.30.134.53:5000 ce jour-là) dans local/dump/sd/, et déchiffrée sur PC par la nouvelle commande « nand.py sd » : 00000001.sav (1 Mo) est un DISA dont le seul fichier, main, fait 0x65600 octets ; ses 55 blocs ont tous leur CRC16-CCITT juste. Les données étendues (extdata 0000055d) ne contiennent que l'index VSXE et l'icône, l'index nommant aussi boss, btvideo, hgmail, pss_fr, reg, trhouse et user. Piège : le movable.sed de la sauvegarde essentielle de GodMode9 est plus ancien que celui de la CTRNAND et ne donne pas l'id0 de la carte ; seul celui de la CTRNAND convient. Rangé dans local/extrait/sd-0004000000055d00/."
+  },
+  {
+   "date": "2026-10-14",
+   "texte": "Premier démarrage de Pokémon X sur PC, au banc d'essai (banc/run.py) : le processeur est émulé par unicorn, échafaudage isolé dans cpu_unicorn.py ; noyau (41 appels système, fils, ordonnanceur, horloge propre), IPC et services (srv:, APT:U, fs:USER, gsp::Gpu, dsp::DSP, hid, cfg, ptm, ldr:ro par outils/cro_loader.py) sont écrits en Python d'après les fiches. En 25 s de console simulée (180 s de PC) : P1 à 0,8 ms, P2 à 1,0 ms, P3 à 86 ms (DllLangSelect), P4 à 102 ms ; puis DllTitle, DllBackGround, DllSequence, DllStartMenu à 3,3 s et DllField à 5,6 s, avec la vraie sauvegarde lue. 10 792 listes PICA envoyées et comptées, pas dessinées : aucune image encore. Seules erreurs : l'archive 0x2345678A (contenu d'un autre titre) et les données supplémentaires 0x6, que le jeu tolère. Aucun écart relevé avec les fiches. Sorties dans local/analyse/banc/ ; le banc est lancé par outils/tests.py."
   }
  ],
  "dump": {

@@ -306,7 +306,9 @@ C'est le chemin que suit un jeu pour faire dessiner une image. Il commence par A
 5. **La mémoire partagée.** `get_shared_memory_handle` (`0x10bd94`) rend la poignée du bloc.
 6. **La réponse.** En-tête `0x00130082`, le résultat, le numéro de client, un mot à zéro, la poignée de la mémoire partagée. Le résultat vaut `0x2A07` la toute première fois depuis le démarrage de `gsp` (un octet à `0x110421` s'en souvient), 0 ensuite.
 
-Le jeu projette alors la page chez lui, écrit une commande d'identifiant 1 à `0x800 + n × 0x200 + 0x20` (adresse et taille de sa liste de commandes graphiques), et met 1 dans l'octet `+0x01` de sa file.
+Ce que le jeu fait de `0x2A07`, la lecture du jeu l'a dit depuis ([contrat de `gsp::Gpu`](contrat-gsp.md), partie 2) : il compare le résultat à `0x2A07` (à `0x164394` dans le jeu, relu pour cette fiche) et, s'il est égal, note qu'il est le premier inscrit. Il programme alors lui-même les écrans, par 64 WriteHWRegs, 4 WriteHWRegsWithMask et un transfert d'essai. Sur une console, le menu s'inscrit avant tout jeu, qui reçoit donc 0 (interprété) ; un portage qui rend 0 s'épargne ces 68 écritures.
+
+Le jeu projette alors la page chez lui et range une commande dans sa file. Cette fiche disait qu'il « écrit une commande d'identifiant 1 à `0x800 + n × 0x200 + 0x20` et met 1 dans l'octet `+0x01` » : c'est le cas d'une file vide, pas la règle. Le contrat, et l'assembleur de `gx_queue_push` (`0x1730ec` dans le jeu) relu pour cette fiche, donnent la règle : le jeu écrit à la case (rang + nombre) modulo 15, c'est-à-dire à `0x20 + case × 0x20` dans sa file, augmente le nombre de 1 par une écriture atomique, et n'envoie TriggerCmdReqQueue **que quand le nombre vient de passer de 0 à 1**. Et la commande 1 est presque toujours précédée d'une commande 5 (vidage de cache) sur la même liste, le jeu laissant à zéro le mot 7 de la commande 1.
 
 **Seconde commande : `0x000C0000`.** Elle n'a aucun paramètre.
 
@@ -588,6 +590,9 @@ Les verrous (`mutex_lock` à `0x108c4c`, `mutex_unlock` à `0x108bd4`) et les é
 - Les services appelés : l'exheader autorise six noms, et ce sont les six que le code ouvre. Les 29 fonctions de requête correspondent aux 29 appels à `SendSyncRequest`.
 - Les pages de registres : toutes les adresses relevées dans le code tombent dans les plages que l'exheader fait projeter.
 - Les 36 appels système sont dans la liste que l'exheader autorise.
+- Les 14 commandes de `gsp::Gpu` que Pokémon X envoie et les six commandes de file : la fonction du jeu qui écrit chaque mot, et la place où ce module le relit ([contrat de `gsp::Gpu`](contrat-gsp.md)). Les quatre adresses de zones que le jeu calcule à l'inscription, les sept mots d'une description de tampon d'écran et les octets d'interruption sont ceux des parties 5 et 8, vus de l'autre côté.
+- La façon dont le jeu remplit sa file (partie 7) : le contrat, et l'assembleur de `gx_queue_push` dans le jeu.
+- Le jeu n'envoie jamais SetBufferSwap : il annonce ses images par la mémoire partagée seulement. Le moment où ce module prend une description, à chaque fin d'image (`display_on_vblank`), est confirmé contre le résumé de 3dbrew qui le plaçait après un transfert.
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Le sens des octets d'en-tête des trois zones de la mémoire partagée. Le code montre ce qu'il lit et écrit ; les mots « arrêtée », « perdue », « nouvelle image » sont les miens.
@@ -595,7 +600,8 @@ Les verrous (`mutex_lock` à `0x108c4c`, `mutex_unlock` à `0x108bd4`) et les é
 - Le sens des registres. Le tableau de la partie 9 dit ce que le code écrit, pas ce que le matériel en fait. 3dbrew décrit ces registres par leur adresse physique ; je n'ai pas fait le recoupement registre par registre.
 - La seconde image (`0x1EF00494`, `0x1EF00498`) vue comme celle de l'autre œil : le code ne l'écrit que pour le premier écran, celui pour lequel il surveille aussi le curseur 3D (`0x1FF81080`).
 - Le sens des notifications : `0x104` et `0x105` pour la veille et le réveil, `0x213` et `0x214` pour le couvercle. Elles font ici ce qu'elles font dans `hid`.
-- Le sens des codes d'erreur : `0xD8202A06` (pas le droit), `0xD8A02A05` (fil non inscrit), `0xE0C02BF4` (commande vide), `0xC8402BF0` (occupé), `0x2A07` (première inscription).
+- Le sens des codes d'erreur : `0xD8202A06` (pas le droit), `0xD8A02A05` (fil non inscrit), `0xE0C02BF4` (commande vide), `0xC8402BF0` (occupé), `0x2A07` (première inscription). Pour `0x2A07`, le jeu en fait bien cet usage (partie 7) ; que le jeu ne le reçoive jamais sur une console suppose que le menu s'inscrit toujours avant lui.
+- L'octet 3 du premier mot d'une commande de file : quand il n'est pas nul, le fil de la file se rendort et réessaie, `0xC8402BF0` ne sort jamais vers le client. 3dbrew dit que la commande échoue. Le jeu y met toujours 1 pour les commandes 0 à 4 (contrat, partie 4).
 - Les priorités des fils. Le code passe des constantes codées (`0x6C8DA510` pour une session) qu'une addition ramène à `0x10`.
 - Le rôle de `SetGpuProt` : `rights_grant` lui passe 0 ou 1 selon une information demandée au noyau sur le processus du jeu (type `0x13`).
 - Les 22 messages du fil des écrans. Je n'ai suivi que ceux que les commandes de `gsp::Lcd` et les notifications envoient.

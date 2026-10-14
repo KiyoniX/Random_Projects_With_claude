@@ -35,9 +35,32 @@ def to_wsl_path(path):
     return '/mnt/' + path[0].lower() + path[2:].replace('\\', '/')
 
 
+def wsl_env_value(assignment):
+    """VAR=valeur avec un chemin Windows -> VAR=/mnt/... .
+
+    Lancé depuis Git Bash, « VAR=/mnt/c/... » arrive réécrit par MSYS en « VAR=C:/Program Files/Git/mnt/c/... » : REA
+    refuse alors le chemin (« must be absolute ») et s'arrête. On reprend la partie /mnt/..., et un chemin Windows
+    ordinaire (C:\\... ou C:/...) est converti."""
+    name, sep, value = assignment.partition('=')
+    if not sep or len(value) < 3 or value[1] != ':' or value[2] not in '\\/':
+        return assignment
+    plain = value.replace('\\', '/')
+    if '/mnt/' in plain:
+        return name + '=' + plain[plain.index('/mnt/'):]
+    return name + '=' + to_wsl_path(value)
+
+
 def serve(port, extra_env):
+    extra_env = [wsl_env_value(item) for item in extra_env]
     command = ['wsl.exe', '-d', 'Ubuntu', '--', 'env'] + BASE_ENV + extra_env + ['rea', 'mcp']
-    server = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    # Ce que REA écrit sur sa sortie d'erreur est gardé : sans cela, un REA qui s'arrête au démarrage ne laisse
+    # qu'un « OSError » du pont, sans raison.
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'local', 'analyse',
+                            'rea_bridge_%d.log' % port)
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    log = open(log_path, 'wb')
+    print('journal de REA :', log_path, flush=True)
+    server = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=log)
     replies, write_lock, reply_arrived = {}, threading.Lock(), threading.Condition()
     next_id = [0]
 
@@ -54,8 +77,14 @@ def serve(port, extra_env):
 
     def send(message):
         with write_lock:
-            server.stdin.write((json.dumps(message) + '\n').encode('utf-8'))
-            server.stdin.flush()
+            try:
+                server.stdin.write((json.dumps(message) + '\n').encode('utf-8'))
+                server.stdin.flush()
+            except OSError:
+                log.flush()
+                with open(log_path, 'rb') as f:
+                    tail = f.read()[-2000:].decode('utf-8', 'replace')
+                sys.exit('REA s\'est arrêté (code %s). Fin de son journal :\n%s' % (server.poll(), tail))
 
     def request(method, params, timeout=1800):
         with write_lock:

@@ -93,7 +93,7 @@ La colonne « Service » dit ce que le code vérifie : « SPVR » veut dire que 
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | `0x00010200` | CallibrateTouch | `hid_CalibrateTouch` | `0x10734c` | SPVR | `0x00010040` |
 | 2 | `0x00020000` | UpdateTouchConfig | `hid_UpdateTouchConfig` | `0x1072e4` | SPVR | `0x00020040` |
-| 3 | pas dans 3dbrew | sans nom | `hid_cmd0003` | `0x107340` | SPVR | `0x00030040` |
+| 3 | en-tête incomplet sur 3dbrew | sans nom | `hid_cmd0003` | `0x107340` | SPVR | `0x00030040` |
 | 4 | `0x000400C0` | sans nom | `hid_cmd0004` | `0x1079dc` | SPVR | `0x00040040` |
 | 5 | `0x00050000` | sans nom | `hid_cmd0005` | `0x107874` | SPVR | `0x00050040` |
 | 6 | `0x00060000` | sans nom | `hid_cmd0006` | `0x1078fc` | SPVR | `0x00060040` |
@@ -105,8 +105,8 @@ La colonne « Service » dit ce que le code vérifie : « SPVR » veut dire que 
 | 12 | `0x000C0040` | StopAnalogStickCalibration | dans l'aiguillage | `0x103340` | SPVR | `0x000C0040` |
 | 13 | `0x000D01C0` | SetAnalogStickCalibrateParam | dans l'aiguillage | `0x103398` | SPVR | `0x000D0040` |
 | 14 | `0x000E0000` | GetAnalogStickCalibrateParam | `hid_GetAnalogStickCalibrateParam` | `0x107644` | SPVR | `0x000E0200` |
-| 15 | pas dans 3dbrew | sans nom | `hid_cmd000F` | `0x10715c` | SPVR | `0x000F0040` |
-| 16 | pas dans 3dbrew | sans nom | `hid_cmd0010` | `0x107138` | SPVR | `0x00100100` |
+| 15 | en-tête incomplet sur 3dbrew | sans nom | `hid_cmd000F` | `0x10715c` | SPVR | `0x000F0040` |
+| 16 | en-tête incomplet sur 3dbrew | sans nom | `hid_cmd0010` | `0x107138` | SPVR | `0x00100100` |
 | 17 | `0x00110000` | EnableAccelerometer | `hid_EnableAccelerometer` | `0x106908` | tous | `0x00110040` |
 | 18 | `0x00120000` | DisableAccelerometer | `hid_DisableAccelerometer` | `0x104780` | tous | `0x00120040` |
 | 19 | `0x00130000` | EnableGyroscopeLow | `hid_EnableGyroscopeLow` | `0x106800` | tous | `0x00130040` |
@@ -120,6 +120,7 @@ La colonne « Service » dit ce que le code vérifie : « SPVR » veut dire que 
 - `hid:USER` et `hid:QTM` n'ont donc droit qu'aux commandes 10 et 17 à 23, ce qui est exactement la liste que 3dbrew donne pour `hid:USER`. `hid:SPVR` a tout sauf la 24. `hid:NFC` a les mêmes que `hid:USER`, plus la 24.
 - Le nombre de paramètres lus par le code colle aux en-têtes de 3dbrew : 8 mots pour la commande 1, 3 pour la 4, 5 pour la 7, 1 pour la 12, 7 pour la 13.
 - La commande 21 ne calcule rien : elle rend la constante `0x41660000`, le nombre flottant 14,375.
+- La commande 22 ne rend pas l'étalonnage du gyroscope tel qu'il est gardé. `hid_GetGyroscopeLowCalibrateParam` recopie les neuf nombres de 16 bits de `0x10d12e` (pour chaque axe, le zéro puis deux valeurs de référence), mais l'aiguillage, de `0x103580` à `0x1035cc`, les range dans un autre ordre : le premier axe tel quel, puis **l'opposé** du zéro du troisième axe et ses deux valeurs, puis le deuxième axe. En numéros de nombres gardés : 0, 1, 2, −6, 7, 8, 3, 4, 5. Relevé par le [contrat des petits services](contrat-petits-services.md) et relu dans l'assembleur pour cette fiche ; c'est sans doute un changement de repère (interprété).
 - La commande 23 ne fait que transmettre la question à `mcu::HID`.
 - La commande 24 range un octet à `0x10c008`. Tant qu'il n'est pas nul, `update_pad_and_touch` efface les données de l'écran tactile. L'octet est remis à zéro quand la session `hid:NFC` se ferme.
 
@@ -163,7 +164,7 @@ C'est la commande qu'un jeu envoie en premier, et souvent la seule. Elle ne pren
 
 Les cinq signaux sont créés par `start_session_thread` à l'ouverture de la session, donc chaque client a les siens. Une session `hid:NFC` n'en reçoit pas : ses cinq emplacements restent à zéro.
 
-Le jeu range ensuite la mémoire partagée dans son propre espace d'adresses, attend un des signaux, et lit.
+Le jeu range ensuite la mémoire partagée dans son propre espace d'adresses et lit. Cette fiche disait qu'il « attend un des signaux » : c'est vrai d'un client en général, pas de Pokémon X. Le [contrat des petits services](contrat-petits-services.md) (partie 2) montre qu'il range les cinq signaux à l'ouverture et les referme à l'arrêt sans jamais attendre dessus : il lit la mémoire partagée à son propre rythme, et ne prend que la dernière entrée des boutons et du tactile. La bibliothèque `hid` du jeu (`0x1ecb00` à `0x1ef5e0`) ne contient aucun appel système d'attente : relu pour cette fiche, on n'y trouve que des `svc 0x23` (fermeture de poignée), `0x28` (lecture de l'horloge) et `0x32` (envoi de commande).
 
 ## Partie 5 : la mémoire partagée
 
@@ -201,6 +202,8 @@ Le total fait bien 0x2B0. Chaque section est un anneau : la fonction d'écriture
 | `+0x28` | les 8 entrées : boutons tenus, boutons qui viennent d'être pressés, boutons relâchés (4 octets chacun), puis X et Y du pad circulaire (2 octets chacun) |
 
 Les autres sections gardent à `+0x18` la dernière valeur brute du capteur. Une entrée tactile contient X, Y (2 octets chacun) et un octet « touché ». Une entrée d'accéléromètre ou de gyroscope contient trois valeurs de 2 octets.
+
+**Recoupé de l'autre côté.** Le [contrat des petits services](contrat-petits-services.md) (partie 2) a lu les quatre lecteurs de Pokémon X (`hid_read_pad_ring`, `hid_read_touch_ring`, `hid_read_accelerometer_ring`, `hid_read_gyroscope_ring`, de `0x2cd3ec` à `0x2cd8a8` dans le jeu). Ils retrouvent exactement ce tableau : les cinq décalages, les tailles d'en-tête, le nombre et la taille des entrées, et un numéro négatif qui veut dire « rien d'écrit », l'état que pose `reset_section_header`. Ils se servent de l'heure et du numéro de l'en-tête comme d'un numéro de tour, et recommencent leur copie si l'un des trois a changé pendant qu'ils lisaient : c'est ce qui tient lieu de verrou entre `hid` et le jeu. Aucun ne lit les champs propres à la section des boutons (`+0x18`, `+0x1C`, `+0x20`), et rien ne lit la section du pad de débogage.
 
 **Qui écrit l'état des boutons.** `update_pad_and_touch` (`0x1037d0`, 872 octets), toutes les 4 ms :
 
@@ -350,12 +353,16 @@ Les verrous du module (`lock_enter` à `0x105430`, `lock_leave` à `0x10533c`) r
 - Les services appelés : l'exheader autorise six noms (`gpio:HID`, `cdc:HID`, `mcu::HID`, `i2c::HID`, `cfg:s`, `ptm:s`), et ce sont les six que le code ouvre. Les 35 fonctions de requête correspondent aux 35 appels à `SendSyncRequest`.
 - Le registre `0x1EC46000` : lu dans `read_buttons`, et l'exheader demande justement au noyau de projeter cette page (descripteur `0xFFE1EC46`).
 - Les quatre sortes de fils : `svcCreateThread` n'est appelé qu'à un endroit, et les fonctions au-dessus n'ont en tout que quatre appels.
+- Les sept commandes de `hid:USER` que Pokémon X envoie (10, 17 à 22) : requête et réponse lues dans le jeu et dans l'aiguillage ([contrat des petits services](contrat-petits-services.md), partie 2). Les mots s'emboîtent ; la disposition de la mémoire partagée est la même vue des deux côtés (partie 5).
+- L'ordre dans lequel l'aiguillage rend l'étalonnage du gyroscope (commande 22) : le contrat, et l'assembleur de `0x103580` à `0x1035cc`.
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Le sens des notifications : `0x104` et `0x105` pour la veille et le réveil, `0x213` et `0x214` pour le couvercle. Depuis, la fiche de `ptm` confirme les deux premières (c'est `ptm` qui les publie, à l'entrée en veille et au réveil, et qui attend la réponse de chaque abonné) et le sens des deux autres (ouvert pour `0x213`, fermé pour `0x214`) ; ce n'est pas `ptm` qui publie ces deux-là, et la fiche de `ns` montre `ns` publier `0x214`. Le code montre seulement ce qu'il en fait ; ces numéros ne sont pas dans la Carte des services.
 - Le contenu des en-têtes de section (heure, numéro d'entrée) : Ghidra ne montre pas la valeur que rend `GetSystemTick`, seulement que l'appel est juste avant l'écriture.
 - Le nombre flottant de la section des boutons vu comme la position du curseur 3D.
 - Ce que font les neuf commandes sans nom, et la commande 24 de `hid:NFC`.
+- L'échange d'axes de la commande 22 vu comme un changement de repère entre le capteur et le client.
+- « Pokémon X n'attend sur aucun des cinq signaux » : aucun appel d'attente dans sa bibliothèque `hid` ; une attente ailleurs, à travers un lecteur, n'est pas exclue.
 - Les priorités des fils. Le code passe des constantes codées (`0x6C8DA514` pour une session) qu'une soustraction ramène à `0x14` ; `0x15` pour le fil de lecture, `0x0E` et `0x0F` pour les deux fils de la New 3DS, `0x0E` pour une session `hid:QTM`. Ces trois derniers sont demandés sur le processeur 3.
 - Le tas de `0x5000` ou `0x9000` octets vu comme la réserve des piles de fils, de `0x1000` octets chacune.
 - Le gyroscope : `gyroscope_init` (`0x101e08`) essaie trois modèles, sur les périphériques 10, 11 puis 9 du bus. Le pad de débogage est le périphérique 12.

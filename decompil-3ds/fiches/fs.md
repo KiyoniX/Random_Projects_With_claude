@@ -2,6 +2,8 @@
 
 `fs` est le guichet par lequel passent toutes les lectures et écritures de fichiers : le romfs d'un jeu, sa sauvegarde, la carte SD, la mémoire interne. Il ne touche lui-même à aucun support. Il vérifie les droits, tient le compte des archives et des fichiers ouverts, puis transmet le travail à Process9, le programme du processeur ARM9 qui tient la carte SD, la NAND et le chiffrement. Quand Pokémon X lit son romfs, la lecture traverse `fs` avant d'arriver à Process9.
 
+Transmettre n'est pas tout, pour deux archives au moins : `fs` lit lui-même l'en-tête `IVFC` du romfs et en contrôle les empreintes, et il gère l'arborescence d'une sauvegarde que Process9 ne voit que comme un seul gros fichier. C'est le [contrat des fichiers](contrat-fs.md) qui l'a établi, en lisant les 43 commandes que Pokémon X envoie des deux côtés ; la partie 6 en reprend l'essentiel.
+
 Fiche du 13 octobre 2026, produite avec REA, Ghidra sans interface et des scripts Python sur le module extrait du FIRM de la console. Les adresses sont celles du module chargé à `0x00100000`. Le module est gros : la fiche donne la carte d'ensemble et un chemin complet, pas tout.
 
 ## Carte d'identité
@@ -176,7 +178,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew ; la fonction, l'adress
 | `0x0851` | `0x08510242` | CreateExtSaveData | `fsuser_CreateExtSaveData` | `0x114b94` | `0x08510042` | oui |
 | `0x0852` | `0x08520100` | DeleteExtSaveData | `fsuser_DeleteExtSaveData` | `0x114ad8` | `0x08520040` |  |
 | `0x0853` | `0x08530142` | ReadExtSaveDataIcon | `fsuser_ReadExtSaveDataIcon` | `0x1149a8` | `0x08530082` | oui |
-| `0x0854` | `0x08540010` | GetExtDataBlockSize | `fsuser_GetExtDataBlockSize` | `0x114a40` | `0x08540180` |  |
+| `0x0854` | `0x08540100` | GetExtDataBlockSize | `fsuser_GetExtDataBlockSize` | `0x114a40` | `0x08540180` |  |
 | `0x0855` | `0x08550102` | EnumerateExtSaveData | `fsuser_EnumerateExtSaveData` | `0x1148f4` | `0x08550082` | oui |
 | `0x0856` | `0x08560240` | CreateSystemSaveData | `fsuser_CreateSystemSaveData` | `0x12921c` | `0x08560040` |  |
 | `0x0857` | `0x08570080` | DeleteSystemSaveData | `fsuser_DeleteSystemSaveData` | `0x1292c8` | `0x08570040` |  |
@@ -233,6 +235,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew ; la fonction, l'adress
 - Initialize et InitializeWithSdkVersion appellent la même fonction. Elle cherche le processus appelant dans le registre des programmes (partie 4), copie ses informations dans la session et lève le drapeau « initialisée » (`+0x188`). Sans ce drapeau, l'archive `0x00000003` est refusée.
 - SetPriority et GetPriority (`session_SetPriority`, `session_GetPriority`) sont les mêmes fonctions pour `fs:USER`, les fichiers et les dossiers : la priorité est au même endroit dans les trois objets, à `+0x04`.
 - Les fonctions de commande sont toutes en ARM.
+- **GetExtDataBlockSize : `0x08540100`, et non `0x08540010`.** Cette fiche donnait d'abord `0x08540010`, repris de 3dbrew comme toute la colonne. Pokémon X écrit `0x08540100` (sa fonction d'envoi, `0x1e2e38`), ce qui annonce quatre mots ordinaires : c'est la forme de la requête (une structure de 12 octets et un mot nul), et celle de DeleteExtSaveData (`0x08520100`), qui porte la même structure. L'aiguillage ne compare pas l'en-tête de cette commande, seulement son numéro : exécuté avec cinq en-têtes différents (`0x08540100`, `0x08540010`, `0x08540000`, `0x0854FFFF`, `0x08540042`), il appelle chaque fois `fsuser_GetExtDataBlockSize` et répond `0x08540180` ([contrat-fs](contrat-fs.md), partie 6). La table rendue par `emulate_dispatch.py` le dit aussi (« numéro » dans la colonne du contrôle). `0x08540010` est donc une coquille de la source, que la console accepte.
 
 **Et `fs:LDR` ?** Il n'a ni table ni fonction à lui : même objet, même aiguillage, mêmes 136 commandes. La seule différence est un octet de la session (`+0x189`), mis à 1 pour `fs:LDR`. Dans tout le module, il n'est lu qu'à un endroit, `archive_permission_check` (`0x10f024`) : c'est lui qui ouvre le droit à l'archive `0x2345678E` (partie 8).
 
@@ -292,7 +295,15 @@ OpenFile ne rend pas un numéro de fichier : il crée une paire de sessions (`sv
 - Les fonctions `session_SetPriority` et `session_GetPriority` sont celles de `fs:USER`.
 - La colonne « Contrôle » a le même sens qu'en partie 3.
 - La réponse de Read (fichier) : `0x08020082`, le résultat, le nombre d'octets lus, puis le descripteur du tampon rendu au client.
-- `fsfile_OpenSubFile` et `fsfile_OpenLinkFile` posent la même table de méthodes (`0x134338`) que `fsuser_OpenFile` : elles créent donc elles aussi une session de fichier. D'après 3dbrew, la première ouvre une fenêtre du même fichier ; cela colle au décalage de base et à la taille que la lecture applique (partie 6), mais leur corps n'a pas été lu.
+- `fsfile_OpenSubFile` et `fsfile_OpenLinkFile` posent la même table de méthodes (`0x134338`) que `fsuser_OpenFile` : elles créent donc elles aussi une session de fichier. D'après 3dbrew, la première ouvre une fenêtre du même fichier ; cela colle au décalage de base et à la taille que la lecture applique (partie 6). Leur corps a été lu depuis, par le [contrat des fichiers](contrat-fs.md), partie 4 : OpenSubFile refuse une session qui est déjà une fenêtre (`0xE0C046F8`), une position ou une taille négative, et une fenêtre qui dépasse la fin du fichier (`0xE0E046C1`) ; OpenLinkFile demande au gestionnaire un double du fichier (méthode `+0x4C` de l'archive d'origine) et rend une session sur le fichier entier, avec le même mode d'ouverture.
+
+Ce que le contrat des fichiers a lu en plus dans ces aiguillages, en suivant les commandes de Pokémon X :
+
+- **Le mode d'ouverture** (octet `+0x09` de la session) n'est contrôlé que si son bit 3 est levé : Read est refusée (`0xD9004676`) quand le bit 0 est à 0 et le bit 3 à 1, Write et SetSize quand le bit 1 est à 0 et le bit 3 à 1, GetAvailable quand les bits 0 et 3 sont tous deux à 0. Un fichier ouvert sans le bit 3 se lit et s'écrit quel que soit son mode. Lu dans l'assembleur des quatre fonctions.
+- **Les tailles ne sont jamais prises dans les mots ordinaires.** Read, Write, la lecture d'un dossier et les chemins de `fs:USER` portent un mot « taille » que l'aiguillage ne lit pas : la taille vient du descripteur du tampon. Pour la lecture d'un dossier, le nombre d'entrées est recalculé en divisant la taille du tampon par `0x228`.
+- **Write a une option** (mot 4). Si son bit 24 est levé, elle est passée avec les données ; sinon les données sont écrites sans elle, puis un second appel de taille 0 la porte, et c'est lui qui force l'écriture sur le support. Le jeu s'en sert comme d'un « vider » : un Write de taille 0 et d'option `0x10001`.
+- **GetAvailable lit réellement les données**, par morceaux de `0x10000` octets au plus, jusqu'à la taille demandée ou à une lecture vide : pour un romfs, toute la tranche passe par le contrôle des empreintes.
+- **Un booléen de réponse est écrit sur un seul octet** ; les trois autres gardent ce que contenait la requête.
 
 ## Partie 6 : ouvrir un fichier et le lire, pas à pas
 
@@ -339,7 +350,16 @@ La réponse porte le résultat au mot 1 et le nombre d'octets lus au mot 2.
 
 **Par quel canal ?** `guard_acquire` appelle la méthode `+0x00` de l'objet « canaux », `pxi_acquire_session` (`0x10c574`). Elle lit la priorité de la commande en cours, rangée dans le stockage local par `server_run_request` (partie 2), et choisit : `PxiFSR` pour `-16`, `PxiFSB` pour `8` et `16`, `PxiFS0` ou `PxiFS1` pour le reste. Une session neuve a la priorité `0` : un jeu qui n'a jamais appelé SetPriority lit donc par `PxiFS0` ou `PxiFS1`, ou par `PxiFSB` quand les deux sont pris.
 
-**Et le romfs de Pokémon X ?** L'archive `0x00000003` n'est pas ouverte directement chez Process9. `open_self_ncch_archive` (`0x10d2a4`) fabrique un objet intermédiaire de `0x58` octets (table de méthodes `0x135610`) posé sur une archive de Process9. Sa méthode d'ouverture (`0x11ec5c`, puis `0x10cd44`) exige un chemin binaire de 12 octets et appelle à son tour la méthode `+0x0C` de l'archive du dessous. Le chemin ci-dessus reste donc vrai, avec un étage de plus dont le détail n'a pas été lu.
+**Et le romfs de Pokémon X ?** L'archive `0x00000003` n'est pas ouverte directement chez Process9. `open_self_ncch_archive` (`0x10d2a4`) fabrique un objet intermédiaire de `0x58` octets (table de méthodes `0x135610`) posé sur une archive de Process9. Sa méthode d'ouverture (`0x11ec5c`, puis `0x10cd44`) exige un chemin binaire de 12 octets et appelle à son tour la méthode `+0x0C` de l'archive du dessous. Le chemin ci-dessus reste donc vrai, avec un étage de plus.
+
+Cet étage a été lu par le [contrat des fichiers](contrat-fs.md), partie 2, et il fait plus qu'on ne le croyait :
+
+1. **L'archive du dessous est `0x2345678E`**, ouverte par `0x119384` puis `pxi_open_archive` avec un chemin binaire de 8 octets : la poignée de programme que `pm` a donnée à `fs` pour ce jeu, recopiée dans la session par Initialize (à `+0x1C0`). Sans Initialize, pas de poignée, et l'archive est refusée. La constante `0x2345678E` est bien dans le module, à `0x1193b4`, au milieu de `0x119384`. Pour un client, cette archive reste réservée à `fs:LDR` (partie 8) ; `fs` l'utilise pour lui-même.
+2. **Le premier octet du chemin de fichier choisit ce qu'on ouvre** (`0x10cd04`, table de saut décodée à la main) : 0 et 5, un lecteur de romfs ; 2, un petit lecteur (le jeu s'en sert pour l'icône de l'exefs) ; 1 est refusé par `0xD9004676`, 3 et 6 et plus par `0xE0E046BE`, 4 par `0xF9604784`, un code qui arrête le module. Pokémon X envoie 0 (`rom:`), 5 (`rom2:`) et 2.
+3. `fs` envoie à Process9 une requête de contrôle sur l'archive, `PxiArchive_Control` avec l'action `0x789D` (en-tête `0x00560102`), les 12 octets du chemin en entrée et 16 en sortie ; il en tire 16 autres octets par une table à lui (`0x119540`), puis ouvre le fichier chez Process9 (`PXIFS_OpenFile`) avec un chemin de `0x1C` octets : les 12 du jeu et ces 16-là.
+4. **Le lecteur de romfs** (objet de `0x1C4` octets, table `0x134f58`) lit à sa création `0x5C` octets à la position 0 et exige la marque `IVFC` (la constante est dans le module à `0x107710` et `0x107890`) ; sinon `0xC8A04554`. Il monte trois étages, un par niveau du romfs, chacun avec son cache, et n'expose que **le dernier niveau** : la position 0 du fichier vu par le jeu est l'en-tête de `0x28` octets de ce niveau. Les empreintes de chaque bloc sont contrôlées dans `fs`, qui a sa propre fonction SHA-256 ; une lecture qui rend `0xD9004586` est refaite une fois.
+
+Process9 ne fait donc que déchiffrer et rendre des blocs bruts. Une lecture du jeu peut donner plusieurs requêtes `PXIFS_ReadFile` (blocs d'empreintes et de données), ou aucune si tout est en cache. La sauvegarde (archive `0x00000004`) suit le même principe : `0x10e03c` rouvre l'archive `0x2345678E`, y ouvre un seul fichier dont le chemin commence par 3, en lecture et écriture, et pose dessus un objet de `0xCDC` octets (table `0x1356a4`) qui tient l'arborescence. Cet objet n'est pas lu.
 
 ## Partie 7 : les canaux vers Process9
 
@@ -481,8 +501,8 @@ Les deux sont en Thumb et trient par un arbre de comparaisons et des tables de s
 
 | Identifiant | Nom (de mémoire) | Chemin d'archive exigé | Ouverte par | Adresse |
 | --- | --- | --- | --- | --- |
-| `0x00000003` | le programme lui-même (romfs, exefs) | vide | `open_self_ncch_archive`, si la session est initialisée | `0x10d2a4` |
-| `0x00000004` | sauvegarde du programme | vide | fonction non nommée | `0x10e03c` |
+| `0x00000003` | le programme lui-même (romfs, exefs) | vide | `open_self_ncch_archive`, si la session est initialisée ; posée sur l'archive `0x2345678E` (partie 6) | `0x10d2a4` |
+| `0x00000004` | sauvegarde du programme | vide | fonction non nommée ; un seul fichier de l'archive `0x2345678E` (partie 6) | `0x10e03c` |
 | `0x00000005` | | | accepté au premier tri, inconnu au second (`0xC8804464`) | |
 | `0x00000006` | données étendues | binaire, 12 octets | fonction non nommée | `0x119b08` |
 | `0x00000007` | données étendues partagées | binaire, 12 octets | fonction non nommée | `0x10fd80` |
@@ -606,6 +626,9 @@ Les trois appels « Dma » servent à copier des données d'un processus à l'au
 - Les méthodes des objets `PxiArchive`, `PxiFile` et `PxiDirectory` : la case de la table lue dans les données, et de l'autre côté la case que la commande de `fs:USER` du même nom finit par appeler (`+0x08` pour une lecture, `+0x0C` pour une écriture, `+0x20` pour DeleteFile, et ainsi de suite).
 - Les identifiants d'archive que `fsmgr_open_archive` sait ouvrir : l'émulation et les trois tables de saut décodées à la main donnent la même liste. La liste de `check_archive_access` ne vient que de l'émulation ; elle contient les mêmes identifiants, plus `0x00000005`.
 - `fs:LDR` partage tout avec `fs:USER` : un seul appel à `fsuser_session_init` avec le type en paramètre, et l'octet `+0x189` n'est lu que dans `archive_permission_check`.
+- Les 43 commandes que Pokémon X envoie (29 de `fs:USER`, 10 d'un fichier, 4 d'un dossier) : la requête fabriquée par le jeu et la réponse écrite par l'aiguillage, mot par mot, chaque côté exécuté dans un émulateur. Le corps de la fonction de commande est lu en entier pour 36 d'entre elles ([contrat-fs](contrat-fs.md)).
+- GetExtDataBlockSize : l'aiguillage ne regarde que le numéro `0x0854` (exécution avec cinq en-têtes dans le contrat, et colonne « numéro » de la table d'`emulate_dispatch.py`). L'en-tête de la requête est `0x08540100`, celui que le jeu écrit (partie 3).
+- L'archive `0x00000003` posée sur `0x2345678E`, et la marque `IVFC` exigée par le lecteur de romfs : lues par le contrat, et les deux constantes retrouvées dans le module (`0x1193b4`, `0x107710`, `0x107890`).
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Tout le fonctionnement de `server_run_request` : la limite de trois commandes à la fois, la file d'attente, le changement de priorité du fil.
@@ -613,13 +636,15 @@ Les trois appels « Dma » servent à copier des données d'un processus à l'au
 - Le choix du canal dans `pxi_acquire_session`, et le sens des valeurs `-16`, `0` et `16` vues comme « temps réel », « normal » et « arrière-plan ». Le nom `PXIFS_SetPriority` vient de là.
 - Le découpage de la lecture en morceaux dans `PxiFile_Read` et le traitement de l'alignement dans `file_session_read`.
 - Le rôle de `session_close_archive` à la fin d'OpenFileDirectly, et le fait que `pxi_open_archive` réutilise une archive déjà ouverte.
-- L'étage intermédiaire de l'archive `0x00000003` : seules les premières lignes de `open_self_ncch_archive` et de `0x10cd44` ont été lues.
+- L'étage intermédiaire de l'archive `0x00000003`, lu par le contrat des fichiers : le rôle des 16 octets ajoutés au chemin envoyé à Process9 est supposé (le fichier `/SEEDDB` est une piste), les trois étages du lecteur de romfs sont déduits des arguments de `0x107240`, et le contrôle des empreintes dans `fs` repose sur les constantes SHA-256 du module et sur la seconde lecture après `0xD9004586`, pas sur l'appel suivi.
+- La sauvegarde vue comme un seul fichier chez Process9 et une arborescence dans `fs` : déduit de `0x10e03c` et de `0x118ed0`, quelques lignes chacune.
 - Ce que font les commandes de `fs:REG`, déduit de quelques lignes chacune.
 - Le sens des codes d'erreur : `0xE0E046BE` (archive inconnue ou chemin de la mauvaise forme), `0xC8804464` (archive inconnue au second tri), `0xE0C046F8` (pas fait), `0xE0A046DA` (session non initialisée).
 - Les noms de la partie 8, repris de 3dbrew de mémoire.
 
 **Pas lu**
-- Le corps de presque toutes les commandes de `fs:USER` : seules OpenFileDirectly, OpenFile, OpenArchive et Initialize ont été lues.
+- Le corps de presque toutes les commandes de `fs:USER` : seules OpenFileDirectly, OpenFile, OpenArchive et Initialize ont été lues ici, et les commandes que Pokémon X envoie dans le contrat des fichiers. Pour sept de celles-ci (GetFormatInfo, FormatSaveData, CreateExtSaveData, DeleteExtSaveData, GetExtDataBlockSize, et les deux SecureValue), seuls les contrôles sont lus, pas le travail fait derrière (`0x10e134`, `0x1150c0`, `0x10f830`, `0x10f2cc`, `0x118532`, `0x10f85c`, `0x11984c`, `0x1198cc`).
+- L'objet « sauvegarde » (`0xCDC` octets, table `0x1356a4`) et ceux des données étendues : les codes d'erreur d'un fichier absent ou déjà présent ne sont donc pas connus.
 - Les fonctions d'ouverture d'archive autres que `pxi_open_archive`, et les classes d'archive que `fs` fabrique lui-même : sauvegardes, données étendues, le fichier `/Quota.dat`, les fichiers `/SEEDDB` et `/TITLETAG` dont les noms sont dans les données.
 - Les règles de `archive_permission_check` : quels droits de l'exheader ouvrent quelle archive.
 - Les deux fonctions qui prennent un canal dans une réserve (`0x131dac` sans attendre, `0x100988` en attendant) : leur rôle est déduit de l'endroit où elles sont appelées.

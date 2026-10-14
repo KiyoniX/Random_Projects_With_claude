@@ -1,0 +1,146 @@
+0x14000000	function	entry
+0x14000024	function	clear_bss
+0x14000048	function
+0x1400013a	label	construct_array
+0x14000168	function	svcExitProcess
+0x14000174	function	ro_main
+0x14000644	function	init_c_locale
+0x14000698	function	svcAcceptSession
+0x140006b0	function	svcReplyAndReceive
+0x140006d4	function	init_session_pool
+0x1400070c	function	session_pool_free
+0x14000730	function	session_pool_alloc
+0x14000784	function	fs_exit
+0x14000794	function	fs_init
+0x140007e8	function	init_runtime_and_srv
+0x140007f8	function	srv_init
+0x1400091c	function	srv_get_notification_semaphore
+0x14000950	function	handle_srv_notification
+0x14000a0c	function	register_notification_handler
+0x14000a9c	function	srv_is_initialized
+0x14000ab8	function	SRV_RegisterService
+0x14000b14	function	SRV_UnregisterService
+0x14000b68	function	srv_exit
+0x14000cd0	function	init_address_arbiter
+0x14000d0c	function	init_runtime
+0x14000d6c	function	SRV_GetServiceHandle
+0x14000da0	function	SRV_RegisterClient
+0x14000ddc	function	SRV_EnableNotification
+0x14000e18	function	SRV_ReceiveNotification
+0x14000e54	function	svcCreateAddressArbiter
+0x1400106c	function	svcConnectToPort
+0x14001084	function	svcGetProcessInfo
+0x140010a4	function	handle_fatal_result
+0x14001230	function	svcGetProcessId
+0x140013b0	function	throw_fatal_error_typed
+0x140013e8	function	ERRF_Throw
+0x14001428	function	svcSleepThread
+0x14001584	function	heap_alloc
+0x140021c0	function	svcDuplicateHandle
+0x140021d8	function	svcQueryMemory
+0x14002208	function	destroy_static_sessions
+0x14002224	function	FS_UpdateSha256Context
+0x140022a8	function	FS_GetProgramLaunchInfo
+0x140022f0	function
+0x140022f4	function
+0x140023d8	function	svcCloseHandle
+0x14002400	function	rsa_verify_sha256
+0x14002458	function	ps_exit
+0x14002484	function	ps_init
+0x140024d4	function	PS_VerifyRsaSha256
+0x1400254c	function	sha256_hash
+0x140025b8	function	ldrro_LoadCRR
+0x14002808	function	ldrro_UnloadCRR
+0x14002a4c	function	ldrro_LinkCRO
+0x14002b6c	function	ldrro_LoadExeCRO
+0x14002fd0	function	ldrro_LoadCRO_New
+0x14003434	function	ldrro_UnlinkCRO
+0x14003554	function	ldrro_UnloadCRO
+0x14003788	function	ldrro_Shutdown
+0x14003894	function	ldrro_Initialize
+0x14003d10	function	zero_bytes
+0x14003d64	function	cro_check_hash_range
+0x14003dd8	function	notification_handler_ctor
+0x14003e10	function	reloc_list_reset
+0x14003ed4	function	svcArbitrateAddress
+0x14003eec	function	static_guard_acquire
+0x14003f00	function	link_indexed_imports
+0x14003fc0	function	link_anonymous_imports
+0x14004050	function	apply_relocation
+0x140041c0	function	cro_rebase_and_relocate
+0x14004a38	function	throw_fatal_error
+0x14004a68	function	cro_list_remove
+0x14004bd8	function	copy_service_name
+0x14004bec	function	memcmp
+0x14004c60	function	cro_check_mapped
+0x14004e5c	function	cro_list_find
+0x14004eac	function	check_private_rw_block
+0x14004f50	function	recursive_lock_leave
+0x14004f70	function	recursive_lock_enter
+0x14004fa8	function	svcControlProcessMemory
+0x14004fc0	function	cro_find_named_export
+0x140050b4	function	sha256_software
+0x1400519c	function	reloc_list_apply
+0x1400526c	function	svcQueryProcessMemory
+0x14005398	function	fill_words
+0x140053c8	function	pool_init
+0x1400546c	function	panic_break
+0x140054c0	function	strlen
+0x14005520	function	strcmp
+0x140055dc	function	recursive_lock_init
+0x140055f8	function	pool_dtor
+0x14005658	function	session_ctor
+0x140056d8	function	session_dtor
+0x140056fc	function	get_process_unique_id
+0x14005758	function	crr_unregister
+0x140057b8	function	crr_find_hash
+0x1400592c	function	crr_verify_and_register
+0x14005b64	function	cro_verify_hashes
+0x14005c2c	function	ldrro_handle_command
+0x14005f40	function	crr_check_header
+0x14005fd4	function	cro_compute_fix_ends
+0x14006148	function
+0x1400614c	function
+0x14006158	function	sha256_final
+0x140061dc	function
+0x140061e0	function	sha256_update
+0x14006278	function	rsa_context_set_key
+0x14006330	function	rsa_context_clear
+0x1400635c	function	rsa_context_init
+0x14006390	function	crs_initialize
+0x140063d4	function	cro_link
+0x1400664c	function	cro_prepare_and_link
+0x140066a4	function	cro_link_data_in_image
+0x14006980	function	cro_prepare_and_link_new
+0x140069d8	function	cro_unlink
+0x14006ccc	function	cro_unload_undo
+0x14006dac	function	cro_list_insert
+0x14006e80	function	cro_validate_and_rebase_header
+0x1400749c	function	cro_restore_header
+0x140077c8	function	apply_internal_relocation
+0x1400788c	function	segment_table_restore
+0x140078dc	function	import_relocs_clear
+0x14007a10	function	internal_reloc_clear
+0x14007ae8	function	import_relocs_fill_unresolved
+0x14007bbc	function	crs_shutdown_restore
+0x14007bd4	function	cro_fix
+0x14007cc4	function
+0x14007cc8	function
+0x14007cdc	function
+0x14007d2c	function	init_static_sessions
+0x140080b4	function
+0x14008114	function
+0x14008148	function
+0x1400814c	function
+0x14008150	function
+0x14008188	function
+0x140081a0	function
+0x140081b4	function
+0x140081ec	function
+0x14008224	function
+0x14008238	function
+0x14008290	function
+0x140082a4	function	on_terminate_notification
+0x140082b8	function
+0x140082d8	function
+0x14008300	label	run_static_initializers

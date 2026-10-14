@@ -59,6 +59,13 @@ Tout le module tient dans une seule grande fonction, `sm_service_loop` (`0x1000a
 - RegisterClient n'appelle rien : elle vérifie que le mot suivant vaut `0x20` (le noyau y a écrit le numéro du processus appelant) et range ce numéro dans la session. Toutes les autres commandes le repassent ensuite en argument.
 - Un numéro inconnu rend `0xD900182F`, un en-tête mal formé `0xD9001830`.
 
+Les cinq commandes que Pokémon X envoie (1, 2, 5, 9, 11) ont été lues des deux côtés dans le [contrat des petits services](contrat-petits-services.md), partie 1. Ce qu'il a lu en plus dans ce module :
+
+- **EnableNotification** cherche la fiche du processus dans la session (pour un jeu, `pm` l'a créée par RegisterProcess), y met l'octet « notifications permises » à 1 et rend son sémaphore, créé avec un maximum de 16. Fiche introuvable et impossible à créer : `0xD8806404`.
+- **Subscribe** exige qu'EnableNotification soit passé (`0xD8806404`), refuse un numéro déjà inscrit (`0xD9006403`) et plus de 17 abonnements (`0xD9006405`). Pokémon X ne s'abonne qu'à `0x209`, le retrait de la carte SD.
+- **ReceiveNotification** retire le plus ancien numéro d'une file de 16 en anneau, et rend `0xD8806404` si la file est vide. Le jeu s'arrête (`svcBreak`) sur cette erreur : on ne doit jamais libérer le sémaphore sans numéro en file.
+- **GetServiceHandle**, mot 4 : seul le bit 0 est lu (« ne pas attendre »). Pokémon X le met à 1 pour trois services seulement : `mic:u`, `y2r:u` et `cam:u`.
+
 ## Partie 3 : les commandes de `srv:pm`
 
 Ce service est réservé au module `pm`, qui lance les programmes.
@@ -130,6 +137,7 @@ Le découpage des 20 octets d'une entrée est lu dans les écritures de `srv_Reg
 - `srv_GetServiceHandle` est la seule fonction qui appelle `svcCreateSessionToPort`.
 - `srv_RegisterService` est, avec la boucle, la seule qui appelle `svcCreatePort`.
 - `srvpm_PublishToProcess` appelle `svcGetProcessId`, ce qui colle à une commande qui reçoit une poignée de processus.
+- Les cinq commandes de `srv:` que Pokémon X envoie : les mots écrits par le jeu et ceux que lit ce module s'emboîtent ([contrat des petits services](contrat-petits-services.md), partie 1).
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Le rôle des cinq fonctions d'aide de la partie 4.
@@ -137,7 +145,7 @@ Le découpage des 20 octets d'une entrée est lu dans les écritures de `srv_Reg
 - Le contenu des tables de la partie 5.
 
 **Pas lu**
-- Le corps de 13 des 18 commandes : seuls GetServiceHandle, RegisterService, EnableNotification, PublishToProcess et RegisterProcess ont été décompilés, et seuls les deux premiers sont décrits.
+- Le corps de 11 des 18 commandes : seuls GetServiceHandle, RegisterService, EnableNotification, PublishToProcess et RegisterProcess ont été décompilés ici, et Subscribe et ReceiveNotification par le contrat des petits services. PublishToSubscriber, qui fait entrer une notification dans la file d'un processus, n'est pas lue.
 - Les 77 fonctions sans nom, dont la gestion de la mémoire et le démarrage.
 
 ## Comment cette fiche a été faite
