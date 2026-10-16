@@ -173,8 +173,11 @@ def _arith(insn, ctx, dbl):
     opc = p << 2 | q << 1 | r
     vd_, vn_, vm_ = (w >> 12) & 15, (w >> 16) & 15, w & 15
     Dd, N, M = (w >> 22) & 1, (w >> 7) & 1, (w >> 5) & 1
+    # Les conversions mélangent les tailles (un double d'un côté, un simple de l'autre) : D et M y désignent un simple
+    # (le bit de poids faible de Sd ou Sm), pas un registre d16-d31. Chaque branche de conversion contrôle le sien.
+    mixed = dbl and opc == 7 and vn_ in (7, 8, 12, 13)
     if dbl:
-        if Dd or M or (N and opc != 7):          # pour les opérations « étendues », N fait partie du code opération
+        if not mixed and (Dd or M or (N and opc != 7)):          # pour les opérations « étendues », N fait partie du code opération
             return _bad(insn, 'd16-d31 (VFPv3)')
         d, n, m = vd_, vn_, vm_
         R = D

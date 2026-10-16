@@ -1,14 +1,14 @@
 // Écrit par outils/verifier.py. Éditer etat.json, pas ce fichier.
 window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
- "objectif": "Faire tourner Pokémon X nativement sur PC, sans émulateur.",
+ "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-10-14",
- "prochaine_action": "Le jeu montre l'écran-titre et le menu sur PC, et son code se recompile en natif sans divergence connue. Suite : brancher le natif dans le banc derrière cpu.py (NativeCpu, plan dans recomp/README.md : d'abord côte à côte avec unicorn jusqu'à P1, puis hybride pour les .cro) ; et l'éclairage par fragment du PICA pour voir le terrain.",
+ "mise_a_jour": "2026-10-16",
+ "prochaine_action": "Point d'arrêt du 16/10 au soir (commit et push, passage sur le PC fixe). Tous les modules système ont une fiche ; le terrain s'affiche en entier, au banc et dans le portage Rust à 60 images/s ; le moteur de mods sort pour Luma et pour le PC ; le processeur natif tourne dans le banc. En cours au moment de l'arrêt (voir le journal) : recompiler les .cro (condition du gain de vitesse), et le runtime Rust (noyau, IPC, services) qui doit atteindre P1-P2 comme le banc. Ensuite : écarts des dernières fiches dans la Carte, nim à compléter, le son, les applets, et brancher le runtime Rust sur le rendu pour jouer en fenêtre.",
  "fonctions": {
-  "total": null,
-  "identifiees": 0,
-  "nommees": 0,
+  "total": 23883,
+  "identifiees": 23883,
+  "nommees": 1239,
   "reimplementees": 0
  },
  "paliers": [
@@ -113,6 +113,18 @@ window.ETAT = {
     {
      "t": "Compter les fonctions avec REA et remplir le compteur de la fiche",
      "fait": false
+    },
+    {
+     "t": "Passe de nommage automatique rejouable (outils/name_pass.py) : 1 239 fonctions de code.bin nommées, 194 dans les .cro",
+     "fait": true
+    },
+    {
+     "t": "Nommer les quelque 22 500 fonctions restantes (méthodes virtuelles, bibliothèques nn::os, gx, nnsnd)",
+     "fait": false
+    },
+    {
+     "t": "Poser les noms des modules .cro dans Ghidra (un chargement par module)",
+     "fait": false
     }
    ]
   },
@@ -139,11 +151,35 @@ window.ETAT = {
      "fait": true
     },
     {
-     "t": "Lire les tables des Pokémon (stats, types, apprentissages)",
-     "fait": false
+     "t": "Lire et réécrire les tables des Pokémon (statistiques, types, attaques apprises, évolutions, attaques d'œuf, attaques), à l'identique sur tout le dump (mods/modkit/formats/)",
+     "fait": true
     },
     {
      "t": "Afficher un modèle BCH et une carte",
+     "fait": false
+    },
+    {
+     "t": "Niveau 3 du romfs refabriqué (arbre, tables de hachage), identique à l'original octet pour octet",
+     "fait": true
+    },
+    {
+     "t": "Moteur de mods (mods/) : format sans octet du jeu, empilement avec conflits, construction pour la console (LayeredFS de Luma) et pour le PC (banc --mod)",
+     "fait": true
+    },
+    {
+     "t": "Essayer un mod sur la console (LayeredFS, « Enable game patching » dans Luma)",
+     "fait": false
+    },
+    {
+     "t": "Appliquer les correctifs de code d'un mod sur le PC",
+     "fait": false
+    },
+    {
+     "t": "Lecteur et écrivain BCH pour de nouveaux modèles et textures",
+     "fait": false
+    },
+    {
+     "t": "Ajouter des lignes de texte, des espèces au-delà de 721 (correctifs de code), rencontres, dresseurs, objets, cartes, scripts",
      "fait": false
     }
    ]
@@ -207,6 +243,10 @@ window.ETAT = {
      "fait": true
     },
     {
+     "t": "Une fiche pour chaque module que Pokémon X appelle (22 sur 22)",
+     "fait": true
+    },
+    {
      "t": "Banc d'essai (banc/) : le code du jeu sous unicorn, la couche système en Python d'après les contrats, jusqu'au terrain",
      "fait": true
     },
@@ -219,8 +259,8 @@ window.ETAT = {
      "fait": false
     },
     {
-     "t": "Le GPU PICA200 vers OpenGL",
-     "fait": false
+     "t": "Le GPU PICA200 vers la carte graphique (portage/, Rust + wgpu sous Vulkan) : écran-titre, menu et terrain rendus et comparés au banc",
+     "fait": true
     },
     {
      "t": "Le son",
@@ -229,6 +269,174 @@ window.ETAT = {
     {
      "t": "Premier écran du jeu affiché sur PC",
      "fait": true
+    },
+    {
+     "t": "Rendu PICA : éclairage par fragment, brouillard, pochoir, opérations logiques, ciseaux qui excluent (banc/pica/)",
+     "fait": true
+    },
+    {
+     "t": "Outil d'enregistrement et de rejeu des images du GPU (banc/pica/replay.py)",
+     "fait": true
+    },
+    {
+     "t": "Le terrain dessine sur le banc (listes chaînées par les registres de saut suivies)",
+     "fait": true
+    },
+    {
+     "t": "Mipmaps, shaders de géométrie, flottants de 24 bits : à relever dans les listes du terrain quand il dessinera",
+     "fait": false
+    },
+    {
+     "t": "Rendre vrais sur PC ce que les fiches disent vrai : l'aléa de ssl, les fichiers de boîte de cecd, les sockets et le DNS de socket",
+     "fait": false
+    },
+    {
+     "t": "Tracer au banc la création d'un socket TCP (le jeu envoie le protocole 6, le module refuse tout protocole non nul)",
+     "fait": false
+    },
+    {
+     "t": "Le terrain dessiné en entier par la référence numpy (palais Chaydeuvre)",
+     "fait": true
+    },
+    {
+     "t": "Corriger les réponses factices de nwm::UDS du banc d'après sa fiche (Initialize rend une vraie poignée d'événement, GetConnectionStatus 3, StartScan, CreateNetwork2)",
+     "fait": true
+    },
+    {
+     "t": "Rendre nwm::UDS vrai sur le réseau du PC, pour les échanges et les combats",
+     "fait": false
+    },
+    {
+     "t": "Reporter dans la Carte des services les écarts relevés par les fiches de nwm et de boss",
+     "fait": true
+    },
+    {
+     "t": "Portage Rust : format de capture neutre .picacap, rejeu à l'échelle 1 à 4, comparaison au banc numpy",
+     "fait": true
+    },
+    {
+     "t": "Portage Rust : lecture des mods par overlay.json (crate overlay, format 1)",
+     "fait": true
+    },
+    {
+     "t": "Portage Rust : noyau et services réécrits, chacun vérifié contre le banc Python",
+     "fait": true
+    },
+    {
+     "t": "Portage Rust : appeler le code du jeu recompilé en C depuis Rust",
+     "fait": true
+    },
+    {
+     "t": "Portage Rust : textures remplaçables par les mods (dossier pc/ d'un mod)",
+     "fait": false
+    },
+    {
+     "t": "Mipmaps et niveaux de détail (aucune scène vue ne les demande encore)",
+     "fait": false
+    },
+    {
+     "t": "Shader de géométrie en mode primitive variable, et une première capture du jeu qui en utilise un",
+     "fait": false
+    },
+    {
+     "t": "Portage Rust : tenir 60 images par seconde au terrain (regrouper les passes, réutiliser les tampons, relire le GPU seulement quand gsp lit la mémoire)",
+     "fait": true
+    },
+    {
+     "t": "Portage Rust : une texture rendue puis réutilisée garde la définition de l'échelle choisie",
+     "fait": true
+    },
+    {
+     "t": "Services du banc alignés sur les fiches : 13 services d'après leurs fiches, l'en-tête de chaque commande vérifié",
+     "fait": true
+    },
+    {
+     "t": "Relire cecd:u en jouant, quand le jeu l'appelle (dispositions de requêtes interprétées)",
+     "fait": false
+    },
+    {
+     "t": "Trancher les points douteux des fiches relevés par le banc (nwm GetApplicationData, friends GetServerTimeDifference, ac ConnectAsync hors ligne, boss UnregisterTask)",
+     "fait": false
+    },
+    {
+     "t": "Portage Rust : cache des pipelines sur disque (la première image prend encore 60 à 90 ms)",
+     "fait": false
+    },
+    {
+     "t": "Portage Rust : fenêtre en direct sans relecture du GPU (Pica::readback = false)",
+     "fait": false
+    },
+    {
+     "t": "Processeur natif branché dans le banc (--cpu hybride) jusqu'à DllField, sans faute",
+     "fait": true
+    },
+    {
+     "t": "Mode vérification natif contre unicorn sans divergence (1,2 s de banc, 5 677 tranches)",
+     "fait": true
+    },
+    {
+     "t": "Recompiler aussi les modules .cro et les brancher dans le banc (133 modules, C relogeable)",
+     "fait": true
+    },
+    {
+     "t": "Réduire le coût des traversées entre le code natif et unicorn",
+     "fait": false
+    },
+    {
+     "t": "Fiches des huit modules proches du matériel (gpio, pdn, i2c, spi, mcu, codec, csnd, ps)",
+     "fait": true
+    },
+    {
+     "t": "Fiches des neuf derniers modules système (am, news, act, dlp, mp, nfc, mvd, nim, qtm)",
+     "fait": true
+    },
+    {
+     "t": "Reporter dans la Carte des services les écarts des fiches matérielles (gpio, i2c, spi, mcu, codec, ps)",
+     "fait": true
+    },
+    {
+     "t": "Variantes « safe » des modules comparées à leur module normal (fiches/safe.md, 23 sur 23)",
+     "fait": true
+    },
+    {
+     "t": "Lire nim-safe à part (3 % de code commun avec nim)",
+     "fait": false
+    },
+    {
+     "t": "Reporter dans la Carte des services les écarts des neuf dernières fiches (appelle, appelants, commandes de nfc, nim, act, news, am)",
+     "fait": false
+    },
+    {
+     "t": "Relancer emulate_dispatch.py avec --helper sur nfc, nim et mvd (aiguillages peut-être sous-évalués)",
+     "fait": false
+    },
+    {
+     "t": "Compléter la fiche de nim (32 commandes sans gestionnaire localisé)",
+     "fait": false
+    },
+    {
+     "t": "Finir le cycle des trous de code.bin révélés par le natif (viser moins de 100 s de PC pour 24 s de banc)",
+     "fait": false
+    },
+    {
+     "t": "--cpu verifier sur des tranches qui passent par les .cro recompilés",
+     "fait": false
+    },
+    {
+     "t": "Profiler le Python du banc (environ 115 s sur 330)",
+     "fait": false
+    },
+    {
+     "t": "Portage Rust : brancher pica sur les transferts de gsp (l'écran-titre en direct dans la fenêtre)",
+     "fait": false
+    },
+    {
+     "t": "Portage Rust : comparer au banc au-delà de 3 s, et avec --mod",
+     "fait": false
+    },
+    {
+     "t": "Fichiers et manette : entrées réelles et écran tactile dans le runtime Rust",
+     "fait": false
     }
    ]
   }
@@ -500,6 +708,82 @@ window.ETAT = {
   {
    "date": "2026-10-14",
    "texte": "La voie est choisie : recompilation statique de l'ARM11 vers C (recomp/, avec capstone), compilée par clang de llvm-mingw 20261006, portable, dans local/outils/llvm-mingw/. 23 877 des 23 882 fonctions de code.bin traduites entièrement (ARM 99,9994 %, Thumb 100 %, VFP compris) ; le jeu entier fait 61 Mo de C et une DLL de 77 Mo, dans local/recomp/ seulement. Comparées à unicorn sur des états tirés au hasard : 6 145 fonctions identiques (4 329 feuilles, 1 816 avec tout leur arbre d'appels), 0 divergence ; les autres ne sont pas encore exercées. 24 à 41 fois plus rapide qu'unicorn. Pas encore branché dans le banc."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Moteur de mods (mods/) : un mod est un dossier de TOML qui ne contient aucun octet du jeu ; la construction lit le dump et produit, pour la console, l'arborescence LayeredFS de Luma3DS (luma/titles/0004000000055D00/romfs, un seul dossier pour le jeu et sa mise à jour, plus code.ips) et, pour le PC, une surcouche que banc/run.py --mod superpose au romfs (niveau 3 refabriqué, identique à l'original tant qu'on ne change rien). Lus et réécrits à l'identique sur tout le dump : 283 GARC, 5 808 fichiers de texte en 8 langues, la table des espèces (799 entrées), les attaques apprises, les évolutions, les attaques d'œuf et les attaques ; pk3DS a servi de guide, le code est le nôtre ; garc.py corrigé pour les sous-fichiers à emplacements creux. Mod d'exemple (Marisson de 56/61/65 à 80/95/70, Flamme au niveau 1, renommé) : sur le banc, le jeu lit bien les octets modifiés de a/2/1/8, a/2/1/4 et a/0/7/5. Pas encore essayé sur la console."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Rendu PICA : l'aplat bleu du terrain est diagnostiqué, et le rendu n'y est pour rien. Un outil de rejeu (banc/pica/replay.py, PICA_ENREGISTRER) photographie la mémoire et les commandes de gsp à un instant donné et les rejoue en une seconde, au lieu de dix minutes de banc. Les listes de l'écran du haut après DllField (de 24 à 50 s) préparent les shaders mais ne contiennent aucun ordre de dessin : le bleu est le tampon vidé. Le moteur du terrain ne soumet pas de géométrie, et le fil 0x44 attend sur ArbitrateAddress(0x64bc7c) depuis 17,73 s, que le fil du son ne signale plus. L'éclairage par fragment est réécrit d'après le rendu logiciel d'Azahar et vérifié sur une sphère fabriquée ; brouillard, pochoir, opérations logiques et ciseaux qui excluent sont testés. Restent les mipmaps, les shaders de géométrie et les flottants de 24 bits."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Six nouvelles fiches de modules système : camera (cam:u, cam:s, cam:c, y2r:u, cam:q ; tables de 68, 45 et 62 commandes recoupées par l'émulation contre le pseudo-code, SetReceiving jusqu'au DMA, registres de Y2R), mic, ir, ndm, ac et errdisp (le port err:f). Chacune dit, pour chaque commande que Pokémon X envoie, la fonction du module qui la reçoit et ce qu'un remplaçant de la console doit rendre. La table d'ac:u, écrite par un sous-agent, a été rejouée par emulate_dispatch.py : mêmes fonctions aux mêmes adresses. Restent nwm, friends, socket, http, ssl, boss et cecd ; la table de méthodes de ssl:C et les trois aiguillages de cecd sont repérés."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Cinq fiches de modules réseau : ssl (32 commandes, trois tables de méthodes sous la session), cecd (cecd:u 22, cecd:s 38, cecd:ndm 8), socket (soc:U 35, soc:P 9), http (66 commandes sur trois étages) et friends (frd:u 54, frd:a 70, frd:n 4). Chaque table est recoupée par l'émulation de l'aiguillage et par 3dbrew ; celles de socket, http et friends, écrites par des sous-agents, ont été rejouées. Pour le portage, il faudra rendre vrais l'aléa de ssl, les fichiers de boîte de cecd, et les sockets et le DNS. La Carte des services reçoit les écarts des onze fiches du jour (corrections.js, 22 modules lus), dont la 24e commande de ndm:u. Restent nwm et boss."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Terrain de Pokémon X : l'aplat bleu vient de la logique du jeu, pas du noyau du banc. Le fil 0x44 n'est que le décodeur AAC au repos, et le fil UDS (Player Search System) ne bloque rien : un nwm::UDS en erreur ne change rien. Le dessin 3D du haut dépend de la file des processus du jeu (objet 0x8c6702c, prédicat FUN_004783a8). La racine « Séquence » empilée par DllTitle se termine à 18,745 s, après le processus de chargement du terrain et le fondu ; la file se vide, et la fonction de dessin de DllField ne fait plus que ses appels QoS. Reste à trouver pourquoi DllField n'empile pas son processus de terrain."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Le terrain de Pokémon X dessine sur le banc. Le jeu enchaîne ses listes PICA par les registres de saut du processeur de commandes (0x238-0x23D), que ni le comptage de gsp ni pica/gpu.py ne suivaient : d'où l'aplat bleu. Avec follow_jumps (banc/services/gsp.py, testé sur une liste fabriquée), l'écran du haut porte 14 DrawElements par image ; le rejeu dessine le ciel et deux lampadaires, et l'écran du bas le panneau du Système de Perfectionnement Virtuel, complet. Le diagnostic précédent était faux : la file des processus vide est l'état normal du terrain, et le fil 0x44 n'est que le décodeur AAC au repos. Le sol et les bâtiments manquent encore (shader de géométrie probable). Dix fonctions du gestionnaire de processus du jeu sont nommées."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Fiches de nwm et de boss : tous les modules que Pokémon X appelle (22) ont maintenant la leur. nwm : sept aiguillages émulés (UDS 35 commandes, INF 16, SOC 13, SAP 44, CEC 30, EXT 9, TST 70), la machine d'états de l'UDS et ce qu'il faudrait pour la rendre vraie sur le réseau du PC ; le stub du banc rend à tort une poignée d'événement 0 à Initialize et un statut 0 à GetConnectionStatus. boss : boss:U 55 commandes, boss:P 143, boss:M 7, les 28 commandes du jeu avec leurs codes de résultat. Table de l'UDS rejouée : 35 commandes, mêmes fonctions. La clé AES de nwm n'est recopiée nulle part."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Portage PC (portage/) : workspace Rust + wgpu, backend Vulkan forcé, sur la RTX 4070. Format de capture neutre .picacap (banc/pica/export_capture.py depuis les .pkl du rejeu) ; la crate pica traduit le PICA200 vers le GPU : shaders de sommets traduits en WGSL et mis en cache, combinateur TEV généré en WGSL selon l'état, les 14 formats de texture (bit pour bit identiques à formats.py), rastérisation par le GPU. Écran-titre et menu rejoués : à l'échelle native, écart moyen au rendu numpy de 0,003 à 0,046 sur 255 (un à deux niveaux au plus, sauf quelques points dans une capture), 14 à 34 ms par image contre 0,12 à 0,5 s ; et en 2×, 3× et 4× (1600×960 pour l'écran du haut). Crate overlay qui lit les mods par overlay.json format 1, fenêtre winit. 40 tests. Pas encore d'éclairage, de pochoir ni de shaders de géométrie, ni de noyau en Rust."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Le terrain s'affiche en entier sur le banc : le palais Chaydeuvre, là où est la sauvegarde (façade, grille dorée, lampadaires, un PNJ et le joueur, avec les contours du jeu), 398 dessins et 29 652 triangles par image. Les chaînes de listes du terrain comptent jusqu'à 2 180 sauts dans une seule commande, et follow_jumps s'arrêtait à 64 : c'était la cause du ciel seul. Trois autres défauts de pica/ corrigés : le sens des faces, la table de brouillard mal lue (valeur en bits 13-23, différence signée en 0-12), et le tampon de profondeur relu comme texture jamais rendu à la mémoire. Les shaders de géométrie n'étaient pas en cause ; ils sont écrits et testés sur données fabriquées. L'écran-titre gagne aussi son fond en rayons. Le rejeu d'une image du terrain prend 8 s."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Portage PC, partie 2 : le Rust rend le terrain du palais Chaydeuvre en entier sur la carte graphique, et en 4× (1600×960). Il suit la référence numpy complétée (sauts de liste, sens des faces, brouillard, découpe, texture projetée, profondeur relue), et fait désormais l'éclairage par fragment, le pochoir, les opérations logiques, les facteurs de mélange constants exacts et les boucles des shaders. Écart moyen au rendu numpy : 0,08 sur 255 au terrain (0,22 % de points de bord à plus de 8), 0,003 à 0,1 pour l'écran-titre et le menu. Une image du terrain : 9 ms à chaud en natif, 14 ms en 2×, 27 à 58 ms en 4× (numpy : 1,3 s). 44 tests."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Services du banc alignés sur les fiches : banc/services/modules.py écrit treize services (nwm::UDS, boss, ssl:C, cecd:u, cam:u, mic:u, ir:USER, ndm:u, ac:u, frd:u, soc:U, http:C), chaque commande avec l'en-tête de réponse de sa fiche (441 commandes, test à l'appui), leurs états, de vraies poignées d'événement, l'aléa de ssl reproductible avec la graine, et les fichiers de cecd vrais. Au terrain, DllField est chargé à 17,65 s et dessine toujours ; le jeu ne tourne plus à vide sur UDS (10 StartScan en 25 s au lieu de 16). La Carte des services a reçu les écarts de nwm et de boss ; elle compte vingt-quatre modules lus."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Passe de nommage rejouable (outils/name_pass.py) : cinq sources sûres croisées, chaque nom avec sa source et sa confiance. pokemon-x.noms.tsv passe de 930 à 1 239 noms : 21 enrobages d'appels système (vus aussi au banc), 21 fonctions de la bibliothèque standard reconnues en les exécutant sur des entrées fabriquées, 267 destructeurs de classes C++ lus dans les typeinfo et les tables virtuelles (schéma confirmé sur 40 tables que static.crs nomme). 194 fonctions des 133 modules .cro sont nommées (fiches/cro/). Les imports des .cro sont tous anonymes et ne donnent aucun nom. 75 noms de confiance moyenne restent en proposition. Ghidra repose les 1 239 noms sans aucune fonction manquante."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Portage PC : le rendu tient 60 images par seconde au terrain. Les dessins vers les mêmes tampons s'enchaînent dans une seule passe, constantes, sommets et indices vont dans de grands tampons, sommets décodés et textures sont gardés par horodatage des pages, et le GPU n'est relu que quand une commande lit la mémoire. Une couleur, une profondeur ou une copie relues comme texture restent sur le GPU, à la définition de l'échelle. Terrain du palais : 27 à 80 ms par image avant ; maintenant 7 ms en natif, 9 ms en 2× (vérifié : 8,8 ms) et 13,5 ms en 4×, images et mémoire comprises. Écart à la référence numpy inchangé ; images et mémoire identiques octet pour octet au chemin d'avant."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Le processeur natif est branché dans le banc : python banc/run.py --cpu hybride fait tourner Pokémon X sur son code ARM11 recompilé en C (une fibre par fil de la console, unicorn pour les .cro) jusqu'à DllField avec la vraie sauvegarde, 24 s de banc sans faute, mêmes paliers qu'unicorn. Le mode --cpu verifier (chaque tranche native rejouée par unicorn) ne trouve plus aucune divergence sur 1,2 s (5 677 tranches). Il a fait trouver trois familles de bugs du recompilateur, corrigés avec des tests sur du code fabriqué : adresses de retour fixées à la main (add lr, pc), retours non locaux (pop {pc} qui dépile l'épilogue de l'appelant), retours vers une adresse qu'aucun cadre C n'attend plus. Pas encore plus rapide (587 s contre 504 s pour 24 s de banc, dont 4 s de natif) : le temps du jeu est dans les .cro, qu'unicorn exécute encore. Compilation incrémentale du jeu recompilé : 15 à 60 s après un ajout."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Fiches des huit modules proches du matériel : gpio, pdn, i2c, spi, mcu, codec, csnd et ps (1 520 fonctions, 894 nommées, 273 commandes). Chaque table de commandes est recoupée par l'émulation de l'aiguillage, le pseudo-code et 3dbrew ; celle d'i2c a été rejouée (21 commandes). mcu : 161 commandes avec les registres du microcontrôleur, la chaîne bit d'interruption vers notification, la réécriture du micrologiciel. codec : tactile, micro, prise casque. ps : relais vers Process9, aucune clé dans le module ni dans la fiche. 3dbrew appelle gyroscope ce que mcu::HID 6 lit comme accéléromètre."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Carte des services : les huit fiches matérielles passées dans corrections.js, soit trente-deux modules lus, avec les rôles lus dans le code, les liens d'appel manquants et deux lignes de 3dbrew que la Carte avait perdues (cdc:CHK). Nouvelle fiche safe.md : les 23 variantes « safe » de la NAND comparées à leur module normal, fonction par fonction, exheader et aiguillages rejoués. Quatre sont identiques à 100 % (codec, spi, pdn, friends) et huit à 97-99 %. Les écarts de commandes sont dans cfg, http, hid, ir:rst, am et ns. nim-safe est un autre code (3 % de commun)."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Les neuf derniers modules système ont leur fiche (am, news, act, dlp, mp, nfc, mvd, nim, qtm) : tous les modules système de la NAND sont maintenant lus. 950 noms posés dans Ghidra, tables de commandes recoupées par l'émulation des aiguillages et par la Carte. am n'est qu'un relais vers pxi:am9 : 88 commandes recoupées avec Process9, aucune divergence. act, news et nfc ont des commandes que la Carte ne connaît pas ; nim est une fiche courte. Aucune clé, aucun secret ni identifiant dans les fiches : ceux d'act, dlp et nfc sont décrits par leur adresse."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Les 133 modules .cro sont recompilés en C relogeable (recomp/cro_recomp.py) : 37 854 fonctions, aucune instruction non traduite, et la base du module est lue à l'exécution. L'adresse de chargement dépend en effet de l'ordre des chargements et, sur la console, de l'allocateur du jeu. Le même module traduit à deux bases donne le même C (0 écart sur 133). Le banc branche un module au chargement s'il a exactement le code compilé (empreinte SHA-1), et le débranche au déchargement. Un bug du recompilateur corrigé (VCVT avec un registre simple impair). Sur 24 s de banc, l'hybride passe de 743 s à environ 330 s de PC. Le reste vient de trous de code.bin que le natif découvre, à résorber par tours (banc, trous.txt, régénération)."
+  },
+  {
+   "date": "2026-10-16",
+   "texte": "Portage Rust : le runtime. Le noyau de la console (mémoire, objets, ordonnanceur et horloge du banc, 41 appels système, IPC), les services du démarrage (srv, APT, fs avec les mods par overlay, gsp, dsp, hid, cfg, ptm, ldr:ro et les treize modules simplifiés), le chargeur de .cro et le processeur recompilé (jeu-hote.dll, une fibre par fil) sont réécrits en Rust. Sur 3 s de banc, avec les .cro recompilés branchés, le journal Rust est identique ligne à ligne, heure comprise, à celui de python banc/run.py --cpu natif : 10 313 lignes, paliers P1 à P5, en 9,3 s de PC. Le chargeur de .cro en Rust donne les mêmes rapports que cro_loader.py sur les 133 modules. Reste à brancher le rendu pica sur les transferts de gsp pour voir le jeu en direct."
   }
  ],
  "dump": {

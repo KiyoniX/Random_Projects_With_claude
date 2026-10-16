@@ -5,15 +5,18 @@ rastérisés ensemble (toutes les boîtes englobantes d'un coup, par paquets), l
 combinateur ensemble, puis fusionnés au tampon de couleur couche par couche (une couche = au plus un fragment par
 point, pour que les recouvrements d'un même ordre se fassent dans l'ordre des triangles).
 
-Pas fait : l'éclairage par fragment, le brouillard, les shaders de géométrie, les textures procédurales, les niveaux
-de détail (mipmaps), les cubes, le pochoir, les opérations logiques, le découpage hors du plan proche.
+Fait aussi : l'éclairage par fragment (`lighting.py`), le brouillard, le pochoir, les opérations logiques, les ciseaux
+qui excluent, le découpage aux plans proche et lointain, la texture projetée, et le shader de géométrie en modes point
+et primitive fixe (`geometry_stage`, jamais vu dans une capture du jeu : vérifié sur des données fabriquées seulement).
+Pas fait : le mode primitive variable du shader de géométrie, les textures procédurales, les niveaux de détail
+(mipmaps), les cubes, le découpage en x et en y (les ciseaux suffisent).
 """
 import os
 import zlib
 
 import numpy as np
 
-from . import formats
+from . import formats, lighting
 from .shader import f24_to_f32
 
 SEMANTIC_SLOTS = {4: 14, 5: 15, 6: 16, 7: 17, 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 6, 15: 7, 16: 10,
@@ -114,7 +117,8 @@ def load_vertices(gpu, ids):
 ATTRIBUTE_TYPES_ = (np.int8, np.uint8, np.int16, np.float32)
 
 
-def run_vertex_shader(gpu, inputs):
+def vertex_stage(gpu, inputs):
+    """Le shader de sommets sur `inputs` (n, 16, 4) : les registres de sortie (n, 16, 4). Mémorisé."""
     regs = gpu.regs
     shader = gpu.shader
     shader.bools = regs[0x2B0] & 0xFFFF
@@ -129,12 +133,21 @@ def run_vertex_shader(gpu, inputs):
         if len(gpu.shader_cache) > 3000:
             gpu.shader_cache.clear()
         gpu.shader_cache[key] = out
+    note_unsupported(gpu, shader)
+    return out
+
+
+def note_unsupported(gpu, shader):
     if shader.unsupported:
         for op in shader.unsupported:
             gpu.notes['instruction de shader %#x non faite' % op] += 1
         shader.unsupported.clear()
-    n = len(inputs)
-    mask = regs[0x2BD] & 0xFFFF
+
+
+def map_outputs(regs, out, mask):
+    """Les registres de sortie d'un shader (n, 16, 4) rangés selon la carte des sorties (0x50-0x56) : la position (n, 4)
+    et les attributs (n, 18). `mask` : les registres de sortie allumés, dans l'ordre desquels vont les cartes."""
+    n = len(out)
     slots = [r for r in range(16) if mask >> r & 1]
     position = np.zeros((n, 4), dtype=np.float32)
     position[:, 3] = 1
@@ -149,6 +162,74 @@ def run_vertex_shader(gpu, inputs):
             elif semantic in SEMANTIC_SLOTS:
                 attributes[:, SEMANTIC_SLOTS[semantic]] = out[:, r, c]
     return position, attributes
+
+
+def run_vertex_shader(gpu, inputs):
+    regs = gpu.regs
+    return map_outputs(regs, vertex_stage(gpu, inputs), regs[0x2BD] & 0xFFFF)
+
+
+def geometry_stage(gpu, vertex_out, order):
+    """Le shader de géométrie (0x229 : bits 0-1 égaux à 2). Les sorties du shader de sommets (tassées selon le masque
+    0x2BD) vont dans les entrées du shader de géométrie, dans l'ordre du dessin (`order` : l'indice de chaque sommet de
+    l'ordre dans `vertex_out`), par groupes selon le mode (0x252, bits 0-7) :
+    - 0 « point » : une exécution par sommet, ses attributs en entrée ;
+    - 2 « primitive fixe » : une exécution par groupe de `(bits 8-11) + 1` sommets, chacun apportant ses `(bits 12-15) + 1`
+      premiers attributs, mis bout à bout ;
+    - 1 « primitive variable » : pas fait.
+    Les attributs d'entrée vont dans les registres d'entrée selon la permutation 0x28B/0x28C, au plus
+    `(0x289 & 15) + 1` d'entre eux. L'unité est celle des sommets si 0x244 bit 0 est nul (code, constantes, booléens et
+    entiers partagés ; seule l'entrée 0x28A change), sinon une unité à part (0x280-0x2AD). Rend (positions (3t, 4),
+    attributs (3t, 18), triangles (t, 3)), ou None."""
+    regs = gpu.regs
+    mode = regs[0x252] & 0xFF
+    mask = regs[0x2BD] & 0xFFFF
+    slots = [r for r in range(16) if mask >> r & 1]
+    packed = vertex_out[:, slots][order] if slots else np.zeros((len(order), 0, 4), dtype=np.float32)
+    if mode == 0:
+        group, stride = 1, packed.shape[1]
+    elif mode == 2:
+        group, stride = (regs[0x252] >> 8 & 15) + 1, (regs[0x252] >> 12 & 15) + 1
+    else:
+        gpu.notes['shader de géométrie en mode primitive variable (non fait)'] += 1
+        return None
+    if len(packed) % group:
+        gpu.notes['shader de géométrie : sommets en trop pour des groupes de %d' % group] += 1
+        packed = packed[:len(packed) // group * group]
+    count = len(packed) // group
+    if not count:
+        return None
+    attributes = packed[:, :stride].reshape(count, group * min(stride, packed.shape[1]), 4)
+    unit = gpu if not regs[0x244] & 1 else gpu.gs_unit
+    shader = unit.shader
+    if regs[0x244] & 1:
+        shader.bools = regs[0x280] & 0xFFFF
+        shader.ints = [(regs[0x281 + k] & 0xFF, regs[0x281 + k] >> 8 & 0xFF, regs[0x281 + k] >> 16 & 0xFF)
+                       for k in range(4)]
+    else:
+        shader.bools = regs[0x2B0] & 0xFFFF
+        shader.ints = [(regs[0x2B1 + k] & 0xFF, regs[0x2B1 + k] >> 8 & 0xFF, regs[0x2B1 + k] >> 16 & 0xFF)
+                       for k in range(4)]
+    saved_entry = shader.entry
+    shader.entry = regs[0x28A] & 0xFFFF
+    inputs = np.zeros((count, 16, 4), dtype=np.float32)
+    inputs[:, :, 3] = 1
+    permutation = regs[0x28B] | (regs[0x28C] << 32)
+    for a in range(min((regs[0x289] & 15) + 1, attributes.shape[1])):
+        inputs[:, permutation >> (4 * a) & 15] = attributes[:, a]
+    try:
+        triangles, flipped = shader.run_geometry(inputs)
+    finally:
+        shader.entry = saved_entry
+    note_unsupported(gpu, shader)
+    gpu.stats['triangles émis par le shader de géométrie'] += len(triangles)
+    if not len(triangles):
+        return None
+    flat = triangles.reshape(-1, 16, 4)
+    position, attrs = map_outputs(regs, flat, regs[0x28D] & 0xFFFF)
+    index = np.arange(len(flat), dtype=np.int64).reshape(-1, 3)
+    index[flipped] = index[flipped][:, (1, 0, 2)]                  # SETEMIT « sens inverse » : les deux premiers échangés
+    return position, attrs, index
 
 
 def assemble(topology, index):
@@ -169,9 +250,14 @@ def assemble(topology, index):
     return index[:n // 3 * 3].reshape(-1, 3)
 
 
-def clip_near(position, attributes, triangles):
-    """Découpe les triangles au plan proche (z + w >= 0). Rend (positions, attributs, triangles)."""
-    d = position[:, 2] + position[:, 3]
+CLIP_PLANES = ((0, 0, 1, 1), (0, 0, -1, 0))      # le volume de la console : -w <= z <= 0 (plan proche, puis plan lointain)
+
+
+def clip_plane(position, attributes, triangles, plane):
+    """Découpe les triangles (t, 3) à un plan de clip (a, b, c, d) : on garde a x + b y + c z + d w >= 0. Un triangle
+    à moitié dedans devient un polygone (1 ou 2 triangles) dont les sommets coupés sont interpolés dans l'espace de clip
+    (position et attributs, ce qui reste juste en perspective). Rend (positions, attributs, triangles)."""
+    d = position @ np.array(plane, dtype=np.float32)
     inside = d >= 0
     flags = inside[triangles]
     inside_count = flags.sum(axis=1)
@@ -205,6 +291,15 @@ def clip_near(position, attributes, triangles):
     return position, attributes, keep
 
 
+def clip_near(position, attributes, triangles):
+    """Découpe aux plans proche (z + w >= 0) et lointain (z <= 0). Le nom est resté : à l'origine, le plan proche seul."""
+    for plane in CLIP_PLANES:
+        position, attributes, triangles = clip_plane(position, attributes, triangles, plane)
+        if not len(triangles):
+            break
+    return position, attributes, triangles
+
+
 # --- les textures ---
 
 def get_texture(gpu, unit):
@@ -221,6 +316,9 @@ def get_texture(gpu, unit):
     gpu.stats['texture ' + fmt] += 1
     for surface in gpu.color_surfaces.values():            # une texture qui est un tampon de rendu : le rendre d'abord
         if surface.dirty and surface.address < address + size and address < surface.address + surface.width * surface.height * 4:
+            gpu.flush_surface(surface)
+    for surface in gpu.depth_surfaces.values():            # ou le tampon de profondeur (le terrain le relit en RGBA8)
+        if surface.dirty and surface.address < address + size and                 address < surface.address + surface.width * surface.height * gpu.DEPTH_BYTES[surface.fmt]:
             gpu.flush_surface(surface)
     try:
         raw = gpu.memory.read(address, size)
@@ -342,12 +440,17 @@ def byte_color(word):
     return np.array([word & 255, word >> 8 & 255, word >> 16 & 255, word >> 24 & 255], dtype=np.float32) / 255
 
 
-def run_combiner(gpu, attributes, textures):
+def run_combiner(gpu, attributes, textures, lit=None):
     regs = gpu.regs
     m = len(attributes)
     primary = np.clip(attributes[:, 0:4], 0, 1)
     zero = np.zeros((m, 4), dtype=np.float32)
-    sources = {0: primary, 1: primary, 2: zero, 3: textures[0], 4: textures[1], 5: textures[2], 6: zero}
+    secondary = zero
+    if lit is not None:                         # éclairage : la couleur primaire de fragment vient des lumières
+        fragment_primary, secondary = lit
+    else:
+        fragment_primary = primary
+    sources = {0: primary, 1: fragment_primary, 2: secondary, 3: textures[0], 4: textures[1], 5: textures[2], 6: zero}
     buffer = zero
     next_buffer = np.broadcast_to(byte_color(regs[0xFD]), (m, 4))
     previous = zero
@@ -387,7 +490,7 @@ def run_combiner(gpu, attributes, textures):
             if update >> (12 + k) & 1:
                 next_buffer[:, 3] = alpha
     if previous is zero:
-        previous = primary
+        previous = fragment_primary
     return previous
 
 
@@ -442,6 +545,29 @@ def equation(code, a, b, sa, sb):
     return np.maximum(a, b)
 
 
+def logic_op(op, src, dst):
+    """Les seize opérations logiques sur les octets de la source et du tampon."""
+    s, d = src.astype(np.uint8), dst.astype(np.uint8)
+    table = (lambda: np.zeros_like(s), lambda: s & d, lambda: s & ~d, lambda: s, lambda: np.full_like(s, 255),
+             lambda: ~s, lambda: d, lambda: ~d, lambda: ~(s & d), lambda: s | d, lambda: ~(s | d), lambda: s ^ d,
+             lambda: ~(s ^ d), lambda: ~s & d, lambda: s | ~d, lambda: ~s | d)
+    return table[op]()
+
+
+def stencil_apply(depth, x, y, op, ref, buffer_mask):
+    """Une opération de pochoir (0 garder, 1 zéro, 2 remplacer, 3 et 4 monter et descendre en butée, 5 inverser, 6 et 7
+    monter et descendre en boucle) sur les points (x, y) du tampon D24S8 ; seuls les bits de `buffer_mask` changent."""
+    if not len(x) or op == 0:
+        return
+    pixels = depth.pixels[y, x]
+    old = (pixels >> np.uint32(24)).astype(np.int64)
+    new = {1: np.zeros_like(old), 2: np.full_like(old, ref), 3: np.minimum(old + 1, 255), 4: np.maximum(old - 1, 0),
+           5: old ^ 255, 6: (old + 1) & 255, 7: (old - 1) & 255}[op]
+    new = (new & buffer_mask) | (old & ~buffer_mask & 255)
+    depth.pixels[y, x] = (pixels & np.uint32(0xFFFFFF)) | (new.astype(np.uint32) << np.uint32(24))
+    depth.dirty = True
+
+
 def merge(gpu, surface, depth, px, py, color, z):
     """Test de profondeur, mélange et écriture. Les fragments sont dans l'ordre des triangles."""
     regs = gpu.regs
@@ -471,16 +597,31 @@ def merge(gpu, surface, depth, px, py, color, z):
     blending = bool(regs[0x100] >> 8 & 1)
     blend_cfg = regs[0x101]
     const = byte_color(regs[0x103])
+    stencil_on = bool(regs[0x105] & 1) and depth is not None and depth.fmt == 3
+    if stencil_on:
+        s_func, s_buffer, s_ref, s_mask = regs[0x105] >> 4 & 7, regs[0x105] >> 8 & 255, regs[0x105] >> 16 & 255,             regs[0x105] >> 24 & 255
+        s_ops = (regs[0x106] & 7, regs[0x106] >> 4 & 7, regs[0x106] >> 8 & 7)         # échec, échec de profondeur, réussite
     for sel in layers:
         x, y = px[sel], py[sel]
         zz = z[sel]
-        keep = None
+        if stencil_on:
+            stored = depth.pixels[y, x] >> np.uint32(24)
+            passed = COMPARE[s_func](np.full(len(x), s_ref & s_mask, dtype=np.int64), (stored & s_mask).astype(np.int64))
+            if not passed.all():
+                stencil_apply(depth, x[~passed], y[~passed], s_ops[0], s_ref, s_buffer)
+                sel, x, y, zz = sel[passed], x[passed], y[passed], zz[passed]
+                if not len(x):
+                    continue
         if depth_test:
             current = depth.pixels[y, x] & depth_mask
             keep = COMPARE[depth_func](zz, current)
+            if stencil_on and not keep.all():
+                stencil_apply(depth, x[~keep], y[~keep], s_ops[1], s_ref, s_buffer)
             if not keep.any():
                 continue
             sel, x, y, zz = sel[keep], x[keep], y[keep], zz[keep]
+        if stencil_on:
+            stencil_apply(depth, x, y, s_ops[2], s_ref, s_buffer)
         if depth_write:
             old = depth.pixels[y, x]
             depth.pixels[y, x] = (old & ~np.uint32(depth_mask)) | zz.astype(np.uint32)
@@ -500,6 +641,8 @@ def merge(gpu, surface, depth, px, py, color, z):
         else:
             out = src
         bytes_ = (np.clip(out, 0, 1) * 255 + 0.5).astype(np.uint8)
+        if not blending and gpu.seen[0x102] and regs[0x102] & 15 != 3:      # opération logique (3 : copie)
+            bytes_ = logic_op(regs[0x102] & 15, bytes_, surface.pixels[y, x])
         if color_mask != 15:
             old = surface.pixels[y, x]
             for c in range(4):
@@ -529,9 +672,15 @@ def draw(gpu, indexed):
         return 0
     unique, inverse = np.unique(ids, return_inverse=True)
     inputs = load_vertices(gpu, unique)
-    position, attributes = run_vertex_shader(gpu, inputs)
     topology = regs[0x25E] >> 8 & 3
-    triangles = assemble(topology, inverse.astype(np.int64))
+    if regs[0x229] & 3 == 2:                                      # le shader de géométrie fait les triangles
+        made = geometry_stage(gpu, vertex_stage(gpu, inputs), inverse.astype(np.int64))
+        if made is None:
+            return 1
+        position, attributes, triangles = made
+    else:
+        position, attributes = run_vertex_shader(gpu, inputs)
+        triangles = assemble(topology, inverse.astype(np.int64))
     if not len(triangles):
         return 1
     position, attributes, triangles = clip_near(position, attributes, triangles)
@@ -559,10 +708,13 @@ def draw(gpu, indexed):
     area = (sx[b] - sx[a]) * (sy[c] - sy[a]) - (sy[b] - sy[a]) * (sx[c] - sx[a])
     ok &= area != 0
     cull = regs[0x40] & 3
+    # `area` est mesurée avec y vers le bas (les lignes sont à l'envers) : le sens est l'inverse de celui de l'espace
+    # de l'écran de la console. Mode 1 : on garde le sens horaire, mode 2 : le sens antihoraire (vérifié sur le terrain :
+    # sol et lampadaires entiers avec le mode 2).
     if cull == 1:
-        ok &= area < 0
-    elif cull == 2:
         ok &= area > 0
+    elif cull == 2:
+        ok &= area < 0
     triangles, area = triangles[ok], area[ok]
     if not len(triangles):
         return 1
@@ -572,7 +724,8 @@ def draw(gpu, indexed):
     c = np.where(swap, triangles[:, 1], triangles[:, 2])
     area = np.abs(area)
     gpu.stats['triangles'] += len(a)
-    attributes = np.ascontiguousarray(attributes[:, :10])      # couleur et trois jeux de coordonnées de texture
+    # couleur et trois jeux de coordonnées de texture ; avec l'éclairage, aussi la vue et le quaternion
+    attributes = np.ascontiguousarray(attributes if lighting_on(gpu) else attributes[:, :11])    # 10 : le w de la texture 0
     ax, ay, bx, by, cx, cy = sx[a], sy[a], sx[b], sy[b], sx[c], sy[c]
     x_min, y_min, x_max, y_max = 0, 0, surface.width - 1, surface.height - 1
     if regs[0x65] & 3 == 3:
@@ -595,10 +748,6 @@ def draw(gpu, indexed):
                  attributes=attributes)
     if regs[0x80] >> 10 & 1:
         gpu.notes['texture 3 (textures procédurales) non faite'] += 1
-    if regs[0x8F] & 1 and not regs[0x1C4] & 1:
-        gpu.notes['éclairage par fragment non fait (registre 0x8F levé)'] += 1
-    if regs[0x25E] >> 8 & 3 == 3:
-        gpu.notes['shader de géométrie probable (non fait)'] += 1
     textures = {}
     for unit in used_texture_units(gpu):
         if regs[0x80] >> unit & 1:
@@ -711,31 +860,76 @@ def interpolate(px, py, l0, l1, l2, z0, z1, z2, iw0, iw1, iw2, A0, A1, A2, scala
     return px, py, z, frag
 
 
+def lighting_on(gpu):
+    """L'éclairage par fragment est allumé quand le jeu a écrit le registre 0x1C6 et que son bit « éteint » est à zéro
+    (c'est ce que fait Citra ; le jeu écrit aussi 0x8F, dont le sens exact n'est pas vérifié)."""
+    return bool(gpu.seen[0x1C6]) and not gpu.regs[0x1C6] & 1
+
+
+def apply_fog(gpu, color, z):
+    """Le brouillard : un facteur lu dans la table selon la profondeur (128 entrées, interpolées), mélange avec sa couleur."""
+    regs = gpu.regs
+    depth = np.clip(z, 0, 1)
+    if regs[0xE0] >> 16 & 1:
+        depth = 1 - depth
+    pos = depth * 127.999
+    index = pos.astype(np.int64)
+    factor = np.clip(gpu.fog[index, 0] + gpu.fog[index, 1] * (pos - index), 0, 1).astype(np.float32)
+    fog_color = byte_color(regs[0xE1])[:3]
+    out = np.array(color)
+    out[:, :3] = color[:, :3] * factor[:, None] + fog_color[None, :] * (1 - factor[:, None])
+    return out
+
+
+def texture_uv(regs, unit, frag):
+    """Les coordonnées (u, v) d'une unité de texture pour des fragments. L'unité 0 lit le jeu 0 (et le divise par son w
+    si son type est « projection » : bits 28-30 de 0x83 égaux à 3) ; l'unité 1 le jeu 1 ; l'unité 2 le jeu 2, ou le jeu 1
+    si le bit 13 de 0x80 est levé."""
+    if unit == 0:
+        u, v = frag[:, 4], frag[:, 5]
+        if regs[0x83] >> 28 & 7 == 3:
+            w = frag[:, 10]
+            safe = np.where(w == 0, np.float32(1), w)
+            return np.where(w == 0, 0, u / safe), np.where(w == 0, 0, v / safe)
+        return u, v
+    if unit == 1 or regs[0x80] >> 13 & 1:
+        return frag[:, 6], frag[:, 7]
+    return frag[:, 8], frag[:, 9]
+
+
 def shade_and_merge(gpu, surface, depth, textures, batches):
     regs = gpu.regs
     if len(batches) == 1:
         px, py, z, frag = batches[0]
     else:
         px, py, z, frag = (np.concatenate([b[k] for b in batches]) for k in range(4))
+    if regs[0x65] & 3 == 1:                                      # ciseaux qui excluent : le rectangle est retiré
+        inside = (px >= (regs[0x66] & 0x3FF)) & (px <= (regs[0x67] & 0x3FF)) &                  (py >= (regs[0x66] >> 16 & 0x3FF)) & (py <= (regs[0x67] >> 16 & 0x3FF))
+        if inside.any():
+            outside = ~inside
+            px, py, z, frag = px[outside], py[outside], z[outside], frag[outside]
+            if not len(px):
+                return
     scale = 0xFFFF if depth is not None and depth.fmt == 0 else 0xFFFFFF
     zint = (z * scale + 0.5).astype(np.uint32)
     samples = {}
     for unit in range(3):
         if unit in textures:
             texture = textures[unit]
-            if unit == 0:
-                u, v = frag[:, 4], frag[:, 5]
-            elif unit == 1 or regs[0x80] >> 13 & 1:
-                u, v = frag[:, 6], frag[:, 7]
-            else:
-                u, v = frag[:, 8], frag[:, 9]
+            u, v = texture_uv(regs, unit, frag)
             if texture is None:
                 samples[unit] = np.tile(np.array([1, 0, 1, 1], dtype=np.float32), (len(frag), 1))
             else:
                 samples[unit] = sample(texture, u, v)
         else:
             samples[unit] = np.zeros((len(frag), 4), dtype=np.float32)
-    color = run_combiner(gpu, frag, samples)
+    lit = None
+    if lighting_on(gpu):
+        zero = np.zeros((len(frag), 4), dtype=np.float32)
+        lit = lighting.shade(regs, gpu.luts, frag, [samples[0], samples[1], samples[2], zero])
+    color = run_combiner(gpu, frag, samples, lit)
+    if regs[0xE0] & 7 == 5:
+        color = apply_fog(gpu, color, z)
     if regs[0x104] & 1:
         reference = regs[0x104] >> 8 & 255
         alpha = (color[:, 3] * 255 + 0.5).astype(np.int64)

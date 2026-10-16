@@ -28,6 +28,50 @@ COMMAND_NAMES = {0: 'RequestDma', 1: 'ProcessCommandList', 2: 'MemoryFill', 3: '
                  4: 'TextureCopy', 5: 'FlushCacheRegions'}
 FORMATS = {0: 'RGBA8', 1: 'RGB8', 2: 'RGB565', 3: 'RGB5A1', 4: 'RGBA4'}
 DRAW_REGISTERS = {0x022E: 'DrawArrays', 0x022F: 'DrawElements'}
+# Adresses physiques que le GPU lit dans les registres de saut -> adresses du jeu : (début, fin, adresse du jeu du début)
+PHYSICAL_RANGES = ((0x20000000, 0x28000000, 0x14000000), (0x18000000, 0x18600000, 0x1F000000))
+MAX_JUMPS = 20000       # garde-fou contre une boucle ; le terrain chaîne jusqu'à 2 200 sauts dans une seule commande
+
+
+def follow_jumps(memory, data, stats=None):
+    """Les listes se chaînent par les registres de saut du processeur de commandes (0x238/0x239 taille, 0x23A/0x23B
+    adresse physique, tous deux en unités de 8 octets ; l'écriture de 0x23C ou 0x23D déclenche le saut) : le reste
+    du tampon courant est abandonné et la lecture continue dans le tampon visé. Le jeu y range ses modèles prêts
+    à dessiner ; sans cela le banc ne voyait aucun ordre de dessin du terrain. Rend les octets mis bout à bout."""
+    out = []
+    regs = {}
+    for _ in range(MAX_JUMPS + 1):
+        words = struct.unpack('<%dI' % (len(data) // 4), data[:len(data) // 4 * 4])
+        i = 0
+        target = None
+        while i + 1 < len(words) and target is None:
+            header = words[i + 1]
+            register = header & 0xFFFF
+            extra = header >> 20 & 0x7FF
+            consecutive = header >> 31
+            if i + 2 + extra > len(words):          # paquet coupé par la fin du tampon : on l'ignore
+                i = len(words)
+                break
+            for k in range(1 + extra):
+                reg = register + (k if consecutive else 0)
+                regs[reg] = words[i] if k == 0 else words[i + 1 + k]
+                if reg in (0x23C, 0x23D) and regs[reg] & 1:
+                    target = reg - 0x23C
+            i += 2 + extra + (extra & 1)
+        out.append(data[:i * 4] if target is not None else data)
+        if target is None:
+            break
+        physical, size = regs.get(0x23A + target, 0) * 8, regs.get(0x238 + target, 0) * 8
+        address = next((virtual + physical - low for low, high, virtual in PHYSICAL_RANGES if low <= physical < high), 0)
+        try:
+            data = memory.read(address, size) if address and size else b''
+        except Exception:
+            data = b''
+        if not data:
+            (stats if stats is not None else collections.Counter())['sauts de liste vers une adresse illisible'] += 1
+            break
+        (stats if stats is not None else collections.Counter())['sauts de liste suivis'] += 1
+    return b''.join(out)
 
 
 class Gsp(Service):
@@ -55,6 +99,7 @@ class Gsp(Service):
         self.hw_writes = []
         self.unknown_ops = []
         self.gpu = None
+        self.recorder = None
         self.draw_from = bench.options.get('draw_from', 0.0)
         self.draw_until = bench.options.get('draw_until', float('inf'))
         self.snapshot_every = bench.options.get('snapshot_every', 1.0)
@@ -68,6 +113,8 @@ class Gsp(Service):
         if bench.options.get('draw'):
             from pica.gpu import Gpu
             self.gpu = Gpu(bench.memory)
+            from pica import replay
+            self.recorder = replay.from_environment()       # PICA_ENREGISTRER : voir pica/replay.py
 
     def drawing_now(self):
         now = self.kernel.now / 1e9
@@ -157,6 +204,14 @@ class Gsp(Service):
         return done
 
     def execute(self, words):
+        if self.recorder is not None:
+            self.recorder.before(words, self.memory, self.gpu, self.kernel.now / 1e9)
+        name = self.execute_command(words)
+        if self.recorder is not None:
+            self.recorder.after(words, self.memory, self.gpu, self.kernel.now / 1e9)
+        return name
+
+    def execute_command(self, words):
         command = words[0] & 0xFF
         name = COMMAND_NAMES.get(command, 'commande %d' % command)
         self.stats[name] += 1
@@ -237,6 +292,9 @@ class Gsp(Service):
             self.unknown_ops.append(words)
         return name
 
+    def follow_jumps(self, data):
+        return follow_jumps(self.memory, data, self.stats)
+
     def run_gpu_list(self, address, size):
         """Fait suivre la liste à `pica/` : l'état est toujours suivi, le dessin seulement dans la fenêtre de temps."""
         import time
@@ -244,6 +302,7 @@ class Gsp(Service):
             data = self.memory.read(address, size)
         except Exception:
             return
+        data = self.follow_jumps(data)
         start = time.perf_counter()
         self.gpu.process_list(data, draw=self.drawing_now())
         self.draw_seconds += time.perf_counter() - start
@@ -254,6 +313,7 @@ class Gsp(Service):
         except Exception as exc:
             self.lists.append((self.kernel.now, address, size, 0, 0))
             return 'illisible (%s)' % exc
+        data = self.follow_jumps(data)
         words = struct.unpack('<%dI' % (len(data) // 4), data[:len(data) // 4 * 4])
         i = 0
         writes = 0

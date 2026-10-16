@@ -164,6 +164,10 @@ class FileSession(Service):
         self.bench.stats['fs_read_bytes'] += len(data)
         self.bench.on_file_read(self, position, len(data))
         what = self.file.what(self.start + position)
+        served = getattr(getattr(self.file, 'romfs', None), 'describe', None)
+        if served and data:                  # lecture dans un fichier de mod : ce qui a été servi, pour le journal
+            note = served(self.start + position, data)
+            what += (' ; ' if what and note else '') + note
         return Reply(0, [len(data)]).raw(req.word(4), req.word(5)).with_note(
             '%s, position %#x, %#x octets lus%s' % (self.file.label, position, len(data),
                                                     ' (%s)' % what if what else ''))
@@ -308,6 +312,10 @@ class FsUser(Service):
         self.next_archive = 0x100000001
         self.roots = bench.paths['archives']
         self.romfs = {0: bench.romfs_base, 5: bench.romfs_update}
+        if bench.paths.get('overlay'):       # un mod construit pour le PC (mods/build.py --pc), voir banc/romfs.py
+            from romfs import overlay_romfs
+            self.romfs[0], self.romfs[5], bench.overlays = overlay_romfs(bench.romfs_base, bench.romfs_update,
+                                                                         bench.paths['overlay'])
         self.secure_values = {}
 
     # chemins

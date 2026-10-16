@@ -1,0 +1,9 @@
+[package]
+name = "hostcpu"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+kernel = { path = "../kernel" }
+overlay = { path = "../overlay" }
+serde_json.workspace = true

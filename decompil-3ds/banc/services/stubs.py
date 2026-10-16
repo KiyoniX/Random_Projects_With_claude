@@ -1,17 +1,27 @@
 """Les services réseau et accessoires : des réponses factices (pokemon-x-services.md, partie 6).
 
-`ndm:u`, `frd:u`, `boss:U`, `ac:u`, `cecd:u`, `http:C`, `ssl:C`, `soc:U`, `ir:USER`, `mic:u`, `cam:u`, `y2r:u`,
-`nwm::UDS`, et tout nom que le banc ne connaît pas. Chaque commande rend 0 et quelques mots à zéro ; quelques
-commandes reçoivent une réponse un peu plus précise quand le démarrage en dépend (la liste d'amis vide, « pas
-connecté »). Tout passe au journal avec la mention « factice », pour qu'on sache ce qu'il faudra écrire vraiment.
+`y2r:u` (réel pour la conversion) et tout nom que le banc ne connaît pas. Chaque commande rend 0 et quelques mots à
+zéro. Tout passe au journal avec la mention « factice », pour qu'on sache ce qu'il faudra écrire vraiment.
+
+Les treize modules qui ont une fiche (`nwm::UDS`, `boss:U`, `ssl:C`, `cecd:u`, `cam:u`, `mic:u`, `ir:USER`,
+`ndm:u`, `ac:u`, `frd:u`, `soc:U`, `http:C`, `boss:M`) ne passent plus par ici : `Stub(bench, nom)` rend la classe
+de `modules.py`, écrite d'après la fiche, qui n'est plus « factice » mais « simplifiée » ou « réelle ».
 """
 from ipc import Reply, Service
+from services.reply_shapes import Y2R_U
 
 STUB_WORDS = 4
 
 
 class Stub(Service):
     kind = 'factice'
+
+    def __new__(cls, bench=None, name=None):
+        """`Stub(bench, nom)` rend la classe écrite d'après la fiche du module quand il y en a une (modules.py)."""
+        if cls is Stub:
+            from services.modules import MODULES
+            cls = MODULES.get(name, Stub)
+        return object.__new__(cls)
 
     def __init__(self, bench, name):
         super().__init__(bench)
@@ -20,41 +30,11 @@ class Stub(Service):
         self.seen = set()
 
     def handle(self, req):
-        special = SPECIAL.get((self.name, req.command))
-        if special:
-            reply = special(self, req)
-        else:
-            reply = Reply(0, [0] * STUB_WORDS)
+        reply = Reply(0, [0] * STUB_WORDS)
         if req.command not in self.seen:
             self.seen.add(req.command)
             reply.note = (reply.note + ' ; ' if reply.note else '') + 'première fois'
         return reply
-
-
-def frd_friend_key_list(service, req):
-    _, room = req.receive_buffer(0)
-    return Reply(0, [0]).static(0, bytes(min(room, 8))).with_note('aucun ami')
-
-
-def frd_my_presence(service, req):
-    _, room = req.receive_buffer(0)
-    return Reply(0).static(0, bytes(min(room, 0x12C)))
-
-
-def ac_wifi_status(service, req):
-    return Reply(0, [0]).with_note('pas connecté')
-
-
-def static_zero(service, req):
-    _, room = req.receive_buffer(0)
-    return Reply(0, [0]).static(0, bytes(room))
-
-
-SPECIAL = {
-    ('frd:u', 0x0011): frd_friend_key_list,
-    ('frd:u', 0x0008): frd_my_presence,
-    ('ac:u', 0x000D): ac_wifi_status,
-}
 
 
 class Y2r(Stub):
@@ -97,6 +77,9 @@ class Y2r(Stub):
             reply = Reply(0, [1])
         elif command == 0x0028:
             reply = Reply(0, [0])
+        elif command in Y2R_U:
+            from services.modules import neutral_reply
+            reply = neutral_reply(req, Y2R_U[command])
         else:
             return super().handle(req)
         if command not in self.seen:

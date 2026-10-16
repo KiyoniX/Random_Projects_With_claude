@@ -1,0 +1,3 @@
+# Chespin apprend Flamme (nom anglais « Ember ») dès le niveau 1.
+[species.Chespin]
+add = [[1, "Ember"]]

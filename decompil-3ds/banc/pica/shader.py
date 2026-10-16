@@ -24,7 +24,11 @@ IDENTITY = (0, 1, 2, 3)
 
 
 class Divergence(Exception):
-    """Un branchement n'a pas la même issue pour tous les sommets."""
+    """Un branchement n'a pas la même issue pour tous les sommets : `mask` dit lesquels le prennent."""
+
+    def __init__(self, mask=None):
+        super().__init__()
+        self.mask = mask
 
 
 def f24_to_f32(raw):
@@ -65,6 +69,8 @@ COMPARE = (lambda a, b: a == b, lambda a, b: a != b, lambda a, b: a < b, lambda 
 
 
 class VertexShader:
+    emitted = None                       # (aussi pour les enregistrements d'avant le shader de géométrie)
+
     def __init__(self):
         self.code = [0] * 4096
         self.swizzle = [0] * 4096
@@ -76,22 +82,72 @@ class VertexShader:
         self.steps = 0
         # état d'une exécution
         self.n = 0
+        self.emitted = None               # shader de géométrie : les triangles émis (voir `run_geometry`)
 
     # --- l'exécution ---
 
-    def run(self, inputs):
-        """inputs : (n, 16, 4) float32 -> sorties (n, 16, 4) float32."""
+    def run(self, inputs, ids=None):
+        """inputs : (n, 16, 4) float32 -> sorties (n, 16, 4) float32. `ids` : le numéro de chaque entrée (pour ranger les
+        triangles émis par un shader de géométrie quand les sommets sont séparés en groupes)."""
         n = len(inputs)
+        if ids is None:
+            ids = np.arange(n)
+        mark = len(self.emitted) if self.emitted is not None else 0
         try:
-            return self._run(inputs)
-        except Divergence:
+            return self._run(inputs, ids)
+        except Divergence as split:
             if n == 1:
                 raise
-            return np.concatenate([self.run(inputs[i:i + 1]) for i in range(n)], axis=0)
+            if self.emitted is not None:
+                del self.emitted[mark:]                    # ce que l'essai interrompu avait émis est refait par les groupes
+            # on sépare les sommets selon l'issue du branchement et on rejoue chaque groupe depuis le début : jusque-là
+            # tous suivaient le même chemin, et chaque groupe est uniforme pour ce branchement (il peut diverger plus loin)
+            out = np.empty((n, 16, 4), dtype=np.float32)
+            for part in (split.mask, ~split.mask):
+                out[part] = self.run(inputs[part], ids[part])
+            return out
 
-    def _run(self, inputs):
+    def run_geometry(self, inputs):
+        """Le shader de géométrie : une exécution par entrée de `inputs` (n, 16, 4). Les EMIT rangent les sorties dans
+        un des trois sommets du triangle en cours (SETEMIT donne le numéro) et, quand SETEMIT a demandé « primitive »,
+        le triangle est fini. Rend (triangles (t, 3, 16, 4), inversés (t,) booléen), les triangles dans l'ordre des
+        entrées (un triangle d'une entrée avant ceux de la suivante). `inversés` : SETEMIT a demandé l'autre sens."""
+        self.emitted = []
+        try:
+            self.run(inputs)
+            found = self.emitted
+        finally:
+            self.emitted = None
+        if not found:
+            return np.zeros((0, 3, 16, 4), dtype=np.float32), np.zeros(0, dtype=bool)
+        ids = np.concatenate([e[0] for e in found])
+        sequence = np.concatenate([np.full(len(e[0]), k) for k, e in enumerate(found)])
+        triangles = np.concatenate([e[1] for e in found])
+        flipped = np.concatenate([np.full(len(e[0]), e[2]) for e in found])
+        order = np.lexsort((sequence, ids))
+        return triangles[order], flipped[order]
+
+    def _emit(self):
+        """EMIT : les registres de sortie vont dans le sommet choisi par le dernier SETEMIT."""
+        if self.emitted is None:
+            self.unsupported.add(OP_EMIT)
+            return
+        vertex = self.emit_vertex
+        if vertex > 2:
+            self.unsupported.add(OP_EMIT)
+            return
+        self.emit_buffer[vertex] = self.out.copy()
+        if self.emit_primitive:
+            zero = np.zeros((self.n, 16, 4), dtype=np.float32)
+            triangle = np.stack([self.emit_buffer.get(k, zero) for k in range(3)], axis=1)
+            self.emitted.append((self.ids, triangle, bool(self.emit_winding)))
+
+    def _run(self, inputs, ids=None):
         n = len(inputs)
         self.n = n
+        self.ids = np.arange(n) if ids is None else ids
+        self.emit_vertex, self.emit_primitive, self.emit_winding = 0, 0, 0
+        self.emit_buffer = {}
         self.inp = inputs
         self.tmp = np.zeros((n, 16, 4), dtype=np.float32)
         self.out = np.zeros((n, 16, 4), dtype=np.float32)
@@ -165,7 +221,7 @@ class VertexShader:
             return True
         if not result.any():
             return False
-        raise Divergence()
+        raise Divergence(result)
 
     def _block(self, pc, end):
         """Exécute les instructions [pc, end). Rend 'end' si END a été rencontré, 'break' pour BREAK, sinon None."""
@@ -184,7 +240,13 @@ class VertexShader:
             count = instr & 0xFF
             if op == OP_END:
                 return 'end'
-            if op == OP_NOP or op == OP_EMIT or op == OP_SETEMIT:
+            if op == OP_NOP:
+                pc += 1
+            elif op == OP_EMIT:
+                self._emit()
+                pc += 1
+            elif op == OP_SETEMIT:
+                self.emit_vertex, self.emit_primitive, self.emit_winding = instr >> 22 & 3, instr >> 24 & 1, instr >> 25 & 1
                 pc += 1
             elif op == OP_BREAK:
                 return 'break'

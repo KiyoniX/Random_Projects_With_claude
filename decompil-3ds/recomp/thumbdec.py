@@ -88,7 +88,7 @@ def decode(addr, ctx, image):
         if cond == 15:
             insn.mnem = 'svc'
             insn.kind = 'svc'
-            insn.lines = ['RT_SAVE(); rt_svc(c, 0x%x, %s); RT_LOAD();' % (hw & 0xFF, lit(addr + 2))]
+            insn.lines = ['RT_SAVE(); rt_svc(c, 0x%x, %s); RT_LOAD();' % (hw & 0xFF, lit((addr + 2) | 1))]   # bit 0 : Thumb
             return insn
         if cond == 14:
             return _bad(insn, 'udf')
@@ -106,7 +106,7 @@ def _branch(insn, ctx, target, cond):
     insn.mnem = 'b'
     insn.cond = cond
     if ctx.claim(target):
-        insn.lines = ['%sgoto L_%08x;' % ('RT_BACKEDGE(); ' if target <= insn.addr else '', target)]
+        insn.lines = ['%sgoto L_%08x;' % ('RT_BACKEDGE(%s); ' % lit(target | 1) if target <= insn.addr else '', target)]
         insn.succ = [target]
         insn.kind = 'branch'
         return insn.stop()
@@ -136,9 +136,9 @@ def _bl(insn, hw, ctx, image):
     lines = ['lr = %s;' % lit((insn.addr + 4) | 1)]
     ctx.callees.add(target & ~1)
     if key in ctx.known:
-        lines.append('RT_SAVE(); f_%08x(c); RT_LOAD();' % target)
+        lines.append('RT_SAVE(); RT_PUSH(lr); f_%08x(c); RT_POP(); RT_LOAD();' % target)
     else:
-        lines.append('RT_SAVE(); rt_dispatch(c, %s); RT_LOAD();' % lit(key))
+        lines.append('RT_SAVE(); RT_PUSH(lr); rt_dispatch(c, %s); RT_POP(); RT_LOAD();' % lit(key))
     insn.lines = lines
     return insn
 
@@ -253,14 +253,14 @@ def _hireg(insn, hw, ctx):
             return _bad(insn, 'bx pc')
         if h1:
             insn.lines = ['u32 t = %s;' % REGS[rs], 'lr = %s;' % lit((addr + 2) | 1),
-                          'RT_SAVE(); rt_dispatch(c, t); RT_LOAD();']
+                          'RT_SAVE(); RT_PUSH(lr); rt_dispatch(c, t); RT_POP(); RT_LOAD();']
             insn.kind = 'call'
             return insn
         if rs == 14:
-            insn.lines = ['RT_SAVE(); return;']
+            insn.lines = ['c->r[15] = lr; RT_SAVE(); return;']
             insn.kind = 'ret'
             return insn.stop()
-        insn.lines = ['u32 t = %s;' % REGS[rs], 'RT_SAVE(); rt_dispatch(c, t); return;']
+        insn.lines = ['u32 t = %s;' % REGS[rs], 'RT_TAILCHECK(t); RT_SAVE(); rt_dispatch(c, t); return;']
         insn.kind = 'tail'
         return insn.stop()
     src = lit(addr + 4) if rs == 15 else REGS[rs]
@@ -274,7 +274,7 @@ def _hireg(insn, hw, ctx):
             insn.lines = ['u32 t = %s;' % src]
         else:
             return _table_add(insn, ctx, rs)
-        insn.lines += ['RT_SAVE(); rt_dispatch(c, t | 1u); return;']
+        insn.lines += ['RT_TAILCHECK(t); RT_SAVE(); rt_dispatch(c, t | 1u); return;']
         insn.kind = 'tail'
         return insn.stop()
     if op == 0:
@@ -391,7 +391,7 @@ def _misc(insn, hw, ctx):
                 L.append('%s = v%d;' % (REGS[r], r))
             insn.lines = L
             if extra:
-                insn.lines = L + ['RT_SAVE(); return;']
+                insn.lines = L + ['c->r[15] = tp; RT_SAVE(); return;']
                 insn.kind = 'ret'
                 return insn.stop()
             return insn

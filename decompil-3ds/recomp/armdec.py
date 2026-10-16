@@ -84,8 +84,8 @@ class Ctx:
     def call_lines(self, target):
         self.callees.add(target)
         if target in self.known:
-            return ['RT_SAVE(); f_%08x(c); RT_LOAD();' % target]
-        return ['RT_SAVE(); rt_dispatch(c, %s); RT_LOAD();' % lit(target)]
+            return ['RT_SAVE(); RT_PUSH(lr); f_%08x(c); RT_POP(); RT_LOAD();' % target]
+        return ['RT_SAVE(); RT_PUSH(lr); rt_dispatch(c, %s); RT_POP(); RT_LOAD();' % lit(target)]
 
 
 def reg_read(n, addr, ahead=8):
@@ -467,7 +467,7 @@ def _data_processing(insn, ctx):
     # écriture de pc
     insn.lines = L
     if opc == 13 and not (w & 0x02000000) and (w & 0xFF0) == 0 and (w & 15) == 14:
-        insn.lines = ['RT_SAVE(); return;']
+        insn.lines = ['c->r[15] = lr; RT_SAVE(); return;']
         insn.kind = 'ret'
         return insn.stop()
     if opc == 4 and rn == 15 and not (w & 0x02000000) and not (w & 0x10) and ((w >> 5) & 3) == 0 \
@@ -479,12 +479,51 @@ def _data_processing(insn, ctx):
 def _indirect_jump(insn, ctx, expr):
     """Un saut vers une adresse calculée : appel indirect par l'aiguillage. Après « mov lr, pc », c'est un appel."""
     if ctx.prev_word == 0xE1A0E00F:
-        insn.lines += ['RT_SAVE(); rt_dispatch(c, %s); RT_LOAD();' % expr]
+        insn.lines += ['RT_SAVE(); RT_PUSH(lr); rt_dispatch(c, %s); RT_POP(); RT_LOAD();' % expr]
         insn.kind = 'call'
         return insn
-    insn.lines += ['RT_SAVE(); rt_dispatch(c, %s); return;' % expr]
+    ret = _manual_return_address(insn, ctx)
+    if ret is not None:
+        # « add lr, pc, #imm » puis le saut : un appel dont l'adresse de retour n'est pas l'instruction suivante. Le code
+        # reprend à `ret` quand l'appelé revient : dans la fonction (goto), ou plus loin (la suite devient une fonction).
+        insn.lines += ['RT_SAVE(); RT_PUSH(lr); rt_dispatch(c, %s); RT_POP(); RT_LOAD();' % expr]
+        if ctx.claim(ret):
+            insn.lines.append('goto L_%08x;' % ret)
+            insn.succ = [ret]
+        else:
+            insn.lines.append('RT_SAVE(); rt_dispatch(c, %s); return;' % lit(ret))
+            ctx.callees.add(ret)
+        insn.kind = 'call'
+        return insn.stop()
+    insn.lines += ['RT_TAILCHECK(%s); RT_SAVE(); rt_dispatch(c, %s); return;' % (expr, expr)]
     insn.kind = 'tail'
     return insn.stop()
+
+
+def _manual_return_address(insn, ctx):
+    """L'adresse que lr reçoit d'un « add lr, pc, #imm » ou « sub lr, pc, #imm » dans les quelques mots avant ce saut,
+    si elle tombe dans la fonction ; sinon None."""
+    if ctx.read_word is None:
+        return None
+    extra = 0                   # « add lr, lr, #imm » entre le « add lr, pc » et le saut
+    for k in range(1, 7):
+        at = insn.addr - 4 * k
+        w = ctx.read_word(at)
+        if w is None:
+            return None
+        if w & 0xFFFFF000 in (0xE28EE000, 0xE24EE000):
+            imm = ror(w & 0xFF, 2 * ((w >> 8) & 15))
+            extra += imm if w & 0xFFFFF000 == 0xE28EE000 else -imm
+            continue
+        if w & 0xFFFFF000 in (0xE28FE000, 0xE24FE000):
+            imm = ror(w & 0xFF, 2 * ((w >> 8) & 15))
+            ret = (at + 8 + (imm if w & 0xFFFFF000 == 0xE28FE000 else -imm) + extra) & M32
+            return ret
+        if w >> 28 != 14 and (w >> 24) & 15 == 10:
+            continue            # un « bne » (sans lien) : s'il n'est pas pris, lr n'a pas bougé ; pris, il ne vient pas ici
+        if w >> 28 != 14 or (w >> 25) & 7 in (5, 4):       # un branchement ou un transfert multiple : on arrête la recherche
+            return None
+    return None
 
 
 def _table_add(insn, ctx, rm):
@@ -515,11 +554,11 @@ def _bx(insn, ctx, rm, link):
     if rm == 15:
         return _bad(insn, 'bx pc')
     if link:
-        insn.lines = ['u32 t = %s;' % REGS[rm], 'lr = %s;' % lit(insn.addr + 4), 'RT_SAVE(); rt_dispatch(c, t); RT_LOAD();']
+        insn.lines = ['u32 t = %s;' % REGS[rm], 'lr = %s;' % lit(insn.addr + 4), 'RT_SAVE(); RT_PUSH(lr); rt_dispatch(c, t); RT_POP(); RT_LOAD();']
         insn.kind = 'call'
         return insn
     if rm == 14:
-        insn.lines = ['RT_SAVE(); return;']
+        insn.lines = ['c->r[15] = lr; RT_SAVE(); return;']
         insn.kind = 'ret'
         return insn.stop()
     insn.lines = ['u32 t = %s;' % REGS[rm]]
@@ -536,7 +575,7 @@ def _branch(insn, ctx):
         insn.kind = 'call'
         return insn
     if ctx.claim(target):
-        insn.lines = ['%sgoto L_%08x;' % ('RT_BACKEDGE(); ' if target <= insn.addr else '', target)]
+        insn.lines = ['%sgoto L_%08x;' % ('RT_BACKEDGE(%s); ' % lit(target) if target <= insn.addr else '', target)]
         insn.succ = [target]
         insn.kind = 'branch'
         return insn.stop()
@@ -557,9 +596,9 @@ def _unconditional(insn, ctx):
         insn.lines = ['lr = %s;' % lit(insn.addr + 4)]
         ctx.callees.add(target & ~1)
         if (target | 1) in ctx.known:
-            insn.lines.append('RT_SAVE(); f_%08x(c); RT_LOAD();' % (target & ~1))
+            insn.lines.append('RT_SAVE(); RT_PUSH(lr); f_%08x(c); RT_POP(); RT_LOAD();' % (target & ~1))
         else:
-            insn.lines.append('RT_SAVE(); rt_dispatch(c, %s); RT_LOAD();' % lit(target | 1))
+            insn.lines.append('RT_SAVE(); RT_PUSH(lr); rt_dispatch(c, %s); RT_POP(); RT_LOAD();' % lit(target | 1))
         insn.kind = 'call'
         return insn
     if (w & 0xFD70F000) == 0xF550F000:                  # PLD
@@ -630,7 +669,7 @@ def _single(insn, ctx):
             return _bad(insn, 'ldrb pc')
         # ldr pc, ... : retour, table de sauts ou saut indirect
         if rn == 13 and not P and not I and U and const_off == 4:
-            insn.lines = L + ['RT_SAVE(); return;']
+            insn.lines = L + ['c->r[15] = t; RT_SAVE(); return;']
             insn.kind = 'ret'
             return insn.stop()
         if rn == 15 and P and I and ((w >> 5) & 3) == 0 and ((w >> 7) & 31) == 2 and U and not wb:
@@ -787,7 +826,7 @@ def _block(insn, ctx):
         if not has_pc:
             return insn
         if rn == 13 and W:
-            insn.lines = L + ['RT_SAVE(); return;']
+            insn.lines = L + ['c->r[15] = tp; RT_SAVE(); return;']
             insn.kind = 'ret'
             return insn.stop()
         return _indirect_jump(insn, ctx, 'tp')

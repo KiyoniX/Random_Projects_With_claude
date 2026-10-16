@@ -75,3 +75,34 @@ class NcchRomfs:
             out.append(((folder + '/' if folder else '') + name, data_off + data, size))
             position += 0x20 + ((length + 3) & ~3)
         return out
+
+
+def overlay_romfs(base, update, overlay_dir):
+    """Superpose au romfs du jeu de base et à celui de la mise à jour les fichiers d'un mod construit pour le PC
+    (mods/build.py --pc : <overlay_dir>/romfs/). Rend (base, mise à jour, la liste des surcouches).
+
+    Comme LayeredFS sur la console, un fichier remplace celui de même chemin dans chaque romfs qui le contient ; un
+    fichier que ni l'un ni l'autre ne contient est ajouté au jeu de base. Voir mods/README.md.
+    """
+    import os
+    import sys
+    mods_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mods')
+    if mods_dir not in sys.path:
+        sys.path.insert(0, mods_dir)
+    from modkit.overlay import OverlayRomfs
+    root = os.path.join(overlay_dir, 'romfs')
+    wanted = {}
+    for folder, _, names in os.walk(root):
+        for name in names:
+            full = os.path.join(folder, name)
+            wanted[os.path.relpath(full, root).replace(os.sep, '/')] = full
+    in_base = {f[0] for f in base.files()} & set(wanted) if base is not None else set()
+    in_update = {f[0] for f in update.files()} & set(wanted) if update is not None else set()
+    made = []
+    if base is not None:
+        base = OverlayRomfs(base, {p: wanted[p] for p in wanted if p in in_base or p not in in_update})
+        made.append(base)
+    if update is not None and in_update:
+        update = OverlayRomfs(update, {p: wanted[p] for p in in_update}, allow_new=False)
+        made.append(update)
+    return base, update, made

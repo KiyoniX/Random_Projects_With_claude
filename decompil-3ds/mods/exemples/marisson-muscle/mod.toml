@@ -1,0 +1,7 @@
+[mod]
+id = "marisson-muscle"
+name = "Marisson musclé"
+version = "1.0.0"
+author = "Exemple du moteur de mods"
+description = "Chespin (Marisson) gagne des points de vie et de l'attaque, apprend Flamme au niveau 1 et change de nom."
+game = "pokemon-x-eu"

@@ -1,0 +1,4 @@
+0x363c	function	DllTownmap_nnroControlObject_
+0x36e8	function	DllTownmap_OnExit
+0x36ec	function	DllTownmap_OnLoad
+0x36f0	function	DllTownmap_OnUnresolved

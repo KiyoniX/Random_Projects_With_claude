@@ -10,6 +10,7 @@ Le C produit à partir du code du jeu vient d'un dump personnel : il n'est écri
 | --- | --- |
 | `recomp.py` | le recompilateur : lit `code.bin` + l'exheader + la liste des fonctions de Ghidra, traduit chaque fonction, écrit les fichiers C (`stats`, `gen`, `test`) |
 | `armdec.py` | le décodeur ARM (mode ARM, ARMv6K) : un mot de 32 bits devient des lignes de C |
+| `cro_recomp.py` | la même chose pour les 133 modules `.cro` : un C **relogeable**, sans dépendre de l'adresse où `ro` charge le module (voir « Les modules `.cro` ») |
 | `thumbdec.py` | le décodeur Thumb (Thumb-1 de l'ARMv6, il n'y a pas d'IT sur l'ARM11) |
 | `vfpdec.py` | la VFPv2 : transferts, arithmétique simple et double, comparaisons, conversions |
 | `runtime/rt.h`, `runtime/rt.c` | le support d'exécution que le C inclut : l'état du processeur, la mémoire par table de pages, l'aiguillage des appels, les opérations ARM sans équivalent en C |
@@ -23,7 +24,10 @@ Le C produit à partir du code du jeu vient d'un dump personnel : il n'est écri
 python recomp/recomp.py stats                        # couverture des instructions de tout code.bin
 python recomp/recomp.py gen --out local/recomp/jeu   # tout le jeu en C (23 882 fonctions, 61 Mo de C)
 python recomp/recomp.py gen --out DIR --only 0x100048,0x1000a0 --asm     # quelques fonctions, avec l'ARM en commentaire
-python recomp/tests.py                               # les tests (environ une minute et demie)
+python recomp/cro_recomp.py gen                      # les 133 modules .cro en C, dans local/recomp/jeu (quelques secondes)
+python recomp/cro_recomp.py stats [--only A,B]       # fonctions trouvées et couverture, module par module
+python recomp/cro_recomp.py bases [--only A,B]       # contrôle : le même module traduit à deux adresses donne le même C
+python recomp/tests.py                               # les tests (environ trois minutes)
 
 python recomp/validate.py leaf --n 650 --start 0     # fonctions feuilles : natif contre unicorn
 python recomp/validate.py tree --n 2500              # fonctions dont tous les appelés sont recompilés
@@ -74,6 +78,105 @@ Le jeu entier compilé (`validate.py build`) : 61 fichiers C, 34 s avec `-O1` su
 
 Couvert : toutes les formes de données (décalages immédiat et par registre, retenue du décaleur, drapeaux), conditions, LDR/STR et leurs formes d'adressage, LDRH/LDRSH/LDRSB/LDRD/STRD, LDM/STM (4 modes), multiplications (MUL, MLA, UMULL, SMULL, UMLAL, SMLAL, UMAAL, SMUL/SMLA/SMLAW/SMLAL en 16 bits, SMUAD, SMLAD, SMLALD, SMMUL), CLZ, QADD/QSUB, les extensions (UXTB, SXTH, UXTB16, SXTAB...), PKHBT/PKHTB, SSAT/USAT/SSAT16/USAT16, REV/REV16/REVSH, SEL, les opérations en parallèle (`qadd16`, `uhadd8`...), USAD8, LDREX/STREX (octet, demi-mot, mot, double mot), CLREX, SWP, MRS, MSR (drapeaux), `mrc` du registre de stockage local, les opérations d'entretien du cache (sans effet), PLD, les indices (nop, yield...), `svc`, et la VFPv2 : VLDR/VSTR/VLDM/VSTM/VPUSH/VPOP, VADD/VSUB/VMUL/VDIV/VMLA/VMLS/VNMLA/VNMLS/VNMUL en simple et en double, VABS/VNEG/VSQRT/VMOV, VCMP/VCMPE, VMRS/VMSR/FMSTAT, VCVT (entier, simple, double), VMOV avec le cœur.
 
+## Les modules `.cro`
+
+Presque tout le code du jeu est dans 133 modules `.cro` (6,1 Mo de code ARM, 1,05 million d'instructions, 37 854 fonctions
+trouvées) que `ro` charge et reloge à l'exécution. Tant qu'ils restaient à unicorn, le natif ne servait à rien : sur 24 s de banc,
+743 s de PC dont 4,7 s dans le natif et 537 s sous unicorn.
+
+### La méthode : un C relogeable (voie « b »), et pourquoi pas la voie « a »
+
+Deux voies : compiler chaque module **à l'adresse où le banc le charge** (a), ou rendre le C **indépendant de cette adresse** (b).
+J'ai vérifié si l'adresse est déterministe, et elle ne l'est pas assez pour (a) :
+
+- *d'une exécution à l'autre* : oui, sur le banc. Dans les 51 exécutions gardées dans `local/analyse/`, le même module est toujours à la
+  même adresse (`DllTitle` `0x6a9000`, `DllBackGround` `0x6cc000`, `DllSequence` `0x6d5000`). Le banc est déterministe ;
+- *selon l'ordre des chargements* : non. L'adresse « miroir » est celle du tampon que le jeu a réservé dans son tas moins `0x0799B000`
+  (`ldr_ro.py`, `LoadExeCRO`). Les modules qui se chargent ensemble s'empilent à la suite : `DllBackGround` n'est à `0x6cc000` que
+  parce que `DllTitle` (`0x22000` octets) l'a précédé ; chargé seul ou après un autre module, il serait ailleurs. Le premier module
+  chargé occupe toujours la première place libre (`0x6a9000` pour `DllLangSelect`, `DllTitle`, `DllStartMenu` et `DllField`, qui se
+  succèdent et sont déchargés entre-temps) ;
+- *sur la console* : l'adresse vient de l'allocateur du tas du jeu, donc de tout ce que le jeu a alloué avant (sauvegarde, écran
+  précédent, langue). Rien ne la fige.
+
+La voie (a) casserait donc à la première différence de trajectoire : tous les `bl` internes, toutes les adresses de pool, les tables
+de sauts et les retours choisis à la main seraient faux, sans que rien ne le signale à l'exécution. Il aurait fallu un C par disposition
+possible. La voie (b) coûte quelques réécritures et sert aussi au portage Rust : le C d'un module est le même quelle que soit la base.
+
+### Comment le C d'un module ne dépend pas de sa base
+
+- Chaque module est traduit **à une adresse factice** (`0x40000000 + indice × 2 Mio`), avec ses corrections internes appliquées à cette
+  adresse : le décodeur lit ainsi les tables de sauts et sait ce que visent les pointeurs de fonction. Les adresses de code ainsi
+  produites (retour d'un `bl`, `add rX, pc, #imm`, cible de l'aiguillage, entrée de fonction) sont ensuite **réécrites** en
+  `RT_MBASE + décalage`, où `RT_MBASE` = `rt_mb[indice]` est la base réelle du module, posée par l'hôte au chargement.
+- Tout le reste vient de la **mémoire** : un mot de pool de littéral est relu par `rd32` à l'exécution, il porte donc l'adresse réelle que
+  `ro` y a écrite (correction interne, ou import résolu vers `code.bin` ou un autre module). Aucune constante n'est repliée dans un module.
+  Un appel vers `code.bin` ou un autre module passe par `rt_dispatch` avec cette adresse réelle ; un appel dans le module est un appel C direct.
+- Les `switch` des tables de sauts (`add pc, pc, rX, lsl #2`, `ldr pc, [pc, rX, lsl #2]`) restent en adresses factices **des deux côtés** : ils ne
+  dépendent que de l'indice. Un retour non-local (`RT_POPC`, `rt_unwind`) compare l'adresse visée, ramenée à l'adresse factice
+  (`adresse - RT_MBASE + factice`).
+- `python recomp/cro_recomp.py bases` traduit chaque module à **deux** adresses factices et exige le même C une fois réécrit : une constante du
+  code qui tomberait par hasard dans la fenêtre factice (et serait prise pour une adresse) y serait vue. Écart sur les 133 modules : 0.
+- `rt_dispatch` cherche d'abord dans la table de `code.bin`, puis dans les modules chargés (le dernier trouvé d'abord) : recherche
+  dichotomique dans la table du module, indexée par décalage dans le module (bit 0 pour Thumb).
+
+### Les points d'entrée (aucun module n'a de liste Ghidra)
+
+Ils viennent du fichier : exports par nom et par numéro, objet de contrôle (`0xA0` à `0xAC`), **adresses que d'autres modules et
+`static.crs` importent** (c'est ce qui rend les fonctions que le programme principal appelle), pointeurs de fonction posés par les
+corrections internes dans `.data` et `.rodata`. Puis la fermeture des appels (`bl`, aiguillage à cible constante), puis les
+pointeurs posés **dans le code** par les corrections (fonctions passées en rappel ; ceux qui tombent au milieu de ce qui est déjà traduit,
+cibles de tables de sauts, sont ignorés), puis les prologues `push {..., lr}` dans ce qu'aucune fonction n'a atteint. Un mot que `ro`
+écrit est de la donnée : il n'est jamais pris pour du code. Le banc note ce qu'il rencontre sans que ce soit traduit dans
+`local/recomp/trous-cro.txt` (`module décalage`), relu comme points de départ à la génération suivante (même cycle que `trous.txt`).
+
+Résultat : environ 95 % des octets de code sont des instructions traduites (le reste : pools et données), aucune instruction non
+traduite sur les 133 modules (une conversion VFP lisait mal les bits D et M : corrigé, avec son test).
+
+### Le brancher dans le banc
+
+`python recomp/recomp.py gen` puis `python recomp/cro_recomp.py gen` écrivent le C de `code.bin` et des modules dans `local/recomp/jeu`,
+avec `cro_table.c` (une table par module et `rt_cro_init`) et `cro_meta.json` (indice, taille, empreinte et masque de chaque module) ;
+`python recomp/validate.py build --host` compile tout dans la même DLL (214 Mo, 245 fichiers, environ une minute et demie).
+
+Quand `ro` a fini de charger un module, `bench.on_cro_loaded` appelle `cpu.module_loaded(nom, base)` (`banc/cpu_native.py`) :
+1. l'**empreinte du code en mémoire** est comparée à celle du fichier d'où le C a été tiré, les mots que `ro` écrit (corrections et
+   imports) mis à zéro. Un code différent (autre version, mod) est **refusé** : le module reste à unicorn, qui exécute le vrai code ;
+2. `rt_mod_set_base(indice, base)` : `rt_dispatch` trouve le module ; ses pages de code sont retirées d'unicorn (même mécanisme que `code.bin`) ;
+3. la mémoire reprise (`unmap`, `protect` qui touche le module) **débranche** le module (`rt_mod_set_base(indice, 0)`, les pages
+   redeviennent exécutables sous unicorn). Un module déchargé ou rechargé ailleurs n'exécute donc jamais de code périmé : sa base est
+   relue à chaque aiguillage, et le C d'une ancienne adresse n'est plus atteignable ;
+4. un module chargé deux fois à la fois n'a qu'une base : le second reste à unicorn.
+
+Les adresses du code de module que ni le C ni la table ne couvrent (un trou) passent à unicorn avec la page rendue exécutable, comme pour `code.bin`.
+Le mode `verifier` journalise aussi les entrées de fonction des modules branchés.
+
+### Ajouts à l'interface C (rien ne change de sens)
+
+`rt.h` : `RtModule`, `rt_mb[]`, `rt_mod_register`. `rt.c`, fonctions exportées en plus : `rt_cro_init` (écrite dans le C généré),
+`rt_mod_count`, `rt_mod_name(i)`, `rt_mod_info(i, out[4])` (indice, décalage et taille du code, nombre d'entrées),
+`rt_mod_set_base(i, base)` (0 : déchargé), `rt_mod_list_entries(i, out, max)`. `rt_has_entry` et `rt_can_hook` répondent aussi pour les modules
+chargés. `rt_dispatch` cherche dans les modules chargés après `code.bin`. Sans `rt_cro_init`, aucune de ces fonctions ne change le comportement.
+
+### Mesure
+
+Scénario de 24 s de banc (`--appuis 14:START,16:A,18:A`), `--cpu hybride`, machine chargée par d'autres chantiers (les temps PC sont
+indicatifs) :
+
+| | temps PC | natif | unicorn | reste (Python) |
+| --- | --- | --- | --- | --- |
+| hybride, modules sous unicorn (avant) | 743 s | 4,7 s | 537 s | 202 s |
+| hybride, modules recompilés, première génération | 320 s | 33 s | 170 s | 118 s |
+| idem, avec les points d'entrée issus de `static.crs` | 338 s | 34 s | 190 s | 114 s |
+
+Les 3 premières secondes du banc (`DllTitle` chargé) passent de plusieurs dizaines de secondes à **2,1 s de PC, 0 s sous unicorn, 0 traversée**.
+Le temps restant sous unicorn vient de **trous de `code.bin`** : des adresses que Ghidra ne nomme pas et que le code des modules,
+désormais natif, atteint (38 000 passages natif vers unicorn en 17 s, sur ~15 adresses vers `0x1b9c00`-`0x1bfc00`). Chaque tour du cycle
+`banc` -> `trous.txt` -> `recomp.py gen` -> `build --host` en retire (708 -> 814 adresses, 25 572 fonctions de `code.bin`) et en
+révèle d'autres plus bas dans la liste ; **le cycle n'est pas terminé**. Les modules eux-mêmes n'ont plus de trou sur ce scénario.
+Pas encore mesuré après ce dernier tour : le temps final, et `--cpu verifier` sur des tranches de modules (non fait faute de temps).
+Profil du Python (114 s) : non fait.
+
 ## La validation : natif contre unicorn
 
 `harness.py` monte deux copies identiques de la mémoire du programme (les trois sections de `code.bin`, plus un tas de 64 Kio et une pile de 16 Kio), l'une pour unicorn, l'autre pour la DLL. Pour chaque fonction il tire des états de départ au hasard : registres (pointeurs dans le tas, petits entiers, valeurs libres, valeurs limites, pointeurs dans les sections), drapeaux, GE, registres VFP (flottants simples, doubles, NaN, infinis, dénormaux), tas (octets libres ou petits entiers et pointeurs) et pile. Les deux côtés exécutent la fonction, puis on compare **r0-r12, sp, lr, N Z C V Q, GE, d0-d15, les drapeaux du FPSCR et toute la mémoire inscriptible**. Les tirées où les deux côtés font la même faute mémoire, ou où unicorn n'atteint pas le retour (boucle trop longue), sont écartées ; une faute d'un seul côté est une divergence.
@@ -105,16 +208,41 @@ Vitesse (`validate.py speed`, fonctions de calcul à boucle, 6 500 à 24 500 ins
 
 - Les fonctions qui font un `svc`, un appel indirect (`blx` registre), ou appellent du code non recompilé : leur comportement dépend du reste de la console, il n'y a pas d'oracle isolé. Elles sont recompilées, mais pas validées une à une.
 - Le sous-ensemble des fonctions où aucune tirée ne passe les fautes mémoire (surtout des fonctions qui attendent des structures bien formées).
-- Les `.cro` chargés plus tard (hors de portée pour l'instant).
+- Les modules `.cro` : validés par la comparaison `verifier` sur des tranches du jeu (voir « Mesure »), pas fonction par fonction.
 - Les drapeaux cumulatifs d'exception du FPSCR (IXC, UFC...) ne sont pas tenus ; le mode NaN par défaut est supposé actif (c'est celui que pose le noyau).
 - La précision des accès non alignés aux demi-mots et doubles mots à travers des pages mixtes, et l'atomicité réelle des accès exclusifs entre fils.
+
+## Branché dans le banc (`banc/cpu_native.py`, `banc/cpu_verify.py`)
+
+`python banc/run.py --cpu hybride` (ou `natif`, `verifier`) fait tourner le jeu sur la DLL recompilée. Il faut d'abord
+`python recomp/recomp.py gen --out local/recomp/jeu` puis `python recomp/validate.py build --host` (et `--logw` pour le mode
+vérification). La compilation est incrémentale (objets gardés dans `build/objets/`) et le C est réparti en tranches fixes de
+64 Kio d'adresses : ajouter des fonctions ne recompile que les tranches touchées.
+
+- `runtime/host.c` : une fibre Windows par fil de la console, rend la main sur un appel système, un compteur épuisé (préemption
+  coopérative), un repère ou un saut vers du code non recompilé (mode hybride : unicorn exécute alors ce code avec les mêmes
+  registres et la même mémoire).
+- `runtime/logw.c` : journal des écritures et des entrées de fonction, pour le mode vérification (le natif fait la tranche,
+  unicorn la rejoue, arrêt à la première divergence). `VERIFIER_DEPUIS=N` saute la vérification des N premières tranches.
+- **Les trous.** Ghidra laisse du code hors de ses fonctions (cibles de sauts calculés, suites de fonctions coupées). Le banc note
+  chaque adresse du jeu rencontrée sans être recompilée dans `local/recomp/trous.txt` ; `recomp.py gen` les relit comme points de
+  départ. Cycle : lancer le banc, `gen`, `build --host`, recommencer jusqu'à ce que le fichier ne grossisse plus.
+- **Retours non-locaux.** Du code du jeu « revient » ailleurs qu'à son appelant (un `pop {..., pc}` qui termine l'épilogue de
+  l'appelant ; une adresse de retour fixée à la main par `add lr, pc, #imm` éventuellement suivi de `add lr, lr, #imm`, puis
+  empilée). Le C ne sait revenir qu'à l'appelant : `RT_PUSH` met `c->r[15]` à 0 avant un appel, tout retour y pose sa cible,
+  `RT_POP` la compare à l'adresse rangée et, si elle diffère, la fonction rend la main à son tour jusqu'à l'appel qui l'attendait ;
+  une fonction qui a des adresses de reprise à elle (`RT_POPC`, étiquette `rt_unwind`) y reprend. Côté hôte, un tel retour qui
+  enjambe un passage par unicorn est suivi par `CMD_RETURN`. Tests sur code fabriqué : `test_native_cpu` et `PROGRAM_MANUAL_LR*`.
+- **Pages cédées à unicorn.** Une boucle d'un module `.cro` qui rappelle de petites fonctions du jeu traversait le natif des
+  centaines de milliers de fois (une traversée coûte des dizaines de microsecondes de Python). Au-delà de 200 appels depuis
+  unicorn vers une même page du jeu, la page devient exécutable sous unicorn.
 
 ## Ce qui manque pour le jeu entier
 
 1. **Les fils.** Une fonction recompilée garde son état dans la pile C du PC, pas dans un contexte qu'on peut ranger : `Cpu.save()/restore()` du banc ne se traduisent pas tels quels. Piste : un fil de la console = un fil de l'hôte (ou une fibre), un seul tournant à la fois ; `rt_svc` bloque le fil de l'hôte et rend la main au noyau Python, qui réveille le prochain.
 2. **Le temps partagé.** Sans l'émulateur, rien ne préempte une boucle d'attente active. Les constructions de test ont `RT_BACKEDGE()` (compteur) ; une construction « coopérative » peut s'y appuyer pour rendre la main de temps en temps.
 3. **Les points de repère** (`watch`) : au niveau d'une entrée de fonction, un crochet à l'entrée (macro vide hors mesure).
-4. **Les modules `.cro`** : leur code est chargé et relogé à l'exécution. Pour l'instant : ou bien les recompiler à ce moment-là, ou bien laisser unicorn les exécuter via le même aiguillage (repli).
+4. **Les modules `.cro`** : recompilés en C relogeable (section « Les modules `.cro` »), branchés dans le banc au chargement.
 5. **La mémoire** : brancher `memory.AddressSpace` sur la table de pages (`rt_map`), voir plus bas.
 
 ## Comment cela remplacera `cpu_unicorn.py` derrière l'interface de `cpu.py`

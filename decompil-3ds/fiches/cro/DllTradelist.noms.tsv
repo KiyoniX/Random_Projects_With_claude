@@ -1,0 +1,4 @@
+0xb77c	function	DllTradelist_nnroControlObject_
+0xb828	function	DllTradelist_OnExit
+0xb82c	function	DllTradelist_OnLoad
+0xb830	function	DllTradelist_OnUnresolved

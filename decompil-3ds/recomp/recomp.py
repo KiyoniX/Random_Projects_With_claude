@@ -6,6 +6,7 @@ et écrit pour chacune une fonction C qui opère sur l'état du processeur (rt.h
     python recomp/recomp.py stats                       # couverture des instructions de tout code.bin
     python recomp/recomp.py gen --out local/recomp/jeu  # tout le jeu en C (dans local/, jamais versionné)
     python recomp/recomp.py gen --out DIR --only 0x100048,0x1000a0
+    python recomp/recomp.py gen --out DIR --hooks 0x106710,...   # repères au milieu d'une fonction (défaut : 0x106710)
     python recomp/recomp.py test                        # les tests sur du code fabriqué
 """
 import collections
@@ -56,7 +57,9 @@ class Image:
             chunk.extend(bytes(span - len(chunk)))
             self.sections.append(Section(name, address, span, bytes(chunk), perms))
             offset += pages * PAGE
-        self.readonly = [s for s in self.sections if not s.perms & 2]
+        # Le code lui-même n'est pas une constante : le jeu réécrit certains mots de ses pools de littéraux à l'exécution
+        # (relevé : 0x35078c et 0x350970 dans l'exécutable de Pokémon X). Seul le rodata est replié en constantes.
+        self.readonly = [s for s in self.sections if not s.perms & 2 and s.name != 'text']
         self.text = self.sections[0]
 
     @classmethod
@@ -142,6 +145,8 @@ class Result:
         self.calls_indirect = False
         self.uses_dispatch = False      # un appel ou un saut passe par l'aiguillage (indirect, ou cible non recompilée)
         self.uses_svc = False
+        self.hooked = []                # adresses d'instructions qui portent un repère RT_HOOK
+        self.dispatch_consts = set()    # modules .cro : cibles constantes passées à l'aiguillage (adresses factices, avant réécriture)
 
     @property
     def complete(self):
@@ -152,8 +157,29 @@ def func_name(addr):
     return 'f_%08x' % addr
 
 
-def translate_function(addr, size, mode, image, known, comments=None, limit=None):
-    """Traduit une fonction en C. `known` : adresses des fonctions qui seront dans la même construction."""
+def manual_return_targets(insns):
+    """Les adresses que des « add lr, pc, #imm » / « sub lr, pc, #imm » (mode ARM) donnent à lr."""
+    out = set()
+    for a, insn in insns.items():
+        if insn.word & 0xFFFFF000 in (0xE28FE000, 0xE24FE000):
+            imm = armdec.ror(insn.word & 0xFF, 2 * ((insn.word >> 8) & 15))
+            target = a + 8 + (imm if insn.word & 0xFFFFF000 == 0xE28FE000 else -imm)
+            out.add(target & 0xFFFFFFFF)
+            # « add lr, lr, #imm » qui suit : l'adresse est ajustée
+            nxt = insns.get(a + 4)
+            while nxt is not None and nxt.word & 0xFFFFF000 in (0xE28EE000, 0xE24EE000):
+                imm = armdec.ror(nxt.word & 0xFF, 2 * ((nxt.word >> 8) & 15))
+                target += imm if nxt.word & 0xFFFFF000 == 0xE28EE000 else -imm
+                out.add(target & 0xFFFFFFFF)
+                nxt = insns.get(nxt.addr + 4)
+    return out
+
+
+def translate_function(addr, size, mode, image, known, comments=None, limit=None, hooks=(), module=None):
+    """Traduit une fonction en C. `known` : adresses des fonctions qui seront dans la même construction. `hooks` :
+    adresses d'instructions où poser un repère RT_HOOK (en plus de l'entrée de chaque fonction). `module` : un objet
+    de recomp/cro_recomp.py quand la fonction est celle d'un module .cro, traduite à une adresse factice : les adresses
+    qui en dérivent sont réécrites à partir de la base réelle du module (voir `module.rewrite`)."""
     if mode == 'thumb':
         import thumbdec
         decoder = thumbdec
@@ -168,35 +194,70 @@ def translate_function(addr, size, mode, image, known, comments=None, limit=None
     result = Result(addr, size, mode)
     insns = {}
     work = [addr]
-    while work:
-        a = work.pop()
-        if a in insns or not ctx.inside(a):
-            continue
+    while True:
+        while work:
+            a = work.pop()
+            if a in insns or not ctx.inside(a):
+                continue
+            if mode == 'thumb':
+                ctx.prev_word = None
+                insn = thumbdec.decode(a, ctx, image)
+            else:
+                word = image.word(a)
+                if word is None:
+                    break
+                ctx.prev_word = image.word(a - 4)
+                insn = armdec.decode(word, a, ctx)
+            insns[a] = insn
+            work.extend(insn.succ)
+            if insn.fall or insn.cond != 14:
+                work.append(a + insn.size)
+        # Une adresse de retour choisie à la main (« add lr, pc, #imm ») est du code atteignable, même si rien dans la
+        # fonction n'y mène : un autre morceau de code y « revient » (voir plus bas).
         if mode == 'thumb':
-            ctx.prev_word = None
-            insn = thumbdec.decode(a, ctx, image)
-        else:
-            word = image.word(a)
-            if word is None:
-                break
-            ctx.prev_word = image.word(a - 4)
-            insn = armdec.decode(word, a, ctx)
-        insns[a] = insn
-        work.extend(insn.succ)
-        if insn.fall or insn.cond != 14:
-            work.append(a + insn.size)
+            break
+        more = [t for t in manual_return_targets(insns) if t not in insns and ctx.inside(t)]
+        if not more:
+            break
+        work.extend(more)
     labels = set()
     for insn in insns.values():
         labels.update(insn.succ)
+    # Les adresses de retour choisies à la main (« add lr, pc, #imm ») qui tombent dans la fonction : un autre morceau de
+    # code peut y « revenir » (pop {pc}) alors que la fonction n'a fait aucun appel vers elle. Un retour qui les vise
+    # continue ici au lieu de quitter la fonction (voir RT_POPC dans rt.h).
+    resume = set()          # dans la fonction : on y reprend par un goto
+    resume_out = set()      # ailleurs (une autre fonction, que le découpage a séparée de celle-ci) : on y saute par l'aiguillage
+    if mode != 'thumb':
+        for t in manual_return_targets(insns):
+            (resume if t in insns else resume_out).add(t)
+        labels.update(resume)
+    ret_pattern = re.compile(r'c->r\[15\] = (\w+); RT_SAVE\(\); return;')
+
+    def ret_catch(m):
+        cases = ' '.join('case %s: goto L_%08x;' % (armdec.lit(t), t) for t in sorted(resume))
+        cases += ' '.join(' case %s: RT_SAVE(); rt_dispatch(c, %s); { return; }' % (armdec.lit(t), armdec.lit(t))
+                          for t in sorted(resume_out))
+        return 'switch (%s) { %s default: break; } %s' % (unwind_key(m.group(1)), cases, m.group(0))
+
+    def unwind_key(expr):
+        """Ce sur quoi un retour non-local est aiguillé : l'adresse visée, ramenée à l'adresse factice d'un module."""
+        if module is None:
+            return '%s & ~1u' % expr
+        return '(%s & ~1u) - RT_MBASE + %s' % (expr, armdec.lit(module.fake))
     out = []
     fname = func_name(addr)
     out.append('void %s(Cpu *c) {' % fname)
-    out.append('  RT_LOCALS; RT_LOAD(); RT_BACKEDGE();')
+    entry_pc = addr | (1 if mode == 'thumb' else 0)
+    out.append('  RT_LOCALS; RT_ENTER(%s); RT_LOAD();' % armdec.lit(entry_pc))
     last = None
     for a in sorted(insns):
         insn = insns[a]
         if a in labels:
             out.append('L_%08x:;' % a)
+        if a in hooks and a != addr:
+            out.append('  RT_HOOK(%s);' % armdec.lit(a | (1 if mode == 'thumb' else 0)))
+            result.hooked.append(a)
         if comments:
             text = comments(insn)
             if text:
@@ -211,6 +272,8 @@ def translate_function(addr, size, mode, image, known, comments=None, limit=None
             result.leaf = False
         if kind == 'call' and any('rt_dispatch' in ln for ln in insn.lines):
             result.calls_indirect = True
+        if resume or resume_out:
+            lines = [ret_pattern.sub(ret_catch, ln) for ln in lines]
         body = ' '.join(lines) if not any('\n' in ln for ln in lines) else '\n'.join(lines)
         if cond:
             out.append('  if (%s) { %s }' % (cond, body))
@@ -219,14 +282,35 @@ def translate_function(addr, size, mode, image, known, comments=None, limit=None
         last = insn
     if last is not None and (last.fall or last.cond != 14) and not last.unimpl:
         nxt = last.addr + last.size
+        nxt_key = nxt | (1 if mode == 'thumb' else 0)         # la suite reste dans le même mode
         result.leaf = False
-        if nxt in known:
+        if nxt_key in known:
             out.append('  RT_SAVE(); %s(c); return;' % func_name(nxt))
             result.callees.add(nxt)
         else:
-            out.append('  RT_SAVE(); rt_dispatch(c, %s); return;' % armdec.lit(nxt))
+            out.append('  RT_SAVE(); rt_dispatch(c, %s); return;' % armdec.lit(nxt_key))
+    if resume or resume_out:
+        # un retour non-local qui vise une de ces adresses reprend ici (construction RT_HOST) : les registres sont ceux que
+        # l'appelé a laissés dans la structure
+        out.append('#ifdef RT_HOST')
+        out.append('rt_unwind:;')
+        out.append('  switch (%s) {' % unwind_key('c->r[15]'))
+        for t in sorted(resume):
+            out.append('  case %s: RT_LOAD(); goto L_%08x;' % (armdec.lit(t), t))
+        for t in sorted(resume_out):
+            out.append('  case %s: rt_dispatch(c, %s); { return; }' % (armdec.lit(t), armdec.lit(t)))
+        out.append('  default: return;')
+        out.append('  }')
+        out.append('#endif')
     out.append('}')
     result.source = '\n'.join(out) + '\n'
+    if resume or resume_out:
+        result.source = result.source.replace('RT_POP()', 'RT_POPC()')
+        # Un appel en position terminale (f(c); return;) peut lui aussi revenir à une de ces adresses : on regarde.
+        result.source = re.sub(r'((?:f_[0-9a-f]{8}\(c\)|rt_dispatch\(c, [^;]*\)); )return;', r'\1RT_TAIL_RET();', result.source)
+    if module is not None:
+        result.dispatch_consts = set(int(x, 16) for x in DISPATCH_CONST.findall(result.source))
+        result.source = module.rewrite(result.source)
     result.uses_dispatch = 'rt_dispatch' in result.source
     result.uses_svc = 'rt_svc' in result.source
     result.insns = [insns[a] for a in sorted(insns)]
@@ -260,20 +344,31 @@ def disassembler():
 # L'écriture des fichiers C d'une construction
 # ---------------------------------------------------------------------------------------------------------------------
 
-def write_build(out_dir, results, per_file=400):
-    """Écrit protos.h, fonctions par paquets, table.c. `results` : liste de Result."""
+def write_build(out_dir, results, per_file=400, by_address=False):
+    """Écrit protos.h, fonctions par paquets, table.c. `results` : liste de Result. `by_address` : les paquets sont des
+    tranches fixes de 64 Kio d'adresses (un fichier par tranche) au lieu de paquets de `per_file` fonctions : ajouter une
+    fonction ne change alors que le fichier de sa tranche, et la compilation incrémentale (harness) ne refait que lui."""
     os.makedirs(out_dir, exist_ok=True)
+    for old in os.listdir(out_dir):
+        if old.startswith('f') and old.endswith('.c'):
+            os.remove(os.path.join(out_dir, old))
     addrs = sorted(r.addr for r in results)
     with open(os.path.join(out_dir, 'protos.h'), 'w', newline='\n') as f:
         f.write('#include "rt.h"\n')
         for a in addrs:
             f.write('void %s(Cpu *c);\n' % func_name(a))
     files = []
-    for i in range(0, len(results), per_file):
-        name = 'f%04d.c' % (i // per_file)
+    if by_address:
+        groups = collections.defaultdict(list)
+        for r in sorted(results, key=lambda r: r.addr):
+            groups[r.addr >> 16].append(r)
+        chunks = [('f%04x.c' % k, groups[k]) for k in sorted(groups)]
+    else:
+        chunks = [('f%04d.c' % (i // per_file), results[i:i + per_file]) for i in range(0, len(results), per_file)]
+    for name, chunk in chunks:
         with open(os.path.join(out_dir, name), 'w', newline='\n') as f:
             f.write('#include "protos.h"\n')
-            for r in results[i:i + per_file]:
+            for r in chunk:
                 f.write(r.source)
         files.append(name)
     with open(os.path.join(out_dir, 'table.c'), 'w', newline='\n') as f:
@@ -282,6 +377,9 @@ def write_build(out_dir, results, per_file=400):
         for r in sorted(results, key=lambda r: r.addr | (1 if r.mode == 'thumb' else 0)):
             f.write('  { 0x%08xu, %s },\n' % (r.addr | (1 if r.mode == 'thumb' else 0), func_name(r.addr)))
         f.write('};\nconst u32 rt_table_len = %d;\n' % len(results))
+        hooked = sorted(a for r in results for a in r.hooked)
+        f.write('const u32 rt_hook_points[] = { %s };\nconst u32 rt_hook_points_len = %d;\n' % (
+            ', '.join('0x%08xu' % a for a in hooked) or '0', len(hooked)))
     files.append('table.c')
     return files
 
@@ -300,7 +398,12 @@ def function_limits(functions, image):
     return out
 
 
-def translate_all(image, functions, comments=None, progress=False):
+def translate_all(image, functions, comments=None, progress=False, hooks=(), holes=False, seeds=()):
+    """Traduit toutes les fonctions. `holes` : Ghidra laisse du code hors de ses fonctions (suite d'une fonction coupée,
+    cible d'un saut que personne n'a nommée). Avec `holes`, toute cible constante d'un appel ou d'un saut qui tombe dans
+    le code sans être une fonction connue devient elle-même une fonction (nommée `trou_...`), jusqu'à ce qu'il n'y en
+    ait plus : le natif n'a alors plus à confier ce code à unicorn. `seeds` : adresses de départ supplémentaires (bit 0
+    à 1 pour Thumb), celles que le banc a rencontrées sans les trouver recompilées (local/recomp/trous.txt)."""
     arm = [f for f in functions if f[2] == 'arm']
     thumb = [f for f in functions if f[2] == 'thumb']
     try:
@@ -309,14 +412,62 @@ def translate_all(image, functions, comments=None, progress=False):
     except ImportError:
         have_thumb = False
     todo = arm + (thumb if have_thumb else [])
-    known = set(f[0] | (1 if f[2] == 'thumb' else 0) for f in todo)
-    limits = function_limits(functions, image)
     results = []
-    for n, (addr, size, mode, name) in enumerate(todo):
-        results.append(translate_function(addr, size, mode, image, known, comments, limits.get(addr)))
-        if progress and n % 2000 == 0:
-            print('  %d / %d fonctions' % (n, len(todo)), file=sys.stderr)
-    return results
+    done = 0
+    pending = tuple(seeds)
+    text = image.text
+    text_lo, text_hi = text.address, text.address + len(text.data)
+    while True:
+        known = set(f[0] | (1 if f[2] == 'thumb' else 0) for f in todo)
+        limits = function_limits(todo, image)
+        for n in range(done, len(todo)):
+            addr, size, mode, name = todo[n]
+            results.append(translate_function(addr, size, mode, image, known, comments, limits.get(addr), hooks))
+            if progress and n % 2000 == 0:
+                print('  %d / %d fonctions' % (n, len(todo)), file=sys.stderr)
+        done = len(todo)
+        if not holes:
+            return results
+        keys = set(f[0] | (1 if f[2] == 'thumb' else 0) for f in todo)
+        found = {}
+        for seed in pending:
+            if text_lo <= seed & ~1 < text_hi and seed not in keys:
+                found[seed] = 'thumb' if seed & 1 else 'arm'
+        pending = ()
+        for r in results:
+            for m in DISPATCH_CONST.finditer(r.source):
+                target = int(m.group(1), 16)
+                base = target & ~1
+                if text_lo <= base < text_hi and target not in keys and target not in found:
+                    found[target] = 'thumb' if target & 1 else 'arm'
+        if not found:
+            return results
+        # Ghidra a parfois nommé « fonction » un bout de données ou de code dans l'autre mode, à une adresse où du code
+        # (atteint par une chute ou un saut) continue : le code atteint l'emporte, l'autre fonction est retirée.
+        starts = set(f[0] for f in todo)
+        for target, mode in sorted(found.items()):
+            base = target & ~1
+            if base in starts:
+                todo[:] = [f for f in todo if f[0] != base]
+                results[:] = [r for r in results if r.addr != base]
+                done = len(todo)
+                if progress:
+                    print('  la fonction à %#x est remplacée (mode %s)' % (base, mode), file=sys.stderr)
+        starts = set(f[0] for f in todo)
+        # taille : jusqu'à la fonction suivante (la traduction n'écrit que les instructions atteignables)
+        ordered = sorted(starts | set(t & ~1 for t in found))
+        for target, mode in sorted(found.items()):
+            base = target & ~1
+            i = ordered.index(base)
+            nxt = ordered[i + 1] if i + 1 < len(ordered) else text_hi
+            todo.append((base, min(nxt - base, 0x4000), mode, 'trou_%08x' % base))
+        # Les fonctions déjà traduites gardent leurs appels vers ces trous par l'aiguillage ; seules les nouvelles passent.
+        if progress:
+            print('  %d trous trouvés, nouvelle passe' % len(found), file=sys.stderr)
+
+
+import re  # noqa: E402
+DISPATCH_CONST = re.compile(r'rt_dispatch\(c, (0x[0-9a-f]+)u\)')
 
 
 def coverage(results):
@@ -390,6 +541,8 @@ def cmd_gen(args):
     only = None
     asm = False
     limit = None
+    hooks = set(DEFAULT_HOOKS)
+    use_seeds = True
     i = 0
     while i < len(args):
         if args[i] == '--out':
@@ -403,6 +556,11 @@ def cmd_gen(args):
         elif args[i] == '--limit':
             limit = int(args[i + 1])
             i += 1
+        elif args[i] == '--no-seeds':
+            use_seeds = False
+        elif args[i] == '--hooks':
+            hooks = set(int(x, 16) for x in args[i + 1].split(',') if x)
+            i += 1
         i += 1
     image = Image.load()
     functions = load_functions()
@@ -410,8 +568,9 @@ def cmd_gen(args):
         functions = [f for f in functions if f[0] in only]
     if limit:
         functions = functions[:limit]
-    results = translate_all(image, functions, comments=disassembler() if asm else None, progress=True)
-    files = write_build(out, results)
+    results = translate_all(image, functions, comments=disassembler() if asm else None, progress=True, hooks=hooks, holes=True,
+                             seeds=load_seeds() if use_seeds else ())
+    files = write_build(out, results, by_address=True)
     import shutil
     shutil.copy(os.path.join(HERE, 'runtime', 'rt.h'), os.path.join(out, 'rt.h'))
     total, ok, _, _, _ = coverage(results)
@@ -419,6 +578,18 @@ def cmd_gen(args):
 
 
 DEFAULT_OUT = os.path.join(LOCAL, 'recomp', 'jeu')
+SEEDS_FILE = os.path.join(LOCAL, 'recomp', 'trous.txt')
+
+
+def load_seeds():
+    """Les adresses de code rencontrées par le banc sans être recompilées (écrites par banc/cpu_native.py)."""
+    try:
+        return sorted(set(int(line, 16) for line in open(SEEDS_FILE) if line.strip()))
+    except OSError:
+        return []
+
+# Les repères du banc qui ne sont pas une entrée de fonction (banc/bench.py : MAIN_LOOP_TURN, au milieu de main_loop).
+DEFAULT_HOOKS = [0x106710]
 
 
 def main(argv):

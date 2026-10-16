@@ -200,7 +200,10 @@ def cmd_retry(args):
 
 
 def cmd_build(args):
-    """Compile tout le jeu recompilé (local/recomp/jeu) en DLL, pour mesurer le temps et la taille."""
+    """Compile tout le jeu recompilé (local/recomp/jeu) en DLL, pour mesurer le temps et la taille.
+
+    --host : avec les fibres, la préemption coopérative et les repères (jeu-hote.dll), ce que branche banc/cpu_native.py.
+    --logw : en plus, avec le journal des écritures du mode vérification (jeu-journal.dll)."""
     opt = '-O1'
     if '--opt' in args:
         opt = args[args.index('--opt') + 1]
@@ -210,8 +213,11 @@ def cmd_build(args):
     files = sorted(f for f in os.listdir(out) if f.endswith('.c'))
     tc = harness.Toolchain(opt=opt)
     t0 = time.time()
-    dll = tc.compile_dll([os.path.join(out, f) for f in files], os.path.join(out, 'build', 'jeu.dll'),
-                         include_dirs=[out], budget=False, jobs=os.cpu_count() or 4)
+    host = '--host' in args or '--logw' in args
+    logw = '--logw' in args
+    name = 'jeu-journal.dll' if logw else ('jeu-hote.dll' if host else 'jeu.dll')
+    dll = tc.compile_dll([os.path.join(out, f) for f in files], os.path.join(out, 'build', name),
+                         include_dirs=[out], budget=False, jobs=os.cpu_count() or 4, host=host, logw=logw)
     print('%d fichiers C compilés avec %s en %.0f s ; DLL : %.1f Mo' % (len(files), opt, time.time() - t0,
                                                                        os.path.getsize(dll) / 1e6))
 

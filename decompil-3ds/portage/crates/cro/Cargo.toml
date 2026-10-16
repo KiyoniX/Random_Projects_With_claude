@@ -1,0 +1,6 @@
+[package]
+name = "cro"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]

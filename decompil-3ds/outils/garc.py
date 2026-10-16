@@ -63,15 +63,31 @@ def lire(donnees):
     return version, entrees
 
 
-def ecrire(entrees, version=0x0400, alignement=4):
-    """Fabrique un GARC à partir d'une liste de listes de bytes. Un numéro sans sous-fichier donne un vecteur nul."""
+def lire_vecteurs(donnees):
+    """Les vecteurs de bits de la FATB, un par numéro (liste d'entiers). Un numéro peut n'avoir que certains des 32
+    emplacements de sous-fichiers (vecteur 0x1BD, par exemple) : lire() ne rend alors que les sous-fichiers présents,
+    et le vecteur est nécessaire pour réécrire le GARC à l'identique (ecrire(..., vecteurs=...))."""
+    taille_fato, nb_entrees = struct.unpack_from('<IH', donnees, struct.unpack_from('<I', donnees, 4)[0] + 4)
+    pos_fato = struct.unpack_from('<I', donnees, 4)[0]
+    decalages = struct.unpack_from('<%dI' % nb_entrees, donnees, pos_fato + 0xC)
+    base_fatb = pos_fato + taille_fato + 0xC
+    return [struct.unpack_from('<I', donnees, base_fatb + d)[0] for d in decalages]
+
+
+def ecrire(entrees, version=0x0400, alignement=4, vecteurs=None):
+    """Fabrique un GARC à partir d'une liste de listes de bytes. Un numéro sans sous-fichier donne un vecteur nul.
+
+    vecteurs : les vecteurs de bits à écrire (de lire_vecteurs), pour les numéros dont les sous-fichiers ne sont pas
+    aux emplacements 0, 1, 2… ; il faut alors autant de bits levés que de sous-fichiers."""
     fatb = bytearray()
     decalages = []
     fimb = bytearray()
     plus_gros = plus_gros_padde = 0
-    for sous in entrees:
+    for numero, sous in enumerate(entrees):
         decalages.append(len(fatb))
         vecteur = sum(1 << i for i in range(len(sous)))
+        if vecteurs is not None and bin(vecteurs[numero]).count('1') == len(sous):
+            vecteur = vecteurs[numero]
         fatb += struct.pack('<I', vecteur)
         for f in sous:
             debut = len(fimb)

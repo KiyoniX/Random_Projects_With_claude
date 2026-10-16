@@ -31,7 +31,7 @@ typedef union VfpRegs {
 /* L'état d'un fil. Les fonctions recompilées en gardent une copie dans des variables locales (r0..lr, drapeaux) et
    la rendent ici avant chaque appel et chaque retour. Les drapeaux sont séparés, chacun vaut 0 ou 1. */
 typedef struct Cpu {
-    u32 r[16];              /* r0-r12, sp (13), lr (14) ; r[15] n'est pas tenu */
+    u32 r[16];              /* r0-r12, sp (13), lr (14) ; r[15] : l'adresse visée par le dernier retour (pop {pc}, bx lr), pour l'hôte */
     u32 nf, zf, cf, vf, qf; /* N Z C V Q */
     u32 ge;                 /* GE[3:0] */
     u32 fpscr;              /* FPSCR complet, drapeaux N Z C V de la VFP dans les bits 31 à 28 */
@@ -41,6 +41,9 @@ typedef struct Cpu {
     s32 budget;             /* nombre de branchements en arrière permis (constructions de test seulement) */
     VfpRegs vfp;
     void *user;             /* à l'usage de l'hôte */
+    u32 *ras;               /* pile des adresses de retour des appels en cours (construction RT_HOST, voir RT_PUSH) */
+    u32 rsp;
+    u32 hint;               /* dernière entrée de fonction (construction RT_HOST) : situe une faute */
 } Cpu;
 
 typedef void (*RtFunc)(Cpu *);
@@ -50,9 +53,26 @@ typedef struct RtEntry {
     RtFunc fn;
 } RtEntry;
 
+/* Les modules .cro recompilés (recomp/cro_recomp.py). Le C d'un module est relogeable : ses adresses dérivées de pc sont
+   RT_MBASE + décalage, où RT_MBASE = rt_mb[indice] est la base réelle du module, posée par l'hôte au chargement
+   (rt_mod_set_base) et remise à 0 au déchargement. Un module à base 0 n'est pas cherché par l'aiguillage. */
+typedef struct RtModule {
+    const char *name;
+    const RtEntry *table;   /* triée : décalage dans le module (bit 0 à 1 pour un point d'entrée Thumb) -> fonction */
+    u32 table_len;
+    u32 index;              /* case de rt_mb */
+    u32 code_off, code_size;
+} RtModule;
+#define RT_MAX_MODULES 256
+extern u32 rt_mb[RT_MAX_MODULES];
+void rt_mod_register(RtModule *m);
+
 /* Rempli par le code généré (table.c) : toutes les fonctions recompilées, triées par adresse. */
 extern const RtEntry rt_table[];
 extern const u32 rt_table_len;
+/* Adresses (hors entrées de fonction) où le C généré a un repère RT_HOOK : voir `recomp.py gen --hooks`. */
+extern const u32 rt_hook_points[];
+extern const u32 rt_hook_points_len;
 
 /* ---- la mémoire ---- */
 
@@ -63,6 +83,20 @@ u32 rt_rd_slow(u32 addr, int size);
 void rt_wr_slow(u32 addr, u32 value, int size);
 
 #define RT_LIKELY(x) __builtin_expect(!!(x), 1)
+#define RT_UNLIKELY(x) __builtin_expect(!!(x), 0)
+
+/* Mode vérification (RT_LOGW) : chaque écriture est journalisée, avec l'état d'avant de la page (pour revenir en arrière),
+   et chaque entrée de fonction aussi (voir logw.c). */
+#ifdef RT_LOGW
+extern int rt_logw_on;
+void rt_logw(u32 addr, u32 value, int size);
+void rt_trace_entry(Cpu *c, u32 pc);
+#define RT_LOGW_WRITE(a, v, n) do { if (rt_logw_on) rt_logw(a, v, n); } while (0)
+#define RT_TRACE_ENTRY(pc) do { if (rt_logw_on) rt_trace_entry(c, pc); } while (0)
+#else
+#define RT_LOGW_WRITE(a, v, n) do { } while (0)
+#define RT_TRACE_ENTRY(pc) do { } while (0)
+#endif
 
 static inline u32 rd32(u32 a) {
     u8 *p = rt_rpage[a >> 12];
@@ -80,16 +114,19 @@ static inline u32 rd8(u32 a) {
     return rt_rd_slow(a, 1);
 }
 static inline void wr32(u32 a, u32 v) {
+    RT_LOGW_WRITE(a, v, 4);
     u8 *p = rt_wpage[a >> 12];
     if (RT_LIKELY(p && (a & 0xfff) <= 0xffc)) { memcpy(p + (a & 0xfff), &v, 4); return; }
     rt_wr_slow(a, v, 4);
 }
 static inline void wr16(u32 a, u32 v) {
+    RT_LOGW_WRITE(a, v, 2);
     u8 *p = rt_wpage[a >> 12];
     if (RT_LIKELY(p && (a & 0xfff) <= 0xffe)) { u16 h = (u16)v; memcpy(p + (a & 0xfff), &h, 2); return; }
     rt_wr_slow(a, v, 2);
 }
 static inline void wr8(u32 a, u32 v) {
+    RT_LOGW_WRITE(a, v, 1);
     u8 *p = rt_wpage[a >> 12];
     if (RT_LIKELY(p)) { p[a & 0xfff] = (u8)v; return; }
     rt_wr_slow(a, v, 1);
@@ -106,10 +143,60 @@ void rt_dispatch(Cpu *c, u32 addr);                    /* appel indirect : cherc
 void rt_svc(Cpu *c, u32 number, u32 pc);               /* appel système : rappel vers l'hôte */
 void rt_wfi_hint(Cpu *c, u32 kind);
 
-#ifdef RT_BUDGET
-#define RT_BACKEDGE() do { if (--c->budget < 0) rt_budget_exhausted(); } while (0)
+/* Préemption et repères. Trois constructions :
+   - sans rien : les macros sont vides (le plus rapide, pour les mesures d'une fonction seule) ;
+   - RT_BUDGET (tests) : un compteur de branchements en arrière et d'appels ; à zéro, l'exécution est abandonnée ;
+   - RT_HOST (le banc) : le même compteur, mais à zéro le fil de la console rend la main à l'ordonnanceur et reprendra
+     plus tard au même endroit (voir host.c). C'est aussi là que les repères (`watch`) sont servis.
+   RT_ENTER est au début de chaque fonction (les registres sont dans la structure) ; RT_BACKEDGE avant chaque `goto` en
+   arrière (les registres sont dans les variables locales : on les range le temps de la cession) ; RT_HOOK sur une
+   instruction choisie à la génération (`--hooks`). `pc` est l'adresse où le fil reprendra. */
+#if defined(RT_HOST)
+extern u8 rt_watch[1 << 21];                        /* repères actifs, indexés par (adresse >> 2) */
+void rt_yield_slow(Cpu *c, u32 pc);                 /* cède la main : le compteur est épuisé */
+void rt_hook_slow(Cpu *c, u32 pc);                  /* signale un repère à l'hôte */
+#define RT_WATCHED(pc) RT_UNLIKELY(rt_watch[((pc) >> 2) & 0x1FFFFF])
+#define RT_ENTER(pc) do { c->hint = (pc); RT_TRACE_ENTRY(pc); if (--c->budget < 0) rt_yield_slow(c, pc); if (RT_WATCHED(pc)) rt_hook_slow(c, pc); } while (0)
+#define RT_BACKEDGE(pc) do { if (--c->budget < 0) { RT_SAVE(); rt_yield_slow(c, pc); RT_LOAD(); } } while (0)
+#define RT_HOOK(pc) do { if (RT_WATCHED(pc)) { RT_SAVE(); rt_hook_slow(c, pc); RT_LOAD(); } } while (0)
+/* Pile des adresses de retour. Chaque appel (bl, blx) y range lr, chaque retour du C l'enlève. Un `bx rX` ou `mov pc, rX`
+   qui vise l'adresse du dessus est un retour fait avec un autre registre que lr (le Thumb dépile lr dans r3 puis
+   `bx r3`) : on rend la main au C appelant au lieu de sauter. Sans cela, ce « saut » irait chercher le code au milieu d'une
+   fonction déjà en cours et l'exécuterait une seconde fois. */
+/* Retour ailleurs qu'à l'appelant (non-local) : un `pop {..., pc}` qui dépile une autre adresse que l'adresse de retour de
+   l'appel (une fonction qui termine l'épilogue de son appelant, ou une adresse de retour choisie à la main). Le C ne sait
+   que revenir à l'appelant ; l'adresse visée est dans c->r[15] (RT_PUSH le met à 0 avant l'appel, tout retour le pose).
+   RT_POP la compare à celle que l'appel avait rangée : si elle diffère, cette fonction rend la main à son tour, jusqu'à
+   l'appel qui attendait justement cette adresse (ou jusqu'à l'hôte, qui saura la suivre : unicorn, en mode hybride). */
+extern u32 rt_unwinds;
+#define RT_PUSH(v) do { if (RT_LIKELY(c->rsp < 65535u)) c->ras[c->rsp] = (v); c->rsp++; c->r[15] = 0; } while (0)
+#define RT_POP() do { c->rsp--; if (RT_UNLIKELY(c->r[15] != 0 && c->rsp < 65535u && ((c->r[15] ^ c->ras[c->rsp]) > 1u))) { rt_unwinds++; return; } } while (0)
+#define RT_POP_QUIET() do { c->rsp--; } while (0)
+/* Comme RT_POP, mais pour une fonction qui a des adresses de reprise à elle (voir recomp.py) : au lieu de rendre la main,
+   elle saute à son étiquette `rt_unwind`, qui reprend à l'adresse visée si c'est l'une des siennes. */
+#define RT_TAIL_RET() goto rt_unwind
+#define RT_POPC() do { c->rsp--; if (RT_UNLIKELY(c->r[15] != 0 && c->rsp < 65535u && ((c->r[15] ^ c->ras[c->rsp]) > 1u))) { rt_unwinds++; goto rt_unwind; } } while (0)
+#define RT_TAILCHECK(t) do { u32 _t = (t); if (c->rsp && c->rsp <= 65535u && ((_t ^ c->ras[c->rsp - 1]) <= 1u)) { c->r[15] = _t; RT_SAVE(); return; } } while (0)
+#elif defined(RT_BUDGET)
+#define RT_ENTER(pc) do { if (--c->budget < 0) rt_budget_exhausted(); } while (0)
+#define RT_BACKEDGE(pc) do { if (--c->budget < 0) rt_budget_exhausted(); } while (0)
+#define RT_HOOK(pc) do { } while (0)
+#define RT_PUSH(v) do { } while (0)
+#define RT_POP() do { } while (0)
+#define RT_POP_QUIET() do { } while (0)
+#define RT_POPC() do { } while (0)
+#define RT_TAIL_RET() return
+#define RT_TAILCHECK(t) do { } while (0)
 #else
-#define RT_BACKEDGE() do { } while (0)
+#define RT_ENTER(pc) do { } while (0)
+#define RT_BACKEDGE(pc) do { } while (0)
+#define RT_HOOK(pc) do { } while (0)
+#define RT_PUSH(v) do { } while (0)
+#define RT_POP() do { } while (0)
+#define RT_POP_QUIET() do { } while (0)
+#define RT_POPC() do { } while (0)
+#define RT_TAIL_RET() return
+#define RT_TAILCHECK(t) do { } while (0)
 #endif
 
 /* ---- les registres locaux d'une fonction recompilée ---- */

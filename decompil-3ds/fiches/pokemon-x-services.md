@@ -1209,7 +1209,7 @@ Ce sont les services dont une fiche existe : on sait ce que la console fait de c
 
 La ligne de GetExtDataBlockSize (`0x08540100`) n'avait pas de correspondant dans la fiche `fs`, qui donnait comme la Carte l'en-tête `0x08540010`. L'écart est tranché ([contrat des fichiers](contrat-fs.md), partie 6) : l'aiguillage de `fs` ne compare que le numéro `0x0854`, les deux en-têtes passent, et `0x08540100`, que le jeu écrit (`0x1e2e38`), est la forme juste ; `0x08540010` est une coquille de 3dbrew. La fiche `fs` est corrigée, la Carte reste à corriger.
 
-Les lignes `FSFile` et `FSDir` renvoient à la partie 5 de la fiche `fs` (les commandes d'un fichier et d'un dossier ouverts). Reste le port `err:f`, sans fiche, où le jeu n'envoie que Throw (`0x00010800`) pour afficher une erreur fatale.
+Les lignes `FSFile` et `FSDir` renvoient à la partie 5 de la fiche `fs` (les commandes d'un fichier et d'un dossier ouverts). Reste le port `err:f` (fiche [errdisp](errdisp.md), ajoutée le 16/10), où le jeu n'envoie que Throw (`0x00010800`) pour afficher une erreur fatale.
 
 ### Une réponse factice suffira sans doute
 
@@ -1238,9 +1238,11 @@ Les lignes `FSFile` et `FSDir` renvoient à la partie 5 de la fiche `fs` (les co
 | Module | Services que le jeu ouvre | État |
 | --- | --- | --- |
 | `ro` | `ldr:ro` | **fait** : [fiche `ro`](ro.md) (9 commandes, les relocations en formules). Sur PC, `outils/cro_loader.py` le remplace : les 133 modules se lient sans import manquant, et le résultat est identique, octet pour octet, à celui du code de `ro` exécuté sur cinq modules |
-| `errdisp` | `err:f` | extrait de la NAND (`local/extrait/errdisp/`, applet `0004003000008A02`, par `outils/nand.py`), sans fiche ; un écran d'erreur à afficher |
-| `ndm`, `ac`, `friends`, `boss`, `cecd`, `http`, `ssl`, `socket`, `ir`, `mic`, `camera` | voir le tableau précédent | extraits de la NAND (`outils/nand.py`), sans fiche ; réponses factices |
-| `nwm` | `nwm::UDS` | extrait (`local/extrait/nwm`), sans fiche |
+| `errdisp` | `err:f` | extrait de la NAND (`local/extrait/errdisp/`, applet `0004003000008A02`, par `outils/nand.py`), fiche [errdisp](errdisp.md) depuis le 16/10 ; un écran d'erreur à afficher |
+| `ndm`, `ac`, `ir`, `mic`, `camera` | voir le tableau précédent | extraits de la NAND (`outils/nand.py`) ; une fiche chacun depuis le 16/10 (`ndm.md`, `ac.md`, `ir.md`, `mic.md`, `camera.md`), avec ce que le jeu envoie et ce qu'il faut rendre ; réponses encore factices dans le banc |
+| `friends`, `cecd`, `http`, `ssl`, `socket` | voir le tableau précédent | extraits de la NAND (`outils/nand.py`) ; une fiche chacun depuis le 16/10, avec ce que le jeu envoie et ce qu'il faut rendre ; réponses encore factices dans le banc |
+| `boss` | voir le tableau précédent | extrait de la NAND (`outils/nand.py`) ; fiche `boss.md` depuis le 16/10 ; réponses factices |
+| `nwm` | `nwm::UDS` | extrait (`local/extrait/nwm`) ; fiche `nwm.md` depuis le 16/10, avec la réponse minimale de chaque commande et ce qu'une émulation sur le réseau du PC devrait faire |
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 

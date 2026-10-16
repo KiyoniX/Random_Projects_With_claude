@@ -1,0 +1,15 @@
+[package]
+name = "runtime"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "runtime"
+path = "src/main.rs"
+
+[dependencies]
+kernel = { path = "../kernel" }
+hostcpu = { path = "../hostcpu" }
+services = { path = "../services" }
+romfs = { path = "../romfs" }
+overlay = { path = "../overlay" }

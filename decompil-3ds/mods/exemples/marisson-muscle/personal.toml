@@ -1,0 +1,5 @@
+# Les statistiques de base de Chespin (espèce 650). Seuls les champs écrits ici changent.
+[species.Chespin]
+hp = 80
+attack = 95
+defense = 70

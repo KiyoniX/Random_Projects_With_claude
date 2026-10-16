@@ -15,7 +15,9 @@
 u8 *rt_rpage[1 << 20];
 u8 *rt_wpage[1 << 20];
 
-static jmp_buf *rt_jmp;
+jmp_buf *rt_jmp;                        /* le point de sortie de l'appel en cours (un par fil quand l'hôte en a plusieurs) */
+u8 rt_watch[1 << 21];                   /* repères actifs (construction RT_HOST) */
+void (*rt_miss_hook)(Cpu *, u32);       /* si posé : appelé au lieu d'une sortie RT_NO_TARGET */
 static u32 rt_info[4];                  /* [0] adresse fautive, [1] 1 si écriture, [2] pc ou numéro, [3] libre */
 static void (*rt_svc_hook)(Cpu *, u32, u32);
 
@@ -76,17 +78,73 @@ void rt_wr_slow(u32 addr, u32 value, int size) {
     }
 }
 
+/* ---- les modules .cro ---- */
+
+u32 rt_mb[RT_MAX_MODULES];                      /* base réelle de chaque module (0 : pas chargé) */
+static RtModule *rt_mods[RT_MAX_MODULES];
+static u32 rt_mod_n;                            /* plus grand indice enregistré + 1 */
+static u32 rt_loaded[RT_MAX_MODULES];           /* les indices des modules chargés */
+static u32 rt_loaded_n;
+static u32 rt_last_mod = 0xFFFFFFFFu;           /* le dernier module trouvé : la plupart des appels restent dans le même */
+
+void rt_mod_register(RtModule *m) {
+    if (m->index >= RT_MAX_MODULES) return;
+    rt_mods[m->index] = m;
+    if (m->index >= rt_mod_n) rt_mod_n = m->index + 1;
+}
+
+static const RtEntry *rt_search(const RtEntry *table, u32 len, u32 key) {
+    u32 lo = 0, hi = len;
+    while (lo < hi) {
+        u32 mid = (lo + hi) / 2;
+        if (table[mid].addr < key) lo = mid + 1; else hi = mid;
+    }
+    return (lo < len && table[lo].addr == key) ? &table[lo] : NULL;
+}
+
+/* La fonction recompilée d'un module chargé qui commence à addr (bit 0 : Thumb), ou NULL. */
+static const RtEntry *rt_find_module(u32 addr) {
+    u32 k = rt_last_mod;
+    if (k != 0xFFFFFFFFu) {
+        u32 off = addr - rt_mb[k];
+        if (rt_mb[k] && off - rt_mods[k]->code_off < rt_mods[k]->code_size)
+            return rt_search(rt_mods[k]->table, rt_mods[k]->table_len, off);
+    }
+    for (u32 i = 0; i < rt_loaded_n; i++) {
+        k = rt_loaded[i];
+        u32 off = addr - rt_mb[k];
+        if (off - rt_mods[k]->code_off < rt_mods[k]->code_size) {
+            rt_last_mod = k;
+            return rt_search(rt_mods[k]->table, rt_mods[k]->table_len, off);
+        }
+    }
+    return NULL;
+}
+
 /* ---- l'aiguillage ---- */
 
 void rt_dispatch(Cpu *c, u32 addr) {
+    if (rt_table_len && addr >= rt_table[0].addr && addr <= rt_table[rt_table_len - 1].addr) {
+        const RtEntry *e = rt_search(rt_table, rt_table_len, addr);
+        if (e) { e->fn(c); return; }
+    }
+    if (rt_loaded_n) {
+        const RtEntry *e = rt_find_module(addr);
+        if (e) { e->fn(c); return; }
+    }
+    if (rt_miss_hook) { rt_miss_hook(c, addr); return; }
+    rt_info[0] = addr;
+    rt_leave(RT_NO_TARGET);
+}
+
+/* Cherche l'entrée recompilée à addr (bit 0 à 1 pour Thumb) : rend son index dans la table, ou -1. */
+static int rt_find(u32 addr) {
     u32 lo = 0, hi = rt_table_len;
     while (lo < hi) {
         u32 mid = (lo + hi) / 2;
         if (rt_table[mid].addr < addr) lo = mid + 1; else hi = mid;
     }
-    if (lo < rt_table_len && rt_table[lo].addr == addr) { rt_table[lo].fn(c); return; }
-    rt_info[0] = addr;
-    rt_leave(RT_NO_TARGET);
+    return (lo < rt_table_len && rt_table[lo].addr == addr) ? (int)lo : -1;
 }
 
 /* ---- l'interface de l'hôte (ctypes) ---- */
@@ -100,8 +158,50 @@ RT_EXPORT void rt_map(u32 first_page, u32 pages, u8 *host, int perms) {
     }
 }
 
+/* Pour l'hôte : l'adresse est-elle l'entrée d'une fonction recompilée ? un repère peut-il y être posé ? */
+RT_EXPORT int rt_has_entry(u32 addr) { return rt_find(addr) >= 0 || (rt_loaded_n && rt_find_module(addr) != NULL); }
+RT_EXPORT u32 rt_list_entries(u32 *out, u32 max) {
+    u32 n = rt_table_len < max ? rt_table_len : max;
+    for (u32 i = 0; i < n; i++) out[i] = rt_table[i].addr;
+    return rt_table_len;
+}
+RT_EXPORT int rt_can_hook(u32 addr) {
+    if (rt_find(addr & ~1u) >= 0 || rt_find(addr | 1u) >= 0) return 1;
+    for (u32 i = 0; i < rt_hook_points_len; i++) if (rt_hook_points[i] == addr) return 1;
+    if (rt_loaded_n && (rt_find_module(addr & ~1u) || rt_find_module(addr | 1u))) return 1;
+    return 0;
+}
+RT_EXPORT void rt_watch_set(u32 addr, int on) { rt_watch[(addr >> 2) & 0x1FFFFF] = (u8)on; }
+RT_EXPORT u8 *rt_watch_table(void) { return rt_watch; }
+
+/* Les modules .cro (voir rt.h). rt_cro_init, écrite dans le C généré (cro_table.c), enregistre les modules recompilés. */
+RT_EXPORT u32 rt_mod_count(void) { return rt_mod_n; }
+RT_EXPORT const char *rt_mod_name(u32 i) { return i < rt_mod_n && rt_mods[i] ? rt_mods[i]->name : NULL; }
+/* out[0..3] : indice, décalage du code, taille du code, nombre de points d'entrée. Rend 0 si le module n'est pas là. */
+RT_EXPORT int rt_mod_info(u32 i, u32 *out) {
+    if (i >= rt_mod_n || !rt_mods[i]) return 0;
+    out[0] = rt_mods[i]->index; out[1] = rt_mods[i]->code_off; out[2] = rt_mods[i]->code_size; out[3] = rt_mods[i]->table_len;
+    return 1;
+}
+RT_EXPORT u32 rt_mod_list_entries(u32 i, u32 *out, u32 max) {
+    if (i >= rt_mod_n || !rt_mods[i]) return 0;
+    u32 n = rt_mods[i]->table_len < max ? rt_mods[i]->table_len : max;
+    for (u32 k = 0; k < n; k++) out[k] = rt_mods[i]->table[k].addr;
+    return rt_mods[i]->table_len;
+}
+/* Pose la base réelle d'un module (0 : déchargé). Un module à base 0 n'est jamais cherché. */
+RT_EXPORT void rt_mod_set_base(u32 i, u32 base) {
+    if (i >= rt_mod_n || !rt_mods[i]) return;
+    rt_mb[i] = base;
+    rt_loaded_n = 0;
+    for (u32 k = 0; k < rt_mod_n; k++) if (rt_mb[k] && rt_mods[k]) rt_loaded[rt_loaded_n++] = k;
+    rt_last_mod = 0xFFFFFFFFu;
+}
+
 RT_EXPORT void rt_set_svc_hook(void (*hook)(Cpu *, u32, u32)) { rt_svc_hook = hook; }
 RT_EXPORT u32 rt_get_info(int i) { return rt_info[i & 3]; }
+u32 rt_unwinds;                          /* retours non-locaux suivis (voir RT_POP) */
+RT_EXPORT u32 rt_get_unwinds(void) { return rt_unwinds; }
 RT_EXPORT u32 rt_cpu_size(void) { return (u32)sizeof(Cpu); }
 
 /* Réglages de l'arithmétique flottante d'après FPSCR : arrondi (bits 23:22), vidage des dénormaux (bit 24). */

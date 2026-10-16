@@ -37,3 +37,9 @@ if __name__ == '__main__':
     recomp_tests = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(recomp_tests)
     recomp_tests.test()
+    # Le moteur de mods (mods/tests.py) : formats sur données fabriquées, puis aller-retour sur le dump s'il est là.
+    spec = importlib.util.spec_from_file_location('mods_tests', os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mods', 'tests.py'))
+    mods_tests = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mods_tests)
+    mods_tests.test()

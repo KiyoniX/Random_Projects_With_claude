@@ -6,6 +6,9 @@
         --tours N               s'arrêter quand la boucle principale a fait N tours
         --minutes-pc M          s'arrêter au bout de M minutes de temps réel (défaut 20)
         --appels-systeme-rares  ne pas écrire au journal les appels système courants qui réussissent tout de suite
+        --cpu TYPE              le processeur : unicorn (défaut), natif, hybride ou verifier (voir bench.cpu_factory)
+        --mod DOSSIER           un mod (mods/), à répéter pour empiler : construit pour le PC puis superposé au romfs
+                                (ou un dossier déjà construit par mods/build.py --pc)
         --2a07                  rendre 0x2A07 au premier RegisterInterruptRelayQueue (contrat de gsp, partie 2)
         --sortie DOSSIER        écrire ailleurs que dans local/analyse/banc/
         --dessiner              exécuter les listes de commandes PICA (voir banc/pica/) ; plus lent
@@ -28,8 +31,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from bench import APT_STARTUP, Bench  # noqa: E402
-from cpu_unicorn import UnicornCpu  # noqa: E402
+from bench import APT_STARTUP, CPU_KINDS, Bench, cpu_factory  # noqa: E402
 
 
 def write_png(path, width, height, rows):
@@ -229,6 +231,26 @@ def parse_presses(text, duration=0.25):
     return presses
 
 
+def prepare_mods(mod_args):
+    """--mod : un dossier déjà construit (overlay.json) ou des dossiers de mods à construire pour le PC."""
+    if len(mod_args) == 1 and os.path.isfile(os.path.join(mod_args[0], 'overlay.json')):
+        import json
+        with open(os.path.join(mod_args[0], 'overlay.json'), encoding='utf-8') as f:
+            version = json.load(f).get('format', 1)
+        if version > 1:         # mods/README.md, « Le contrat avec le portage PC »
+            raise SystemExit('overlay.json au format %d : ce banc ne lit que le format 1' % version)
+        return os.path.abspath(mod_args[0])
+    mods_dir = os.path.join(os.path.dirname(HERE), 'mods')
+    sys.path.insert(0, mods_dir)
+    from modkit import builder
+    report, _ = builder.make(mod_args)
+    for line in report.conflicts:
+        print('Mod, conflit : ' + line)
+    folder = builder.write_pc(report)
+    print('Mods construits pour le PC dans %s : %s' % (folder, ', '.join(m.id for m in report.mods)))
+    return folder
+
+
 def main(argv=None):
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8')
@@ -238,6 +260,10 @@ def main(argv=None):
     parser.add_argument('--minutes-pc', type=float, default=20)
     parser.add_argument('--appels-systeme-rares', action='store_true')
     parser.add_argument('--2a07', dest='first', action='store_true')
+    parser.add_argument('--cpu', default='unicorn', choices=CPU_KINDS,
+                        help='le processeur : unicorn (défaut), natif, hybride (natif + unicorn pour les .cro), verifier')
+    parser.add_argument('--mod', action='append', default=[], metavar='DOSSIER',
+                        help="un mod de mods/ (répétable, dans l'ordre de chargement) ou un dossier de mods/build.py --pc")
     parser.add_argument('--appuis', default='')
     parser.add_argument('--sortie', default='')
     parser.add_argument('--dessiner', action='store_true',
@@ -278,15 +304,26 @@ def main(argv=None):
                     write_png_array(os.path.join(folder, '%scible-%x.png' % (prefix, surface.address)),
                                     np_rgb(surface.pixels))
         options['snapshot'] = snapshot
-    bench = Bench(UnicornCpu, paths={'out': args.sortie} if args.sortie else None, options=options)
+    paths = {'out': args.sortie} if args.sortie else {}
+    if args.mod:
+        paths['overlay'] = prepare_mods(args.mod)
+    bench = Bench(cpu_factory(args.cpu), paths=paths or None, options=options)
     reason = bench.run()
     bench.journal.close()
     bench.screen_dumps = dump_screens(bench)
     summary = os.path.join(bench.paths['out'], 'resume.md')
     write_summary(bench, reason, summary)
     print('Palier atteint : %s' % bench.highest_milestone())
+    for overlay in getattr(bench, 'overlays', []):
+        for path, n in sorted(overlay.hits.items()):
+            print('Mod : %d lecture(s) dans le fichier de mod %s (voir le journal : « FICHIER DE MOD »)' % (n, path))
     print('Arrêt : %s' % reason)
     print('Temps du banc %.3f s, temps du PC %.1f s' % (bench.kernel.now / 1e9, bench.elapsed))
+    if hasattr(bench.cpu, 'timing'):
+        native, uni = bench.cpu.timing()
+        kernel = bench.elapsed - native - uni
+        print('Processeur %s : %.1f s dans le code natif, %.1f s sous unicorn, %.1f s dans le reste (noyau, services, '
+              'journal : Python) ; %s' % (args.cpu, native, uni, kernel, dict(bench.cpu.stats)))
     if bench.gsp.gpu is not None:
         print('Temps du PC passé dans les listes PICA : %.1f s ; %s' % (bench.gsp.draw_seconds, dict(bench.gsp.gpu.stats)))
         for text, n in bench.gsp.gpu.notes.items():

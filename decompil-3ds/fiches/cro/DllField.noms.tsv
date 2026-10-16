@@ -1,0 +1,8 @@
+0x2e174	function	field_update_when_queue_empty
+0x241e0	function	field_queue_empty_hook
+0x1f93c	function	field_render_scene
+0x72ef4	function	field_render_with_process
+0xa4f78	function	field_draw_top_screen
+0xa53ec	function	field_draw_bottom_screen
+0xd4e18	function	DllField__ZN9xy_system2bg6System13SetIsCallDrawEb
+0xe9794	function	DllField_nnroControlObject_

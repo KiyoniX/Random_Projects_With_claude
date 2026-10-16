@@ -29,8 +29,8 @@ Le vocabulaire (poignée, en-tête, tampon du fil, descripteur) est celui de `sm
 | `cfg:u` | `0x00030040` | GenHashConsoleUnique | `0x1240b0` | `gen_hash_console_unique` (`0x105eac`) | des deux côtés |
 | `cfg:u` | `0x00040000` | GetRegionCanadaUSA | `0x146bd4` | `get_region_canada_usa` (`0x1043ac`) | des deux côtés |
 | `ptm:u` | `0x000B00C2` | GetStepHistory | `0x124d24` | `ptm_GetStepHistory` (`0x104c3c`) | des deux côtés (le calcul des pas est survolé) |
-| `err:f` | `0x00010800` | Throw | `0x124780` | module `errdisp` pas dumpé | jeu seulement |
-| `ldr:ro` | `0x000100C2` | Initialize | `0x133fa8` | module `ro` pas dumpé | jeu seulement |
+| `err:f` | `0x00010800` | Throw | `0x124780` | module `errdisp` lu depuis (fiche `errdisp.md`) | jeu seulement ici |
+| `ldr:ro` | `0x000100C2` | Initialize | `0x133fa8` | module `ro` lu depuis (fiche `ro.md`) | jeu seulement ici |
 | `ldr:ro` | `0x00020082` | LoadCRR | `0x118548` | idem | jeu seulement |
 | `ldr:ro` | `0x000402C2` | LoadExeCRO | `0x1e793c` | idem | jeu seulement |
 | `ldr:ro` | `0x000500C2` | UnloadCRO | `0x146a0c` | idem | jeu seulement |
@@ -451,7 +451,7 @@ Pour répondre à la place de la console : **écrire des zéros dans le tampon**
 
 ## Partie 5 : le port `err:f`
 
-Ce n'est pas un service mais un port, ouvert par `svcConnectToPort("err:f")` au moment de l'erreur. Poignée à `0x5d4048`. Le module qui l'écoute, `errdisp`, n'est pas dumpé : tout ce qui suit est lu dans le jeu, avec les noms de champs de 3dbrew (« ERR:Throw »).
+Ce n'est pas un service mais un port, ouvert par `svcConnectToPort("err:f")` au moment de l'erreur. Poignée à `0x5d4048`. Le module qui l'écoute, `errdisp`, n'était pas dumpé quand ce contrat a été écrit ; il l'est depuis, et sa fiche [errdisp](errdisp.md) lit le côté module. Tout ce qui suit est lu dans le jeu, avec les noms de champs de 3dbrew (« ERR:Throw »).
 
 ### Throw (`0x00010800`)
 
@@ -484,7 +484,7 @@ Pour répondre à la place de la console : accepter la connexion, lire les 0x80 
 
 ## Partie 6 : `ldr:ro`
 
-Poignée à `0x5e80d0`. Le module `ro` n'est **pas dumpé** : tout le contrat est lu côté jeu. Les noms des paramètres viennent de 3dbrew (« RO Services », « RO:Initialize », « RO:LoadCRR », « RO:LoadExeCRO », « RO:UnloadCRO », « CRO0 », « CRR0 ») ; ce que fait `ro` de son côté est dit à chaque fois avec la mention « d'après 3dbrew ». Le format des fichiers est décrit dans l'inventaire, partie 5.
+Poignée à `0x5e80d0`. Le module `ro` n'était **pas dumpé** quand ce contrat a été écrit ; il l'est depuis, et la fiche [ro](ro.md) lit le côté module. Tout ce contrat est lu côté jeu. Les noms des paramètres viennent de 3dbrew (« RO Services », « RO:Initialize », « RO:LoadCRR », « RO:LoadExeCRO », « RO:UnloadCRO », « CRO0 », « CRR0 ») ; ce que fait `ro` de son côté est dit à chaque fois avec la mention « d'après 3dbrew ». Le format des fichiers est décrit dans l'inventaire, partie 5.
 
 Dans les quatre commandes, le dernier mot est une poignée vers le processus du jeu lui-même (`0xFFFF8001`, lue à `0x564f14`), précédée d'un mot à 0 qui dit au noyau de la copier : c'est ce qui donne à `ro` le droit de modifier la mémoire du jeu.
 
@@ -716,7 +716,7 @@ Aucun désaccord entre le jeu et les modules sur la forme d'une requête ou d'un
 
 **Pas lu**
 
-- Les modules `ro` et `errdisp`, qui ne sont pas dumpés.
+- Les modules `ro` et `errdisp` côté module : lus depuis dans leurs fiches (`ro.md`, `errdisp.md`), pas recoupés ici.
 - Les appelants des accès aux réglages au-delà du premier étage : on sait quelle fonction lit le bloc et ce qu'elle rend, pas toujours quel écran s'en sert. Les trois appelants de `0x123d94` (noms du pays et de la région) ne sont pas lus.
 - Le code des `.cro` : en particulier ce que fait l'objet de contrôle à l'intérieur d'un module, et l'opération 1.
 - Quel écran du jeu réclame l'accéléromètre et le gyroscope.

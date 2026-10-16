@@ -7,6 +7,7 @@ Rien ici ne vient du jeu : le code est fabriqué.
    recompilés en C, compilés, puis rejoués contre unicorn sur des états aléatoires. Nécessite le compilateur
    portable (local/outils/llvm-mingw) et unicorn (local/pylib) ; sans eux, cette partie est sautée avec un message.
 """
+import ctypes
 import os
 import random
 import struct
@@ -294,6 +295,42 @@ PROGRAM_TABLE = [
 ]
 
 
+PROGRAM_MANUAL_LR = [
+    0xE92D4010,     # 00 push {r4, lr}
+    0xE28FE010,     # 04 add lr, pc, #0x10            lr = 0x1c : l'adresse de retour choisie à la main
+    0xE3100001,     # 08 tst r0, #1
+    0x1A000003,     # 0c bne autre                    un branchement conditionnel entre « add lr » et le saut
+    0xE28F2018,     # 10 add r2, pc, #0x18            r2 = aide
+    0xE12FFF12,     # 14 bx r2                        un appel dont le retour est à 0x1c, pas à 0x18
+    0xE1A00000,     # 18 nop
+    0xE2800064,     # 1c add r0, r0, #100             la suite, atteinte quand aide revient
+    0xE8BD8010,     # 20 pop {r4, pc}
+    0xE3A00007,     # 24 autre : mov r0, #7
+    0xEAFFFFFC,     # 28 b 0x20
+    0xE1A00000,     # 2c nop
+    0xE2800001,     # 30 aide : add r0, r0, #1
+    0xE12FFF1E,     # 34 bx lr
+]
+
+PROGRAM_MANUAL_LR2 = [
+    0xE92D4010,     # 00 push {r4, lr}
+    0xE28FE010,     # 04 add lr, pc, #0x10
+    0xE28EE004,     # 08 add lr, lr, #4               lr = 0x20 en deux temps
+    0xE3100001,     # 0c tst r0, #1
+    0x1A000004,     # 10 bne autre
+    0xE28F2018,     # 14 add r2, pc, #0x18            r2 = aide
+    0xE12FFF12,     # 18 bx r2
+    0xE1A00000,     # 1c nop
+    0xE2800064,     # 20 add r0, r0, #100             la reprise
+    0xE8BD8010,     # 24 pop {r4, pc}
+    0xE3A00007,     # 28 autre : mov r0, #7
+    0xEAFFFFFC,     # 2c b 0x24
+    0xE1A00000,     # 30 nop
+    0xE2800001,     # 34 aide : add r0, r0, #1
+    0xE12FFF1E,     # 38 bx lr
+]
+
+
 def test_programs():
     problem = tools_available()
     if problem:
@@ -305,7 +342,11 @@ def test_programs():
     assert not bad, bad
     bad = check_program(PROGRAM_TABLE, [(0x00, len(PROGRAM_TABLE) * 4)], 'prog_table', draws=300)
     assert not bad, bad
-    print('  appel direct (bl), pop {pc}, tables de sauts (add pc, ldr pc) : natif = unicorn')
+    bad = check_program(PROGRAM_MANUAL_LR, [(0x00, 0x30), (0x30, 8)], 'prog_manual_lr', draws=300)
+    assert not bad, bad
+    bad = check_program(PROGRAM_MANUAL_LR2, [(0x00, 0x34), (0x34, 8)], 'prog_manual_lr2', draws=300)
+    assert not bad, bad
+    print('  appel direct (bl), pop {pc}, tables de sauts (add pc, ldr pc), retour choisi par add lr, pc : natif = unicorn')
 
 
 def classes():
@@ -392,12 +433,454 @@ def disasm(word):
     return ''
 
 
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 4. Le processeur natif du banc (banc/cpu_native.py) : fibres, appels système, préemption, mode hybride
+# ---------------------------------------------------------------------------------------------------------------------
+
+def arm_branch(cond, src, dst, link=False):
+    """Un mot B ou BL de `src` vers `dst`."""
+    return (cond << 28) | (0x0B000000 if link else 0x0A000000) | (((dst - src - 8) >> 2) & 0xFFFFFF)
+
+
+def test_native_cpu():
+    """Un petit programme dans la DLL « hôte » : une boucle, un appel système, un appel vers du code non recompilé
+    (exécuté par unicorn) qui rappelle une fonction recompilée, deux fils entrelacés, une boucle d'attente active préemptée
+    et un repère. Le code est fabriqué, rien ne vient du jeu."""
+    why = tools_available()
+    if why:
+        print('  cpu natif : sauté (%s)' % why)
+        return
+    import harness
+    import shutil
+    banc = os.path.join(recomp.ROOT, 'banc')
+    if banc not in sys.path:
+        sys.path.insert(0, banc)
+    from cpu import Stop
+    from cpu_native import NativeCpu
+    from memory import PERM_R, PERM_RW, PERM_RX, AddressSpace
+    AL = 14
+    main = [0xE52DE004,                                     # 00 push {lr}
+            0xE3A04000,                                     # 04 mov r4, #0
+            0xE2844001,                                     # 08 add r4, r4, #1
+            0xE3540064,                                     # 0c cmp r4, #100
+            arm_branch(0xB, BASE + 0x10, BASE + 0x08),      # 10 blt 08  (en arrière : décompte de préemption)
+            0xE1A00004,                                     # 14 mov r0, r4
+            0xEF000024,                                     # 18 svc 0x24
+            arm_branch(AL, BASE + 0x1C, 0x00200000, True),  # 1c bl 0x200000  (code non recompilé)
+            0xE2800001,                                     # 20 add r0, r0, #1
+            0xEF000025,                                     # 24 svc 0x25
+            0xE49DF004]                                     # 28 pop {pc}
+    nat2 = [0xE2800064, 0xE12FFF1E]                         # add r0, r0, #100 ; bx lr
+    spin = [arm_branch(AL, BASE + 0x200, BASE + 0x200)]     # b .
+    # retour non-local : « inner » dépile le cadre de « outer » (pop {r4, pc}) et revient donc à l'appelant de outer
+    outer = [0xE92D4010,                                    # 300 push {r4, lr}
+             arm_branch(AL, BASE + 0x304, BASE + 0x320, True),     # 304 bl inner
+             0xE2800005,                                    # 308 add r0, r0, #5   (jamais exécuté)
+             0xE8BD8010]                                    # 30c pop {r4, pc}
+    inner = [0xE2800001, 0xE8BD8010]                        # 320 add r0, r0, #1 ; pop {r4, pc}
+    caller = [0xE52DE004,                                   # 340 push {lr}
+              0xE3A00007,                                   # 344 mov r0, #7
+              arm_branch(AL, BASE + 0x348, BASE + 0x300, True),     # 348 bl outer
+              0xE2800064,                                   # 34c add r0, r0, #100
+              0xEF000026,                                   # 350 svc 0x26
+              0xE49DF004]                                   # 354 pop {pc}
+    # retour non-local qui enjambe du code non recompilé : A appelle B, B appelle du code non recompilé, qui appelle X ;
+    # X dépile le cadre de B et de ce code (pop {r1} puis pop {r4, pc}) et revient donc à A
+    caller_a = [0xE52DE004,                                 # 380 push {lr}
+                0xE3A00007,                                 # 384 mov r0, #7
+                arm_branch(AL, BASE + 0x388, BASE + 0x3A0, True),     # 388 bl B
+                0xE2800064,                                 # 38c add r0, r0, #100
+                0xEF000027,                                 # 390 svc 0x27
+                0xE49DF004]                                 # 394 pop {pc}
+    func_b = [0xE92D4010,                                   # 3a0 push {r4, lr}
+              arm_branch(AL, BASE + 0x3A4, 0x200040, True),   # 3a4 bl (code non recompilé)
+              0xE2800005,                                   # 3a8 add r0, r0, #5   (jamais exécuté)
+              0xE8BD8010]                                   # 3ac pop {r4, pc}
+    func_x = [0xE2800001, 0xE49D1004, 0xE8BD8010]           # 3c0 add r0, r0, #1 ; pop {r1} ; pop {r4, pc}
+    hole2 = struct.pack('<4I', 0xE52DE004, arm_branch(AL, 0x200044, BASE + 0x3C0, True), 0xE2800032, 0xE49DF004)
+    # adresse de reprise : G fixe lr à une de ses propres adresses (add lr, pc, #imm), l'empile avec r4, puis appelle H qui
+    # dépile ce cadre (pop {r4, pc}) : H « revient » donc au milieu de G, sans que G ait fait d'appel vers cette adresse
+    func_g = [0xE52DE004,                                   # 400 push {lr}
+              0xE28FE014,                                   # 404 add lr, pc, #0x14     lr = 0x420
+              0xE92D4010,                                   # 408 push {r4, lr}
+              arm_branch(AL, BASE + 0x40C, BASE + 0x440, True),     # 40c bl H
+              0xE2800005,                                   # 410 add r0, r0, #5   (jamais exécuté)
+              0xE1A00000, 0xE1A00000, 0xE1A00000,           # 414 418 41c nop
+              0xE2800FFA,                                   # 420 add r0, r0, #1000    (la reprise)
+              0xE49DF004]                                   # 424 pop {pc}
+    func_h = [0xE2800001, 0xE8BD8010]                       # 440 add r0, r0, #1 ; pop {r4, pc}
+    caller_g = [0xE52DE004,                                 # 460 push {lr}
+                0xE3A00007,                                 # 464 mov r0, #7
+                arm_branch(AL, BASE + 0x468, BASE + 0x400, True),     # 468 bl G
+                0xEF000029,                                 # 46c svc 0x29
+                0xE49DF004]                                 # 470 pop {pc}
+    # même chose, mais l'appel de H est un branchement en position terminale (b H) et la reprise est une autre fonction
+    func_g2 = [0xE52DE004,                                  # 4a0 push {lr}
+               0xE28FE00C,                                  # 4a4 add lr, pc, #0xc      lr = 0x4b8
+               0xE92D4010,                                  # 4a8 push {r4, lr}
+               arm_branch(AL, BASE + 0x4AC, BASE + 0x440),  # 4ac b H
+               0xE1A00000, 0xE1A00000,                      # 4b0 4b4 nop
+               0xE2800FFA,                                  # 4b8 add r0, r0, #1000    (la reprise)
+               0xE49DF004]                                  # 4bc pop {pc}
+    caller_g2 = [0xE52DE004, 0xE3A00007,                    # 4e0 push {lr} ; mov r0, #7
+                 arm_branch(AL, BASE + 0x4E8, BASE + 0x4A0, True),     # 4e8 bl G2
+                 0xEF00002A,                                # 4ec svc 0x2a
+                 0xE49DF004]                                # 4f0 pop {pc}
+    data = bytearray(0x500)
+    for offset, words in ((0, main), (0x100, nat2), (0x200, spin), (0x300, outer), (0x320, inner), (0x340, caller),
+                          (0x380, caller_a), (0x3A0, func_b), (0x3C0, func_x), (0x400, func_g), (0x440, func_h),
+                          (0x460, caller_g), (0x4A0, func_g2), (0x4E0, caller_g2)):
+        data[offset:offset + 4 * len(words)] = struct.pack('<%dI' % len(words), *words)
+    hole = struct.pack('<5I', 0xE52DE004, 0xE280000A, arm_branch(AL, 0x200008, BASE + 0x100, True), 0xE2800FFA, 0xE49DF004)
+    entries = [(BASE, 0x2C), (BASE + 0x100, 8), (BASE + 0x200, 4), (BASE + 0x300, 0x10), (BASE + 0x320, 8), (BASE + 0x340, 0x18),
+               (BASE + 0x380, 0x18), (BASE + 0x3A0, 0x10), (BASE + 0x3C0, 0xC), (BASE + 0x400, 0x28), (BASE + 0x440, 8),
+               (BASE + 0x460, 0x14), (BASE + 0x4A0, 0x18), (BASE + 0x4B8, 8), (BASE + 0x4E0, 0x14)]
+    image = recomp.RawImage(BASE, bytes(data))
+    known = set(a for a, _ in entries)
+    results = [recomp.translate_function(a, n, 'arm', image, known) for a, n in entries]
+    assert all(r.complete for r in results)
+    out = os.path.join(OUT, 'cpu_natif')
+    files = recomp.write_build(out, results, per_file=500)
+    shutil.copy(os.path.join(recomp.HERE, 'runtime', 'rt.h'), os.path.join(out, 'rt.h'))
+    dll = harness.Toolchain().compile_dll([os.path.join(out, f) for f in files],
+                                          os.path.join(out, 'build', 'hote.dll'), include_dirs=[out], budget=False,
+                                          host=True)
+    memory = AddressSpace()
+    cpu = NativeCpu(memory, dll=dll, hybrid=True)
+    memory.map(BASE, 0x1000, PERM_RX, 'code recompilé')
+    memory.write(BASE, bytes(data))
+    memory.map(0x00200000, 0x1000, PERM_RX, 'code non recompilé')
+    memory.write(0x00200000, hole)
+    memory.write(0x00200040, hole2)
+    memory.map(0x0F000000, 0x10000, PERM_RW, 'pile')
+    memory.map(0x1FF82000, 0x1000, PERM_RW, 'tls')
+    sp = 0x0F010000
+
+    def start(entry):
+        ctx = cpu.new_context(entry, sp - 0x1000 * len(started), 0, 0x1FF82000)
+        started.append(ctx)
+        return ctx
+    started = []
+    one = start(BASE)
+    cpu.restore(one)
+    stop = cpu.run(1_000_000)
+    assert stop.kind == Stop.SVC and stop.number == 0x24 and stop.address == BASE + 0x1C, stop
+    assert cpu.get('r0') == 100 and cpu.get('pc') == BASE + 0x1C
+    cpu.set('r0', 7)
+    stop = cpu.run(1_000_000)
+    # 7 + 10 (code non recompilé) + 100 (fonction recompilée appelée par ce code) + 1000 + 1
+    assert stop.kind == Stop.SVC and stop.number == 0x25 and cpu.get('r0') == 1118, (stop, cpu.get('r0'))
+    assert cpu.stats['natif_vers_unicorn'] == 1 and cpu.stats['unicorn_vers_natif'] == 1, cpu.stats
+    stop = cpu.run(1_000_000)
+    assert stop.kind == Stop.FAULT and 'ExitThread' in stop.detail, stop
+    # deux fils entrelacés : chacun garde sa pile, ses registres et son point de reprise
+    a, b = start(BASE), start(BASE)
+    cpu.restore(a)
+    assert cpu.run(1_000_000).number == 0x24
+    cpu.set('r0', 1)
+    saved = cpu.save()
+    cpu.restore(b)
+    assert cpu.run(1_000_000).number == 0x24 and cpu.get('r0') == 100
+    cpu.set('r0', 2)
+    assert cpu.run(1_000_000).number == 0x25 and cpu.get('r0') == 1113
+    cpu.restore(saved)
+    assert cpu.run(1_000_000).number == 0x25 and cpu.get('r0') == 1112
+    # une boucle d'attente active rend la main à la fin de sa tranche, et reprend ensuite
+    spinner = start(BASE + 0x200)
+    cpu.restore(spinner)
+    for _ in range(3):
+        stop = cpu.run(4000)
+        assert stop.kind == Stop.LIMIT, stop
+    # un repère à l'entrée d'une fonction recompilée, une seule fois
+    seen = []
+    cpu.watch(BASE + 0x100, seen.append, once=True)
+    c = start(BASE)
+    cpu.restore(c)
+    cpu.run(1_000_000)
+    cpu.set('r0', 0)
+    cpu.run(1_000_000)
+    assert seen == [BASE + 0x100], seen
+    # le retour non-local : le C remonte jusqu'à l'appel qui attendait cette adresse, le code mort de « outer » ne tourne pas
+    n = start(BASE + 0x340)
+    cpu.restore(n)
+    stop = cpu.run(1_000_000)
+    assert stop.kind == Stop.SVC and stop.number == 0x26 and cpu.get('r0') == 108, (stop, cpu.get('r0'))
+    assert cpu.lib.rt_get_unwinds() >= 1
+    n = start(BASE + 0x380)
+    cpu.restore(n)
+    stop = cpu.run(1_000_000)
+    assert stop.kind == Stop.SVC and stop.number == 0x27 and cpu.get('r0') == 108, (stop, cpu.get('r0'))
+    assert not cpu.holes_seen, cpu.holes_seen         # A a repris en natif, pas sous unicorn
+    # une adresse de reprise à l'intérieur de la fonction : G continue à 0x420 (et le code mort ne tourne pas)
+    n = start(BASE + 0x460)
+    cpu.restore(n)
+    stop = cpu.run(1_000_000)
+    assert stop.kind == Stop.SVC and stop.number == 0x29 and cpu.get('r0') == 1008, (stop, cpu.get('r0'))
+    n = start(BASE + 0x4E0)
+    cpu.restore(n)
+    stop = cpu.run(1_000_000)
+    assert stop.kind == Stop.SVC and stop.number == 0x2A and cpu.get('r0') == 1008, (stop, cpu.get('r0'))
+    print('  cpu natif : ok (appels système, reprise, hybride, deux fils, préemption, repère, retours non-locaux)')
+
+
+def vcvt_words():
+    """Les conversions VFP où D ou M désignent le bit de poids faible d'un registre simple (et non d16-d31) : un registre
+    simple impair d'un côté, un double de l'autre. Le décodeur les prenait pour des registres de la VFPv3."""
+    words = []
+    for sm in (0, 1, 2, 5, 7, 30, 31):
+        for dd in (0, 2, 14):
+            for signed in (0, 1):
+                words.append(0xEEB80B40 | signed << 7 | dd << 12 | (sm & 1) << 5 | sm >> 1)      # vcvt.f64.s32/u32 Dd, Sm
+            words.append(0xEEB70AC0 | dd << 12 | (sm & 1) << 5 | sm >> 1)                       # vcvt.f64.f32 Dd, Sm
+    for sd in (0, 1, 2, 5, 31):
+        for dm in (0, 2, 14):
+            for ext in (0xC, 0xD):
+                for trunc in (0, 1):
+                    words.append(0xEEB00B40 | ext << 16 | trunc << 7 | (sd & 1) << 22 | (sd >> 1) << 12 | dm)   # vcvt.s32.f64 Sd, Dm
+            words.append(0xEEB70BC0 | (sd & 1) << 22 | (sd >> 1) << 12 | dm)                     # vcvt.f32.f64 Sd, Dm
+    return words
+
+
+def test_vfp_conversions():
+    words = vcvt_words()
+    for w in words:
+        assert not decode(w).unimpl, '%08x : %s' % (w, decode(w).unimpl)
+    # un double d16-d31 reste refusé (il n'existe pas sur l'ARM11)
+    assert decode(0xEEB80B40 | 1 << 22).unimpl
+    assert decode(0xEEB00B40 | 0xD << 16 | 1 << 5).unimpl          # vcvt.s32.f64 avec Dm = d16+
+    problem = tools_available()
+    if problem:
+        print('  conversions VFP : décodées, comparaison sautée (%s)' % problem)
+        return
+    bad = check_words(words, draws=24, name='vcvt_odd', seed=5)
+    assert not bad, bad[:3]
+    print('  conversions VFP avec registres simples impairs : %d mots, natif = unicorn' % len(words))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# 5. Les modules .cro recompilés (cro_recomp.py) : un C qui ne dépend pas de l'adresse de chargement
+# ---------------------------------------------------------------------------------------------------------------------
+
+def fabricated_module():
+    """Un module .cro fabriqué : F1 (appel indirect par un pointeur relogé, appel direct, adresse calculée à partir de pc
+    rangée en mémoire), T (table de sauts `ldr pc, [pc, r0, lsl #2]` aux entrées relogées), et un retour choisi par
+    `add lr, pc, #imm`. Rend (octets du .cro, décalages des fonctions dans le segment de code)."""
+    sys.path.insert(0, os.path.join(recomp.ROOT, 'outils'))
+    import cro_loader as cl
+    text = {
+        0x00: 0xE92D4010,       # F1 : push {r4, lr}
+        0x04: 0xE59F1030,       #      ldr r1, [pc, #0x30]       -> 0x3c : adresse de .data (correction interne)
+        0x08: 0xE59F2030,       #      ldr r2, [pc, #0x30]       -> 0x40 : adresse de G (correction interne)
+        0x0C: 0xE28F3010,       #      add r3, pc, #0x10         : une adresse du module, calculée à partir de pc
+        0x10: 0xE5813000,       #      str r3, [r1]              : rangée en mémoire, pour que la comparaison la voie
+        0x14: 0xE12FFF32,       #      blx r2                    : appel par un pointeur relogé
+        0x18: 0xEB000005,       #      bl G
+        0x1C: 0xE1A00000,
+        0x20: 0xE8BD8010,       #      pop {r4, pc}
+        0x34: 0xE2800007,       # G  : add r0, r0, #7
+        0x38: 0xE12FFF1E,       #      bx lr
+        0x44: 0xE3500002,       # T  : cmp r0, #2
+        0x48: 0x979FF100,       #      ldrls pc, [pc, r0, lsl #2]
+        0x4C: 0xEA000008,       #      b default
+        0x5C: 0xE3A00001, 0x60: 0xE12FFF1E,     # cas 0
+        0x64: 0xE3A00002, 0x68: 0xE12FFF1E,     # cas 1
+        0x6C: 0xE3A00003, 0x70: 0xE12FFF1E,     # cas 2
+        0x74: 0xE3A00063, 0x78: 0xE12FFF1E,     # default
+        # M : un retour choisi à la main (« add lr, pc, #imm ») puis un saut par registre
+        0x80: 0xE52DE004,       # M  : push {lr}
+        0x84: 0xE28FE008,       #      add lr, pc, #8            lr = 0x94
+        0x88: 0xE59F2010,       #      ldr r2, [pc, #0x10]       -> 0xa0 : adresse de G
+        0x8C: 0xE12FFF12,       #      bx r2
+        0x90: 0xE1A00000,
+        0x94: 0xE2800064,       #      add r0, r0, #100          (la reprise)
+        0x98: 0xE49DF004,       #      pop {pc}
+    }
+    words = [0xE1A00000] * 0x2C           # des nop partout ailleurs
+    for off, w in text.items():
+        words[off // 4] = w
+    code = bytearray(struct.pack('<%dI' % len(words), *words))
+    pool = {0x3C: 0, 0x40: 0x34, 0x50: 0x5C, 0x54: 0x64, 0x58: 0x6C, 0xA0: 0x34}
+    internal = [(cl.make_tag(0, off), 2, 2 if off == 0x3C else 0, addend) for off, addend in pool.items()]
+    cro = cl.make_cro('Fab', text=bytes(code), data=bytes(16), named_exports=[('F1', cl.make_tag(0, 0)), ('T', cl.make_tag(0, 0x44)),
+                                                                              ('M', cl.make_tag(0, 0x80))], internal=internal)
+    return cro, {'F1': 0, 'T': 0x44, 'M': 0x80, 'G': 0x34}
+
+
+def build_fabricated_module(out):
+    """Traduit le module fabriqué et le compile en DLL (sans programme principal : tables vides). Rend (DLL, cro, indice)."""
+    import harness
+    import shutil
+    import cro_recomp
+    import cro_loader as cl
+    cro_bytes, offsets = fabricated_module()
+    cro = cl.Cro(cro_bytes, 'Fab.cro')
+    img = cro_recomp.ModuleImage(cro, 0)
+    results = cro_recomp.translate_module(img, (), ())
+    assert all(r.complete for r in results), [r.unimpl for r in results]
+    os.makedirs(out, exist_ok=True)
+    files, table = cro_recomp.write_module(out, img, results)
+    summary = dict(name='Fab', index=0, files=files, table=table, functions=len(results), insns=0, unimpl=0, covered=0,
+                   code_off=img.code_off, code_size=img.code_size, file_size=len(cro.data), sha1=img.code_hash(),
+                   mask=img.mask_offsets())
+    cro_recomp.write_tables(out, [summary])
+    recomp.write_build(out, [], per_file=10)           # table.c vide : pas de programme principal
+    shutil.copy(os.path.join(recomp.HERE, 'runtime', 'rt.h'), os.path.join(out, 'rt.h'))
+    sources = [os.path.join(out, f) for f in files + ['table.c', 'cro_table.c']]
+    dll = harness.Toolchain().compile_dll(sources, os.path.join(out, 'build', 'fab.dll'), include_dirs=[out], budget=False)
+    return dll, cro, offsets, img
+
+
+def relocated_sections(cro, base):
+    """Le module tel que ro le laisse en mémoire à `base` : le fichier relogé, puis son .data."""
+    import cro_recomp
+    img = cro_recomp.ModuleImage(cro, 0, fake=base)
+    data_address = base + (len(cro.data) + 0xFFF) // 0x1000 * 0x1000
+    return img, [(base, bytes(img.module.image), 5), (data_address, bytes(img.module.data), 3)], data_address
+
+
+def test_cro_relocatable():
+    """Le même C, à trois adresses de chargement, donne les mêmes résultats qu'unicorn sur le module relogé là : le
+    module est relogeable (adresses dérivées de pc, pointeurs relogés, tables de sauts, retour choisi à la main)."""
+    why = tools_available()
+    if why:
+        print('  modules .cro : sautés (%s)' % why)
+        return
+    import harness
+    import cro_recomp
+    dll, cro, offsets, img = build_fabricated_module(os.path.join(OUT, 'cro_fab'))
+    source = open(os.path.join(OUT, 'cro_fab', 'cro_Fab_00.c')).read()
+    assert 'RT_MBASE + 0x' in source and 'case 0x%08xu' % (img.fake + 0x180 + 0x50) in source
+    native = harness.Native(dll)
+    native.lib.rt_cro_init()
+    native.lib.rt_mod_set_base.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+    for base in (0x00700000, 0x00A55000, 0x03E00000):
+        native.lib.rt_mod_set_base(0, base)
+        loaded, sections, data_address = relocated_sections(cro, base)
+        rig = harness.Rig(sections, native)
+        for name in ('F1', 'T', 'M'):
+            entry = base + 0x180 + offsets[name]
+            verdict, info = rig.check_function(entry, draws=60, seed=base ^ offsets[name],
+                                               ptr_regions=[(harness.HEAP + 0x1000, 0x8000), (data_address, 16)])
+            assert verdict == 'pass', (hex(base), name, verdict, info.get('diffs'))
+        native.lib.rt_mod_set_base(0, 0)
+    # un module déchargé (base 0) n'est plus trouvé : le saut n'a pas de cible
+    loaded, sections, data_address = relocated_sections(cro, 0x00700000)
+    rig = harness.Rig(sections, native)
+    state = rig.draw(__import__('numpy').random.RandomState(1), [(harness.HEAP + 0x1000, 0x8000)])
+    rig.reset_memory(state)
+    assert rig.run_native(0x00700000 + 0x180, state) == 3          # RT_NO_TARGET
+    print('  modules .cro : le même C, trois bases de chargement, natif = unicorn (appel par pointeur relogé, table de sauts, '
+          'adresse dérivée de pc, retour choisi à la main) ; déchargé : aucune cible')
+
+
+def test_cro_cpu():
+    """Le processeur natif branche un module à son chargement, le débranche à son déchargement, refuse un code différent
+    de celui qu'il a compilé, et ne laisse jamais le code d'une ancienne adresse s'exécuter."""
+    why = tools_available()
+    if why:
+        print('  cpu et modules .cro : sautés (%s)' % why)
+        return
+    import harness
+    import cro_recomp
+    banc = os.path.join(recomp.ROOT, 'banc')
+    if banc not in sys.path:
+        sys.path.insert(0, banc)
+    from cpu import Stop
+    from cpu_native import NativeCpu
+    from memory import PERM_RW, PERM_RWX, PERM_RX, AddressSpace
+    import shutil
+    out = os.path.join(OUT, 'cro_cpu')
+    dll_dir = os.path.join(out, 'mod')
+    cro_bytes, offsets = fabricated_module()
+    import cro_loader as cl
+    cro = cl.Cro(cro_bytes, 'Fab.cro')
+    FILE_SIZE = len(cro_bytes)
+    img = cro_recomp.ModuleImage(cro, 0)
+    results = cro_recomp.translate_module(img, (), ())
+    os.makedirs(dll_dir, exist_ok=True)
+    mod_files, table = cro_recomp.write_module(dll_dir, img, results)
+    cro_recomp.write_tables(dll_dir, [dict(name='Fab', index=0, files=mod_files, table=table, functions=len(results),
+                                           code_off=img.code_off, code_size=img.code_size, file_size=len(cro.data),
+                                           sha1=img.code_hash(), mask=img.mask_offsets())])
+    # le programme principal : appelle l'adresse reçue dans r0 (celle d'une fonction du module), puis un appel système
+    main = [0xE52DE004,                                     # 00 push {lr}
+            0xE1A01000,                                     # 04 mov r1, r0
+            0xE3A00001,                                     # 08 mov r0, #1
+            0xE12FFF31,                                     # 0c blx r1
+            0xEF000024,                                     # 10 svc 0x24
+            0xE49DF004]                                     # 14 pop {pc}
+    data = struct.pack('<6I', *main)
+    image = recomp.RawImage(BASE, data)
+    res = recomp.translate_function(BASE, 0x18, 'arm', image, {BASE})
+    files = recomp.write_build(dll_dir, [res], per_file=10)
+    shutil.copy(os.path.join(recomp.HERE, 'runtime', 'rt.h'), os.path.join(dll_dir, 'rt.h'))
+    sources = [os.path.join(dll_dir, f) for f in files + mod_files + ['cro_table.c']]
+    dll = harness.Toolchain().compile_dll(sources, os.path.join(dll_dir, 'build', 'hote.dll'), include_dirs=[dll_dir],
+                                          budget=False, host=True)
+    memory = AddressSpace()
+    cpu = NativeCpu(memory, dll=dll, hybrid=True)
+    assert 'Fab' in cpu.modules
+    memory.map(BASE, 0x1000, PERM_RX, 'code recompilé')
+    memory.write(BASE, data)
+    memory.map(0x0F000000, 0x10000, PERM_RW, 'pile')
+    memory.map(0x1FF82000, 0x1000, PERM_RW, 'tls')
+    memory.map(0x00800000, 0x40000, PERM_RW, 'tas')
+
+    def load(base, tamper=False):
+        """Ce que fait ro : le module relogé à `base`, en lecture-écriture-exécution, puis l'avis au processeur."""
+        _, sections, data_address = relocated_sections(cro, base)
+        memory.map(base, len(sections[0][1]), PERM_RWX, 'miroir')
+        memory.write(base, sections[0][1])
+        memory.map(data_address, 0x1000, PERM_RW, 'data')
+        memory.write(data_address, sections[1][1])
+        if tamper:
+            memory.write(base + 0x180 + 0x34, struct.pack('<I', 0xE2800009))        # G ajoute 9 au lieu de 7
+        return cpu.module_loaded('Fab', base), data_address
+
+    def call(entry, r0=1):
+        ctx = cpu.new_context(BASE, 0x0F010000, entry, 0x1FF82000)
+        cpu.restore(ctx)
+        stop = cpu.run(1_000_000)
+        assert stop.kind == Stop.SVC and stop.number == 0x24, stop
+        return cpu.get('r0')
+    # 1) chargé à une adresse : F1 appelé depuis le programme principal va au natif (aucun passage par unicorn)
+    ok, data_address = load(0x00700000)
+    assert ok and cpu.stats['modules branchés'] == 1
+    r0 = call(0x00700000 + 0x180)
+    assert r0 == 1 + 7 + 7, r0
+    assert cpu.stats['natif_vers_unicorn'] == 0 and cpu.stats['unicorn_vers_natif'] == 0, cpu.stats
+    assert struct.unpack('<I', memory.read(data_address, 4))[0] == 0x00700000 + 0x180 + 0x24        # l'adresse dérivée de pc
+    # 2) déchargé (la mémoire est reprise) : plus rien n'est branché
+    memory.unmap(0x00700000, FILE_SIZE)
+    assert not cpu.loaded and cpu.stats['modules débranchés'] == 1
+    # 3) rechargé ailleurs : le même C sert, avec la nouvelle base
+    ok, data_address = load(0x00A55000)
+    assert ok
+    assert call(0x00A55000 + 0x180) == 15
+    assert struct.unpack('<I', memory.read(data_address, 4))[0] == 0x00A55000 + 0x180 + 0x24
+    assert cpu.stats['natif_vers_unicorn'] == 0, cpu.stats
+    memory.unmap(0x00A55000, FILE_SIZE)
+    memory.unmap(data_address, 0x1000)
+    # 4) un code différent de celui qui a été compilé : refusé, le module s'exécute sous unicorn, avec son vrai code
+    ok, data_address = load(0x00C00000, tamper=True)
+    assert not ok and not cpu.loaded and cpu.stats['modules refusés (code différent)'] == 1
+    assert call(0x00C00000 + 0x180) == 1 + 9 + 9, cpu.get('r0')
+    assert cpu.stats['natif_vers_unicorn'] >= 1
+    print('  cpu et modules .cro : branché au chargement, natif sans passer par unicorn, débranché au déchargement, rechargé '
+          'ailleurs, code différent refusé (et exécuté par unicorn)')
+
+
 def test():
     test_decoder()
     test_function_translation()
     test_programs()
     test_fuzz()
+    test_vfp_conversions()
     test_fuzz_thumb()
+    test_native_cpu()
+    test_cro_relocatable()
+    test_cro_cpu()
     print('recomp : tests ok')
 
 

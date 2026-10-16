@@ -58,6 +58,26 @@ def read_exheader(data):
     return info
 
 
+CPU_KINDS = ('unicorn', 'natif', 'hybride', 'verifier')
+
+
+def cpu_factory(kind):
+    """Le processeur du banc, d'après `--cpu` : `unicorn` (l'émulateur, défaut), `natif` (le jeu recompilé, et rien
+    d'autre : un saut vers un module .cro est une faute), `hybride` (le natif, qui passe la main à unicorn pour le code
+    non recompilé : ce qu'il faut pour aller au-delà du chargement des .cro), `verifier` (l'hybride, rejoué contre
+    unicorn à chaque tranche, arrêt à la première divergence)."""
+    if kind == 'unicorn':
+        from cpu_unicorn import UnicornCpu
+        return UnicornCpu
+    if kind in ('natif', 'hybride'):
+        from cpu_native import NativeCpu
+        return lambda memory: NativeCpu(memory, hybrid=(kind == 'hybride'))
+    if kind == 'verifier':
+        from cpu_verify import VerifyCpu
+        return VerifyCpu
+    raise ValueError('processeur inconnu : %s (attendu : %s)' % (kind, ', '.join(CPU_KINDS)))
+
+
 class Bench:
     def __init__(self, cpu_factory, paths=None, options=None, code=None, exheader=None):
         self.paths = dict(DEFAULT_PATHS)
@@ -235,6 +255,9 @@ class Bench:
 
     def on_cro_loaded(self, name, address):
         self.cros.append((self.kernel.now, name, address))
+        if hasattr(self.cpu, 'module_loaded'):
+            # le processeur natif branche le C recompilé du module, s'il en a un pour ce code exact (cpu_native.py)
+            self.cpu.module_loaded(name, address)
         self.check_milestones()
 
     def on_gsp_registered(self):

@@ -50,18 +50,26 @@ class Toolchain:
         self.clang = clang or find_clang()
         self.opt = opt
 
-    def flags(self, budget=True):
+    def flags(self, budget=True, host=False, logw=False):
         f = [self.opt, '-w', '-ffp-contract=off', '-fno-strict-aliasing', '-fno-fast-math', '-I' + RUNTIME]
-        if budget:
+        if host:
+            f.append('-DRT_HOST')           # fibres, préemption coopérative, repères (runtime/host.c)
+        elif budget:
             f.append('-DRT_BUDGET')
+        if logw:
+            f.append('-DRT_LOGW')           # journal des écritures, pour le mode vérification (runtime/logw.c)
         return f
 
-    def compile_dll(self, sources, out_dll, include_dirs=(), budget=True, jobs=8):
+    def compile_dll(self, sources, out_dll, include_dirs=(), budget=True, jobs=8, host=False, logw=False):
         """sources : liste de chemins .c (le support d'exécution est ajouté). Compile en parallèle puis lie."""
         build = os.path.dirname(out_dll)
         os.makedirs(build, exist_ok=True)
-        flags = self.flags(budget) + ['-I' + d for d in include_dirs]
+        flags = self.flags(budget, host, logw) + ['-I' + d for d in include_dirs]
         sources = list(sources) + [os.path.join(RUNTIME, 'rt.c')]
+        if host:
+            sources.append(os.path.join(RUNTIME, 'host.c'))
+        if logw:
+            sources.append(os.path.join(RUNTIME, 'logw.c'))
         objs = []
         if len(sources) <= 5:               # peu de fichiers : un seul processus (le démarrage de clang coûte cher)
             run = subprocess.run([self.clang, '-shared', '-o', out_dll] + sources + flags, capture_output=True, text=True)
@@ -69,9 +77,22 @@ class Toolchain:
                 raise RuntimeError('compilation : %s' % run.stderr[:3000])
             return out_dll
 
+        # Les objets sont gardés (build/objets/) sous une clé qui dépend du texte du C, des options et de rt.h : refaire
+        # la DLL après un ajout de fonctions ne recompile que les fichiers qui ont changé.
+        cache = os.path.join(build, 'objets')
+        os.makedirs(cache, exist_ok=True)
+        salt = hashlib.md5(('|'.join(flags) + self.clang).encode())
+        for header in set([os.path.join(RUNTIME, 'rt.h')] + [os.path.join(d, 'rt.h') for d in include_dirs]):
+            if os.path.isfile(header):
+                salt.update(open(header, 'rb').read())
+
         def one(src):
-            obj = os.path.join(build, hashlib.md5(src.encode()).hexdigest()[:10] + '_' + os.path.basename(src) + '.o')
-            subprocess.run([self.clang, '-c', '-o', obj, src] + flags, check=True, capture_output=True, text=True)
+            key = hashlib.md5(salt.digest() + open(src, 'rb').read()).hexdigest()
+            obj = os.path.join(cache, '%s_%s.o' % (os.path.basename(src), key[:16]))
+            if not os.path.isfile(obj):
+                tmp = obj + '.tmp'
+                subprocess.run([self.clang, '-c', '-o', tmp, src] + flags, check=True, capture_output=True, text=True)
+                os.replace(tmp, obj)
             return obj
 
         try:
@@ -82,11 +103,6 @@ class Toolchain:
         link = subprocess.run([self.clang, '-shared', '-o', out_dll] + objs, capture_output=True, text=True)
         if link.returncode:
             raise RuntimeError('édition de liens : %s' % link.stderr[:3000])
-        for obj in objs:
-            try:
-                os.remove(obj)
-            except OSError:
-                pass
         return out_dll
 
 
@@ -95,7 +111,7 @@ class CpuStruct(ctypes.Structure):
                 ('cf', ctypes.c_uint32), ('vf', ctypes.c_uint32), ('qf', ctypes.c_uint32), ('ge', ctypes.c_uint32),
                 ('fpscr', ctypes.c_uint32), ('fpexc', ctypes.c_uint32), ('tls', ctypes.c_uint32),
                 ('excl_addr', ctypes.c_uint32), ('budget', ctypes.c_int32), ('d', ctypes.c_uint64 * 16),
-                ('user', ctypes.c_void_p)]
+                ('user', ctypes.c_void_p), ('ras', ctypes.c_void_p), ('rsp', ctypes.c_uint32), ('hint', ctypes.c_uint32)]
 
 
 class Native:

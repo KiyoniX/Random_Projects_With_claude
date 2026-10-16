@@ -16,6 +16,7 @@ import zlib
 import numpy as np
 
 from . import formats, raster
+from .lighting import Luts
 from .shader import VertexShader, f24_to_f32
 
 REG_COUNT = 0x300
@@ -23,12 +24,20 @@ REG_COUNT = 0x300
 #   PICA_TRACE=fichier  écrit les premières écritures de registres (PICA_TRACE_N : combien, 3000 par défaut)
 #   PICA_CIBLES=dossier écrit en PNG les tampons de rendu quand ils sont rendus à la mémoire
 #   PICA_DEBUG=fichier  (dans raster.py) écrit une ligne par ordre de dessin : viewport, ciseaux, tampon
+#   PICA_LISTES=dossier écrit en fichiers les listes de commandes brutes des images dessinées (PICA_LISTES_N : combien)
 DUMP_TARGETS = os.environ.get('PICA_CIBLES')
+DUMP_LISTS = [os.environ.get('PICA_LISTES'), int(os.environ.get('PICA_LISTES_N', '400')), 0]   # dossier, restant, écrites
 TRACE = [open(os.environ['PICA_TRACE'], 'w'), int(os.environ.get('PICA_TRACE_N', '3000'))]     if os.environ.get('PICA_TRACE') else None
 STREAM_UNIFORM = range(0x2C1, 0x2C9)
 STREAM_CODE = range(0x2CC, 0x2D4)
 STREAM_SWIZZLE = range(0x2D6, 0x2DE)
 STREAM_FIXED = range(0x233, 0x236)
+# la même chose pour l'unité du shader de géométrie (0x280-0x2AF, trente registres plus bas que ceux des sommets)
+STREAM_GS_UNIFORM = range(0x291, 0x299)
+STREAM_GS_CODE = range(0x29C, 0x2A4)
+STREAM_GS_SWIZZLE = range(0x2A6, 0x2AE)
+STREAM_REGS = frozenset(list(STREAM_UNIFORM) + list(STREAM_CODE) + list(STREAM_SWIZZLE) + list(STREAM_FIXED)
+                        + list(STREAM_GS_UNIFORM) + list(STREAM_GS_CODE) + list(STREAM_GS_SWIZZLE))
 ATTRIBUTE_TYPES = (np.int8, np.uint8, np.int16, np.float32)
 
 
@@ -63,6 +72,19 @@ class Surface:
         self.valid = False
 
 
+class ShaderUnit:
+    """Une unité de shader à part (celle du shader de géométrie) : son programme, ses constantes, et les index où les
+    ports de données d'écriture continuent. Les mêmes noms que ceux de `Gpu`, qui tient l'unité des sommets."""
+
+    def __init__(self):
+        self.shader = VertexShader()
+        self.code_offset = 0
+        self.swizzle_offset = 0
+        self.uniform_index = 0
+        self.uniform_f32 = False
+        self.uniform_pending = []
+
+
 class Gpu:
     def __init__(self, memory, journal=None):
         self.memory = memory
@@ -74,6 +96,11 @@ class Gpu:
             self.regs[stage + 3] = 0xFF000000
         self.regs[0x107] = 0x0F00                                   # par défaut : toutes les couleurs écrites
         self.shader = VertexShader()
+        self.gs_unit = ShaderUnit()
+        self.luts = Luts()
+        self.fog = np.zeros((128, 2), dtype=np.float32)       # brouillard : (valeur, différence) par entrée
+        self.fog_words = np.zeros(128, dtype=np.uint32)
+        self.fog_row = 0
         self.fixed = np.zeros((16, 4), dtype=np.float32)
         self.fixed[:, 3] = 1
         self.fixed_index = 0
@@ -92,11 +119,40 @@ class Gpu:
         self.notes = collections.Counter()
         self.triangle_hook = None
 
+    @staticmethod
+    def decode_fog(word):
+        """Une entrée de la table de brouillard : bits 13-23 la valeur (0,11 bits, de 0 à 1), bits 0-12 la différence avec
+        l'entrée suivante (signée, 13 bits sur 2048). Relevé sur la table du jeu : 1,0 partout puis une courbe qui
+        descend, avec cette lecture ; l'ancienne lecture (valeur en bas, différence en haut) donnait du bruit."""
+        diff = word & 0x1FFF
+        return (word >> 13 & 0x7FF) / 2048.0, (diff - 0x2000 if diff & 0x1000 else diff) / 2048.0
+
+    def set_fog_row(self, row, word):
+        self.fog_words[row] = word
+        self.fog[row] = self.decode_fog(word)
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        if 'gs_unit' not in state:            # un enregistrement d'avant le shader de géométrie
+            self.gs_unit = ShaderUnit()
+        if 'fog_words' not in state:          # un enregistrement d'avant : on retrouve les mots de l'ancienne lecture
+            self.fog_words = np.zeros(128, dtype=np.uint32)
+            old = state['fog']
+            for row in range(128):
+                diff = int(round(old[row][1] * 2048)) & 0x7FF
+                self.fog_words[row] = (diff << 13) | (int(round(old[row][0] * 2048)) & 0x1FFF)
+                self.fog[row] = self.decode_fog(int(self.fog_words[row]))
+
     # --- les listes de commandes ---
 
     def process_list(self, data, draw=True):
         """data : octets de la liste. Rend le nombre d'ordres de dessin exécutés."""
         count = len(data) // 4
+        if draw and DUMP_LISTS[0] and DUMP_LISTS[1] > 0:
+            DUMP_LISTS[1] -= 1
+            DUMP_LISTS[2] += 1
+            with open(os.path.join(DUMP_LISTS[0], 'liste-%04d.bin' % DUMP_LISTS[2]), 'wb') as out:
+                out.write(data)
         words = struct.unpack('<%dI' % count, data[:count * 4])
         regs = self.regs
         i = 0
@@ -109,12 +165,14 @@ class Gpu:
             mask = header >> 16 & 0xF
             consecutive = header >> 31
             end = i + 2 + extra
+            if end > count:                                  # paquet coupé par la fin de la liste : on s'arrête
+                self.notes["liste coupée au milieu d'un paquet"] += 1
+                break
             if reg >= REG_COUNT:
                 i += 2 + extra + (extra & 1)
                 self.notes['registre hors de 0x300'] += 1
                 continue
-            if not consecutive and mask == 0xF and extra and (reg in STREAM_UNIFORM or reg in STREAM_CODE
-                                                                  or reg in STREAM_SWIZZLE or reg in STREAM_FIXED):
+            if not consecutive and mask == 0xF and extra and reg in STREAM_REGS:
                 self.stream(reg, (words[i],) + words[i + 2:end])
             else:
                 drawn += self.write(reg, words[i], mask)
@@ -140,58 +198,78 @@ class Gpu:
         self.regs[reg] = value
         self.seen[reg] = 1
         if reg < 0x22E:
+            if reg == 0xE6:
+                self.fog_row = value & 0x7F
+            elif 0xE8 <= reg <= 0xEF:
+                self.set_fog_row(self.fog_row & 0x7F, value)
+                self.fog_row += 1
+            elif reg == 0x1C5:
+                self.luts.set_index(value)
+            elif 0x1C8 <= reg <= 0x1CF:
+                self.luts.push(value)
             return 0
         if reg == 0x22E or reg == 0x22F:
             self.stats['dessins demandés'] += 1
             if self.draw_enabled:
                 return self.draw(reg == 0x22F)
             return 0
-        if reg in STREAM_UNIFORM or reg in STREAM_CODE or reg in STREAM_SWIZZLE or reg in STREAM_FIXED:
+        if reg in STREAM_REGS:
             self.stream(reg, (value,))
-        elif reg == 0x2C0:
-            self.uniform_index = value & 0x7F
-            self.uniform_f32 = bool(value >> 31)
-            self.uniform_pending = []
+        elif reg == 0x2C0 or reg == 0x290:                 # l'index des constantes : unité des sommets ou de la géométrie
+            unit = self if reg == 0x2C0 else self.gs_unit
+            unit.uniform_index = value & 0x7F
+            unit.uniform_f32 = bool(value >> 31)
+            unit.uniform_pending = []
         elif reg == 0x2CB:
             self.code_offset = value & 0xFFFF
+        elif reg == 0x29B:
+            self.gs_unit.code_offset = value & 0xFFFF
         elif reg == 0x2D5:
             self.swizzle_offset = value & 0xFFFF
+        elif reg == 0x2A5:
+            self.gs_unit.swizzle_offset = value & 0xFFFF
         elif reg == 0x232:
             self.fixed_index = value & 0xF
             self.fixed_pending = []
         return 0
 
     def stream(self, reg, words):
-        """Des données poussées vers un tampon à index automatique : uniformes, code, descripteurs, attributs fixes."""
-        if reg in STREAM_CODE:
-            code = self.shader.code
+        """Des données poussées vers un tampon à index automatique : uniformes, code, descripteurs, attributs fixes
+        (pour l'unité des sommets, ou pour celle du shader de géométrie quand le registre est dans 0x291-0x2AD)."""
+        unit = self
+        if reg in STREAM_GS_CODE or reg in STREAM_GS_SWIZZLE or reg in STREAM_GS_UNIFORM:
+            unit, equivalent = self.gs_unit, reg + 0x30
+        else:
+            equivalent = reg
+        if equivalent in STREAM_CODE:
+            code = unit.shader.code
             for value in words:
-                code[self.code_offset & 0xFFF] = value
-                self.code_offset += 1
+                code[unit.code_offset & 0xFFF] = value
+                unit.code_offset += 1
             self.regs[reg] = words[-1]
-        elif reg in STREAM_SWIZZLE:
-            table = self.shader.swizzle
+        elif equivalent in STREAM_SWIZZLE:
+            table = unit.shader.swizzle
             for value in words:
-                table[self.swizzle_offset & 0xFFF] = value
-                self.swizzle_offset += 1
+                table[unit.swizzle_offset & 0xFFF] = value
+                unit.swizzle_offset += 1
             self.regs[reg] = words[-1]
-        elif reg in STREAM_UNIFORM:
-            pending = self.uniform_pending
+        elif equivalent in STREAM_UNIFORM:
+            pending = unit.uniform_pending
             pending.extend(words)
-            need = 4 if self.uniform_f32 else 3
+            need = 4 if unit.uniform_f32 else 3
             groups = len(pending) // need
             if groups:
                 chunk = np.array(pending[:groups * need], dtype=np.uint32)
                 del pending[:groups * need]
-                if self.uniform_f32:
+                if unit.uniform_f32:
                     values = chunk.reshape(groups, 4)[:, ::-1].view(np.float32)
                 else:
                     values = unpack_f24_words(chunk, groups)
-                start = self.uniform_index
+                start = unit.uniform_index
                 take = min(groups, 96 - start)
                 if take > 0:
-                    self.shader.uniforms[start:start + take] = values[:take]
-                self.uniform_index += groups
+                    unit.shader.uniforms[start:start + take] = values[:take]
+                unit.uniform_index += groups
             self.regs[reg] = words[-1]
         else:
             pending = self.fixed_pending

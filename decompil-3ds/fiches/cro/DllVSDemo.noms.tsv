@@ -1,0 +1,4 @@
+0x2bbc	function	DllVSDemo_nnroControlObject_
+0x2c68	function	DllVSDemo_OnExit
+0x2c6c	function	DllVSDemo_OnLoad
+0x2c70	function	DllVSDemo_OnUnresolved

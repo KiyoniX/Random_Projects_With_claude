@@ -1,0 +1,12 @@
+[package]
+name = "services"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+kernel = { path = "../kernel" }
+romfs = { path = "../romfs" }
+overlay = { path = "../overlay" }
+cro = { path = "../cro" }
+serde.workspace = true
+serde_json.workspace = true
