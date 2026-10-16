@@ -21,7 +21,7 @@ Elles viennent de [3dbrew](https://www.3dbrew.org/wiki/Services_API), lu par la 
 
 ## Les corrections, et ce que dit le code de la console
 
-Le projet voisin [decompil-3ds](../decompil-3ds/) a lu des modules système (trente-deux le 16 octobre 2026) dans le code dumpé d'une New 3DS, une fiche par module (`../decompil-3ds/fiches/`). Ces lectures ont relevé des écarts avec la Carte. Ils sont traités par `corrections.js`, jamais à la main dans `donnees.js` :
+Le projet voisin [decompil-3ds](../decompil-3ds/) a lu des modules système (quarante et un le 17 octobre 2026) dans le code dumpé d'une New 3DS, une fiche par module (`../decompil-3ds/fiches/`). Ces lectures ont relevé des écarts avec la Carte. Ils sont traités par `corrections.js`, jamais à la main dans `donnees.js` :
 
 ```
 node corrections.js           applique les corrections et récrit donnees.js s'il change

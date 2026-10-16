@@ -33,8 +33,8 @@ const UNNAMED = 'Inconnue';
 const CODE_SOURCE = {
   fiches: '../decompil-3ds/fiches/',
   modules: ['cfg', 'dsp', 'fs', 'gsp', 'hid', 'loader', 'ns', 'pm', 'ptm', 'pxi', 'sm', 'camera', 'mic', 'ir', 'ndm', 'ac', 'errdisp', 'ssl', 'cecd', 'socket', 'http', 'friends', 'nwm', 'boss',
-    'gpio', 'pdn', 'i2c', 'spi', 'mcu', 'codec', 'csnd', 'ps'],
-  note: 'Trente-deux modules système lus dans le code dumpé d\'une New 3DS, une fiche par module. Ce que le code fait sur cette console peut différer de ce que 3dbrew décrit.'
+    'gpio', 'pdn', 'i2c', 'spi', 'mcu', 'codec', 'csnd', 'ps', 'am', 'news', 'act', 'dlp', 'mp', 'nfc', 'mvd', 'nim', 'qtm'],
+  note: 'Quarante et un modules système lus dans le code dumpé d\'une New 3DS, une fiche par module. Ce que le code fait sur cette console peut différer de ce que 3dbrew décrit.'
 };
 const SOURCE_NOTE = ' Corrections du 13 octobre 2026 (corrections.js) : pages relues directement sur 3dbrew, et notes « vu dans le code » tirées des fiches de decompil-3ds.';
 
@@ -634,6 +634,191 @@ CALLS.push(
   { module: 'codec', service: 'ptm:s', note: 'codec demande si la console est une New 3DS et accuse réception de la veille et du réveil ; il ouvre la session sous le nom ptm:s (table de noms à 0x108080).' },
   { module: 'ps', service: 'mcu::PLS', note: 'ps lit l\'heure (commande 1) et le compteur de ticks (commande 9) du microcontrôleur pour alimenter le générateur d\'aléa.' },
   { module: 'csnd', service: 'ptm:s', note: 'csnd accuse réception de la veille à ptm ; il ouvre la session sous le nom ptm:s.' });
+
+/* ------------------------------------------------------------ 9. les fiches des applications et du réseau (le 17 octobre 2026)
+   am, news, act, dlp, mp, nfc, mvd, nim et qtm. Chaque table de commandes a été rejouée par emulate_dispatch.py ; elle est
+   « sûre » quand la Carte la confirme, « interprétée » quand la Carte ne la connaît pas ou que l'aiguillage n'est rattaché à
+   son service que par élimination. Un lien vers un service est « lu dans le code » quand la fiche montre la fonction qui
+   l'ouvre, une référence du code à son nom ou une chaîne propre au module ; un nom qui n'est que dans l'exheader ou dans la
+   liste de noms de la bibliothèque commune (celle qui porte aussi fs:LDR et srv:pm) reste « lu dans l'exheader ». */
+const URL_ACTU = 'https://www.3dbrew.org/wiki/ACT_Services#ACT_service_"act:u"';
+const URL_NFCM = 'https://www.3dbrew.org/wiki/NFC_Services#NFC_management_service_"nfc:m"';
+
+// am.md, lignes 48 à 55 (tables émulées), 25 (am:pipe), 211 (Verify) et 253 (relais vers pxi:am9).
+SERVICE_NOTES.push(
+  { services: ['am:app'], seen: { module: 'am',
+    text: 'Le module accepte les 13 commandes de 3dbrew (aiguillage 0x105008, un fil par session). Elles sont aussi acceptées par am:sys, am:u et am:net, aux mêmes adresses.' } },
+  { services: ['am:sys'], seen: { module: 'am',
+    text: 'Le module accepte 58 commandes, comme la Carte : 0x0001 à 0x002D et les 13 de am:app (aiguillage 0x103DE8).' } },
+  { services: ['am:u'], seen: { module: 'am',
+    text: 'Le module accepte 83 commandes, pas 70 : celles de am:sys (y compris les 13 de am:app, 0x1001 à 0x100D) plus 0x0401 à 0x0419 (aiguillage 0x105540). 3dbrew écrit que seul am:sys a accès aux commandes de am:app ; le code les accepte aussi ici.' } },
+  { services: ['am:net'], seen: { module: 'am',
+    text: 'Le module accepte 124 commandes, pas 111 : celles de am:u (y compris les 13 de am:app, 0x1001 à 0x100D) plus 0x0801 à 0x0829 (aiguillage 0x10AA54).' } },
+  { services: ['am:pipe'], seen: { module: 'am',
+    text: 'Le port existe mais n\'est pas enregistré sous ce nom : am le crée par CreatePort sans nom (svc 0x47, 0x110F18), conforme à 3dbrew (« la chaîne am:pipe n\'est pas utilisée »). Ses commandes ne sont pas lues.' } },
+  { services: ['pxi:am9'], seen: { module: 'am',
+    text: 'am relaie presque toutes ses commandes à pxi:am9 : 88 commandes distinctes fabriquées par ses gestionnaires, dont 38 ont leur en-tête entier vérifié par l\'aiguillage de Process9 ; aucune ne diverge.' } });
+HEADER_NOTES.push({ service: 'am:net', h3dbrew: '0x08170146', seen: { module: 'am',
+  text: 'Commande non implémentée : le gestionnaire (0x103C10) tient en deux instructions et rend 0xF8C083F4. 3dbrew ne le signale pas.' } });
+
+// news.md, lignes 15, 38 à 40, 57, 58 et 80 ; 82 et 93 pour la diode.
+SERVICE_NOTES.push(
+  { services: ['news:u'], seen: { module: 'news',
+    text: 'Le module accepte 1 commande, sur 1 session au plus (table 0x10A4F4). L\'en-tête 0x000100C8 porte le numéro de processus de l\'appelant, que news change en identifiant de titre ; news:s reçoit l\'identité dans la requête (0x000100C6).' } },
+  { services: ['news:s'], seen: { module: 'news',
+    text: 'Le module accepte 20 commandes, 0x0001 à 0x0014, sur 2 sessions au plus ; les 18 que 3dbrew nomme ont exactement ces en-têtes quand le code les vérifie (aiguillage 0x1079D0).' } });
+for (const id of ['0x0002', '0x0003']) {
+  PARTIAL_NOTES.push({ services: ['news:s'], id, seen: { module: 'news',
+    text: 'Le code ne regarde que le numéro, ne lit aucun paramètre et répond ' + id + '0040 avec un résultat nul (cas écrit dans l\'aiguillage 0x1079D0) : conforme à 3dbrew.' } });
+}
+CALL_NOTES.push({ module: 'news', service: 'ptm:sysm', seen: { module: 'news',
+  text: 'Confirmé : news envoie SetInfoLEDPattern à ptm:sysm (0x104E48), pour news:s 0x000E et à la fin d\'AddNotification ; ptm:sysm est dans son exheader.' } });
+
+// act.md, lignes 15, 26, 39 à 42, 61, 82 à 85, 182 et 183. 3dbrew, relu le 17 octobre 2026, a depuis ajouté 0x20 à 0x22
+// avec les mêmes en-têtes et donne 0x000A0000 SetIsApplicationUpdateRequired ; la Carte a été tirée d'une version plus ancienne.
+for (const service of ['act:u', 'act:a']) {
+  HEADER_NOTES.push({ service, h3dbrew: '0x001F0082', seen: { module: 'act', h: '0x001F0042',
+    text: 'L\'aiguillage n\'accepte que 0x001F0042 (un mot ordinaire, un descripteur) et répond 0x001F0040 (act_cmd_001F_AcquireEulaLanguageList, 0x10FEE4). 3dbrew, relu le 17 octobre 2026, donne toujours 0x001F0082.' } });
+  PARTIAL_NOTES.push({ services: [service], id: '0x000A', seen: { module: 'act',
+    text: 'Le code ne regarde que le numéro et répond 0x000A0040 (act_cmd_000A_Unknown, 0x110FE8). 3dbrew, relu le 17 octobre 2026, la donne avec l\'en-tête 0x000A0000 sous le nom SetIsApplicationUpdateRequired.' } });
+  for (const [h, name, reply, fn] of [['0x00200382', 'AcquireIndependentServiceTokenV2', '0x00200040', 'act_cmd_0020_Unknown, 0x10FDC0'],
+    ['0x00210002', 'GetIndepdendentServiceTokenV2', '0x00210042', 'act_cmd_0021_Unknown, 0x10FD6C'],
+    ['0x00220342', 'GetCachedIndependentServiceTokenV2', '0x00220042', 'act_cmd_0022_Unknown, 0x10FC68']]) {
+    COMPLETED_HEADERS.push({ service, id: h.slice(0, 6), h, n: name, add: true, url: URL_ACTU, seen: { module: 'act',
+      text: 'Absente de la Carte, qui s\'arrête à 0x001F. Le module l\'accepte avec l\'en-tête entier ' + h + ' et répond ' + reply + ' (' + fn + ') ; ce qu\'elle fait n\'est pas lu. 3dbrew, relu le 17 octobre 2026, la donne avec le même en-tête et ce nom.' } });
+  }
+}
+SERVICE_NOTES.push(
+  { services: ['act:u'], seen: { module: 'act',
+    text: 'Le module accepte 34 commandes, 0x0001 à 0x0022 (aiguillage 0x10A898), sur 3 sessions au plus, et 6 sessions en tout pour act:u et act:a.' } },
+  { services: ['act:a'], seen: { module: 'act',
+    text: 'Le module accepte 87 commandes : les 34 de act:u, aux mêmes adresses, plus 0x0401 à 0x0435 (aiguillage 0x10B20C) ; 3 sessions au plus.' } });
+
+// dlp.md, lignes 15, 16, 42, 44, 100, 115, 116 et 121.
+SERVICE_NOTES.push(
+  { services: ['dlp:CLNT'], seen: { module: 'dlp',
+    text: 'Le module accepte les 20 commandes de 3dbrew, sur 1 session au plus, servie par son propre fil (aiguillage 0x10B8E0). Les commandes de recherche (GetEventDesc, StartScan, GetServerInfo...) ont les mêmes gestionnaires que celles de dlp:FKCL.' } },
+  { services: ['dlp:SRVR'], seen: { module: 'dlp',
+    text: 'Le module accepte les 16 commandes de 3dbrew, sur 1 session au plus (aiguillage 0x10BC6C).' } },
+  { services: ['dlp:FKCL'], seen: { module: 'dlp',
+    text: 'Le module accepte les 17 commandes de 3dbrew, sur 1 session au plus (aiguillage 0x10C058).' } });
+HEADER_NOTES.push(
+  { service: 'dlp:FKCL', h3dbrew: '0x00100000', seen: { module: 'dlp',
+    text: 'Confirmé : même gestionnaire que StopSession de dlp:CLNT (0x107F18), réponse 0x00100040.' } },
+  { service: 'dlp:FKCL', h3dbrew: '0x00110203', seen: { module: 'dlp',
+    text: 'Le cas de l\'aiguillage appelle la même fonction qu\'Initialize (0x1078AC) : lu dans le pseudo-code, l\'émulation refusant la requête (interprété).' } },
+  { service: 'dlp:SRVR', h3dbrew: '0x000F0303', seen: { module: 'dlp',
+    text: 'Le cas de l\'aiguillage appelle la même fonction qu\'Initialize (0x104F5C) ; l\'en-tête seul les distingue. Lu dans le pseudo-code, l\'émulation refusant la requête (interprété).' } });
+
+// mp.md, lignes 15, 36 et 70 à 72.
+SERVICE_NOTES.push({ services: ['mp:u'], seen: { module: 'mp',
+  text: 'Le module accepte les 20 commandes de 3dbrew, sur 1 session au plus (aiguillage ARM 0x11D1DC). Bind refuse un nœud au-delà de 15, RecvDataFrame rend une trame d\'au plus 700 octets, SetBeaconData et SetAppData refusent plus de 0x70 octets.' } });
+
+// nfc.md, lignes 15, 41 à 48, 284 à 304, 309 à 312 et 347 à 352. 3dbrew, relu le 17 octobre 2026, n'a aucune des
+// commandes 0x0409 à 0x040B ni 0x0410 à 0x0415, et dit « une seule session pour tous ces services ensemble ».
+for (const [h, reply, fn] of [['0x04090042', '0x04090040', 'nfc_m_cmd_0409_Unknown, 0x124BF4'], ['0x040A0042', '0x040A03C0', 'nfc_m_cmd_040A_Unknown, 0x124CE4'],
+  ['0x040B00C2', '0x040B0042', 'nfc_m_cmd_040B_Unknown, 0x124C9C'], ['0x04120042', '0x04120040', 'nfc_m_cmd_0412_Unknown, 0x124D9C'],
+  ['0x04140042', '0x04140040', 'nfc_m_cmd_0414_Unknown, 0x124C44']]) {
+  COMPLETED_HEADERS.push({ service: 'nfc:m', id: h.slice(0, 6), h, n: UNNAMED, add: true, url: URL_NFCM, seen: { module: 'nfc',
+    text: 'Absente de 3dbrew. Le module l\'accepte avec l\'en-tête entier ' + h + ' et répond ' + reply + ' (' + fn + ') ; ce qu\'elle fait n\'est pas lu.' } });
+}
+SERVICE_NOTES.push(
+  { services: ['nfc:u'], seen: { module: 'nfc',
+    text: 'Le module accepte 34 commandes, 0x0001 à 0x0022 (aiguillage 0x12954C), sur 1 session au plus : la Carte n\'a pas 0x000E, que le code accepte par le numéro seul et à laquelle il répond 0x000E0080 (0x1139D8 ; 3dbrew ne la donne que dans sa table d\'avant 9.3.0, 0x000E0000, sans nom). Initialize prend un mode 1, 2 ou 3 et refuse les autres.' } },
+  { services: ['nfc:m'], seen: { module: 'nfc',
+    text: 'Le module accepte 55 commandes (aiguillage 0x12A468), sur 1 session au plus : les 34 de nfc:u aux mêmes adresses, plus 0x0401 à 0x0415. 3dbrew n\'a ni 0x000E ni 0x0409 à 0x040B ni 0x0410 à 0x0415 ; 0x0410, 0x0411, 0x0413 et 0x0415 sont acceptées par le numéro seul (réponses 0x04100040, 0x04110042, 0x04130040, 0x04150040).' } },
+  { services: ['nfc:p'], seen: { module: 'nfc',
+    text: 'Le module accepte les 19 commandes de 3dbrew, sur 1 session au plus (aiguillage 0x12C1EC).' } },
+  { services: ['nfc:s'], seen: { module: 'nfc',
+    text: 'Le code a un aiguillage de 69 commandes, 0x0001 à 0x0045 sans trou (0x12AE00), quand 3dbrew en donne 3 ; 1 session au plus. Interprété : cet aiguillage est rattaché à nfc:s par son rang dans la table des services, la Carte ne pouvant pas le confirmer.' } },
+  { services: ['nfc:r'], seen: { module: 'nfc',
+    text: 'Le code a un aiguillage de 26 commandes, 0x0001 à 0x001A (0x129EA0), quand 3dbrew n\'en donne aucune ; 1 session au plus. Interprété : cet aiguillage est rattaché à nfc:r par son rang dans la table des services.' } },
+  { services: ['nfc:dev'], seen: { module: 'nfc',
+    text: 'Le code a un aiguillage de 19 commandes, 0x0001 à 0x0013 (0x129AF4), dont ReadRawPages (0x11) et WriteRawPage (0x12) ; 3dbrew n\'en donne que ces deux. 1 session au plus. Interprété : rattaché à nfc:dev par son rang dans la table des services.' } });
+
+// mvd.md, lignes 15, 16, 26 et 39 à 43.
+SERVICE_NOTES.push(
+  { services: ['mvd:STD'], seen: { module: 'mvd',
+    text: 'Le module accepte les 33 commandes de 3dbrew (aiguillage 0x1124E8), sur 1 session au plus, et 4 sessions en tout pour ses quatre services. Il n\'appelle aucun service : son exheader n\'en déclare aucun.' } },
+  { services: ['y2r2:u'], seen: { module: 'mvd',
+    text: 'Le module accepte les 45 commandes de 3dbrew (aiguillage 0x11328C), sur 1 session au plus. Ce convertisseur est servi par mvd, pas par camera.' } },
+  ...['l2b:u', 'l2b2:u'].map(id => ({ services: [id], seen: { module: 'mvd',
+    text: 'Le module accepte les 23 commandes de 3dbrew, sur 1 session au plus. l2b:u et l2b2:u partagent le même aiguillage (0x111E64, table 0x11A04C) : ce qui les distingue n\'est pas dans le code de l\'aiguillage.' } })));
+
+// nim.md, lignes 27 à 36, 100, 145, 265 et 269 ; le nombre de sessions n'est pas lu (ligne 275).
+SERVICE_NOTES.push(
+  { services: ['nim:u'], seen: { module: 'nim',
+    text: 'Le module accepte les 46 commandes de 3dbrew (aiguillage 0x107F78), avec les 12 en-têtes entiers qu\'il vérifie identiques ; un fil par session.' } },
+  { services: ['nim:ndm'], seen: { module: 'nim',
+    text: 'Le module accepte les 5 commandes de 3dbrew (aiguillage 0x105470), celles que ndm envoie ; les cinq gestionnaires se suivent de 0x10BFF8 à 0x10C038.' } },
+  { services: ['nim:s'], seen: { module: 'nim',
+    text: 'Le code a un aiguillage de 94 commandes, 0x0001 à 0x005F sauf 0x0004 (0x10557C), quand 3dbrew en donne 36 (et deux incomplètes). Interprété : rattaché à nim:s parce qu\'il retrouve ses 36 numéros, mais seulement 20 de ses en-têtes sur 52 comparés.' } },
+  { services: ['nim:aoc'], seen: { module: 'nim',
+    text: 'Le code a un aiguillage de 38 commandes, 0x0001 à 0x0026 (0x1039C4), quand 3dbrew en donne 8. Interprété : rattaché à nim:aoc par élimination (4 en-têtes égaux sur 27 comparés).' } });
+
+// qtm.md, lignes 15, 16, 27 à 29 et 39 à 46.
+SERVICE_NOTES.push(
+  { services: ['qtm:u'], seen: { module: 'qtm',
+    text: 'Le module accepte les 6 commandes de 3dbrew, sur 3 sessions au plus ; seul le numéro compte dans l\'en-tête. qtm:s et qtm:sp ont ces 6 commandes aux mêmes adresses. Interprété : l\'aiguillage 0x103464 est rattaché à qtm:u par son nombre de commandes.' } },
+  { services: ['qtm:s'], seen: { module: 'qtm',
+    text: 'Le module accepte les 16 commandes de 3dbrew, sur 3 sessions au plus ; seul le numéro compte dans l\'en-tête. Interprété : l\'aiguillage 0x1035C4 est rattaché à qtm:s par son nombre de commandes.' } },
+  { services: ['qtm:sp'], seen: { module: 'qtm',
+    text: 'Le module accepte les 20 commandes de 3dbrew : celles de qtm:s aux mêmes adresses, plus 0x0801 à 0x0804 ; 3 sessions au plus ; seul le numéro compte dans l\'en-tête. Interprété : l\'aiguillage 0x1039F8 est rattaché à qtm:sp par son nombre de commandes.' } },
+  { services: ['qtm:c'], seen: { module: 'qtm',
+    text: 'Le module accepte les 5 commandes de 3dbrew, sur 3 sessions au plus ; seul le numéro compte dans l\'en-tête. Interprété : l\'aiguillage 0x103918 est rattaché à qtm:c par son nombre de commandes.' } });
+
+// Services appelés : la ligne « Services appelés » de chaque fiche (am.md 16, news.md 16, act.md 16, dlp.md 16, mp.md 16,
+// nfc.md 16, nim.md 16, qtm.md 16). Les liens que la Carte a déjà par 3dbrew ne sont pas repris.
+CALLS.push(
+  { module: 'am', service: 'pxi:am9', note: 'am relaie presque toutes ses commandes à Process9 par pxi:am9, qu\'il ouvre au démarrage (am_connect_pxi_am9, 0x100534).' },
+  { module: 'am', service: 'fs:USER', note: 'am ouvre fs:USER au démarrage (0x1005D8) ; ce qu\'il y lit n\'est pas suivi.' },
+  { module: 'news', service: 'boss:P', note: 'news ouvre boss:P (chaîne à 0x102CFC) ; ce qu\'il lui demande n\'est pas suivi.' },
+  { module: 'news', service: 'cecd:s', note: 'news ouvre cecd:s (chaîne à 0x102764) ; ce qu\'il lui demande n\'est pas suivi.' },
+  { module: 'news', service: 'ndm:u', note: 'news ouvre ndm:u (chaîne à 0x104E04) ; ce qu\'il lui demande n\'est pas suivi.' },
+  { module: 'news', service: 'nim:u', note: 'news ouvre nim:u (chaîne à 0x101304) ; ce qu\'il lui demande n\'est pas suivi.' },
+  { module: 'news', service: 'fs:USER', note: 'news tient sa base de notifications dans l\'archive data: (chaîne fs:USER à 0x1058A0).' },
+  { module: 'news', service: 'frd:u', text: EXHEADER_TEXT, note: 'news déclare frd:u dans son exheader ; le nom n\'est écrit nulle part dans le code.' },
+  { module: 'act', service: 'am:net', note: 'act ouvre am:net (le code renvoie au nom à 0x101C6C) ; ce qu\'il lui demande n\'est pas suivi.' },
+  { module: 'act', service: 'fs:USER', note: 'act tient ses comptes dans l\'archive data: (le code renvoie au nom fs:USER à 0x101280).' },
+  { module: 'act', service: 'http:C', note: 'act parle au serveur de comptes par http:C (le code renvoie au nom à 0x101B10 et 0x121D0C).' },
+  { module: 'act', service: 'cfg:s', text: EXHEADER_TEXT, note: 'act déclare cfg:s dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' },
+  { module: 'act', service: 'frd:u', text: EXHEADER_TEXT, note: 'act déclare frd:u dans son exheader ; le nom n\'est écrit nulle part dans le code.' },
+  { module: 'dlp', service: 'ps:ps', note: 'dlp ouvre ps:ps (chaîne à 0x11202A) ; ce qu\'il lui demande n\'est pas suivi.' },
+  { module: 'dlp', service: 'nwm::UDS', text: EXHEADER_TEXT, note: 'dlp déclare nwm::UDS dans son exheader ; le nom est dans la liste de noms du module (0x1121CE), ses appels ne sont pas suivis.' },
+  { module: 'dlp', service: 'am:u', text: EXHEADER_TEXT, note: 'dlp déclare am:u dans son exheader, pour installer le jeu reçu ; ses appels ne sont pas suivis.' },
+  { module: 'dlp', service: 'fs:USER', text: EXHEADER_TEXT, note: 'dlp déclare fs:USER dans son exheader ; le nom est dans la liste de noms du module (0x112187).' },
+  { module: 'dlp', service: 'cfg:u', text: EXHEADER_TEXT, note: 'dlp déclare cfg:u dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' },
+  { module: 'dlp', service: 'ptm:s', text: EXHEADER_TEXT, note: 'dlp déclare ptm:s dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' },
+  { module: 'mp', service: 'nwm::EXT', note: 'mp ouvre nwm::EXT (chaîne à 0x120070), pour l\'accès à la puce Wi-Fi (interprété).' },
+  { module: 'mp', service: 'cfg:nor', text: EXHEADER_TEXT, note: 'mp déclare cfg:nor dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' },
+  { module: 'mp', service: 'ptm:s', text: EXHEADER_TEXT, note: 'mp déclare ptm:s dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' },
+  { module: 'nfc', service: 'ps:ps', note: 'nfc ouvre ps:ps (chaîne à 0x135560) ; ce qu\'il lui demande n\'est pas suivi.' },
+  { module: 'nfc', service: 'nwm::EXT', text: EXHEADER_TEXT, note: 'nfc déclare nwm::EXT dans son exheader ; le nom est à 0x1360F0, près de la liste de la bibliothèque commune.' },
+  { module: 'nfc', service: 'fs:USER', text: EXHEADER_TEXT, note: 'nfc déclare fs:USER dans son exheader, pour sa sauvegarde nfp_backup.dat ; ses appels ne sont pas suivis.' },
+  { module: 'nfc', service: 'cfg:s', text: EXHEADER_TEXT, note: 'nfc déclare cfg:s dans son exheader ; ce qu\'il lui demande n\'est pas lu.' },
+  { module: 'nfc', service: 'ptm:s', text: EXHEADER_TEXT, note: 'nfc déclare ptm:s dans son exheader ; ce qu\'il lui demande n\'est pas lu.' },
+  { module: 'nim', service: 'am:net', note: 'nim ouvre am:net (chaîne à 0x151912) pour installer ce qu\'il télécharge ; ses appels ne sont pas suivis.' },
+  { module: 'nim', service: 'fs:USER', note: 'nim tient sa base nimdb: (chaîne fs:USER à 0x1519CF).' },
+  { module: 'nim', service: 'ac:u', text: EXHEADER_TEXT, note: 'nim déclare ac:u dans son exheader ; ce qu\'il lui demande n\'est pas lu.' },
+  { module: 'nim', service: 'ptm:s', text: EXHEADER_TEXT, note: 'nim déclare ptm:s dans son exheader ; ce qu\'il lui demande n\'est pas lu.' },
+  { module: 'nim', service: 'ptm:gets', text: EXHEADER_TEXT, note: 'nim déclare ptm:gets dans son exheader ; ce qu\'il lui demande n\'est pas lu.' },
+  { module: 'qtm', service: 'cam:q', note: 'qtm ouvre cam:q (chaîne à 0x125064) pour la caméra intérieure ; ses appels ne sont pas suivis.' },
+  { module: 'qtm', service: 'gpio:QTM', note: 'qtm ouvre gpio:QTM (chaîne dans la zone 0x125064) ; ses appels ne sont pas suivis.' },
+  { module: 'qtm', service: 'hid:QTM', text: EXHEADER_TEXT, note: 'qtm déclare hid:QTM dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' },
+  { module: 'qtm', service: 'cfg:s', text: EXHEADER_TEXT, note: 'qtm déclare cfg:s dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' },
+  { module: 'qtm', service: 'ptm:s', text: EXHEADER_TEXT, note: 'qtm déclare ptm:s dans son exheader ; le nom n\'est que dans la liste de la bibliothèque commune.' });
+// Liens de 3dbrew que l'exheader confirme ou contredit (nfc.md ligne 16 ; qtm.md ligne 16).
+CALL_NOTES.push(
+  { module: 'nfc', service: 'ir:USER', seen: { module: 'nfc',
+    text: 'Le nfc lu est celui de la New 3DS (0004013020004002) : son exheader ne déclare pas ir:USER. Le lecteur NFC de l\'ancienne 3DS n\'est pas lu.' } },
+  { module: 'nfc', service: 'i2c::NFC', seen: { module: 'nfc',
+    text: 'Confirmé par l\'exheader de nfc ; la chaîne i2c::NFC est à 0x135000 dans le code.' } },
+  { module: 'nfc', service: 'gpio:NFC', seen: { module: 'nfc',
+    text: 'Confirmé par l\'exheader de nfc ; la chaîne gpio:NFC est à 0x135009 dans le code.' } },
+  { module: 'nfc', service: 'hid:NFC', seen: { module: 'nfc',
+    text: 'Confirmé par l\'exheader de nfc ; ses appels ne sont pas suivis.' } },
+  { module: 'qtm', service: 'i2c::QTM', seen: { module: 'qtm',
+    text: 'Confirmé par l\'exheader de qtm ; la chaîne i2c::QTM est dans la zone 0x125064 du code.' } });
 
 /* ============================================================ application */
 const same =(a, b) => JSON.stringify(a) === JSON.stringify(b);

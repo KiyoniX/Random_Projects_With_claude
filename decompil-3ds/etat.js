@@ -4,7 +4,7 @@ window.ETAT = {
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
  "mise_a_jour": "2026-10-17",
- "prochaine_action": "Le jeu tourne en direct dans la fenêtre du portage Rust (portage play) jusqu'au terrain, en temps réel. Ensuite : les correctifs de la relecture de l'étape 5 (local/analyse/plan-fenetre-directe.md : erreurs des transferts, zones non mappées, images gardées par destination), le cache des pipelines sur disque, finir le cycle des trous (.cro : les ldr lr littéraux), puis les écarts des dernières fiches dans la Carte, nim, le son et les applets.",
+ "prochaine_action": "Pousser le jeu plus loin par le cycle des trous sur des scénarios plus longs (combat, menus, changements de ville), puis l'écran tactile, le son (dsp_aac), et les applets. Écarts ouverts de la Carte : act sur 3dbrew à réextraire, act 0x1F, sessions de nfc.",
  "fonctions": {
   "total": 23883,
   "identifiees": 23883,
@@ -404,7 +404,7 @@ window.ETAT = {
     },
     {
      "t": "Reporter dans la Carte des services les écarts des neuf dernières fiches (appelle, appelants, commandes de nfc, nim, act, news, am)",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Relancer emulate_dispatch.py avec --helper sur nfc, nim et mvd (aiguillages peut-être sous-évalués)",
@@ -788,6 +788,10 @@ window.ETAT = {
   {
    "date": "2026-10-17",
    "texte": "Reprise sur le PC fixe et le jeu en direct dans une fenêtre. local/ remonté depuis les zips (19 966 fichiers vérifiés), Ghidra 12.1.4, JDK 21, ctrtool, makerom, WSL Ubuntu avec REA 6.5.0 et /opt/ghidra réinstallés ; REFERENCES.md recense les projets voisins (3dsrecomp, PokeXYZ-RDComp : même SHA-256 de code.bin v1.5). Le runtime Rust pilote pica en direct (gsp::GpuBackend, mémoire du noyau partagée sans copie) : runtime run --dessiner donne les images du banc (bas identiques, haut à 0,12/255 près, le biais d'arrondi déjà vu au rejeu), et portage play affiche le jeu en temps réel (30 images/s, clavier vers hid), image de la fenêtre identique octet pour octet aux PNG. recomp.py trouve les prologues que Ghidra manque (« str lr, [sp, #-4]! » de l'assembleur écrit à la main, entrées « mov r5 ; mov r6 ; push » des décodeurs de bits) : 26 183 fonctions ; et reprend une adresse de retour posée par une autre fonction (ldr lr littéral, 0x122f04 -> 0x132d50, la sortie des fils). Avec --appuis 14:START,16:A,18:A, le runtime Rust va sans faute jusqu'à 60 s et au terrain (palais Chaydeuvre), 30 s de jeu en 30,1 s de PC dessin compris ; journal identique au banc natif sur 20 s (56 014 lignes)."
+  },
+  {
+   "date": "2026-10-17",
+   "texte": "Le portage natif joue : avec un scénario de 180 s (Start, Continuer, marcher vers le palais, A, ressortir), le runtime Rust va sans faute du menu au palais Chaydeuvre, entre dans la salle de la statue (dialogue, PNJ) et ressort, en 91 s de PC dessin compris. Un tour du cycle des trous (banc hybride sur le même scénario : 57 adresses, dont 0x3bf924 qu'un .cro appelle par un pointeur que l'analyse statique ne voit pas) : 26 241 fonctions. Carte des services : les écarts des neuf dernières fiches (am, news, act, dlp, mp, nfc, mvd, nim, qtm) sont reportés, 145 corrections, 11 commandes ajoutées ; fiche news corrigée."
   }
  ],
  "dump": {

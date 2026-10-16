@@ -77,7 +77,7 @@ Les noms et les en-têtes de requête sont ceux de la Carte (3dbrew). « Vérifi
 
 Notes :
 
-- **`news:s` 0x2 et 0x3 ne sont pas dans la Carte.** Le code les accepte (numéro seul), sans lire de paramètre ni appeler de fonction : le cas répond directement succès (résultat 0, réponses `0x00020040` et `0x00030040`). Ce sont des commandes vides. La Carte compte 18 commandes pour `news:s`, le code 20.
+- **`news:s` 0x2 et 0x3 sont des commandes vides.** Le code les accepte (numéro seul), sans lire de paramètre ni appeler de fonction : le cas répond directement succès (résultat 0, réponses `0x00020040` et `0x00030040`). La Carte les avait déjà, en en-têtes incomplets avec la note de 3dbrew « Stubbed, only returns 0 » : le code confirme 3dbrew. (Corrigé le 17/10 : la première version de cette fiche les disait absentes de la Carte.)
 - `news:u` AddNotification a un en-tête différent de celui de `news:s` : `0x000100C8` contre `0x000100C6`. D'après l'émulation, la version pour les jeux contient un descripteur de numéro de processus (rempli par le noyau) : le service des jeux **prend l'identité de l'appelant par son numéro de processus**, celui du menu la reçoit dans la requête.
 - Les gestionnaires sont de fines enveloppes : chacun prend l'objet global de la base (`0x105298`, un singleton) et appelle une méthode. `SetInfoLEDPattern` (0xE) ne touche pas à la base : elle appelle la fonction qui envoie la commande à `ptm:sysm` (`0x104E48`, qui sert aussi à la fin d'AddNotification avec le motif 2).
 
@@ -111,7 +111,7 @@ Rien : le jeu n'ouvre ni `news:u` ni `news:s`. Pour le portage PC, `news` n'a ri
 ## Ce qui est sûr, interprété, pas lu
 
 **Sûr** (deux voies indépendantes) :
-- Les deux tables de commandes : 1 pour `news:u`, 20 pour `news:s`. Voie 1 : l'émulation des deux aiguillages. Voie 2 : la Carte des services (3dbrew) : mêmes numéros et mêmes en-têtes pour les 19 commandes qu'elle nomme ; 0x2 et 0x3 sont dans le code mais pas dans la Carte, et le pseudo-code de l'aiguillage confirme qu'ils répondent succès sans rien faire.
+- Les deux tables de commandes : 1 pour `news:u`, 20 pour `news:s`. Voie 1 : l'émulation des deux aiguillages. Voie 2 : la Carte des services (3dbrew) : mêmes numéros et mêmes en-têtes pour les 19 commandes qu'elle nomme ; 0x2 et 0x3 y sont en en-têtes incomplets (« Stubbed »), et le pseudo-code de l'aiguillage confirme qu'ils répondent succès sans rien faire.
 - Les noms des deux services et leurs nombres de sessions (1 et 2) : table `0x10A4F4` et appel de `news_srv_register_service`.
 - Les noms de fichiers de la base, lus dans les chaînes du module.
 
