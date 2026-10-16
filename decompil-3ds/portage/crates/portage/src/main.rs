@@ -18,7 +18,7 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use capture::Capture;
-use pica::images::{diff, save_png};
+use pica::images::{diff, save_png, Diff};
 use pica::{Pica, ScreenImage};
 
 fn usage() -> ! {
@@ -98,7 +98,7 @@ pub fn replay(capture: &Capture, scale: u32) -> Result<Replayed, String> {
     let start = Instant::now();
     let mut images = Vec::new();
     for command in &capture.commands {
-        if let Some(image) = pica.run_command(command) {
+        if let Ok(Some(image)) = pica.run_command(command) {
             images.push(image);
         }
     }
@@ -165,14 +165,26 @@ fn png_names(dir: &Path) -> Result<Vec<String>, String> {
     Ok(names)
 }
 
-/// Compare image par image deux dossiers de PNG de mêmes noms : écart moyen et maximal de chacune, puis le pire.
+/// Compare une image RGBA à sa référence et affiche la ligne du résultat ; `None` (et une ligne) si les tailles diffèrent.
+fn report_diff(name: &str, rgba: &[u8], width: usize, height: usize, reference: &image::RgbImage) -> Option<Diff> {
+    if (reference.width() as usize, reference.height() as usize) != (width, height) {
+        println!("  {name} : tailles différentes ({width}x{height} contre {}x{})", reference.width(), reference.height());
+        return None;
+    }
+    let d = diff(rgba, reference.as_raw(), 3, width, height);
+    println!("  {name} : écart moyen {:.3}/255, {:.2} % des points diffèrent, {:.2} % de plus de 8, écart maximal {}",
+        d.mean_abs, d.differing, d.big, d.max);
+    Some(d)
+}
+
+/// Compare image par image deux dossiers de PNG de mêmes noms, puis donne les pires chiffres.
 fn cmd_compare_images(o: Options) -> Result<(), String> {
     if o.positional.len() < 2 {
         usage();
     }
     let (reference, dir) = (Path::new(&o.positional[0]), Path::new(&o.positional[1]));
     let (names, others) = (png_names(reference)?, png_names(dir)?);
-    let (mut compared, mut worst_mean, mut worst_max) = (0usize, 0f64, 0u8);
+    let (mut compared, mut worst_mean, mut worst_big, mut worst_max) = (0usize, 0f64, 0f64, 0u8);
     for name in &names {
         let Ok(image) = image::open(dir.join(name)) else {
             println!("  {name} : absente de {}", dir.display());
@@ -180,19 +192,14 @@ fn cmd_compare_images(o: Options) -> Result<(), String> {
         };
         let image = image.to_rgba8();
         let expected = image::open(reference.join(name)).map_err(|e| format!("{name} : {e}"))?.to_rgb8();
-        if image.dimensions() != expected.dimensions() {
-            println!("  {name} : tailles différentes ({:?} contre {:?})", image.dimensions(), expected.dimensions());
-            continue;
-        }
-        let (w, h) = image.dimensions();
-        let d = diff(image.as_raw(), expected.as_raw(), 3, w as usize, h as usize);
-        println!("  {name} : écart moyen {:.3}/255, écart maximal {}, {:.2} % des points diffèrent", d.mean_abs, d.max, d.differing);
+        let Some(d) = report_diff(name, image.as_raw(), image.width() as usize, image.height() as usize, &expected) else { continue };
         compared += 1;
         worst_mean = worst_mean.max(d.mean_abs);
+        worst_big = worst_big.max(d.big);
         worst_max = worst_max.max(d.max);
     }
     let extra = others.iter().filter(|n| !names.contains(n)).count();
-    println!("{compared} image(s) comparée(s) sur {} de référence ({extra} en plus dans {}) ; pire écart moyen {worst_mean:.3}/255, écart maximal {worst_max}",
+    println!("{compared} image(s) comparée(s) sur {} de référence ({extra} en plus dans {}) ; pire écart moyen {worst_mean:.3}/255, pire part de plus de 8 {worst_big:.2} %, écart maximal {worst_max}",
         names.len(), dir.display());
     Ok(())
 }
@@ -213,22 +220,9 @@ fn cmd_compare(o: Options) -> Result<(), String> {
             println!("  {} : pas de référence ({})", name(image), file.display());
             continue;
         };
-        let reference_image = reference_image.to_rgb8();
-        if reference_image.width() as usize != image.width || reference_image.height() as usize != image.height {
-            println!("  {} : tailles différentes", name(image));
-            continue;
-        }
+        let Some(d) = report_diff(&name(image), &image.rgba, image.width, image.height, &reference_image.to_rgb8()) else { continue };
         save_png(&out.join(name(image)), image.width, image.height, &image.rgba)?;
-        let d = diff(&image.rgba, reference_image.as_raw(), 3, image.width, image.height);
         save_png(&out.join(name(image).replace(".png", "-diff.png")), image.width, image.height, &d.image)?;
-        println!(
-            "  {} : écart moyen {:.3}/255, {:.2} % des points diffèrent, {:.2} % de plus de 8, écart maximal {}",
-            name(image),
-            d.mean_abs,
-            d.differing,
-            d.big,
-            d.max
-        );
     }
     for (note, n) in &r.notes {
         println!("  note : {note} ({n})");
@@ -258,7 +252,7 @@ fn cmd_bench(o: Options) -> Result<(), String> {
         *frames = 0;
         for command in &capture.commands {
             let top = command.kind() == 3 && (command.words[4] >> 16) == 400;
-            if pica.run_command(command).is_some() {
+            if matches!(pica.run_command(command), Ok(Some(_))) {
                 *transfers += 1;
                 *frames += top as usize;
             }
@@ -282,7 +276,7 @@ fn cmd_bench(o: Options) -> Result<(), String> {
         let start = Instant::now();
         for command in &capture.commands {
             let t = Instant::now();
-            pica.run_command(command);
+            let _ = pica.run_command(command);
             *by_kind.entry(command.kind()).or_insert(0.0) += t.elapsed().as_secs_f64();
         }
         let t = Instant::now();

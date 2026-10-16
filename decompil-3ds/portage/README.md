@@ -207,6 +207,21 @@ PRÉFIXE` écrit `PRÉFIXEhaut.png` et `PRÉFIXEbas.png`, ce que présente la fe
 l'heure T du jeu ou après, l'instant où le banc `--dessiner` prend les siennes : avec le nom d'une image du banc pour
 préfixe, `compare-images` les met face à face.
 
+`compare-images` (comme `compare`) donne pour chaque image l'écart moyen, la part des points qui diffèrent, la part de
+ceux qui diffèrent de plus de 8 et l'écart maximal, puis les pires de chaque. Entre le banc et pica, deux écarts sont
+attendus : des points isolés sur les arêtes des triangles (le GPU et numpy ne rastérisent pas exactement les mêmes
+points de bord : écart maximal fort, part de plus de 8 infime) et un biais d'arrondi des couleurs du rendu, petit et
+réparti partout (même signature que le rejeu de la capture np-12 : 0,081/255 en moyenne). Ce qui sort de ces deux
+cas est à regarder.
+
+`PORTAGE_FINISH_EACH=1` (avec `--dessiner` ou `play`) rend à la mémoire tout ce que pica garde sur le GPU après chaque
+commande de gsp : le journal et les images doivent rester ceux de la mémoire paresseuse (vérifié sur 60 s avec
+`--appuis "14:START,16:A,18:A"` : 171 852 lignes et 120 images identiques ; le dessin prend 39 s au lieu de 15).
+
+Les pipelines du pilote sont gardés d'une partie à l'autre dans `local/portage/cache/` (`wgpu::PipelineCache`, un
+fichier par GPU et pilote, réécrit à la fin du rendu) : sur 20 s jusqu'au terrain, les 67 pipelines se créent en 0,13 s
+au lieu de 0,31 s ; au démarrage de `play` (12 pipelines), 21 ms au lieu de 64.
+
 | Touche | Bouton | Touche | Bouton |
 | --- | --- | --- | --- |
 | X | A | Entrée | START |
@@ -226,14 +241,18 @@ Sur 12 s, avec ou sans `--dessiner`, les journaux sont identiques à ceux du ban
 `gsp::GpuBackend` est branché sur `pica::Pica::live`, projeté sans copie sur le tas linéaire et la mémoire vidéo du
 noyau : les 24 images des 12 s sont celles du banc à 0,12/255 près en moyenne (écrans du bas identiques), en 9 s de PC
 contre 196 s pour le banc ; `touch_all` avant chaque commande coûte environ 7 µs. Sans `--dessiner`, le GPU est sans
-dessin : les transferts sont notés au journal comme au banc mais la mémoire vidéo n'est pas écrite.
+dessin : les transferts sont notés au journal comme au banc mais la mémoire vidéo n'est pas écrite. Une commande de gsp
+que le noyau refuserait (plage non projetée) est refusée avant que pica n'y touche, avec les textes du banc
+(« source illisible (…) », « destination refusée (…) », « copie de texture refusée (…) ») ; les images des écrans
+suivent `dump_screens` du banc (rien tant que le jeu n'a pas annoncé d'image, relecture de la mémoire si le dernier
+transfert a changé d'adresse).
 
 En direct (`portage play`), le jeu tient le temps réel (vitesse 1,00, 30 images du jeu par seconde, présentation à la
 fréquence de l'écran), la première image du jeu est présentée vers 0,3 s, et la fenêtre capturée aux instants du banc
 est, octet pour octet, l'image PNG de `runtime run --dessiner` (8,19 s et 11,23 s). Le journal d'une partie en direct
 est celui de `runtime run` : le découpage en tranches ne change rien au jeu.
 
-**Pas fait** : le mode hybride (unicorn) : un saut vers du code non recompilé est une faute (le jeu s'arrête à 12,26 s) ;
+**Pas fait** : le mode hybride (unicorn) : un saut vers du code non recompilé est une faute (depuis le 17/10, plus aucune sur 60 s avec `--appuis "14:START,16:A,18:A"`, jusqu'au terrain) ;
 le son ; la comparaison avec un mod n'a pas été refaite après la mise à jour de la DLL.
 
 ### Vitesse

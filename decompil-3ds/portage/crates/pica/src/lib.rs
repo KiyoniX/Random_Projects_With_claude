@@ -16,7 +16,7 @@ pub mod transfer;
 pub mod vertex;
 
 use capture::{Capture, Command};
-use formats::{decode_pixels, ColorFormat};
+use formats::ColorFormat;
 
 use memory::Memory;
 use render::Renderer;
@@ -84,17 +84,22 @@ impl Pica {
         state.process_list(data, |st, indexed| renderer.draw(st, memory, indexed));
     }
 
-    /// Une commande de la file de gsp, comme `replay.run_command` du banc. Rend l'image si c'est un transfert vers l'écran.
-    pub fn run_command(&mut self, command: &Command) -> Option<ScreenImage> {
+    /// Une commande de la file de gsp, comme `replay.run_command` du banc. Rend l'image si c'est un transfert vers l'écran,
+    /// ou le refus d'un transfert ou d'une copie (textes de `banc/pica/transfer.py`) : la mémoire de pica n'est pas celle
+    /// que le noyau a projetée, à vérifier avant par [`transfer::check`].
+    pub fn run_command(&mut self, command: &Command) -> Result<Option<ScreenImage>, String> {
         let words = &command.words;
         let kind = command.kind();
+        // refusé avant de toucher aux tampons du GPU, qui ne doivent rien oublier d'une commande qui n'a pas lieu
+        let memory = &self.memory;
+        transfer::check(words, &|address, len, _| memory.read(address, len).map(|_| ()).ok_or_else(|| transfer::OUTSIDE.to_string()))?;
         if kind == 3 && !self.eager_transfers {
             // le transfert vers l'écran se fait sur le GPU ; la mémoire n'est écrite que si quelqu'un la lit
             let (source, destination, in_dim, out_dim, flags) = (words[1], words[2], words[3], words[4], words[5]);
             if let Some(p) = self.renderer.present_transfer(&mut self.memory, source, destination, in_dim, out_dim, flags, self.readback) {
                 self.transfers += 1;
                 let top = (out_dim >> 16) == 400;
-                return Some(ScreenImage { index: self.transfers, top, width: p.width, height: p.height, rgba: p.rgba, from_gpu: true, texture: p.texture });
+                return Ok(Some(ScreenImage { index: self.transfers, top, width: p.width, height: p.height, rgba: p.rgba, from_gpu: true, texture: p.texture }));
             }
         }
         // ce que la commande lit est d'abord rendu à la mémoire ; ce qu'elle écrase n'est rendu que s'il en reste une partie
@@ -121,7 +126,7 @@ impl Pica {
         result
     }
 
-    fn execute(&mut self, command: &Command) -> Option<ScreenImage> {
+    fn execute(&mut self, command: &Command) -> Result<Option<ScreenImage>, String> {
         let words = &command.words;
         match command.kind() {
             0 => {
@@ -129,30 +134,19 @@ impl Pica {
                 if let Some(data) = self.memory.read(source, size).map(|d| d.into_owned()) {
                     self.memory.write(destination, &data);
                 }
-                None
             }
-            1 => {
-                self.process_list(&command.data);
-                None
-            }
-            2 => {
-                transfer::memory_fill(&mut self.memory, words);
-                None
-            }
+            1 => self.process_list(&command.data),
+            2 => transfer::memory_fill(&mut self.memory, words),
             3 => {
                 let (source, destination, in_dim, out_dim, flags) = (words[1], words[2], words[3], words[4], words[5]);
-                if transfer::display_transfer(&mut self.memory, source, destination, in_dim, out_dim, flags).is_err() {
-                    return None;
-                }
+                transfer::display_transfer(&mut self.memory, source, destination, in_dim, out_dim, flags)?;
                 self.transfers += 1;
-                Some(self.screen_image(source, destination, in_dim, out_dim, flags))
+                return Ok(Some(self.screen_image(source, destination, in_dim, out_dim, flags)));
             }
-            4 => {
-                transfer::texture_copy(&mut self.memory, words[1], words[2], words[3], words[4], words[5]);
-                None
-            }
-            _ => None,
+            4 => transfer::texture_copy(&mut self.memory, words[1], words[2], words[3], words[4], words[5])?,
+            _ => {}
         }
+        Ok(None)
     }
 
     fn screen_image(&mut self, source: u32, destination: u32, in_dim: u32, out_dim: u32, flags: u32) -> ScreenImage {
@@ -172,12 +166,10 @@ impl Pica {
             }
         }
         let fmt = ColorFormat::from_gx((flags >> 12) & 7).unwrap_or(ColorFormat::Rgba8);
-        let unit = fmt.bytes_per_pixel();
-        let raw = self.memory.read(destination, rows * cols * unit).map(|r| r.into_owned()).unwrap_or_else(|| vec![0; rows * cols * unit]);
-        let rgba = decode_pixels(fmt, &raw);
-        let (width, height, rgba) = transfer::rotate_screen(&rgba, rows, cols);
+        let column = cols * fmt.bytes_per_pixel();
+        let raw = self.memory.read(destination, rows * column).map(|r| r.into_owned()).unwrap_or_else(|| vec![0; rows * column]);
         // une image qui ne vient pas d'un tampon vivant (l'écran d'avant la capture) est agrandie sans lissage
-        let (width, height, rgba) = if scale > 1 { transfer::upscale_nearest(&rgba, width, height, scale) } else { (width, height, rgba) };
+        let (width, height, rgba) = transfer::screen_from_memory(&raw, fmt, rows, cols, column, scale);
         ScreenImage { index: self.transfers, top, width, height, rgba, from_gpu: false, texture: None }
     }
 

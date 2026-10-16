@@ -250,7 +250,7 @@ impl Renderer {
                 targets: &[Some(wgpu::ColorTargetState { format: COLOR_FORMAT, blend: None, write_mask: wgpu::ColorWrites::ALL })],
             }),
             multiview_mask: None,
-            cache: None,
+            cache: self.cache(),
         });
         let make = |entry: &str| {
             self.device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
@@ -267,7 +267,7 @@ impl Renderer {
                     targets: &[Some(wgpu::ColorTargetState { format: COLOR_FORMAT, blend: None, write_mask: wgpu::ColorWrites::ALL })],
                 }),
                 multiview_mask: None,
-                cache: None,
+                cache: self.cache(),
             })
         };
         let passes = Passes { depth_layout, depth, down: make("fs_down"), up: make("fs_up"), screen: make("fs_screen"), xfer: make("fs_xfer"), layout };

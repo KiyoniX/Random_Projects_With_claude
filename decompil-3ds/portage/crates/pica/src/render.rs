@@ -13,6 +13,7 @@
 mod present;
 
 use std::collections::{BTreeMap, HashMap};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -280,6 +281,8 @@ pub struct Renderer {
     attributed: f64,
     pub stats: Stats,
     pub notes: BTreeMap<String, u64>,
+    /// Le cache des pipelines du pilote, relu et réécrit sur disque (voir [`Renderer::load_pipeline_cache`]).
+    pipeline_cache: Option<(wgpu::PipelineCache, PathBuf)>,
 }
 
 fn align(n: usize, to: usize) -> usize {
@@ -368,9 +371,10 @@ impl Renderer {
         let adapter = chosen.ok_or("aucun GPU Vulkan trouvé")?;
         let adapter_name = adapter.get_info().name;
         let stencil_supported = adapter.features().contains(wgpu::Features::DEPTH32FLOAT_STENCIL8);
+        let optional = wgpu::Features::DEPTH32FLOAT_STENCIL8 | wgpu::Features::PIPELINE_CACHE;
         let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {
             label: Some("pica"),
-            required_features: if stencil_supported { wgpu::Features::DEPTH32FLOAT_STENCIL8 } else { wgpu::Features::empty() },
+            required_features: adapter.features() & optional,
             required_limits: wgpu::Limits::default().using_resolution(adapter.limits()),
             ..Default::default()
         }))
@@ -473,7 +477,40 @@ impl Renderer {
             attributed: 0.0,
             stats: Stats::default(),
             notes: BTreeMap::new(),
+            pipeline_cache: None,
         })
+    }
+
+    /// Reprend le cache des pipelines laissé dans `folder` par une partie précédente (un fichier par GPU et pilote, au
+    /// nom de `wgpu::util::pipeline_cache_key`) ; il y est réécrit quand le rendu se termine. Sans effet si l'appareil
+    /// n'a pas de cache de pipelines (Vulkan en a un). Les pipelines créés ensuite passent par lui.
+    pub fn load_pipeline_cache(&mut self, folder: &Path) {
+        let Some(name) = wgpu::util::pipeline_cache_key(&self.adapter.get_info()) else { return };
+        if !self.device.features().contains(wgpu::Features::PIPELINE_CACHE) {
+            return;
+        }
+        let path = folder.join(name);
+        let data = std::fs::read(&path).ok();
+        // SAFETY : le fichier n'est écrit que par `save_pipeline_cache`, avec les octets de `get_data` ; wgpu vérifie
+        // son en-tête (GPU, pilote, version) et repart d'un cache vide s'il ne convient pas (`fallback`).
+        let cache = unsafe {
+            self.device.create_pipeline_cache(&wgpu::PipelineCacheDescriptor { label: Some("pica"), data: data.as_deref(), fallback: true })
+        };
+        self.pipeline_cache = Some((cache, path));
+    }
+
+    /// Écrit le cache des pipelines (fichier temporaire puis renommage, pour ne jamais laisser un fichier coupé).
+    fn save_pipeline_cache(&self) -> Result<(), String> {
+        let Some((cache, path)) = &self.pipeline_cache else { return Ok(()) };
+        let Some(data) = cache.get_data() else { return Ok(()) };
+        let folder = path.parent().ok_or("cache sans dossier")?;
+        std::fs::create_dir_all(folder).map_err(|e| e.to_string())?;
+        let temporary = path.with_extension("tmp");
+        std::fs::write(&temporary, &data).and_then(|()| std::fs::rename(&temporary, path)).map_err(|e| e.to_string())
+    }
+
+    fn cache(&self) -> Option<&wgpu::PipelineCache> {
+        self.pipeline_cache.as_ref().map(|(cache, _)| cache)
     }
 
     pub fn scale(&self) -> u32 {
@@ -747,7 +784,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 multisample: Default::default(),
                 fragment: Some(wgpu::FragmentState { module: &module, entry_point: Some("fs"), compilation_options: Default::default(), targets: &[] }),
                 multiview_mask: None,
-                cache: None,
+                cache: self.cache(),
             });
             self.depth_upload.insert(format, pipeline);
         }
@@ -1737,7 +1774,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 targets: &[Some(wgpu::ColorTargetState { format: COLOR_FORMAT, blend, write_mask: wgpu::ColorWrites::from_bits_truncate(key.write_mask as u32) })],
             }),
             multiview_mask: None,
-            cache: None,
+            cache: self.cache(),
         })
     }
 }
@@ -1763,4 +1800,12 @@ fn component(equation: u8, src: u8, dst: u8) -> wgpu::BlendComponent {
         return wgpu::BlendComponent { src_factor: wgpu::BlendFactor::One, dst_factor: wgpu::BlendFactor::One, operation };
     }
     wgpu::BlendComponent { src_factor: blend_factor(src as u32), dst_factor: blend_factor(dst as u32), operation }
+}
+
+impl Drop for Renderer {
+    fn drop(&mut self) {
+        if let Err(e) = self.save_pipeline_cache() {
+            eprintln!("cache des pipelines : {e}");
+        }
+    }
 }

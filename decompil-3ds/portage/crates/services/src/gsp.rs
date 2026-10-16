@@ -72,6 +72,12 @@ pub fn format_name(format: u32) -> &'static str {
     }
 }
 
+/// L'écran que vise un transfert (0 haut, 1 bas) d'après sa sortie, ou `None` si ce n'en est pas un (la règle du banc :
+/// une sortie de 240 de large, 400 de haut pour l'écran du haut).
+pub fn transfer_screen(out_dim: u32) -> Option<usize> {
+    (out_dim & 0xFFFF == 240).then_some(if out_dim >> 16 == 400 { 0 } else { 1 })
+}
+
 fn draw_register_name(register: u32) -> Option<&'static str> {
     match register {
         0x022E => Some("DrawArrays"),
@@ -150,8 +156,9 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
 pub trait GpuBackend {
     /// `words` : les huit mots de la commande ; `list` : pour la commande 1, la liste déjà suivie (sauts compris), vide
     /// sinon. `Ok` : la commande est faite, mémoire écrite. `Err` pour une copie (0) ou un remplissage (2) : gsp le fait
-    /// lui-même (avec ses lignes de refus au journal) ; pour un transfert (3) ou une copie de texture (4) : le problème
-    /// noté au journal ; ignoré pour une liste (1).
+    /// lui-même (avec ses lignes de refus au journal) ; pour un transfert (3) : le problème noté au journal, au texte du
+    /// banc (« source illisible (…) ») ; pour une copie de texture (4) : l'exception du banc, que gsp note comme une
+    /// copie refusée ; ignoré pour une liste (1). Une commande 3 ou 4 refusée n'écrit rien.
     fn command(&mut self, k: &mut Kernel, words: [u32; 8], list: Vec<u8>) -> Result<(), String>;
 
     /// À chaque fin d'image, après la mise à jour de `hid` et avant les interruptions : là où le banc `--dessiner`
@@ -405,14 +412,13 @@ impl Gsp {
                 let (source, destination, in_dim, out_dim, flags) = (words[1], words[2], words[3], words[4], words[5]);
                 self.transfers += 1;
                 let problem = self.to_backend(k, words, Vec::new()).err().unwrap_or_default();
-                if problem.is_empty() && out_dim & 0xFFFF == 240 {
+                if let Some(screen) = transfer_screen(out_dim).filter(|_| problem.is_empty()) {
                     let unit = match flags >> 12 & 7 {
                         0 => 4,
                         1 => 3,
                         _ => 2,
                     };
-                    self.latest_transfer.insert(if out_dim >> 16 == 400 { 0 } else { 1 },
-                                                (destination, flags >> 12 & 7, 240 * unit));
+                    self.latest_transfer.insert(screen as u32, (destination, flags >> 12 & 7, 240 * unit));
                 }
                 bump(&mut self.stats, "transferts vers écran faits", if problem.is_empty() { 1 } else { 0 });
                 let text = format!("gsp file : DisplayTransfer {:#x} ({}x{}, {}) -> {:#x} ({}x{}, {}), drapeaux {:#x}{}",

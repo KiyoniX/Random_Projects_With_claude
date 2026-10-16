@@ -109,14 +109,14 @@ impl Play {
     fn draw(&mut self) {
         let Some(screens) = self.screens.as_mut() else { return };
         let images = self.shared.screens.borrow();
-        if let Some(top) = &images[0] {
+        if let Some((_, top)) = &images[0] {
             if top.index != self.last_top {
                 self.last_top = top.index;
                 self.second.game_frames += 1;
                 self.first_frame.get_or_insert(self.started.elapsed().as_secs_f64());
             }
         }
-        let textures: Vec<Option<wgpu::Texture>> = images.iter().map(|i| i.as_ref().map(|i| screens.texture(i))).collect();
+        let textures: Vec<Option<wgpu::Texture>> = images.iter().map(|i| i.as_ref().map(|(_, i)| screens.texture(i))).collect();
         drop(images);
         if self.shot_ready {
             let (_, prefix) = self.shot.take().unwrap();

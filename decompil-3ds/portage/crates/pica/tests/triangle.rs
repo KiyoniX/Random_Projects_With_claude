@@ -76,7 +76,7 @@ fn build_with(extra: &[(usize, u32)]) -> Capture {
 fn run(capture: &Capture) -> Option<Pica> {
     let mut pica = Pica::new(capture, 1).ok()?;
     for command in &capture.commands {
-        pica.run_command(command);
+        pica.run_command(command).unwrap();
     }
     pica.finish();
     Some(pica)
@@ -101,7 +101,7 @@ fn triangle_is_drawn_and_written_back() {
         }
     };
     for command in &capture.commands {
-        pica.run_command(command);
+        pica.run_command(command).unwrap();
     }
     pica.finish();
     assert_eq!(pica.renderer.stats.draws, 1, "notes : {:?}", pica.renderer.notes);
@@ -114,7 +114,7 @@ fn scaled_rendering_gives_a_bigger_image() {
     let capture = build();
     let Ok(mut pica) = Pica::new(&capture, 3) else { return };
     for command in &capture.commands {
-        pica.run_command(command);
+        pica.run_command(command).unwrap();
     }
     let (data, rows) = pica.renderer.color_image(0x1401_0000, 16).expect("tampon vivant");
     assert_eq!(rows, 16);

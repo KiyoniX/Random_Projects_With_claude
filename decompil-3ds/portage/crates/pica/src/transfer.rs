@@ -5,6 +5,57 @@ use formats::{decode_pixels, encode_pixels, linear_to_tiled, tiled_to_linear, Co
 
 use crate::memory::Memory;
 
+/// Ce que dit pica quand sa propre mémoire manque (le noyau, lui, donne l'adresse : voir [`check`]).
+pub(crate) const OUTSIDE: &str = "hors de la mémoire du GPU";
+
+/// Les formats du transfert vers l'écran et les octets qu'il lit et écrit vraiment (ceux de `banc/pica/transfer.py`) :
+/// (entrée, sortie, octets lus, octets écrits).
+fn display_sizes(in_dim: u32, out_dim: u32, flags: u32) -> Result<(ColorFormat, ColorFormat, usize, usize), String> {
+    let (in_w, in_h) = ((in_dim & 0xFFFF) as usize, (in_dim >> 16) as usize);
+    let (out_w, out_h) = ((out_dim & 0xFFFF) as usize, (out_dim >> 16) as usize);
+    let in_fmt = ColorFormat::from_gx((flags >> 8) & 7);
+    let out_fmt = ColorFormat::from_gx((flags >> 12) & 7);
+    let (Some(in_fmt), Some(out_fmt)) = (in_fmt, out_fmt) else { return Err("dimensions ou format illisibles".into()) };
+    if in_w == 0 || in_h == 0 || out_w == 0 || out_h == 0 {
+        return Err("dimensions ou format illisibles".into());
+    }
+    let unit = out_fmt.bytes_per_pixel();
+    if (flags >> 3) & 1 != 0 {
+        return Ok((in_fmt, out_fmt, out_w * out_h * unit, out_w * out_h * unit));
+    }
+    let scaling = (flags >> 24) & 3;
+    let (w, h) = (if scaling != 0 { in_w / 2 } else { in_w }, if scaling == 2 { in_h / 2 } else { in_h });
+    let (cw, ch) = (out_w.min(w), out_h.min(h));
+    let written = if (flags >> 1) & 1 != 0 { cw.div_ceil(8) * ch.div_ceil(8) * 64 * unit } else { cw * ch * unit };
+    Ok((in_fmt, out_fmt, in_w.div_ceil(8) * in_h.div_ceil(8) * 64 * in_fmt.bytes_per_pixel(), written))
+}
+
+/// Ce que peut lire et écrire une commande : `access(adresse, longueur, écriture)` rend `Err(texte)` pour une plage
+/// refusée (en direct : la mémoire que le noyau a projetée, avec le texte de son exception).
+pub type Access<'a> = dyn Fn(u32, usize, bool) -> Result<(), String> + 'a;
+
+/// Le refus que noterait le banc pour une commande 3 ou 4, avant de rien faire : le problème du transfert vers l'écran
+/// (textes de `banc/pica/transfer.py`, « refusé (…) » de gsp pour la copie brute), l'exception de la copie de texture
+/// (gsp y ajoute « copie de texture refusée »). Le banc écrit ce qui précède la plage refusée ; ici, rien.
+pub fn check(words: &[u32; 8], access: &Access) -> Result<(), String> {
+    match words[0] & 0xFF {
+        3 => {
+            let (source, destination, flags) = (words[1], words[2], words[5]);
+            let (_, _, read, written) = display_sizes(words[3], words[4], flags)?;
+            if (flags >> 3) & 1 != 0 {
+                access(source, read, false).and_then(|()| access(destination, written, true)).map_err(|e| format!("refusé ({e})"))
+            } else {
+                access(source, read, false).map_err(|e| format!("source illisible ({e})"))?;
+                access(destination, written, true).map_err(|e| format!("destination refusée ({e})"))
+            }
+        }
+        4 => copy_chunks(words[1], words[2], words[3], words[4], words[5], |source, destination, len| {
+            access(source, len, false).and_then(|()| access(destination, len, true))
+        }),
+        _ => Ok(()),
+    }
+}
+
 /// Commande 3 : l'image rendue (en tuiles) devient une image affichable (en lignes).
 ///
 /// Dimensions : largeur dans les 16 bits bas, hauteur dans les 16 bits hauts. Drapeaux : bit 0 retourner de haut en bas,
@@ -15,23 +66,14 @@ pub fn display_transfer(memory: &mut Memory, source: u32, destination: u32, in_d
     let (out_w, out_h) = ((out_dim & 0xFFFF) as usize, (out_dim >> 16) as usize);
     let flip = flags & 1 != 0;
     let out_tiled = (flags >> 1) & 1 != 0;
-    let raw_copy = (flags >> 3) & 1 != 0;
-    let in_fmt = ColorFormat::from_gx((flags >> 8) & 7);
-    let out_fmt = ColorFormat::from_gx((flags >> 12) & 7);
     let scaling = (flags >> 24) & 3;
-    let (Some(in_fmt), Some(out_fmt)) = (in_fmt, out_fmt) else { return Err("dimensions ou format illisibles".into()) };
-    if in_w == 0 || in_h == 0 || out_w == 0 || out_h == 0 {
-        return Err("dimensions ou format illisibles".into());
-    }
-    if raw_copy {
-        let size = out_w * out_h * out_fmt.bytes_per_pixel();
-        let data = memory.read(source, size).ok_or("source illisible")?.into_owned();
-        memory.write(destination, &data);
-        return Ok(());
+    let (in_fmt, out_fmt, read, _) = display_sizes(in_dim, out_dim, flags)?;
+    if (flags >> 3) & 1 != 0 {
+        let data = memory.read(source, read).ok_or(format!("refusé ({OUTSIDE})"))?.into_owned();
+        return if memory.write(destination, &data) { Ok(()) } else { Err(format!("refusé ({OUTSIDE})")) };
     }
     let unit = in_fmt.bytes_per_pixel();
-    let size = in_w.div_ceil(8) * in_h.div_ceil(8) * 64 * unit;
-    let raw = memory.read(source, size).ok_or("source illisible")?.into_owned();
+    let raw = memory.read(source, read).ok_or(format!("source illisible ({OUTSIDE})"))?.into_owned();
     let rgba = decode_pixels(in_fmt, &tiled_to_linear(&raw, in_w, in_h, unit));
     let (image, w, h) = reduce(&rgba, in_w, in_h, scaling);
     let image = crop(&image, w, h, out_w, out_h);
@@ -39,7 +81,7 @@ pub fn display_transfer(memory: &mut Memory, source: u32, destination: u32, in_d
     let image = if flip { flip_rows(&image, cw, ch) } else { image };
     let encoded = encode_pixels(out_fmt, &image);
     let data = if out_tiled { linear_to_tiled(&encoded, cw, ch, out_fmt.bytes_per_pixel()) } else { encoded };
-    if memory.write(destination, &data) { Ok(()) } else { Err("destination refusée".into()) }
+    if memory.write(destination, &data) { Ok(()) } else { Err(format!("destination refusée ({OUTSIDE})")) }
 }
 
 /// La réduction du transfert : 1 moyenne deux points voisins en largeur, 2 aussi en hauteur (arrondi vers le haut).
@@ -121,6 +163,15 @@ pub fn upscale_nearest(rgba: &[u8], w: usize, h: usize, s: usize) -> (usize, usi
     (w * s, h * s, out)
 }
 
+/// L'image d'un écran lue en mémoire : `rows` colonnes de l'écran de `cols` points au format `fmt`, l'une tous les
+/// `stride` octets (au moins `cols` points), agrandie sans lissage à l'échelle `scale`. Rend (largeur, hauteur, RGBA).
+pub fn screen_from_memory(raw: &[u8], fmt: ColorFormat, rows: usize, cols: usize, stride: usize, scale: usize) -> (usize, usize, Vec<u8>) {
+    let column = cols * fmt.bytes_per_pixel();
+    let packed: Vec<u8> = raw.chunks(stride).take(rows).flat_map(|c| &c[..column]).copied().collect();
+    let (width, height, rgba) = rotate_screen(&decode_pixels(fmt, &packed), rows, cols);
+    if scale > 1 { upscale_nearest(&rgba, width, height, scale) } else { (width, height, rgba) }
+}
+
 /// Les plages de mémoire que touche le transfert vers l'écran : (lue, écrite), en surestimant l'écrite.
 pub fn display_ranges(source: u32, destination: u32, in_dim: u32, out_dim: u32, flags: u32) -> ((u32, usize), (u32, usize)) {
     let (in_w, in_h) = ((in_dim & 0xFFFF) as usize, (in_dim >> 16) as usize);
@@ -176,24 +227,22 @@ pub fn memory_fill(memory: &mut Memory, words: &[u32; 8]) {
     }
 }
 
-/// Commande 4 : copie d'octets, par lignes si les largeurs sont données (paquets de 16 octets).
-pub fn texture_copy(memory: &mut Memory, source: u32, destination: u32, size: u32, in_dim: u32, out_dim: u32) {
+/// Les morceaux (source, destination, longueur) de la commande 4, dans l'ordre : `size` octets d'un coup, ou par lignes
+/// si les largeurs sont données (paquets de 16 octets, un intervalle sauté après chaque ligne). S'arrête au premier
+/// morceau que `step` refuse.
+fn copy_chunks(source: u32, destination: u32, size: u32, in_dim: u32, out_dim: u32,
+               mut step: impl FnMut(u32, u32, usize) -> Result<(), String>) -> Result<(), String> {
     let (in_line, in_skip) = ((in_dim & 0xFFFF) as usize * 16, (in_dim >> 16) as usize * 16);
     let (out_line, out_skip) = ((out_dim & 0xFFFF) as usize * 16, (out_dim >> 16) as usize * 16);
-    let (mut source, mut destination) = (source as usize, destination as usize);
     if in_line == 0 || out_line == 0 {
-        if let Some(d) = memory.read(source as u32, size as usize).map(|c| c.into_owned()) {
-            memory.write(destination as u32, &d);
-        }
-        return;
+        return step(source, destination, size as usize);
     }
+    let (mut source, mut destination) = (source as usize, destination as usize);
     let (mut left_in, mut left_out) = (in_line, out_line);
     let mut remaining = size as usize;
     while remaining > 0 {
         let chunk = left_in.min(left_out).min(remaining);
-        if let Some(d) = memory.read(source as u32, chunk).map(|c| c.into_owned()) {
-            memory.write(destination as u32, &d);
-        }
+        step(source as u32, destination as u32, chunk)?;
         source += chunk;
         destination += chunk;
         remaining -= chunk;
@@ -208,6 +257,15 @@ pub fn texture_copy(memory: &mut Memory, source: u32, destination: u32, size: u3
             left_out = out_line;
         }
     }
+    Ok(())
+}
+
+/// Commande 4 : copie d'octets, par lignes si les largeurs sont données (paquets de 16 octets).
+pub fn texture_copy(memory: &mut Memory, source: u32, destination: u32, size: u32, in_dim: u32, out_dim: u32) -> Result<(), String> {
+    copy_chunks(source, destination, size, in_dim, out_dim, |source, destination, len| {
+        let data = memory.read(source, len).ok_or(OUTSIDE)?.into_owned();
+        if memory.write(destination, &data) { Ok(()) } else { Err(OUTSIDE.into()) }
+    })
 }
 
 #[cfg(test)]
@@ -244,7 +302,8 @@ mod tests {
         m.map(0x1400_0000, &vec![0u8; 0x1000]);
         memory_fill(&mut m, &[2, 0x1400_0000, 0x1122_3344, 0x1400_0008, 0, 0, 0, 0x0200]);
         assert_eq!(&*m.read(0x1400_0000, 8).unwrap(), &[0x44, 0x33, 0x22, 0x11, 0x44, 0x33, 0x22, 0x11]);
-        texture_copy(&mut m, 0x1400_0000, 0x1400_0100, 8, 0, 0);
+        texture_copy(&mut m, 0x1400_0000, 0x1400_0100, 8, 0, 0).unwrap();
+        assert_eq!(texture_copy(&mut m, 0x1400_0000, 0x1400_0ff8, 0x10, 0, 0), Err(OUTSIDE.to_string()));
         assert_eq!(&*m.read(0x1400_0100, 4).unwrap(), &[0x44, 0x33, 0x22, 0x11]);
     }
 

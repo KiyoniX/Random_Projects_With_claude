@@ -258,7 +258,8 @@ impl Bench {
         // écrire la mémoire : le journal reste identique, l'image n'existe pas.
         let backend: Box<dyn GpuBackend> = if self.options.draw {
             let folder = (!self.options.live).then(|| self.options.out.join("images"));
-            let backend = PicaBackend::new(k, self.options.scale, folder)?;
+            let cache = self.options.root.join("local/portage/cache");
+            let backend = PicaBackend::new(k, self.options.scale, folder, Some(&cache))?;
             self.drawing = Some(backend.shared());
             Box::new(backend)
         } else {
@@ -349,8 +350,8 @@ impl Bench {
         lines.push(format!("Appels système : {}", counts.join(", ")));
         if let Some(drawing) = &self.drawing {
             let s = drawing.stats.borrow();
-            lines.push(format!("Dessin : {} commandes de gsp, {:.2} s dans pica, {:.3} s dans touch_all ({:.1} µs par commande), {} paires d'images",
-                s.commands, s.pica_seconds, s.touch_seconds, 1e6 * s.touch_seconds / s.commands.max(1) as f64, s.snapshots));
+            lines.push(format!("Dessin : {} commandes de gsp, {:.2} s dans pica, {:.3} s dans touch_all ({:.1} µs par commande), {} paires d'images, {} pipelines créés en {:.3} s",
+                s.commands, s.pica_seconds, s.touch_seconds, 1e6 * s.touch_seconds / s.commands.max(1) as f64, s.snapshots, s.pipelines, s.pipeline_seconds));
         }
         lines.join("\n")
     }

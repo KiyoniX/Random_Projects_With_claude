@@ -119,7 +119,7 @@ fn replay(capture: &Capture, scale: u32, live: bool) -> Option<Pica> {
     let mut pica = Pica::new(capture, scale).ok()?;
     pica.renderer.live_textures = live;
     for command in &capture.commands {
-        pica.run_command(command);
+        pica.run_command(command).unwrap();
     }
     Some(pica)
 }
@@ -154,7 +154,7 @@ fn live_gpu_on_external_memory_matches_the_capture_replay() {
         Command { words: [3, A, 0x1405_0000, 0x0010_0010, 0x0010_0010, 0x1000, 0, 0], data: Vec::new() },
     ];
     let run = |mut pica: Pica, commands: &[Command]| -> (u32, Vec<u8>) {
-        let image = commands.iter().filter_map(|c| pica.run_command(c)).last().expect("une image");
+        let image = commands.iter().filter_map(|c| pica.run_command(c).unwrap()).last().expect("une image");
         pica.finish();
         (pica.memory.checksum(), image.rgba)
     };
@@ -221,7 +221,7 @@ fn deferred_display_transfer_writes_the_same_memory_as_the_eager_one() {
         pica.eager_transfers = eager;
         let mut image = None;
         for command in &capture.commands {
-            if let Some(i) = pica.run_command(command) {
+            if let Some(i) = pica.run_command(command).unwrap() {
                 image = Some(i);
             }
         }
@@ -372,7 +372,7 @@ fn many_draws_with_tiny_buffers_give_the_same_image() {
     let mut tiny = Pica::new(&capture, 1).unwrap();
     tiny.renderer.set_arena_sizes(0, 64, 4);
     for command in &capture.commands {
-        tiny.run_command(command);
+        tiny.run_command(command).unwrap();
     }
     tiny.finish();
     assert_eq!(tiny.renderer.stats.draws, 40);
@@ -415,7 +415,7 @@ fn render_to_texture_through_a_copy_transfer_matches_the_memory_path() {
         pica.eager_transfers = eager;
         pica.readback = false; // comme un affichage en direct : l'image d'un transfert en tuiles n'a pas besoin d'être lue
         for command in &capture.commands {
-            pica.run_command(command);
+            pica.run_command(command).unwrap();
         }
         Some(pica)
     };
@@ -446,7 +446,7 @@ fn display_transfer_images_follow_the_memory_path_for_every_output_format() {
             pica.eager_transfers = eager;
             let mut image = None;
             for command in &capture.commands {
-                if let Some(i) = pica.run_command(command) {
+                if let Some(i) = pica.run_command(command).unwrap() {
                     image = Some(i);
                 }
             }

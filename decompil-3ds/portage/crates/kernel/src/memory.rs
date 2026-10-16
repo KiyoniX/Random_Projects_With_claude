@@ -33,6 +33,11 @@ impl std::error::Error for MemError {}
 
 pub type MemResult<T> = Result<T, MemError>;
 
+/// Le texte du banc (`MemoryError3ds`) pour une lecture ou une écriture hors mémoire.
+fn out_of_memory(address: u32, writing: bool) -> MemError {
+    MemError(format!("{} hors mémoire à {address:#010x}", if writing { "écriture" } else { "lecture" }))
+}
+
 pub fn align_up(value: u32) -> u32 {
     value.wrapping_add(PAGE - 1) & !(PAGE - 1)
 }
@@ -311,14 +316,23 @@ impl AddressSpace {
         if (address as u64) < region.end() { Some(region) } else { None }
     }
 
-    pub fn is_mapped(&self, mut address: u32, mut size: u32) -> bool {
+    pub fn is_mapped(&self, address: u32, size: u32) -> bool {
+        self.first_unmapped(address, size).is_none()
+    }
+
+    fn first_unmapped(&self, mut address: u32, mut size: u32) -> Option<u32> {
         while size > 0 {
-            let Some(region) = self.find(address) else { return false };
+            let Some(region) = self.find(address) else { return Some(address) };
             let step = (size as u64).min(region.end() - address as u64) as u32;
             address = address.wrapping_add(step);
             size -= step;
         }
-        true
+        None
+    }
+
+    /// L'erreur que rendrait `read` (`write` si `writing`) sur cette plage, sans rien copier.
+    pub fn check(&self, address: u32, size: u32, writing: bool) -> MemResult<()> {
+        self.first_unmapped(address, size).map_or(Ok(()), |at| Err(out_of_memory(at, writing)))
     }
 
     /// La première plage libre de cette taille entre `low` et `high`, ou `None`.
@@ -351,7 +365,7 @@ impl AddressSpace {
         let mut out = Vec::with_capacity(size as usize);
         let mut left = size;
         while left > 0 {
-            let region = self.find(address).ok_or_else(|| MemError(format!("lecture hors mémoire à {address:#010x}")))?;
+            let region = self.find(address).ok_or_else(|| out_of_memory(address, false))?;
             let at = region.offset + (address - region.start) as usize;
             let step = (left as u64).min(region.end() - address as u64) as u32;
             out.extend_from_slice(&region.backing.read(at, step as usize));
@@ -364,7 +378,7 @@ impl AddressSpace {
     pub fn write(&self, mut address: u32, data: &[u8]) -> MemResult<()> {
         let mut pos = 0usize;
         while pos < data.len() {
-            let region = self.find(address).ok_or_else(|| MemError(format!("écriture hors mémoire à {address:#010x}")))?;
+            let region = self.find(address).ok_or_else(|| out_of_memory(address, true))?;
             let at = region.offset + (address - region.start) as usize;
             let step = ((data.len() - pos) as u64).min(region.end() - address as u64) as usize;
             region.backing.write(at, &data[pos..pos + step]);
@@ -472,6 +486,10 @@ mod tests {
         assert!(space.is_mapped(0x1000_0000, 0x1000));
         assert!(!space.is_mapped(0x1000_1000, 1));
         assert_eq!(space.u8(0x1000_3000).unwrap(), 7);
+        // la vérification sans copie rend la même erreur que la lecture ou l'écriture : la première adresse manquante
+        assert_eq!(space.check(0x1000_0800, 0x1000, false), space.read(0x1000_0800, 0x1000).map(|_| ()));
+        assert_eq!(space.check(0x1000_0800, 0x1000, true).unwrap_err().0, "écriture hors mémoire à 0x10001000");
+        assert!(space.check(0x1000_2000, 0x2000, true).is_ok());
         space.protect(0x1000_2000, 0x1000, PERM_R);
         assert_eq!(space.find(0x1000_2000).unwrap().perms, PERM_R);
         assert_eq!(space.find(0x1000_3000).unwrap().perms, PERM_RW);
