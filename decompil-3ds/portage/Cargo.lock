@@ -1341,6 +1341,7 @@ dependencies = [
  "capture",
  "crc32fast",
  "formats",
+ "image",
  "pollster",
  "wgpu",
 ]
@@ -1442,6 +1443,8 @@ dependencies = [
  "overlay",
  "pica",
  "pollster",
+ "runtime",
+ "services",
  "wgpu",
  "winit",
 ]
@@ -1580,9 +1583,12 @@ dependencies = [
 name = "runtime"
 version = "0.1.0"
 dependencies = [
+ "capture",
+ "formats",
  "hostcpu",
  "kernel",
  "overlay",
+ "pica",
  "romfs",
  "services",
 ]

@@ -304,14 +304,13 @@ def translate_module(img, incoming=(), holes=(), comments=None, progress=None, g
             break
         run_closure()
     if gap_scan:
-        # Les prologues « push {..., lr} » en ARM, dans ce qu'aucune fonction n'a atteint.
+        # Les prologues ARM, dans ce qu'aucune fonction n'a atteint.
         found = False
         for off in range(0, img.code_size - 3, 4):
             address = img.lo + off
             if address in covered or address in img.places:
                 continue
-            w = struct.unpack_from('<I', img.text.data, off)[0]
-            if (w & 0xFFFF4000) == 0xE92D4000 and bin(w & 0xFFFF).count('1') >= 1:
+            if recomp.is_arm_prologue(struct.unpack_from('<I', img.text.data, off)[0]):
                 if add_entry(address):
                     found = True
         if found:

@@ -1,33 +1,14 @@
 //! `runtime` : le noyau, les services et le processeur recompilé du portage, en ligne de commande.
 //!
 //!   runtime run [--seconds S] [--turns N] [--minutes-pc M] [--out DOSSIER] [--dll CHEMIN] [--mod DOSSIER]
-//!               [--appuis "12:A,14:START"] [--root DOSSIER] [--appels-systeme-rares]
+//!               [--appuis "12:A,14:START"] [--root DOSSIER] [--appels-systeme-rares] [--dessiner [--scale N]]
 //!   runtime compare JOURNAL_GAUCHE JOURNAL_DROITE      (ex. le journal du banc Python et celui du runtime)
 
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use runtime::bench::{Bench, Options};
+use runtime::bench::{BUTTONS, Bench, Options, find_root};
 use runtime::compare;
-
-fn find_root() -> PathBuf {
-    if let Ok(root) = std::env::var("DECOMPIL_ROOT") {
-        return PathBuf::from(root);
-    }
-    let mut dir = std::env::current_dir().unwrap_or_default();
-    loop {
-        if dir.join("etat.json").is_file() && dir.join("banc").is_dir() {
-            return dir;
-        }
-        if !dir.pop() {
-            break;
-        }
-    }
-    PathBuf::from(".")
-}
-
-const BUTTONS: [(&str, u32); 12] = [("A", 0x1), ("B", 0x2), ("SELECT", 0x4), ("START", 0x8), ("RIGHT", 0x10), ("LEFT", 0x20),
-    ("UP", 0x40), ("DOWN", 0x80), ("R", 0x100), ("L", 0x200), ("X", 0x400), ("Y", 0x800)];
 
 fn parse_presses(text: &str) -> Result<Vec<(f64, f64, u32)>, String> {
     let mut out = Vec::new();
@@ -50,7 +31,7 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     let mut flags: Vec<String> = Vec::new();
     while let Some(arg) = it.next() {
         match arg.as_str() {
-            "--appels-systeme-rares" => flags.push(arg.clone()),
+            "--appels-systeme-rares" | "--dessiner" => flags.push(arg.clone()),
             a if a.starts_with("--") => {
                 let value = it.next().ok_or_else(|| format!("{a} demande une valeur"))?;
                 if a == "--root" {
@@ -73,12 +54,15 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             "--mod" => options.mod_dir = Some(PathBuf::from(value)),
             "--appuis" => options.presses = parse_presses(&value)?,
             "--max-lines" => options.max_lines = value.parse().map_err(|e| format!("{key} : {e}"))?,
+            "--scale" => options.scale = value.parse().map_err(|e| format!("{key} : {e}"))?,
             _ => return Err(format!("option inconnue : {key}")),
         }
     }
     if flags.iter().any(|f| f == "--appels-systeme-rares") {
         options.log_all_svc = false;
     }
+    // comme le banc : les listes de commandes sont dessinées et une paire d'images par seconde va dans `out/images`
+    options.draw = flags.iter().any(|f| f == "--dessiner");
     let out = options.out.clone();
     let mut bench = Bench::new(options)?;
     let reason = bench.run();

@@ -3,9 +3,11 @@
 //! - [`state`] : registres et listes de commandes ; [`vertex`] : tampons de sommets ;
 //! - [`shader`] : programmes de sommets traduits en WGSL ; [`fragment`] : combinateur TEV en WGSL ;
 //! - [`render`] : dessins, tampons de rendu, textures, mélange ; [`transfer`] : commandes de mémoire de gsp ;
-//! - [`Pica`] : rejoue une capture et rend les images des deux écrans.
+//! - [`images`] : écrire et comparer les PNG des écrans ;
+//! - [`Pica`] : rejoue une capture (ou suit le jeu en direct) et rend les images des deux écrans.
 
 pub mod fragment;
+pub mod images;
 pub mod memory;
 pub mod render;
 pub mod shader;
@@ -56,10 +58,19 @@ pub struct Pica {
 }
 
 impl Pica {
+    /// Rejoue une capture : ses registres et sa mémoire.
     pub fn new(capture: &Capture, scale: u32) -> Result<Pica, String> {
+        let mut pica = Pica::live(Memory::from_capture(capture), scale)?;
+        pica.state = GpuState::from_capture(capture);
+        Ok(pica)
+    }
+
+    /// Le GPU du jeu en direct : les registres de la mise sous tension, sur la mémoire donnée (en général projetée sur
+    /// celle du noyau par [`Memory::map_external`]).
+    pub fn live(memory: Memory, scale: u32) -> Result<Pica, String> {
         Ok(Pica {
-            state: GpuState::from_capture(capture),
-            memory: Memory::from_capture(capture),
+            state: GpuState::new(),
+            memory,
             renderer: Renderer::new(scale)?,
             transfers: 0,
             readback: true,

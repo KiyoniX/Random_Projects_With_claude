@@ -225,7 +225,6 @@ pub fn find_python() -> Option<String> {
         "python3".to_string(),
         "py".to_string(),
         format!("{local}\\Programs\\Python\\Python312\\python.exe"),
-        "C:\\Users\\krisr\\AppData\\Local\\Programs\\Python\\Python312\\python.exe".to_string(),
     ];
     candidates.into_iter().find(|c| {
         Command::new(c).args(["-I", "-c", "import sys; sys.exit(0 if sys.version_info >= (3, 8) else 1)"])

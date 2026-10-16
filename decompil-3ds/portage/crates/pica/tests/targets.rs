@@ -4,7 +4,11 @@
 //! La scène : un triangle rouge dessiné dans le tampon A (16 x 16, RGBA8), puis un triangle texturé par A dessiné dans
 //! le tampon B. Le jeu relit A comme texture RGBA8 de même adresse et de mêmes dimensions.
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use capture::{Capture, Command, Region};
+use pica::memory::Memory;
 use pica::Pica;
 
 fn f24(value: f32) -> u32 {
@@ -123,6 +127,55 @@ fn replay(capture: &Capture, scale: u32, live: bool) -> Option<Pica> {
 fn tiles(pica: &Pica, address: u32) -> Vec<u8> {
     let raw = pica.memory.read(address, 16 * 16 * 4).unwrap().into_owned();
     formats::decode_pixels(formats::ColorFormat::Rgba8, &formats::tiled_to_linear(&raw, 16, 16, 4))
+}
+
+/// L'état des registres et du programme d'une capture, réécrit en liste de commandes : ce que le jeu en direct envoie
+/// lui-même au GPU (le `Pica::live` part des registres de la mise sous tension).
+fn state_as_list(c: &Capture) -> Vec<(u32, u32)> {
+    let mut pairs: Vec<(u32, u32)> = (0..c.regs.len()).filter(|&r| c.seen[r] != 0).map(|r| write(r as u32, c.regs[r])).collect();
+    for (offset_reg, data_reg, words) in [(0x2CB, 0x2CC, &c.code), (0x2D5, 0x2D6, &c.swizzle)] {
+        let used = words.iter().rposition(|&w| w != 0).map_or(0, |last| last + 1);
+        pairs.push(write(offset_reg, 0));
+        pairs.extend(words[..used].iter().map(|&w| write(data_reg, w)));
+    }
+    pairs
+}
+
+#[test]
+fn live_gpu_on_external_memory_matches_the_capture_replay() {
+    // remplissage de A, dessin, transfert vers l'écran : rejoués depuis la capture, puis par `Pica::live` sur une
+    // mémoire tenue ailleurs (comme la réserve du noyau), l'état des registres arrivant par la liste
+    let mut capture = build([[0.05, 0.95], [0.95, 0.95], [0.05, 0.05]]);
+    capture.regions.push(Region { address: 0x1405_0000, data: vec![0x55u8; 0x1000] });
+    let draw = capture.commands.remove(0);
+    capture.commands = vec![
+        Command { words: [2, A, 0x00FF_00FF, A + 0x400, 0, 0, 0, 0x200], data: Vec::new() },
+        draw,
+        Command { words: [3, A, 0x1405_0000, 0x0010_0010, 0x0010_0010, 0x1000, 0, 0], data: Vec::new() },
+    ];
+    let run = |mut pica: Pica, commands: &[Command]| -> (u32, Vec<u8>) {
+        let image = commands.iter().filter_map(|c| pica.run_command(c)).last().expect("une image");
+        pica.finish();
+        (pica.memory.checksum(), image.rgba)
+    };
+    let Ok(replayed) = Pica::new(&capture, 1) else { return };
+    let (replay_crc, replay_image) = run(replayed, &capture.commands);
+    let backings: Vec<Rc<RefCell<Vec<u8>>>> = capture.regions.iter().map(|r| Rc::new(RefCell::new(r.data.clone()))).collect();
+    let mut memory = Memory::default();
+    for (region, backing) in capture.regions.iter().zip(&backings) {
+        let (ptr, len) = {
+            let mut bytes = backing.borrow_mut();
+            (bytes.as_mut_ptr(), bytes.len())
+        };
+        unsafe { memory.map_external(region.address, ptr, len, backing.clone()) };
+    }
+    let mut commands = capture.commands.clone();
+    commands[1].data = [list(&state_as_list(&capture)), commands[1].data.clone()].concat();
+    let (live_crc, live_image) = run(Pica::live(memory, 1).unwrap(), &commands);
+    assert_eq!(live_crc, replay_crc, "la mémoire finale est la même, octet pour octet");
+    assert_eq!(live_image, replay_image, "l'image de l'écran est la même");
+    assert!(live_image.chunks_exact(4).any(|p| p == [255, 0, 0, 255]), "le triangle rouge est à l'écran");
+    assert!(backings[3].borrow().iter().any(|&b| b != 0x55), "le transfert a écrit dans la réserve externe");
 }
 
 #[test]

@@ -11,7 +11,7 @@ question prend une quinzaine de secondes. Voir REA.md pour l'installation côté
 
 Exemple, pour un module dont les noms sont déjà dans fiches/sm.noms.tsv :
 
-    python rea_bridge.py serve REA_GHIDRA_SEED_FILE=/mnt/c/Users/krisr/Documents/RandomProjects/decompil-3ds/fiches/sm.noms.tsv
+    python rea_bridge.py serve REA_GHIDRA_SEED_FILE=C:/.../decompil-3ds/fiches/sm.noms.tsv
     python rea_bridge.py call open_binary '{"path": "/mnt/c/.../local/extrait/sm/exefs/code.elf", "provider_id": "ghidra"}'
     python rea_bridge.py call procedure_pseudo_code '{"procedure": "0x1000a0"}' --save local/analyse/sm service_loop
 

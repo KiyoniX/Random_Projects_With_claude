@@ -443,6 +443,14 @@ def arm_branch(cond, src, dst, link=False):
     return (cond << 28) | (0x0B000000 if link else 0x0A000000) | (((dst - src - 8) >> 2) & 0xFFFFFF)
 
 
+def quiet_holes():
+    """Le code fabriqué est à des adresses du jeu : ses trous (code exécuté sous unicorn) ne doivent pas aller dans
+    local/recomp/trous.txt, que la génération suivante relirait comme des points d'entrée du jeu."""
+    import cpu_native
+    cpu_native.HOLES_FILE = os.path.join(OUT, 'trous.txt')
+    cpu_native.CRO_HOLES_FILE = os.path.join(OUT, 'trous-cro.txt')
+
+
 def test_native_cpu():
     """Un petit programme dans la DLL « hôte » : une boucle, un appel système, un appel vers du code non recompilé
     (exécuté par unicorn) qui rappelle une fonction recompilée, deux fils entrelacés, une boucle d'attente active préemptée
@@ -458,6 +466,7 @@ def test_native_cpu():
         sys.path.insert(0, banc)
     from cpu import Stop
     from cpu_native import NativeCpu
+    quiet_holes()
     from memory import PERM_R, PERM_RW, PERM_RX, AddressSpace
     AL = 14
     main = [0xE52DE004,                                     # 00 push {lr}
@@ -527,18 +536,36 @@ def test_native_cpu():
                  arm_branch(AL, BASE + 0x4E8, BASE + 0x4A0, True),     # 4e8 bl G2
                  0xEF00002A,                                # 4ec svc 0x2a
                  0xE49DF004]                                # 4f0 pop {pc}
-    data = bytearray(0x500)
+    # retour posé par une autre fonction, comme la fin des fils du jeu (0x122f04 : « ldr lr, =0x132d50 » puis un saut) :
+    # J lit dans son pool une adresse au milieu de K et saute à L, qui y « revient » : K doit reprendre là
+    func_k = [0xE92D4010,                                   # 500 push {r4, lr}
+              0xE3A00007,                                   # 504 mov r0, #7
+              arm_branch(AL, BASE + 0x508, BASE + 0x520, True),     # 508 bl J
+              0xE2800005,                                   # 50c add r0, r0, #5   (jamais exécuté)
+              0xE2800FFA,                                   # 510 add r0, r0, #1000    (la reprise)
+              0xEF00002B,                                   # 514 svc 0x2b
+              0xE8BD8010]                                   # 518 pop {r4, pc}
+    func_j = [0xE59FE004,                                   # 520 ldr lr, [pc, #4]      lr = 0x510
+              0xE28F2004,                                   # 524 add r2, pc, #4        r2 = L
+              0xE12FFF12,                                   # 528 bx r2
+              BASE + 0x510]                                 # 52c le pool
+    func_l = [0xE2800001, 0xE12FFF1E]                       # 530 add r0, r0, #1 ; bx lr
+    data = bytearray(0x600)
     for offset, words in ((0, main), (0x100, nat2), (0x200, spin), (0x300, outer), (0x320, inner), (0x340, caller),
                           (0x380, caller_a), (0x3A0, func_b), (0x3C0, func_x), (0x400, func_g), (0x440, func_h),
-                          (0x460, caller_g), (0x4A0, func_g2), (0x4E0, caller_g2)):
+                          (0x460, caller_g), (0x4A0, func_g2), (0x4E0, caller_g2), (0x500, func_k), (0x520, func_j),
+                          (0x530, func_l)):
         data[offset:offset + 4 * len(words)] = struct.pack('<%dI' % len(words), *words)
     hole = struct.pack('<5I', 0xE52DE004, 0xE280000A, arm_branch(AL, 0x200008, BASE + 0x100, True), 0xE2800FFA, 0xE49DF004)
     entries = [(BASE, 0x2C), (BASE + 0x100, 8), (BASE + 0x200, 4), (BASE + 0x300, 0x10), (BASE + 0x320, 8), (BASE + 0x340, 0x18),
                (BASE + 0x380, 0x18), (BASE + 0x3A0, 0x10), (BASE + 0x3C0, 0xC), (BASE + 0x400, 0x28), (BASE + 0x440, 8),
-               (BASE + 0x460, 0x14), (BASE + 0x4A0, 0x18), (BASE + 0x4B8, 8), (BASE + 0x4E0, 0x14)]
+               (BASE + 0x460, 0x14), (BASE + 0x4A0, 0x18), (BASE + 0x4B8, 8), (BASE + 0x4E0, 0x14), (BASE + 0x500, 0x1C),
+               (BASE + 0x520, 0x10), (BASE + 0x530, 8)]
     image = recomp.RawImage(BASE, bytes(data))
     known = set(a for a, _ in entries)
-    results = [recomp.translate_function(a, n, 'arm', image, known) for a, n in entries]
+    returns = recomp.literal_return_targets(image)
+    assert returns == {BASE + 0x510}, returns
+    results = [recomp.translate_function(a, n, 'arm', image, known, resume_targets=returns) for a, n in entries]
     assert all(r.complete for r in results)
     out = os.path.join(OUT, 'cpu_natif')
     files = recomp.write_build(out, results, per_file=500)
@@ -621,6 +648,11 @@ def test_native_cpu():
     cpu.restore(n)
     stop = cpu.run(1_000_000)
     assert stop.kind == Stop.SVC and stop.number == 0x2A and cpu.get('r0') == 1008, (stop, cpu.get('r0'))
+    n = start(BASE + 0x500)
+    cpu.restore(n)
+    stop = cpu.run(1_000_000)
+    assert stop.kind == Stop.SVC and stop.number == 0x2B and cpu.get('r0') == 1008, (stop, cpu.get('r0'))
+    assert not cpu.holes_seen, cpu.holes_seen         # K a repris en natif : en mode natif seul, c'était une faute
     print('  cpu natif : ok (appels système, reprise, hybride, deux fils, préemption, repère, retours non-locaux)')
 
 
@@ -788,6 +820,7 @@ def test_cro_cpu():
         sys.path.insert(0, banc)
     from cpu import Stop
     from cpu_native import NativeCpu
+    quiet_holes()
     from memory import PERM_RW, PERM_RWX, PERM_RX, AddressSpace
     import shutil
     out = os.path.join(OUT, 'cro_cpu')

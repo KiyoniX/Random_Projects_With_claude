@@ -3,21 +3,27 @@
 //!   portage replay <capture> [--scale N] [--out dossier]     rejoue une capture, écrit les PNG des deux écrans
 //!   portage compare <capture> <dossier de référence> [--out dossier]
 //!                                                          compare l'image native avec celle du banc (numpy)
+//!   portage compare-images <dossier de référence> <dossier>  compare les PNG de même nom (ex. banc et runtime --dessiner)
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
+//!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE]
+//!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
+//!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
 //!   portage overlay <dossier pc de mods-build>               lit et contrôle overlay.json et romfs/
 
+mod play;
 mod window;
 
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use capture::Capture;
+use pica::images::{diff, save_png};
 use pica::{Pica, ScreenImage};
 
 fn usage() -> ! {
     eprintln!(
-        "usage :\n  portage replay <capture> [--scale N] [--out dossier]\n  portage compare <capture> <référence> [--out dossier]\n  portage window <capture> [--scale N]"
+        "usage :\n  portage replay <capture> [--scale N] [--out dossier]\n  portage compare <capture> <référence> [--out dossier]\n  portage compare-images <référence> <dossier>\n  portage window <capture> [--scale N]\n  portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE]"
     );
     std::process::exit(2);
 }
@@ -26,11 +32,15 @@ struct Options {
     direct: bool,
     scale: u32,
     out: Option<PathBuf>,
+    /// `play` : quitter après tant de secondes réelles.
+    seconds: Option<f64>,
+    /// `play` : capturer la fenêtre à cette heure du jeu, dans des PNG à ce préfixe.
+    screenshot: Option<(f64, String)>,
     positional: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -39,6 +49,15 @@ fn parse(args: &[String]) -> Options {
                 o.scale = args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage());
             }
             "--direct" => o.direct = true,
+            "--screenshot-at" => {
+                let at = args.get(i + 1).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage());
+                o.screenshot = Some((at, args.get(i + 2).cloned().unwrap_or_else(|| usage())));
+                i += 2;
+            }
+            "--seconds" => {
+                i += 1;
+                o.seconds = Some(args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage()));
+            }
             "--out" => {
                 i += 1;
                 o.out = Some(PathBuf::from(args.get(i).unwrap_or_else(|| usage())));
@@ -59,6 +78,8 @@ pub struct Replayed {
     pub adapter: String,
     pub notes: Vec<(String, u64)>,
     pub stats: pica::render::Stats,
+    /// Le GPU du rendu (pour afficher les images sans second appareil).
+    pub gpu: pica::render::Gpu,
 }
 
 /// Rejoue toutes les commandes d'une capture.
@@ -92,11 +113,8 @@ pub fn replay(capture: &Capture, scale: u32) -> Result<Replayed, String> {
         adapter: pica.renderer.adapter_name.clone(),
         notes: pica.renderer.notes.iter().map(|(k, v)| (k.clone(), *v)).collect(),
         stats: pica.renderer.stats.clone(),
+        gpu: pica.renderer.gpu(),
     })
-}
-
-pub fn save_png(path: &Path, width: usize, height: usize, rgba: &[u8]) -> Result<(), String> {
-    image::save_buffer(path, rgba, width as u32, height as u32, image::ColorType::Rgba8).map_err(|e| e.to_string())
 }
 
 fn name(image: &ScreenImage) -> String {
@@ -138,41 +156,45 @@ fn cmd_replay(o: Options) -> Result<(), String> {
     Ok(())
 }
 
-/// Les chiffres d'une comparaison entre deux images RGB de même taille.
-pub struct Diff {
-    pub mean_abs: f64,
-    pub differing: f64,
-    pub big: f64,
-    pub max: u8,
-    pub image: Vec<u8>,
+/// Les PNG d'un dossier, triés par nom.
+fn png_names(dir: &Path) -> Result<Vec<String>, String> {
+    let entries = std::fs::read_dir(dir).map_err(|e| format!("{} : {e}", dir.display()))?;
+    let mut names: Vec<String> =
+        entries.filter_map(|e| e.ok()?.file_name().into_string().ok()).filter(|n| n.ends_with(".png")).collect();
+    names.sort();
+    Ok(names)
 }
 
-pub fn diff(a_rgba: &[u8], b_rgb: &[u8], b_channels: usize, w: usize, h: usize) -> Diff {
-    let mut sum = 0u64;
-    let (mut differing, mut big, mut max) = (0usize, 0usize, 0u8);
-    let mut image = vec![255u8; w * h * 4];
-    for p in 0..w * h {
-        let mut worst = 0u8;
-        for c in 0..3 {
-            let d = a_rgba[p * 4 + c].abs_diff(b_rgb[p * b_channels + c]);
-            sum += d as u64;
-            worst = worst.max(d);
-        }
-        if worst > 0 {
-            differing += 1;
-        }
-        if worst > 8 {
-            big += 1;
-        }
-        max = max.max(worst);
-        let v = 255 - worst.saturating_mul(8).min(255);
-        image[p * 4..p * 4 + 3].copy_from_slice(&[255, v, v]);
-        if worst == 0 {
-            image[p * 4..p * 4 + 3].copy_from_slice(&[255, 255, 255]);
-        }
+/// Compare image par image deux dossiers de PNG de mêmes noms : écart moyen et maximal de chacune, puis le pire.
+fn cmd_compare_images(o: Options) -> Result<(), String> {
+    if o.positional.len() < 2 {
+        usage();
     }
-    let n = (w * h) as f64;
-    Diff { mean_abs: sum as f64 / (3.0 * n), differing: 100.0 * differing as f64 / n, big: 100.0 * big as f64 / n, max, image }
+    let (reference, dir) = (Path::new(&o.positional[0]), Path::new(&o.positional[1]));
+    let (names, others) = (png_names(reference)?, png_names(dir)?);
+    let (mut compared, mut worst_mean, mut worst_max) = (0usize, 0f64, 0u8);
+    for name in &names {
+        let Ok(image) = image::open(dir.join(name)) else {
+            println!("  {name} : absente de {}", dir.display());
+            continue;
+        };
+        let image = image.to_rgba8();
+        let expected = image::open(reference.join(name)).map_err(|e| format!("{name} : {e}"))?.to_rgb8();
+        if image.dimensions() != expected.dimensions() {
+            println!("  {name} : tailles différentes ({:?} contre {:?})", image.dimensions(), expected.dimensions());
+            continue;
+        }
+        let (w, h) = image.dimensions();
+        let d = diff(image.as_raw(), expected.as_raw(), 3, w as usize, h as usize);
+        println!("  {name} : écart moyen {:.3}/255, écart maximal {}, {:.2} % des points diffèrent", d.mean_abs, d.max, d.differing);
+        compared += 1;
+        worst_mean = worst_mean.max(d.mean_abs);
+        worst_max = worst_max.max(d.max);
+    }
+    let extra = others.iter().filter(|n| !names.contains(n)).count();
+    println!("{compared} image(s) comparée(s) sur {} de référence ({extra} en plus dans {}) ; pire écart moyen {worst_mean:.3}/255, écart maximal {worst_max}",
+        names.len(), dir.display());
+    Ok(())
 }
 
 fn cmd_compare(o: Options) -> Result<(), String> {
@@ -335,6 +357,8 @@ fn main() {
     let result = match command.as_str() {
         "replay" => cmd_replay(options),
         "compare" => cmd_compare(options),
+        "compare-images" => cmd_compare_images(options),
+        "play" => play::run(options.scale, options.seconds, options.screenshot),
         "overlay" => cmd_overlay(options),
         "bench" => cmd_bench(options),
         "window" => window::run(options.positional.first().cloned().unwrap_or_else(|| usage()), options.scale),
@@ -343,21 +367,5 @@ fn main() {
     if let Err(e) = result {
         eprintln!("erreur : {e}");
         std::process::exit(1);
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn diff_counts() {
-        let a = [10u8, 10, 10, 255, 0, 0, 0, 255];
-        let b = [10u8, 10, 10, 0, 0, 30];
-        let d = diff(&a, &b, 3, 2, 1);
-        assert_eq!(d.max, 30);
-        assert!((d.differing - 50.0).abs() < 1e-9);
-        assert!((d.big - 50.0).abs() < 1e-9);
-        assert!((d.mean_abs - 5.0).abs() < 1e-9);
     }
 }

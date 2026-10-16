@@ -219,10 +219,22 @@ struct DepthKey {
     stencil: Option<[u8; 6]>,
 }
 
+/// Le GPU du rendu, pour afficher sans second appareil : une fenêtre crée sa surface depuis `instance` et dessine avec
+/// `device` les textures que rend pica.
+#[derive(Clone)]
+pub struct Gpu {
+    pub instance: wgpu::Instance,
+    pub adapter: wgpu::Adapter,
+    pub device: wgpu::Device,
+    pub queue: wgpu::Queue,
+}
+
 pub struct Renderer {
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
     pub adapter_name: String,
+    instance: wgpu::Instance,
+    adapter: wgpu::Adapter,
     scale: u32,
     /// Vrai (par défaut) : un tampon de rendu vivant qui est lu comme texture sert directement, sans passer par la mémoire.
     pub live_textures: bool,
@@ -418,6 +430,8 @@ impl Renderer {
             device,
             queue,
             adapter_name,
+            instance,
+            adapter,
             scale: scale.max(1),
             live_textures: true,
             layout,
@@ -464,6 +478,10 @@ impl Renderer {
 
     pub fn scale(&self) -> u32 {
         self.scale
+    }
+
+    pub fn gpu(&self) -> Gpu {
+        Gpu { instance: self.instance.clone(), adapter: self.adapter.clone(), device: self.device.clone(), queue: self.queue.clone() }
     }
 
     fn now(&self) -> (Instant, f64) {

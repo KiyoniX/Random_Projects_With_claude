@@ -650,9 +650,10 @@ pub fn repo_root() -> PathBuf {
 }
 
 pub fn python() -> Option<PathBuf> {
+    let local = std::env::var("LOCALAPPDATA").unwrap_or_default();
     let candidates = [
-        PathBuf::from(r"C:\Users\krisr\AppData\Local\Programs\Python\Python312\python.exe"),
         PathBuf::from("python"),
+        PathBuf::from(local).join(r"Programs\Python\Python312\python.exe"),
     ];
     candidates.into_iter().find(|c| Command::new(c).arg("--version").output().map(|o| o.status.success()).unwrap_or(false))
 }

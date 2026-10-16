@@ -13,3 +13,6 @@ hostcpu = { path = "../hostcpu" }
 services = { path = "../services" }
 romfs = { path = "../romfs" }
 overlay = { path = "../overlay" }
+pica = { path = "../pica" }
+capture = { path = "../capture" }
+formats = { path = "../formats" }

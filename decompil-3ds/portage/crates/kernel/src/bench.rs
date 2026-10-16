@@ -48,12 +48,15 @@ pub struct BenchState {
     pub ro_steps: Vec<String>,
     pub command_lists: u64,
     pub vblanks: u64,
+    /// L'heure (ns) de la dernière fin d'image : la suivante tombe `VBLANK_NS` plus tard.
+    pub last_vblank: u64,
     pub lcd_unblacked: Option<u64>,
     pub loop_turns: u64,
     pub stop_request: Option<String>,
     pub events: Vec<(u64, String)>,
     pub stats: BTreeMap<String, u64>,
     pub start_milliseconds: u64,
+    /// Les boutons tenus en direct (le clavier de la fenêtre), en plus des appuis programmés.
     pub buttons: u32,
     pub turns_limit: u64,
 }
@@ -129,7 +132,7 @@ impl Kernel {
 
     pub fn buttons_now(&self) -> u32 {
         let seconds = self.now as f64 / 1e9;
-        let mut mask = 0;
+        let mut mask = self.bench.buttons;
         for &(start, duration, bits) in &self.bench.presses {
             if start <= seconds && seconds < start + duration {
                 mask |= bits;

@@ -289,59 +289,6 @@ impl GpuState {
     }
 }
 
-/// Les listes se chaînent par les registres de saut du processeur de commandes (0x238/0x239 taille, 0x23A/0x23B adresse
-/// physique, en unités de 8 octets ; l'écriture de 0x23C ou 0x23D avec le bit 0 déclenche le saut) : le reste du tampon
-/// courant est abandonné et la lecture continue dans le tampon visé (port de `follow_jumps` de `banc/services/gsp.py`).
-/// Rend les octets mis bout à bout. À appliquer **une seule fois** : les listes d'une capture sont déjà suivies par
-/// `replay.py` à l'enregistrement.
-pub fn follow_jumps(memory: &crate::memory::Memory, data: &[u8]) -> Vec<u8> {
-    const MAX_JUMPS: usize = 20000;
-    let mut out = Vec::new();
-    let mut regs = std::collections::HashMap::<usize, u32>::new();
-    let mut data = data.to_vec();
-    for _ in 0..=MAX_JUMPS {
-        let words: Vec<u32> = data.chunks_exact(4).map(|c| u32::from_le_bytes(c.try_into().unwrap())).collect();
-        let mut i = 0usize;
-        let mut target: Option<usize> = None;
-        while i + 1 < words.len() && target.is_none() {
-            let header = words[i + 1];
-            let register = (header & 0xFFFF) as usize;
-            let extra = ((header >> 20) & 0x7FF) as usize;
-            let consecutive = header >> 31 != 0;
-            if i + 2 + extra > words.len() {
-                i = words.len();
-                break;
-            }
-            for k in 0..=extra {
-                let reg = register + if consecutive { k } else { 0 };
-                let value = if k == 0 { words[i] } else { words[i + 1 + k] };
-                regs.insert(reg, value);
-                if (reg == 0x23C || reg == 0x23D) && value & 1 != 0 {
-                    target = Some(reg - 0x23C);
-                }
-            }
-            i += 2 + extra + (extra & 1);
-        }
-        match target {
-            None => {
-                out.extend_from_slice(&data);
-                break;
-            }
-            Some(t) => {
-                out.extend_from_slice(&data[..(i * 4).min(data.len())]);
-                let physical = regs.get(&(0x23A + t)).copied().unwrap_or(0).wrapping_mul(8);
-                let size = regs.get(&(0x238 + t)).copied().unwrap_or(0).wrapping_mul(8) as usize;
-                let next = crate::memory::translate(physical).and_then(|a| memory.read(a, size).map(|d| d.into_owned()));
-                match next {
-                    Some(d) if !d.is_empty() => data = d,
-                    _ => break,
-                }
-            }
-        }
-    }
-    out
-}
-
 impl Default for GpuState {
     fn default() -> Self {
         GpuState::new()
@@ -359,25 +306,6 @@ mod tests {
             out.extend_from_slice(&header.to_le_bytes());
         }
         out
-    }
-
-    #[test]
-    fn jumps_are_followed() {
-        use crate::memory::Memory;
-        let mut m = Memory::default();
-        // le tampon visé, à l'adresse du jeu 0x14000000 (physique 0x20000000) : une écriture de 0x100
-        let target = list(&[(7, 0x000F_0000 | 0x100), (0, 0)]);
-        let mut page = target.clone();
-        page.resize(0x1000, 0);
-        m.map(0x1400_0000, &page);
-        // liste de départ : taille (0x238), adresse (0x23A), déclenchement (0x23C), puis une écriture qui doit être abandonnée
-        let start = list(&[(2, 0x000F_0000 | 0x238), (0x2000_0000 >> 3, 0x000F_0000 | 0x23A), (1, 0x000F_0000 | 0x23C),
-                           (9, 0x000F_0000 | 0x101), (0, 0)]);
-        let all = follow_jumps(&m, &start);
-        let mut s = GpuState::new();
-        s.process_list(&all, |_, _| {});
-        assert_eq!(s.regs[0x100], 7);
-        assert_eq!(s.regs[0x101], 0, "la fin du tampon de départ est abandonnée");
     }
 
     #[test]

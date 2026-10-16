@@ -13,6 +13,9 @@ use kernel::kernel::{CONFIG_PAGE, Kernel, SHARED_PAGE};
 use kernel::memory::{AddressSpace, PAGE, PERM_R, PERM_RW, PERM_RWX, PERM_RX, align_up};
 use kernel::names::Names;
 use kernel::object::SharedService;
+use services::gsp::GpuBackend;
+
+use crate::gpu::{NoDrawing, PicaBackend, Shared};
 
 /// Les sections, la pile, la priorité du fil principal d'après l'exheader (3dbrew, « NCCH/Extended Header »).
 #[derive(Debug, Clone)]
@@ -54,6 +57,11 @@ pub struct Options {
     pub mod_dir: Option<PathBuf>,
     pub log_all_svc: bool,
     pub max_lines: usize,
+    /// Dessiner avec `pica` (comme `banc/run.py --dessiner`), à cette échelle ; les PNG vont dans `out/images`.
+    pub draw: bool,
+    pub scale: u32,
+    /// Avec `draw` : l'affichage en direct d'une fenêtre (ni PNG ni relecture des images).
+    pub live: bool,
 }
 
 impl Options {
@@ -69,6 +77,9 @@ impl Options {
             mod_dir: None,
             log_all_svc: true,
             max_lines: 400_000,
+            draw: false,
+            scale: 1,
+            live: false,
         }
     }
 
@@ -98,7 +109,30 @@ pub struct Bench {
     pub options: Options,
     pub elapsed: f64,
     pub services: Vec<(String, SharedService)>,
+    /// Avec `draw` : les chiffres du dessin, les dernières images des écrans et le GPU.
+    pub drawing: Option<Shared>,
 }
+
+/// La racine du dépôt `decompil-3ds` : `$DECOMPIL_ROOT`, sinon le premier parent qui a `etat.json` et `banc/`.
+pub fn find_root() -> PathBuf {
+    if let Ok(root) = std::env::var("DECOMPIL_ROOT") {
+        return PathBuf::from(root);
+    }
+    let mut dir = std::env::current_dir().unwrap_or_default();
+    loop {
+        if dir.join("etat.json").is_file() && dir.join("banc").is_dir() {
+            return dir;
+        }
+        if !dir.pop() {
+            break;
+        }
+    }
+    PathBuf::from(".")
+}
+
+/// Les boutons de la console et leur bit dans le masque de `hid`.
+pub const BUTTONS: [(&str, u32); 12] = [("A", 0x1), ("B", 0x2), ("SELECT", 0x4), ("START", 0x8), ("RIGHT", 0x10), ("LEFT", 0x20),
+    ("UP", 0x40), ("DOWN", 0x80), ("R", 0x100), ("L", 0x200), ("X", 0x400), ("Y", 0x800)];
 
 /// Jours depuis 1900-01-01 pour une date du calendrier grégorien (algorithme de Howard Hinnant).
 fn days_since_1900(year: i64, month: i64, day: i64) -> i64 {
@@ -131,7 +165,7 @@ impl Bench {
         kernel.bench.presses = options.presses.clone();
         kernel.bench.region = 2;
         kernel.bench.turns_limit = options.turns;
-        let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new() };
+        let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None };
         bench.map_program()?;
         bench.register_services()?;
         bench.kernel.watch_milestones()?;
@@ -207,7 +241,7 @@ impl Bench {
         k.bench.events.push((0, note));
         let srv = Rc::new(RefCell::new(Srv::new(k)));
         let errf = Rc::new(RefCell::new(ErrF));
-        let mut add = |k: &mut Kernel, name: &str, service: SharedService, list: &mut Vec<(String, SharedService)>| {
+        let add = |k: &mut Kernel, name: &str, service: SharedService, list: &mut Vec<(String, SharedService)>| {
             k.services.insert(name.to_string(), service.clone());
             list.push((name.to_string(), service));
         };
@@ -220,13 +254,17 @@ impl Bench {
         let dsp = Dsp::new_shared(k);
         let hid = Rc::new(RefCell::new(Hid::new(k)));
         let gsp = Gsp::new_shared(k, hid.clone());
-        {
-            // Les transferts vers l'écran et les copies de texture appartiennent à `pica` (pas branché ici) : ils sont
-            // notés au journal comme au banc, sans écrire la mémoire. Le journal reste identique ; l'image n'existe pas.
-            let mut g = gsp.borrow_mut();
-            g.display_transfer = Some(Box::new(|_k: &mut Kernel, _words: [u32; 5]| String::new()));
-            g.texture_copy = Some(Box::new(|_k: &mut Kernel, _words: [u32; 6]| Ok(())));
-        }
+        // Sans dessin, les transferts vers l'écran et les copies de texture sont notés au journal comme au banc, sans
+        // écrire la mémoire : le journal reste identique, l'image n'existe pas.
+        let backend: Box<dyn GpuBackend> = if self.options.draw {
+            let folder = (!self.options.live).then(|| self.options.out.join("images"));
+            let backend = PicaBackend::new(k, self.options.scale, folder)?;
+            self.drawing = Some(backend.shared());
+            Box::new(backend)
+        } else {
+            Box::new(NoDrawing)
+        };
+        gsp.borrow_mut().backend = Some(backend);
         add(k, "gsp::Gpu", gsp, &mut list);
         add(k, "dsp::DSP", dsp, &mut list);
         add(k, "hid:USER", hid, &mut list);
@@ -282,6 +320,14 @@ impl Bench {
         reason
     }
 
+    /// Fait avancer le jeu jusqu'à `limit_ns` du banc, pour une boucle d'affichage qui le mène par tranches (après
+    /// `start`) ; rend la raison d'un arrêt avant la limite (demande d'arrêt, interblocage, faute).
+    pub fn run_slice(&mut self, limit_ns: u64) -> Option<String> {
+        let mut should_stop = |k: &mut Kernel| k.bench.stop_request.clone();
+        let reason = self.kernel.run(limit_ns, &mut should_stop);
+        (self.kernel.now < limit_ns).then_some(reason)
+    }
+
     /// Le résumé en texte (palier, arrêt, fils, comptes) : l'équivalent court de `resume.md`.
     pub fn summary(&mut self, reason: &str) -> String {
         let mut lines = Vec::new();
@@ -301,6 +347,11 @@ impl Bench {
             .map(|(n, c)| format!("{} {}", self.kernel.journal.names.svc(*n), c))
             .collect();
         lines.push(format!("Appels système : {}", counts.join(", ")));
+        if let Some(drawing) = &self.drawing {
+            let s = drawing.stats.borrow();
+            lines.push(format!("Dessin : {} commandes de gsp, {:.2} s dans pica, {:.3} s dans touch_all ({:.1} µs par commande), {} paires d'images",
+                s.commands, s.pica_seconds, s.touch_seconds, 1e6 * s.touch_seconds / s.commands.max(1) as f64, s.snapshots));
+        }
         lines.join("\n")
     }
 }

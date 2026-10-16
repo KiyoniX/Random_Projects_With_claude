@@ -134,13 +134,20 @@ pub fn display_ranges(source: u32, destination: u32, in_dim: u32, out_dim: u32, 
     ((source, in_w.div_ceil(8) * in_h.div_ceil(8) * 64 * in_unit), (destination, written))
 }
 
+/// Plus grand remplissage accepté, comme gsp : au-delà, la commande est refusée (une fin avant le début aussi).
+const MAX_FILL: u32 = 0x2000_0000;
+
+/// Les zones (début, longueur, valeur, contrôle) de la commande 2 qui sont vraiment remplies.
+fn fill_zones(words: &[u32; 8]) -> impl Iterator<Item = (u32, usize, u32, u32)> {
+    [(words[1], words[2], words[3], words[7] & 0xFFFF), (words[4], words[5], words[6], words[7] >> 16)]
+        .into_iter()
+        .filter(|&(start, _, end, _)| start != 0 && end > start && end - start <= MAX_FILL)
+        .map(|(start, value, end, control)| (start, (end - start) as usize, value, control))
+}
+
 /// Les plages (début, longueur) que remplit la commande 2.
 pub fn fill_ranges(words: &[u32; 8]) -> Vec<(u32, usize)> {
-    [(words[1], words[3]), (words[4], words[6])]
-        .into_iter()
-        .filter(|&(start, _)| start != 0)
-        .map(|(start, end)| (start, end.wrapping_sub(start) as usize))
-        .collect()
+    fill_zones(words).map(|(start, size, _, _)| (start, size)).collect()
 }
 
 /// La plage (lue ou écrite, la même pour les deux, en surestimant) que parcourt la commande 4 pour `size` octets utiles.
@@ -154,16 +161,9 @@ pub fn copy_span(size: u32, dim: u32) -> usize {
 
 /// Commande 2 : remplissages de mémoire.
 pub fn memory_fill(memory: &mut Memory, words: &[u32; 8]) {
-    for (start, value, end, control) in [
-        (words[1], words[2], words[3], words[7] & 0xFFFF),
-        (words[4], words[5], words[6], words[7] >> 16),
-    ] {
-        if start == 0 {
-            continue;
-        }
+    for (start, size, value, control) in fill_zones(words) {
         let width = ((control >> 8) & 3).min(2) as usize;
         let pattern = &value.to_le_bytes()[..[2usize, 3, 4][width]];
-        let size = end.wrapping_sub(start) as usize;
         // le motif répété : on le recopie par doublement (bien plus vite qu'un octet à la fois)
         let mut data: Vec<u8> = Vec::with_capacity(size + 4);
         data.extend_from_slice(pattern);
@@ -246,5 +246,20 @@ mod tests {
         assert_eq!(&*m.read(0x1400_0000, 8).unwrap(), &[0x44, 0x33, 0x22, 0x11, 0x44, 0x33, 0x22, 0x11]);
         texture_copy(&mut m, 0x1400_0000, 0x1400_0100, 8, 0, 0);
         assert_eq!(&*m.read(0x1400_0100, 4).unwrap(), &[0x44, 0x33, 0x22, 0x11]);
+    }
+
+    #[test]
+    fn bad_fills_are_refused() {
+        // fin avant le début (sinon ~4 Go à remplir), fin égale au début, taille au-delà de 0x20000000
+        for words in [[2, 0x1400_0010, 0xFF, 0x1400_0000, 0, 0, 0, 0x200],
+                      [2, 0x1400_0010, 0xFF, 0x1400_0010, 0, 0, 0, 0x200],
+                      [2, 0x1400_0000, 0xFF, 0x3400_0001, 0, 0, 0, 0x200]] {
+            assert!(fill_ranges(&words).is_empty());
+        }
+        let mut m = Memory::default();
+        m.map(0x1400_0000, &vec![0u8; 0x1000]);
+        memory_fill(&mut m, &[2, 0x1400_0010, 0xFF, 0x1400_0000, 0x1400_0020, 0xFF, 0x1400_0022, 0x200 << 16]);
+        assert_eq!(&*m.read(0x1400_0000, 0x24).unwrap(), &[[0; 0x20].as_slice(), &[0xFF, 0, 0, 0]].concat()[..]);
+        assert_eq!(fill_ranges(&[2, 0x1400_0010, 0xFF, 0x1400_0000, 0x1400_0020, 0xFF, 0x1400_0022, 0]), vec![(0x1400_0020, 2)]);
     }
 }

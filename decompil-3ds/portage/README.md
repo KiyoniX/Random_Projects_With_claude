@@ -191,7 +191,30 @@ cargo build --release
 target/release/runtime run --seconds 3 --out ../local/analyse/runtime/rust      # le jeu sur le noyau Rust
 python ../banc/run.py --cpu natif --secondes 3 --sortie ../local/analyse/runtime/ref   # la référence
 target/release/runtime compare ../local/analyse/runtime/ref/journal.txt ../local/analyse/runtime/rust/journal.txt
+# avec le dessin : pica en direct, une paire de PNG par seconde dans images/, aux noms du banc --dessiner
+target/release/runtime run --seconds 12 --dessiner [--scale N] --out ../local/analyse/runtime/rust12d
+python ../banc/run.py --cpu natif --dessiner --secondes 12 --sortie ../local/analyse/runtime/ref12d
+target/release/portage compare-images ../local/analyse/runtime/ref12d/images ../local/analyse/runtime/rust12d/images
+# le jeu en direct dans une fenêtre (journal dans local/analyse/runtime/play/)
+target/release/portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE]
 ```
+
+`portage play` mène le runtime par tranches depuis la boucle de la fenêtre, sur un seul fil : le temps du jeu suit le
+temps réel (deux images de retard au plus ; au-delà, le jeu ralentit). Les images des écrans sont les textures que pica
+construit sur le GPU, présentées par le même appareil (la surface vient de l'instance du rendu) ; le titre donne les
+présentations par seconde, les images du jeu par seconde et la vitesse par rapport au temps réel. `--screenshot-at T
+PRÉFIXE` écrit `PRÉFIXEhaut.png` et `PRÉFIXEbas.png`, ce que présente la fenêtre juste avant la première fin d'image à
+l'heure T du jeu ou après, l'instant où le banc `--dessiner` prend les siennes : avec le nom d'une image du banc pour
+préfixe, `compare-images` les met face à face.
+
+| Touche | Bouton | Touche | Bouton |
+| --- | --- | --- | --- |
+| X | A | Entrée | START |
+| Z | B | Retour arrière | SELECT |
+| S | X | Flèches | croix directionnelle |
+| A | Y | Q / W | L / R |
+
+Échap quitte. Les touches tenues s'ajoutent aux appuis programmés (`--appuis`) au moment où `hid` lit les boutons.
 
 Il faut la DLL `local/recomp/jeu/build/jeu-hote.dll` (voir `recomp/README.md`). Le journal est écrit au format de
 `banc/journal.py`, ligne pour ligne. `compare` donne trois niveaux (exact, sans l'heure, sans l'heure ni le « où »).
@@ -199,11 +222,19 @@ Il faut la DLL `local/recomp/jeu/build/jeu-hote.dll` (voir `recomp/README.md`). 
 **Fait (16/10)** : sur 3 s de banc (`--cpu natif`, avec les `.cro` recompilés branchés), le journal Rust et celui du banc
 Python sont **identiques sur les 10 313 lignes** (heure comprise) : mêmes appels système, mêmes requêtes IPC, mêmes
 réponses, même horloge, paliers P1 à P5. Avec un mod (`--mod`) le romfs est superposé par les crates `overlay` et `romfs`.
+Sur 12 s, avec ou sans `--dessiner`, les journaux sont identiques à ceux du banc (33 032 lignes). Avec `--dessiner`,
+`gsp::GpuBackend` est branché sur `pica::Pica::live`, projeté sans copie sur le tas linéaire et la mémoire vidéo du
+noyau : les 24 images des 12 s sont celles du banc à 0,12/255 près en moyenne (écrans du bas identiques), en 9 s de PC
+contre 196 s pour le banc ; `touch_all` avant chaque commande coûte environ 7 µs. Sans `--dessiner`, le GPU est sans
+dessin : les transferts sont notés au journal comme au banc mais la mémoire vidéo n'est pas écrite.
 
-**Pas fait** : les transferts vers l'écran et copies de texture de `gsp` (crochets `Gsp::display_transfer` et
-`texture_copy`, à brancher sur `pica` ; le journal les note comme le banc mais la mémoire vidéo n'est pas écrite) ; le
-mode hybride (unicorn) : un saut vers du code non recompilé est une faute ; le son ; la comparaison des exécutions
-longues (> 3 s) ; la comparaison avec un mod n'a pas été refaite après la mise à jour de la DLL.
+En direct (`portage play`), le jeu tient le temps réel (vitesse 1,00, 30 images du jeu par seconde, présentation à la
+fréquence de l'écran), la première image du jeu est présentée vers 0,3 s, et la fenêtre capturée aux instants du banc
+est, octet pour octet, l'image PNG de `runtime run --dessiner` (8,19 s et 11,23 s). Le journal d'une partie en direct
+est celui de `runtime run` : le découpage en tranches ne change rien au jeu.
+
+**Pas fait** : le mode hybride (unicorn) : un saut vers du code non recompilé est une faute (le jeu s'arrête à 12,26 s) ;
+le son ; la comparaison avec un mod n'a pas été refaite après la mise à jour de la DLL.
 
 ### Vitesse
 

@@ -3,8 +3,8 @@ window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-10-16",
- "prochaine_action": "Point d'arrêt du 16/10 au soir (commit et push, passage sur le PC fixe). Tous les modules système ont une fiche ; le terrain s'affiche en entier, au banc et dans le portage Rust à 60 images/s ; le moteur de mods sort pour Luma et pour le PC ; le processeur natif tourne dans le banc. En cours au moment de l'arrêt (voir le journal) : recompiler les .cro (condition du gain de vitesse), et le runtime Rust (noyau, IPC, services) qui doit atteindre P1-P2 comme le banc. Ensuite : écarts des dernières fiches dans la Carte, nim à compléter, le son, les applets, et brancher le runtime Rust sur le rendu pour jouer en fenêtre.",
+ "mise_a_jour": "2026-10-17",
+ "prochaine_action": "Le jeu tourne en direct dans la fenêtre du portage Rust (portage play) jusqu'au terrain, en temps réel. Ensuite : les correctifs de la relecture de l'étape 5 (local/analyse/plan-fenetre-directe.md : erreurs des transferts, zones non mappées, images gardées par destination), le cache des pipelines sur disque, finir le cycle des trous (.cro : les ldr lr littéraux), puis les écarts des dernières fiches dans la Carte, nim, le son et les applets.",
  "fonctions": {
   "total": 23883,
   "identifiees": 23883,
@@ -364,7 +364,7 @@ window.ETAT = {
     },
     {
      "t": "Portage Rust : fenêtre en direct sans relecture du GPU (Pica::readback = false)",
-     "fait": false
+     "fait": true
     },
     {
      "t": "Processeur natif branché dans le banc (--cpu hybride) jusqu'à DllField, sans faute",
@@ -428,10 +428,10 @@ window.ETAT = {
     },
     {
      "t": "Portage Rust : brancher pica sur les transferts de gsp (l'écran-titre en direct dans la fenêtre)",
-     "fait": false
+     "fait": true
     },
     {
-     "t": "Portage Rust : comparer au banc au-delà de 3 s, et avec --mod",
+     "t": "Portage Rust : comparer au banc avec --mod (au-delà de 3 s : fait, 56 014 lignes identiques sur 20 s)",
      "fait": false
     },
     {
@@ -448,9 +448,9 @@ window.ETAT = {
    "role": "L'outil principal du parcours : un serveur MCP qui donne à Claude Code la main sur Ghidra (pseudo-code, chaînes, références, symboles) et exige les preuves de chaque conclusion. On lui demande, puis on vérifie dans Ghidra. La version Windows n'ouvre que des exécutables PE x86 : pour notre ARM, c'est l'entrée « rea-wsl » (REA et Ghidra dans Ubuntu sous WSL, ARM v6 imposé), branchée le 2026-10-13. Voir outils/REA.md.",
    "ou": "Paquet npm rea-agents 6.4.0 : « rea » (Windows) et « rea-wsl » (Ubuntu) dans ~/.claude.json",
    "lieu": "pc",
-   "present": true,
+   "present": false,
    "lien": "https://github.com/morluto/rea",
-   "note": "Paquet installé, déclaration MCP trouvée, Node 22+ présent"
+   "note": "Paquet installé, déclaration MCP absente, Node 22+ présent"
   },
   {
    "id": "luma",
@@ -512,7 +512,7 @@ window.ETAT = {
    "role": "La chaîne de compilation des homebrews et le GDB qui parle à Rosalina. Installateur graphique, puis le paquet 3ds-dev.",
    "ou": "C:\\devkitPro",
    "lieu": "pc",
-   "present": true,
+   "present": false,
    "lien": "https://devkitpro.org/wiki/Getting_Started"
   },
   {
@@ -784,6 +784,10 @@ window.ETAT = {
   {
    "date": "2026-10-16",
    "texte": "Portage Rust : le runtime. Le noyau de la console (mémoire, objets, ordonnanceur et horloge du banc, 41 appels système, IPC), les services du démarrage (srv, APT, fs avec les mods par overlay, gsp, dsp, hid, cfg, ptm, ldr:ro et les treize modules simplifiés), le chargeur de .cro et le processeur recompilé (jeu-hote.dll, une fibre par fil) sont réécrits en Rust. Sur 3 s de banc, avec les .cro recompilés branchés, le journal Rust est identique ligne à ligne, heure comprise, à celui de python banc/run.py --cpu natif : 10 313 lignes, paliers P1 à P5, en 9,3 s de PC. Le chargeur de .cro en Rust donne les mêmes rapports que cro_loader.py sur les 133 modules. Reste à brancher le rendu pica sur les transferts de gsp pour voir le jeu en direct."
+  },
+  {
+   "date": "2026-10-17",
+   "texte": "Reprise sur le PC fixe et le jeu en direct dans une fenêtre. local/ remonté depuis les zips (19 966 fichiers vérifiés), Ghidra 12.1.4, JDK 21, ctrtool, makerom, WSL Ubuntu avec REA 6.5.0 et /opt/ghidra réinstallés ; REFERENCES.md recense les projets voisins (3dsrecomp, PokeXYZ-RDComp : même SHA-256 de code.bin v1.5). Le runtime Rust pilote pica en direct (gsp::GpuBackend, mémoire du noyau partagée sans copie) : runtime run --dessiner donne les images du banc (bas identiques, haut à 0,12/255 près, le biais d'arrondi déjà vu au rejeu), et portage play affiche le jeu en temps réel (30 images/s, clavier vers hid), image de la fenêtre identique octet pour octet aux PNG. recomp.py trouve les prologues que Ghidra manque (« str lr, [sp, #-4]! » de l'assembleur écrit à la main, entrées « mov r5 ; mov r6 ; push » des décodeurs de bits) : 26 183 fonctions ; et reprend une adresse de retour posée par une autre fonction (ldr lr littéral, 0x122f04 -> 0x132d50, la sortie des fils). Avec --appuis 14:START,16:A,18:A, le runtime Rust va sans faute jusqu'à 60 s et au terrain (palais Chaydeuvre), 30 s de jeu en 30,1 s de PC dessin compris ; journal identique au banc natif sur 20 s (56 014 lignes)."
   }
  ],
  "dump": {

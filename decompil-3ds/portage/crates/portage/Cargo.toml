@@ -8,6 +8,8 @@ capture = { path = "../capture" }
 pica = { path = "../pica" }
 formats = { path = "../formats" }
 overlay = { path = "../overlay" }
+runtime = { path = "../runtime" }
+services = { path = "../services" }
 image.workspace = true
 winit.workspace = true
 wgpu.workspace = true

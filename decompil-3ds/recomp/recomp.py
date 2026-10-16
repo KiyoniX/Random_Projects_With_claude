@@ -175,11 +175,33 @@ def manual_return_targets(insns):
     return out
 
 
-def translate_function(addr, size, mode, image, known, comments=None, limit=None, hooks=(), module=None):
+def literal_return_targets(image):
+    """Les adresses de retour qu'une fonction donne à lr pour une autre : « ldr lr, [pc, #imm] » lit dans son pool une
+    adresse du code. Le fil du jeu finit ainsi (0x122f04 : lr = 0x132d50, le « svc ExitThread » de l'entrée des fils,
+    0x132d10, puis un saut vers une fonction qui change de pile) : la cible est dans une autre fonction que celle qui
+    pose lr, et c'est elle qui doit y reprendre (voir RT_POPC)."""
+    text = image.text
+    lo, hi = text.address, text.address + len(text.data)
+    out = set()
+    for off in range(0, len(text.data) - 3, 4):
+        w = struct.unpack_from('<I', text.data, off)[0]
+        if w & 0xFF7FF000 != 0xE51FE000:
+            continue
+        pool = lo + off + 8 + ((w & 0xFFF) if w & 0x00800000 else -(w & 0xFFF))
+        if lo <= pool <= hi - 4:
+            target = struct.unpack_from('<I', text.data, pool - lo)[0]
+            if lo <= target < hi and not target & 3:
+                out.add(target)
+    return out
+
+
+def translate_function(addr, size, mode, image, known, comments=None, limit=None, hooks=(), module=None, resume_targets=()):
     """Traduit une fonction en C. `known` : adresses des fonctions qui seront dans la même construction. `hooks` :
     adresses d'instructions où poser un repère RT_HOOK (en plus de l'entrée de chaque fonction). `module` : un objet
     de recomp/cro_recomp.py quand la fonction est celle d'un module .cro, traduite à une adresse factice : les adresses
-    qui en dérivent sont réécrites à partir de la base réelle du module (voir `module.rewrite`)."""
+    qui en dérivent sont réécrites à partir de la base réelle du module (voir `module.rewrite`). `resume_targets` : les
+    adresses de retour posées à la main ailleurs (`literal_return_targets`) ; celles qui tombent dans la fonction y
+    deviennent des reprises."""
     if mode == 'thumb':
         import thumbdec
         decoder = thumbdec
@@ -231,6 +253,7 @@ def translate_function(addr, size, mode, image, known, comments=None, limit=None
     if mode != 'thumb':
         for t in manual_return_targets(insns):
             (resume if t in insns else resume_out).add(t)
+        resume.update(t for t in resume_targets if t in insns)
         labels.update(resume)
     ret_pattern = re.compile(r'c->r\[15\] = (\w+); RT_SAVE\(\); return;')
 
@@ -388,6 +411,11 @@ def write_build(out_dir, results, per_file=400, by_address=False):
 # La ligne de commande
 # ---------------------------------------------------------------------------------------------------------------------
 
+def is_arm_prologue(word):
+    """Un début de fonction ARM : « push {..., lr} » du compilateur, ou « str lr, [sp, #-4]! » de l'assembleur écrit à la main."""
+    return (word & 0xFFFF4000) == 0xE92D4000 or word == 0xE52DE004
+
+
 def function_limits(functions, image):
     """Pour chaque fonction, le début de la suivante (ou la fin du code) : jusqu'où elle peut s'étendre."""
     starts = sorted(set(f[0] for f in functions))
@@ -415,14 +443,18 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
     results = []
     done = 0
     pending = tuple(seeds)
+    scanned = False
+    replaced = set()
     text = image.text
     text_lo, text_hi = text.address, text.address + len(text.data)
+    returns = literal_return_targets(image)
     while True:
         known = set(f[0] | (1 if f[2] == 'thumb' else 0) for f in todo)
         limits = function_limits(todo, image)
         for n in range(done, len(todo)):
             addr, size, mode, name = todo[n]
-            results.append(translate_function(addr, size, mode, image, known, comments, limits.get(addr), hooks))
+            results.append(translate_function(addr, size, mode, image, known, comments, limits.get(addr), hooks,
+                                              resume_targets=returns))
             if progress and n % 2000 == 0:
                 print('  %d / %d fonctions' % (n, len(todo)), file=sys.stderr)
         done = len(todo)
@@ -438,16 +470,39 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
             for m in DISPATCH_CONST.finditer(r.source):
                 target = int(m.group(1), 16)
                 base = target & ~1
-                if text_lo <= base < text_hi and target not in keys and target not in found:
+                if text_lo <= base < text_hi and target not in keys and target not in found and base not in replaced:
                     found[target] = 'thumb' if target & 1 else 'arm'
+        if not found and not scanned:
+            # Plus rien d'atteint par les appels et les sauts : les prologues ARM que personne n'a couverts. Le code écrit à
+            # la main du jeu (vers 0x1ace00 et 0x1b9e00) commence par « str lr, [sp, #-4]! » que Ghidra ne reconnaît pas,
+            # et n'est atteint que par des pointeurs : sans ce balayage, le banc ne le trouve qu'en y tombant.
+            scanned = True
+            covered = set(i.addr for r in results for i in r.insns)
+            for off in range(0, len(text.data) - 3, 4):
+                address = text_lo + off
+                if address not in covered and address not in keys and is_arm_prologue(struct.unpack_from('<I', text.data, off)[0]):
+                    # Les entrées des décodeurs de bits (tables « add pc, r5, r6 ») posent leurs paramètres avant le
+                    # push : « mov r5, #a ; mov r6, #b ; push {...} ». L'entrée est le premier mov.
+                    for _ in range(2):
+                        before = address - 4
+                        if before < text_lo or before in covered or before in keys:
+                            break
+                        if struct.unpack_from('<I', text.data, before - text_lo)[0] & 0xFFFF0000 != 0xE3A00000:
+                            break
+                        address = before
+                    found[address] = 'arm'
+            if progress:
+                print('  %d prologues ARM hors des fonctions connues' % len(found), file=sys.stderr)
         if not found:
             return results
         # Ghidra a parfois nommé « fonction » un bout de données ou de code dans l'autre mode, à une adresse où du code
         # (atteint par une chute ou un saut) continue : le code atteint l'emporte, l'autre fonction est retirée.
+        # Une seule fois par adresse : deux bouts de code qui l'atteignent chacun dans un mode la feraient basculer sans fin.
         starts = set(f[0] for f in todo)
         for target, mode in sorted(found.items()):
             base = target & ~1
             if base in starts:
+                replaced.add(base)
                 todo[:] = [f for f in todo if f[0] != base]
                 results[:] = [r for r in results if r.addr != base]
                 done = len(todo)

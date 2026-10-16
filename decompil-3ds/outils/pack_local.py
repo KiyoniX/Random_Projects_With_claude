@@ -17,7 +17,9 @@ LIMIT = 950 * 1024 * 1024
 PIECE = 900 * 1024 * 1024
 INCLUDE_DIRS = ['dump', 'extrait', 'outils', 'telechargements', 'pylib', 'sd', 'sauvegarde-sd', 'mods-build',
                 'portage/captures', 'analyse/terrain/rec2']
-INCLUDE_FILES = ['recomp/trous.txt', 'recomp/trous-cro.txt']
+# funcs.tsv et refs.tsv de la mise à jour : recomp.py, le banc et le portage en ont besoin, et les refaire coûte une
+# analyse Ghidra complète (ghidra_direct.py maj).
+INCLUDE_FILES = ['recomp/trous.txt', 'recomp/trous-cro.txt', 'analyse/maj/gh/funcs.tsv', 'analyse/maj/gh/refs.tsv']
 INCLUDE_GLOBS = [('analyse/pica', '.pkl')]
 
 

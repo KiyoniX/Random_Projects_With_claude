@@ -11,9 +11,10 @@
 //!
 //! Les listes de commandes PICA sont toujours lues et comptées (nombre, taille, registres visés, ordres de dessin) ; ici
 //! rien n'est dessiné. Les transferts mémoire et les remplissages sont faits pour de bon. Les transferts vers l'écran
-//! (tuiles, formats, réduction, retournement) et les copies de texture appartiennent à la crate `pica` : le service
-//! offre deux crochets (`display_transfer`, `texture_copy`) que l'assemblage du portage peut brancher ; sans crochet, la
-//! ligne du journal porte « non fait par le portage » (seul écart du journal avec celui du banc Python).
+//! (tuiles, formats, réduction, retournement), les copies de texture et le dessin appartiennent à la crate `pica` : le
+//! service passe les commandes 0 à 4 à un [`GpuBackend`] que l'assemblage du portage peut brancher (sans que `services`
+//! dépende de wgpu) ; sans lui, les lignes des transferts et des copies portent « non fait par le portage » (seul écart
+//! du journal avec celui du banc Python).
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -145,12 +146,18 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
     out
 }
 
-/// Crochet d'un transfert vers l'écran : reçoit les mots 1 à 5 de la commande (source, destination, dimensions en
-/// entrée, en sortie, drapeaux) et rend le problème (chaîne vide si tout va bien).
-pub type DisplayTransferHook = Box<dyn FnMut(&mut Kernel, [u32; 5]) -> String>;
-/// Crochet d'une copie de texture : reçoit les mots 1 à 6 (source, destination, taille, lignes en entrée, en sortie,
-/// drapeaux) et rend une erreur éventuelle.
-pub type TextureCopyHook = Box<dyn FnMut(&mut Kernel, [u32; 6]) -> Result<(), String>>;
+/// Le GPU derrière la file : reçoit les commandes 0 à 4 au moment où gsp les traite.
+pub trait GpuBackend {
+    /// `words` : les huit mots de la commande ; `list` : pour la commande 1, la liste déjà suivie (sauts compris), vide
+    /// sinon. `Ok` : la commande est faite, mémoire écrite. `Err` pour une copie (0) ou un remplissage (2) : gsp le fait
+    /// lui-même (avec ses lignes de refus au journal) ; pour un transfert (3) ou une copie de texture (4) : le problème
+    /// noté au journal ; ignoré pour une liste (1).
+    fn command(&mut self, k: &mut Kernel, words: [u32; 8], list: Vec<u8>) -> Result<(), String>;
+
+    /// À chaque fin d'image, après la mise à jour de `hid` et avant les interruptions : là où le banc `--dessiner`
+    /// prend ses images.
+    fn vblank(&mut self, _k: &mut Kernel, _gsp: &Gsp) {}
+}
 
 pub struct Gsp {
     me: Weak<RefCell<Gsp>>,
@@ -175,8 +182,7 @@ pub struct Gsp {
     pub transfers: u64,
     /// écran -> (adresse, format, octets par colonne) du dernier transfert fait
     pub latest_transfer: BTreeMap<u32, (u32, u32, u32)>,
-    pub display_transfer: Option<DisplayTransferHook>,
-    pub texture_copy: Option<TextureCopyHook>,
+    pub backend: Option<Box<dyn GpuBackend>>,
 }
 
 impl Gsp {
@@ -201,8 +207,7 @@ impl Gsp {
             unknown_ops: Vec::new(),
             transfers: 0,
             latest_transfer: BTreeMap::new(),
-            display_transfer: None,
-            texture_copy: None,
+            backend: None,
         }
     }
 
@@ -328,6 +333,16 @@ impl Gsp {
         done
     }
 
+    /// Passe la commande au GPU branché ; sans lui, rend « non fait par le portage ».
+    fn to_backend(&mut self, k: &mut Kernel, words: [u32; 8], list: Vec<u8>) -> Result<(), String> {
+        let Some(mut backend) = self.backend.take() else {
+            return Err("non fait par le portage".to_string());
+        };
+        let result = backend.command(k, words, list);
+        self.backend = Some(backend);
+        result
+    }
+
     pub fn execute_command(&mut self, k: &mut Kernel, words: [u32; 8]) -> String {
         let command = words[0] & 0xFF;
         let name = command_name(command);
@@ -335,10 +350,12 @@ impl Gsp {
         match command {
             0 => {
                 let (source, destination, size) = (words[1], words[2], words[3]);
-                let copy = k.memory.read(source, size).and_then(|data| k.memory.write(destination, &data));
-                if let Err(exc) = copy {
-                    let text = format!("gsp : transfert mémoire {source:#x} -> {destination:#x} refusé ({exc})");
-                    k.journal.write(k.now, &text);
+                if self.to_backend(k, words, Vec::new()).is_err() {
+                    let copy = k.memory.read(source, size).and_then(|data| k.memory.write(destination, &data));
+                    if let Err(exc) = copy {
+                        let text = format!("gsp : transfert mémoire {source:#x} -> {destination:#x} refusé ({exc})");
+                        k.journal.write(k.now, &text);
+                    }
                 }
                 let text = format!("gsp file : RequestDma {source:#x} -> {destination:#x}, {size:#x} octets");
                 k.journal.write(k.now, &text);
@@ -346,7 +363,10 @@ impl Gsp {
             }
             1 => {
                 let (address, size) = (words[1], words[2]);
-                let summary = self.read_command_list(k, address, size);
+                let (summary, list) = self.read_command_list(k, address, size);
+                if let Some(list) = list {
+                    let _ = self.to_backend(k, words, list);
+                }
                 let text = format!("gsp file : ProcessCommandList {address:#x}, {size:#x} octets : {summary}");
                 k.journal.write(k.now, &text);
                 self.deposit(k, 5);
@@ -355,6 +375,7 @@ impl Gsp {
             2 => {
                 let zones = [(words[1], words[2], words[3], words[7] & 0xFFFF),
                              (words[4], words[5], words[6], words[7] >> 16)];
+                let done = self.to_backend(k, words, Vec::new()).is_ok();
                 let mut texts: Vec<String> = Vec::new();
                 for (start, value, end, control) in zones {
                     if start == 0 {
@@ -367,7 +388,7 @@ impl Gsp {
                     if size > 0 {
                         if size > 0x2000_0000 {
                             texts.push(format!("refusé (remplissage de {size:#x} octets)"));
-                        } else {
+                        } else if !done {
                             let bytes: Vec<u8> = pattern.iter().copied().cycle().take(size as usize).collect();
                             if let Err(exc) = k.memory.write(start, &bytes) {
                                 texts.push(format!("refusé ({exc})"));
@@ -383,23 +404,16 @@ impl Gsp {
             3 => {
                 let (source, destination, in_dim, out_dim, flags) = (words[1], words[2], words[3], words[4], words[5]);
                 self.transfers += 1;
-                let problem = match self.display_transfer.take() {
-                    Some(mut hook) => {
-                        let problem = hook(k, [source, destination, in_dim, out_dim, flags]);
-                        self.display_transfer = Some(hook);
-                        if problem.is_empty() && out_dim & 0xFFFF == 240 {
-                            let unit = match flags >> 12 & 7 {
-                                0 => 4,
-                                1 => 3,
-                                _ => 2,
-                            };
-                            self.latest_transfer.insert(if out_dim >> 16 == 400 { 0 } else { 1 },
-                                                        (destination, flags >> 12 & 7, 240 * unit));
-                        }
-                        problem
-                    }
-                    None => "non fait par le portage".to_string(),
-                };
+                let problem = self.to_backend(k, words, Vec::new()).err().unwrap_or_default();
+                if problem.is_empty() && out_dim & 0xFFFF == 240 {
+                    let unit = match flags >> 12 & 7 {
+                        0 => 4,
+                        1 => 3,
+                        _ => 2,
+                    };
+                    self.latest_transfer.insert(if out_dim >> 16 == 400 { 0 } else { 1 },
+                                                (destination, flags >> 12 & 7, 240 * unit));
+                }
                 bump(&mut self.stats, "transferts vers écran faits", if problem.is_empty() { 1 } else { 0 });
                 let text = format!("gsp file : DisplayTransfer {:#x} ({}x{}, {}) -> {:#x} ({}x{}, {}), drapeaux {:#x}{}",
                     source, in_dim & 0xFFFF, in_dim >> 16, format_name(flags >> 8 & 7), destination,
@@ -409,17 +423,8 @@ impl Gsp {
                 self.deposit(k, 4);
             }
             4 => {
-                let (source, destination, size, in_dim, out_dim, flags) =
-                    (words[1], words[2], words[3], words[4], words[5], words[6]);
-                let result = match self.texture_copy.take() {
-                    Some(mut hook) => {
-                        let result = hook(k, [source, destination, size, in_dim, out_dim, flags]);
-                        self.texture_copy = Some(hook);
-                        result
-                    }
-                    None => Err("non fait par le portage".to_string()),
-                };
-                if let Err(exc) = result {
+                let (source, destination, size, in_dim, out_dim) = (words[1], words[2], words[3], words[4], words[5]);
+                if let Err(exc) = self.to_backend(k, words, Vec::new()) {
                     let text = format!("gsp : copie de texture refusée ({exc})");
                     k.journal.write(k.now, &text);
                 }
@@ -439,13 +444,14 @@ impl Gsp {
         follow_jumps(&mut read, data, Some(&mut self.stats))
     }
 
-    /// Lit et compte une liste de commandes PICA : rend le résumé du journal.
-    pub fn read_command_list(&mut self, k: &Kernel, address: u32, size: u32) -> String {
+    /// Lit et compte une liste de commandes PICA : rend le résumé du journal et la liste suivie (`None` si illisible),
+    /// pour que le GPU branché ne la suive pas une seconde fois.
+    pub fn read_command_list(&mut self, k: &Kernel, address: u32, size: u32) -> (String, Option<Vec<u8>>) {
         let data = match k.memory.read(address, size) {
             Ok(data) => data,
             Err(exc) => {
                 self.lists.push((k.now, address, size, 0, 0));
-                return format!("illisible ({exc})");
+                return (format!("illisible ({exc})"), None);
             }
         };
         let data = self.follow_jumps(k, &data);
@@ -478,7 +484,7 @@ impl Gsp {
             let items: Vec<String> = draws.iter().map(|(n, c)| format!("'{n}': {c}")).collect();
             format!("{{{}}}", items.join(", "))
         };
-        format!("{writes} écritures de registres, dessins : {shown}")
+        (format!("{writes} écritures de registres, dessins : {shown}"), Some(data))
     }
 
     // --- les fins d'image ---
@@ -519,6 +525,10 @@ impl Gsp {
         };
         on_vblank(k, &hid);
         let mut this = gsp.borrow_mut();
+        if let Some(mut backend) = this.backend.take() {
+            backend.vblank(k, &this);
+            this.backend = Some(backend);
+        }
         this.deposit(k, 2);
         this.deposit(k, 3);
         this.process_queue(k);
@@ -529,6 +539,7 @@ impl Gsp {
 /// `Bench.on_vblank` : les boutons tenus, la mise à jour de la page de `hid`, l'heure de la page partagée du noyau.
 pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
     k.bench.vblanks += 1;
+    k.bench.last_vblank = k.now;
     let buttons = k.buttons_now();
     let mut hid = hid.borrow_mut();
     if buttons != hid.buttons {
@@ -764,20 +775,68 @@ mod tests {
         assert_eq!(r.gsp.borrow().unknown_ops[0][0], 9);
     }
 
+    /// Un GPU qui note ce qu'il reçoit (mots, liste), laisse copies et remplissages à gsp et accepte le reste.
+    struct Recorder(Rc<RefCell<Vec<([u32; 8], Vec<u8>)>>>);
+
+    impl GpuBackend for Recorder {
+        fn command(&mut self, _k: &mut Kernel, words: [u32; 8], list: Vec<u8>) -> Result<(), String> {
+            self.0.borrow_mut().push((words, list));
+            if matches!(words[0] & 0xFF, 0 | 2) { Err("à gsp".to_string()) } else { Ok(()) }
+        }
+    }
+
+    /// Un GPU qui fait lui-même les copies et dit avoir fait les remplissages, sans rien écrire.
+    struct Dma;
+
+    impl GpuBackend for Dma {
+        fn command(&mut self, k: &mut Kernel, words: [u32; 8], _list: Vec<u8>) -> Result<(), String> {
+            if words[0] & 0xFF == 0 {
+                let data = k.memory.read(words[1], words[3]).map_err(|e| e.to_string())?;
+                k.memory.write(words[2], &data).map_err(|e| e.to_string())?;
+            }
+            Ok(())
+        }
+    }
+
     #[test]
-    fn display_transfer_hooks_and_fill_variants() {
+    fn backend_that_writes_is_not_followed_by_a_second_write() {
+        // une copie qui chevauche sa source (0x100 -> 0x110, 0x20 octets) : refaite par gsp à partir de la source déjà
+        // modifiée, la fin de la destination serait fausse
         let mut r = rig();
         r.register();
-        r.gsp.borrow_mut().display_transfer = Some(Box::new(|_, words| {
-            assert_eq!(words, [LINEAR, LINEAR + 0x100, 0x00F00190, 0x019000F0, 0x1000]);
-            String::new()
-        }));
-        r.gsp.borrow_mut().texture_copy = Some(Box::new(|_, _| Ok(())));
-        r.push_command([3, LINEAR, LINEAR + 0x100, 0x00F00190, 0x019000F0, 0x1000, 0, 0]);
-        r.push_command([4, LINEAR, LINEAR + 0x100, 0x10, 0, 0, 0, 0]);
-        // deux zones de remplissage : 16 bits (largeur 0) puis 24 bits (largeur 1), la première absente → interruption 1
-        r.push_command([2, 0, 0, 0, LINEAR + 0x300, 0x00112233, LINEAR + 0x306, 0x0100 << 16]);
+        r.gsp.borrow_mut().backend = Some(Box::new(Dma));
+        let original: Vec<u8> = (0u8..0x30).collect();
+        r.k.memory.write(LINEAR + 0x100, &original).unwrap();
+        r.push_command([0, LINEAR + 0x100, LINEAR + 0x110, 0x20, 0, 0, 0, 0]);
+        r.push_command([2, LINEAR + 0x200, 0xAABBCCDD, LINEAR + 0x210, 0, 0, 0, 0x200]);
         r.call(&[header(0x0C, 0, 0)]);
+        assert_eq!(r.k.memory.read(LINEAR + 0x110, 0x20).unwrap(), original[..0x20]);
+        assert_eq!(r.k.memory.read(LINEAR + 0x200, 0x10).unwrap(), vec![0; 0x10], "le remplissage est au GPU, pas refait");
+        assert!(r.has_line("gsp file : RequestDma 0x14000100 -> 0x14000110, 0x20 octets"));
+        assert!(r.has_line("gsp file : MemoryFill 0x14000200-0x14000210 <- 0xaabbccdd (32 bits)"));
+        assert_eq!(r.relay(), (2, vec![6, 0]));
+    }
+
+    fn attach_recorder(r: &Rig) -> Rc<RefCell<Vec<([u32; 8], Vec<u8>)>>> {
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        r.gsp.borrow_mut().backend = Some(Box::new(Recorder(seen.clone())));
+        seen
+    }
+
+    #[test]
+    fn display_transfer_backend_and_fill_variants() {
+        let mut r = rig();
+        r.register();
+        let seen = attach_recorder(&r);
+        let transfer = [3, LINEAR, LINEAR + 0x100, 0x00F00190, 0x019000F0, 0x1000, 0, 0];
+        let copy = [4, LINEAR, LINEAR + 0x100, 0x10, 0, 0, 0, 0];
+        // deux zones de remplissage : 16 bits (largeur 0) puis 24 bits (largeur 1), la première absente → interruption 1
+        let fill = [2, 0, 0, 0, LINEAR + 0x300, 0x00112233, LINEAR + 0x306, 0x0100 << 16];
+        for words in [transfer, copy, fill] {
+            r.push_command(words);
+        }
+        r.call(&[header(0x0C, 0, 0)]);
+        assert_eq!(*seen.borrow(), vec![(transfer, Vec::new()), (copy, Vec::new()), (fill, Vec::new())]);
         assert!(r.lines().iter().any(|l| l.ends_with("gsp file : DisplayTransfer 0x14000000 (400x240, RGBA8) -> 0x14000100 (240x400, RGB8), drapeaux 0x1000")));
         assert!(!r.has_line("non fait par le portage"));
         assert!(!r.has_line("copie de texture refusée"));
@@ -875,10 +934,8 @@ mod tests {
         assert_eq!(out.len(), 24 * (MAX_JUMPS + 1));
     }
 
-    #[test]
-    fn command_lists_are_counted_and_followed() {
-        let mut r = rig();
-        r.register();
+    /// Une liste à LINEAR qui saute dans le tas linéaire puis dans la mémoire vidéo : rend sa taille et la liste suivie.
+    fn store_jumping_list(r: &mut Rig) -> (u32, Vec<u8>) {
         let c = vec![pkt(5, 0x22E), pkt(6, 0x22F), pkt(7, 0x22E)];
         let mut b = vec![pkt(0x22, 0x201)];
         b.extend(jump(bytes(&c).len(), 0x1800_0100));
@@ -887,7 +944,39 @@ mod tests {
         r.k.memory.write(LINEAR, &bytes(&a)).unwrap();
         r.k.memory.write(LINEAR + 0x200, &bytes(&b)).unwrap();
         r.k.memory.write(VRAM + 0x100, &bytes(&c)).unwrap();
-        let size = bytes(&a).len() as u32;
+        (bytes(&a).len() as u32, [bytes(&a), bytes(&b[..4]), bytes(&c)].concat())
+    }
+
+    #[test]
+    fn journal_is_the_same_with_and_without_a_backend() {
+        // tout ce que gsp fait lui-même (copie, remplissage, liste suivie, vidage de cache) : le GPU branché ne change
+        // ni le journal, ni la mémoire, ni les interruptions ; il reçoit la liste déjà suivie
+        let run = |with_backend: bool| {
+            let mut r = rig();
+            r.register();
+            let seen = if with_backend { Some(attach_recorder(&r)) } else { None };
+            let (size, followed) = store_jumping_list(&mut r);
+            let list = [1, LINEAR, size, 0, 0, 0, 0, 0];
+            r.push_command([0, LINEAR, LINEAR + 0x800, 0x20, 0, 0, 0, 0]);
+            r.push_command([2, LINEAR + 0x900, 0xAABBCCDD, LINEAR + 0x910, 0, 0, 0, 0x200]);
+            r.push_command(list);
+            r.push_command([5, 0, 0, 0, 0, 0, 0, 0]);
+            r.call(&[header(0x0C, 0, 0)]);
+            if let Some(seen) = seen {
+                let seen = seen.borrow();
+                assert_eq!(seen.len(), 3, "commandes 0, 2 et 1 ; rien pour 5");
+                assert_eq!(seen[2], (list, followed));
+            }
+            (r.lines(), r.relay(), r.k.memory.read(LINEAR, 0x1000).unwrap())
+        };
+        assert_eq!(run(true), run(false));
+    }
+
+    #[test]
+    fn command_lists_are_counted_and_followed() {
+        let mut r = rig();
+        r.register();
+        let (size, _) = store_jumping_list(&mut r);
         r.push_command([1, LINEAR, size, 0, 0, 0, 0, 0]);
         r.call(&[header(0x0C, 0, 0)]);
         assert!(r.has_line("gsp file : ProcessCommandList 0x14000000, 0x20 octets : 11 écritures de registres, dessins : {'DrawArrays': 2, 'DrawElements': 1}"));
@@ -971,6 +1060,35 @@ mod tests {
         r.k.run_due_events();
         assert_eq!(r.gsp.borrow().vblank_count, 4);
         assert_eq!(r.k.next_event_time(), Some(6 * VBLANK_NS));
+    }
+
+    /// Un GPU qui note à chaque fin d'image le nombre de fins d'image et de transferts que gsp lui montre.
+    struct Vblanks(Rc<RefCell<Vec<(u64, u64)>>>);
+
+    impl GpuBackend for Vblanks {
+        fn command(&mut self, _k: &mut Kernel, _words: [u32; 8], _list: Vec<u8>) -> Result<(), String> {
+            Ok(())
+        }
+
+        fn vblank(&mut self, _k: &mut Kernel, gsp: &Gsp) {
+            self.0.borrow_mut().push((gsp.vblank_count, gsp.transfers));
+        }
+    }
+
+    #[test]
+    fn backend_sees_each_vblank_before_the_queue() {
+        let mut r = rig();
+        r.register();
+        let seen = Rc::new(RefCell::new(Vec::new()));
+        r.gsp.borrow_mut().backend = Some(Box::new(Vblanks(seen.clone())));
+        // le transfert attend dans la file : la fin d'image le traite après avoir appelé le GPU
+        r.push_command([3, LINEAR, LINEAR + 0x100, 0x00F00190, 0x019000F0, 0x1000, 0, 0]);
+        r.k.now = VBLANK_NS;
+        r.k.run_due_events();
+        r.k.now = 2 * VBLANK_NS;
+        r.k.run_due_events();
+        assert_eq!(*seen.borrow(), vec![(1, 0), (2, 1)]);
+        assert!(r.gsp.borrow().backend.is_some(), "le GPU est rendu à gsp après l'appel");
     }
 
     #[test]
