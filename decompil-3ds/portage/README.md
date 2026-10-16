@@ -222,13 +222,14 @@ Les pipelines du pilote sont gardés d'une partie à l'autre dans `local/portage
 fichier par GPU et pilote, réécrit à la fin du rendu) : sur 20 s jusqu'au terrain, les 67 pipelines se créent en 0,13 s
 au lieu de 0,31 s ; au démarrage de `play` (12 pipelines), 21 ms au lieu de 64.
 
-| Touche | Bouton | Touche | Bouton |
+| Entrée (AZERTY) | Bouton | Entrée (AZERTY) | Bouton |
 | --- | --- | --- | --- |
-| X | A | Entrée | START |
-| Z | B | Retour arrière | SELECT |
-| S | X | Flèches | croix directionnelle |
-| A | Y | Q / W | L / R |
+| clic gauche | A | Entrée | START |
+| clic droit | B | Retour arrière | SELECT |
+| X | X | Z / Q / S / D | croix directionnelle |
+| C | Y | A / E | L / R |
 
+Les touches sont lues à leur place sur le clavier (sur un QWERTY : W / A / S / D pour la croix, Q / E pour L / R).
 Échap quitte. Les touches tenues s'ajoutent aux appuis programmés (`--appuis`) au moment où `hid` lit les boutons.
 
 Il faut la DLL `local/recomp/jeu/build/jeu-hote.dll` (voir `recomp/README.md`). Le journal est écrit au format de

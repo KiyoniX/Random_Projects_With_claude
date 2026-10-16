@@ -13,7 +13,7 @@ use runtime::bench::{BUTTONS, Bench, Options, find_root};
 use runtime::gpu::Shared;
 use services::gsp::VBLANK_NS;
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, WindowEvent};
+use winit::event::{ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
 use winit::window::{Window, WindowId};
@@ -22,24 +22,24 @@ use pica::images::save_png;
 
 use crate::window::{Screens, open};
 
-/// Touche -> bouton de la console (nom de `BUTTONS`).
-const KEYS: [(KeyCode, &str); 12] = [
-    (KeyCode::KeyX, "A"),
-    (KeyCode::KeyZ, "B"),
-    (KeyCode::KeyS, "X"),
-    (KeyCode::KeyA, "Y"),
+/// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
+/// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
+const KEYS: [(KeyCode, &str); 10] = [
+    (KeyCode::KeyX, "X"),
+    (KeyCode::KeyC, "Y"),
     (KeyCode::KeyQ, "L"),
-    (KeyCode::KeyW, "R"),
+    (KeyCode::KeyE, "R"),
     (KeyCode::Enter, "START"),
     (KeyCode::Backspace, "SELECT"),
-    (KeyCode::ArrowUp, "UP"),
-    (KeyCode::ArrowDown, "DOWN"),
-    (KeyCode::ArrowLeft, "LEFT"),
-    (KeyCode::ArrowRight, "RIGHT"),
+    (KeyCode::KeyW, "UP"),
+    (KeyCode::KeyS, "DOWN"),
+    (KeyCode::KeyA, "LEFT"),
+    (KeyCode::KeyD, "RIGHT"),
 ];
 
-fn button(code: KeyCode) -> Option<u32> {
-    let name = KEYS.iter().find(|(k, _)| *k == code)?.1;
+const MOUSE: [(MouseButton, &str); 2] = [(MouseButton::Left, "A"), (MouseButton::Right, "B")];
+
+fn bit(name: &str) -> Option<u32> {
     BUTTONS.iter().find(|(n, _)| *n == name).map(|(_, bit)| *bit)
 }
 
@@ -104,6 +104,13 @@ impl Play {
             let next = self.bench.kernel.bench.last_vblank + VBLANK_NS;
             self.shot_ready = self.bench.kernel.now >= next && next >= *at;
         }
+    }
+
+    /// Tient ou relâche un bouton de la console dans le masque que lit hid.
+    fn hold(&mut self, name: &str, state: ElementState) {
+        let Some(bit) = bit(name) else { return };
+        let held = &mut self.bench.kernel.bench.buttons;
+        *held = if state == ElementState::Pressed { *held | bit } else { *held & !bit };
     }
 
     fn draw(&mut self) {
@@ -193,9 +200,13 @@ impl ApplicationHandler for Play {
                 let PhysicalKey::Code(code) = event.physical_key else { return };
                 if code == KeyCode::Escape {
                     event_loop.exit();
-                } else if let Some(bit) = button(code) {
-                    let held = &mut self.bench.kernel.bench.buttons;
-                    *held = if event.state == ElementState::Pressed { *held | bit } else { *held & !bit };
+                } else if let Some((_, name)) = KEYS.iter().find(|(k, _)| *k == code) {
+                    self.hold(name, event.state);
+                }
+            }
+            WindowEvent::MouseInput { state, button, .. } => {
+                if let Some((_, name)) = MOUSE.iter().find(|(b, _)| *b == button) {
+                    self.hold(name, state);
                 }
             }
             _ => {}
