@@ -1,0 +1,11 @@
+adresse	raison
+0x102e5c	code mort : __aeabi_idivmod, rien ne l appelle ni ne le désigne ; __aeabi_uidivmod saute dans son corps
+0x102e90	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x102eb4	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x102eb8	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x102ee8	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x102f1c	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x102f40	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x102f64	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x102f80	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x103078	pas une fonction : morceau de la division, atteint seulement par des branchements internes

@@ -66,7 +66,7 @@
 0x102cdc	function	svcCreateThread
 0x102d00	function	svcGetProcessInfo
 0x102d1c	function	svcReplyAndReceive
-0x102d34	function	wait_any_handle
+0x102d34	function	wait_on_handle_pointers
 0x102e44	function	map_shared_memory
 0x102ec8	function	clear_thread_local_storage
 0x103a94	function	rearm_heartbeat_timer

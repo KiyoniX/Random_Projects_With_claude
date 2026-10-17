@@ -87,12 +87,12 @@
 0x1400519c	function	reloc_list_apply
 0x1400526c	function	svcQueryProcessMemory
 0x14005398	function	fill_words
-0x140053c8	function	pool_init
+0x140053c8	function	block_pool_init
 0x1400546c	function	panic_break
 0x140054c0	function	strlen
 0x14005520	function	strcmp
 0x140055dc	function	recursive_lock_init
-0x140055f8	function	pool_dtor
+0x140055f8	function	block_pool_base_dtor
 0x14005658	function	session_ctor
 0x140056d8	function	session_dtor
 0x140056fc	function	get_process_unique_id

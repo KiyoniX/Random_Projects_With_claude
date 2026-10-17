@@ -1,33 +1,58 @@
 0x100000	function	entry
+0x100024	function	clear_bss
+0x100048	label	run_static_initializers
+0x100074	label	construct_array
+0x100098	function	svcExitProcess
 0x1000a0	function	sm_service_loop
+0x100950	function	init_program_args
 0x1009a4	function	svcAcceptSession
 0x1009bc	function	svcReplyAndReceive
 0x1009e0	function	strlen
+0x100a40	function	init_runtime
+0x100e58	function	_get_lc_ctype
+0x100ea0	function	_get_lc_numeric
 0x100ee8	function	svcGetSystemInfo
 0x100f04	function	strcmp
+0x100fc0	function	create_lock_arbiter_once
+0x101064	function	init_vm_region_10000000
+0x101078	function	store_thread_local_owner
 0x1010b4	function	svcCreateAddressArbiter
 0x1010cc	function	svcQueryMemory
+0x1010fc	function	memcpy_words
+0x101170	function	clear_thread_local_storage
 0x10131c	function	svcGetProcessInfo
+0x101338	function	lock_arbitrate_wait
+0x1014d8	function	svcBreak
 0x1015dc	function	svcCreateSessionToPort
 0x1015f4	function	svcDuplicateHandle
+0x10160c	function	gate_close
 0x1016f8	function
 0x101788	function
+0x1017dc	function	atexit_stub
 0x10189c	function	process_can_access_service
+0x101a38	function	heap_split_block
 0x101c34	function	svcArbitrateAddress
 0x101c4c	function	__aeabi_uidivmod
+0x101c7c	function	light_lock_unlock
 0x101efc	function	lock_leave
 0x101f1c	function	svcReleaseSemaphore
 0x101f34	label	memcmp
+0x101fa8	function	__aeabi_memcpy
 0x102030	function	find_service
 0x102104	function	lock_enter
 0x10213c	function	validate_service_name
+0x102188	function	panic_on_failure
 0x1021f8	function	svcCreateSemaphore
+0x102210	function	lock_init
 0x10222c	function	svcControlMemory
 0x102250	function	fill_words
 0x102280	function	srv_RegisterService
 0x10241c	function	svcGetProcessId
 0x102434	function	svcCreatePort
+0x102454	function	abort
+0x102458	function	break_process
 0x10256c	function	heap_alloc_unlocked
+0x10270c	function	heap_find_block
 0x1028f4	function
 0x102900	function	srv_Unsubscribe
 0x102a1c	function	srvpm_PublishToAll
@@ -48,14 +73,16 @@
 0x1038e0	function
 0x103930	function	srvpm_handle_command
 0x103a44	function	srv_handle_command
-0x103e44	function
+0x103e44	function	handle_clear
 0x103e50	function
+0x103e64	function	static_init_main_thread_handle
 0x103ec4	function
 0x103ef8	function
 0x103efc	function
 0x103f00	function
 0x103f38	function
 0x103fd4	function
+0x104100	function	heap_alloc
 0x104168	function
 0x104188	function
 0x10418c	function

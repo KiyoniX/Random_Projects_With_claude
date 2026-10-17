@@ -1,13 +1,16 @@
 0x100000	function	entry
 0x100024	function	clear_bss
-0x100078	function	svcExitProcess
+0x100048	label	run_static_initializers
+0x100078	function	default_exit_handler
+0x10007c	function	svcExitProcess
 0x100084	function	pm_main
+0x100494	function	init_program_args
 0x1004e8	function	svcAcceptSession
 0x100500	function	svcReplyAndReceive
 0x100524	function	pm_initialize
 0x1009d0	function	launch_boot_title
 0x100a48	function	init_runtime
-0x100a6c	function	enable_notifications
+0x100a6c	function	get_notification_semaphore
 0x100aa0	function	handle_srv_notification
 0x100b5c	function	srvpm_init
 0x100bb0	function	register_notification_handler
@@ -15,35 +18,41 @@
 0x100c5c	function	SRV_RegisterService
 0x100cb8	function	SRV_UnregisterService
 0x100d0c	function	srv_exit
+0x100da8	function	_get_lc_ctype
+0x100df0	function	_get_lc_numeric
 0x100e38	function	svcCreateEvent
 0x100e50	function	svcCreateResourceLimit
 0x100e68	function	svcGetSystemInfo
 0x100e84	function	svcOpenProcess
 0x100e9c	function	strcmp
-0x100f5c	function	light_event_init
-0x100f90	function	init_address_arbiter
+0x100f5c	function	gate_close
+0x100f90	function	create_lock_arbiter_once
 0x100fcc	function	create_thread
+0x101124	function	init_vm_region_10000000
+0x101138	function	store_thread_local_owner
 0x10114c	function	loader_init
 0x101194	function	srv_init
 0x1012b8	function	SRV_EnableNotification
 0x1012f4	function	SRV_ReceiveNotification
 0x101330	function	process_pool_init
 0x101368	function	worker_thread_main
-0x1013b4	function
-0x1013c4	function
-0x1013d4	function
-0x1013e0	function
-0x1013ec	function
-0x1013f0	function
+0x1013b4	function	thread_functor_copy
+0x1013c4	function	thread_functor_copy_alt_1013c4
+0x1013d4	function	thread_functor_invoke
+0x1013e0	function	thread_functor_invoke_alt_1013e0
+0x1013ec	function	thread_functor_destroy
+0x1013f0	function	thread_functor_destroy_alt_1013f0
 0x1013f4	function	svcConnectToPort
 0x10140c	function	svcCreateAddressArbiter
 0x101424	function	svcCreateThread
 0x101448	function	svcQueryMemory
 0x101478	function	exit_monitor_thread_main
 0x101694	function	launch_with_dependencies
+0x101b0c	function	light_lock_unlock
 0x101ba8	function	block_pool_init
 0x101c48	function	loader_set_session
 0x101c58	function	SRV_RegisterClient
+0x101c94	function	SRV_GetServiceHandle
 0x101cf0	function	filter_service_access_list
 0x101e68	function	svcDebugActiveProcess
 0x101e80	function	svcGetProcessInfo
@@ -52,14 +61,18 @@
 0x101ecc	function	on_process_exit
 0x1020a0	function	create_process
 0x102444	function	light_lock_init
+0x10245c	function	clear_thread_local_storage
 0x1024fc	function	fill_words
 0x10252c	function	handle_clear
+0x102538	function	notification_handler_ctor
 0x102570	label	static_guard_acquire
+0x102584	function	atexit_stub
 0x102588	function	wait_for_terminations
 0x1026cc	function	request_termination
 0x1027e8	function	launch_application
 0x102b34	function	__aeabi_memcpy
 0x102bbc	function	clear_words
+0x102bc0	function	memset_words
 0x102c10	function	publish_to_process
 0x102c40	function	SRV_PublishToSubscriber
 0x102c7c	function	LOADER_RegisterProgram
@@ -68,31 +81,34 @@
 0x102d78	function	count_nonzero_u64
 0x102e14	function	process_entry_free
 0x102e38	function	construct_array
-0x103088	function	light_event_wait
+0x103088	function	gate_wait
 0x103150	function	svcRun
 0x103174	function	LOADER_UnregisterProgram
 0x1031ac	function	LOADER_GetProgramInfo
 0x103204	function	register_program
-0x103304	function	copy_u64
+0x103304	function	copy_service_name
 0x103318	function	block_pool_release
 0x103364	function	launch_program
 0x1034a4	function	block_pool_acquire
 0x1035bc	function	light_event_signal
-0x103674	function	recursive_lock_leave
+0x103674	function	lock_leave
 0x103694	function	process_entry_alloc
-0x1036e8	function	recursive_lock_enter
-0x103720	function	SRV_GetServiceHandle
-0x103754	function	recursive_lock_init
+0x1036e8	function	lock_enter
+0x103720	function	srv_get_service_handle
+0x103754	function	lock_init
 0x103770	function	__aeabi_uidivmod
-0x1037a0	function	panic_on_result
+0x1037a0	function	panic_on_failure
 0x103810	function	strlen
+0x103870	function	abort
 0x103874	function	break_process
+0x1038e8	function	svcBreak
 0x1038f0	function	thread_trampoline
+0x103934	function	svcExitThread
 0x10393c	function	svcGetProcessId
 0x103954	function	register_process_with_services
 0x103a60	function	release_dependencies
 0x103b68	function	FSREG_Unregister
-0x103b98	function	light_lock_enter
+0x103b98	function	lock_arbitrate_wait
 0x103c7c	function	LOADER_LoadProcess
 0x103cc0	function	FSREG_Register
 0x103d14	function	SRVPM_UnregisterProcess
@@ -101,6 +117,7 @@
 0x103df0	function	svcKernelSetState
 0x103df8	function	svcDuplicateHandle
 0x103e10	function	memclr
+0x103e50	function	memcpy_words
 0x103ec4	function	job_launch_firm
 0x103f1c	function	pmapp_GetFIRMLaunchParams
 0x103f50	function	pmapp_LaunchTitle
@@ -127,6 +144,7 @@
 0x105478	function	pm_state_construct
 0x105510	function
 0x1055a0	function
+0x105658	function	join_thread
 0x10576c	function
 0x105770	function	pmdbg_handle_command
 0x105884	function	pmapp_handle_command
@@ -134,8 +152,9 @@
 0x105c08	function	process_entry_get_title_id
 0x105c18	function	process_entry_get_pid
 0x105c20	function	process_entry_get_handle
+0x105c28	function	static_init_main_thread_handle
 0x105c88	function	static_init_pm_globals
-0x105ffc	function
+0x105ffc	function	static_init_loader_handle
 0x106010	function
 0x106044	function
 0x106048	function
@@ -147,4 +166,4 @@
 0x10618c	function	thread_dtor
 0x1061b8	function	on_terminate_notification
 0x1061cc	function
-0x1061ec	function
+0x1061ec	function	invoke_notification_callback

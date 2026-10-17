@@ -3,12 +3,13 @@
 0x100048	label	run_static_initializers
 0x100074	label	destroy_array
 0x1000ac	function	pxi_main
+0x10071c	function	init_program_args
 0x100770	function	svcAcceptSession
 0x100794	function	strlen
 0x1007f4	function	thread_call_entry
-0x1007f8	function	srv_enable_notification
-0x10082c	function	srv_dispatch_notification
-0x1008e8	function	srv_register_notification_handler
+0x1007f8	function	get_notification_semaphore
+0x10082c	function	handle_srv_notification
+0x1008e8	function	register_notification_handler
 0x100978	function	srv_is_initialized
 0x100994	function	SRV_RegisterService
 0x1009f0	function	srv_exit
@@ -17,6 +18,8 @@
 0x100da8	function	session_thread_entry
 0x100dbc	function	worker_thread_entry
 0x100dc8	function	receiver_thread_entry
+0x100ddc	function	_get_lc_ctype
+0x100e24	function	_get_lc_numeric
 0x100e6c	function	thread_functor_copy
 0x100e7c	function	thread_functor_invoke
 0x100e88	function	thread_functor_destroy
@@ -24,17 +27,20 @@
 0x100ea4	function	svcCreateMutex
 0x100ebc	function	svcCreateThread
 0x100ee0	function	strcmp
-0x100f9c	function	address_arbiter_init
+0x100f9c	function	create_lock_arbiter_once
+0x100fd8	function	init_runtime
+0x101064	function	init_vm_region_10000000
+0x101078	function	store_thread_local_owner
 0x10108c	function	SRV_RegisterClient
 0x1010c8	function	SRV_EnableNotification
 0x101104	function	SRV_ReceiveNotification
 0x101140	function	handle_clear
 0x10114c	function	pxi_hw_reset
 0x101190	function	pxi_send_fifo_is_full
-0x1011a8	function	pxi_hw_reset_at_exit
+0x1011a8	function	pxi_hw_reset_alt_1011a8
 0x1011ec	function	pxi11_worker_loop
 0x1012d4	function	pxi_receiver_loop
-0x1013e8	function	copy_two_words
+0x1013e8	function	copy_service_name
 0x1013fc	function	session_manager_loop
 0x101b48	function	PxiChannel_construct
 0x101b8c	function	atexit_stub
@@ -47,6 +53,7 @@
 0x101cac	function	svcArbitrateAddress
 0x101cc4	function	pxi_send_message_alt_entry
 0x101cc8	function	pxi_send_message
+0x101e50	function	clear_thread_local_storage
 0x101e9c	function	light_lock_unlock
 0x101ef0	function	light_event_signal
 0x101fa8	function	pxi_recv_word
@@ -56,35 +63,36 @@
 0x102098	function	wait_handles
 0x1021a8	function	pxi_bind_interrupts
 0x1022dc	function	lock_init
-0x1022f8	function	thread_join
+0x1022f8	function	join_thread
 0x102330	function	PxiDispatcher_stop
 0x1023c0	function	lock_leave
 0x1023e0	function	lock_enter
 0x102418	function	svcWaitSynchronizationN
-0x10243c	function	thread_start
-0x10252c	function	runtime_init_then_srv_init
+0x10243c	function	create_thread
+0x10252c	function	init_runtime_and_srv
 0x10253c	function	srv_init
-0x102660	function	panic_alt_entry
-0x102664	function	panic
-0x1026b8	function	panic_on_result
+0x102660	function	abort
+0x102664	function	break_process
+0x1026b8	function	panic_on_failure
 0x102728	function	svcCreateEvent
-0x102740	label	array_construct
-0x102764	function	svcExitProcess
+0x102740	label	construct_array
+0x102764	function	default_exit_handler
+0x102768	function	svcExitProcess
 0x1027c4	function	svcCreateAddressArbiter
 0x1027dc	function	svcQueryMemory
 0x10280c	function	svcReplyAndReceive
 0x102824	function	svcSleepThread
-0x102830	function	memcpy
-0x1028a4	function	light_event_wait
+0x102830	function	memcpy_words
+0x1028a4	function	gate_wait
 0x102a04	function	PxiDispatcher_receive_message
 0x102b20	function	wait_mutex_or_cancel
 0x102bcc	function	svcBindInterrupt
 0x102bdc	function	svcBreak
-0x102be4	function	thread_entry_stub
+0x102be4	function	thread_trampoline
 0x102c28	function	svcExitThread
 0x102c30	function	svcGetProcessInfo
 0x102c4c	function	svcUnbindInterrupt
-0x102d30	function	light_lock_lock
+0x102d30	function	lock_arbitrate_wait
 0x102e14	function	pxi_recv_words
 0x102e48	function	svcCreateSemaphore
 0x102e60	function	svcDuplicateHandle
@@ -94,7 +102,7 @@
 0x102f08	function	PxiChannel_on_reply
 0x102f88	function
 0x102f8c	function
-0x102f90	function	light_event_init
+0x102f90	function	gate_close
 0x102fc4	function
 0x1030fc	function	pxi11_publish_notification
 0x103134	function	pxi11_handle_command
@@ -107,7 +115,7 @@
 0x1031f4	function
 0x103228	function	PxiMcChannel_on_reply
 0x1032e8	function
-0x1032ec	function	TerminationHandler_on_notification
+0x1032ec	function	on_terminate_notification
 0x1032f8	function
 0x1032fc	function	Pxi11Channel_run_handler
 0x103310	function

@@ -1,0 +1,11 @@
+adresse	raison
+0x1400140c	code mort : __aeabi_idivmod, rien ne l appelle ni ne le désigne ; __aeabi_uidivmod saute dans son corps
+0x14001440	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x14001464	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x14001468	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x14001498	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x140014cc	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x140014f0	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x14001514	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x14001530	pas une fonction : morceau de la division, atteint seulement par des branchements internes
+0x14001628	pas une fonction : morceau de la division, atteint seulement par des branchements internes
