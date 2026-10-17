@@ -210,7 +210,7 @@ Les autres sections gardent à `+0x18` la dernière valeur brute du capteur. Une
 1. `CDCHID_GetData` (`0x106a74`) rend deux mots : le tactile brut et le pad circulaire brut.
 2. La minuterie est réarmée pour 4 ms.
 3. `convert_touch_position` (`0x1073dc`) et `convert_circle_pad` (`0x1076c8`) appliquent les étalonnages.
-4. `read_buttons` (`0x107a24`) lit le registre matériel `0x1EC46000` (12 boutons, inversés), y ajoute deux bits venus de `GPIOHID_GetGPIOData`, puis `add_circle_pad_directions` (`0x104958`) ajoute les quatre bits du haut quand le pad circulaire est poussé. Elle en tire les trois mots de l'entrée : tenus, pressés, relâchés.
+4. `read_buttons` (`0x107a24`) lit le registre matériel `0x1EC46000` (12 boutons, inversés), y ajoute deux bits venus de `GPIOHID_GetData`, puis `add_circle_pad_directions` (`0x104958`) ajoute les quatre bits du haut quand le pad circulaire est poussé. Elle en tire les trois mots de l'entrée : tenus, pressés, relâchés.
 5. Une fois sur trois, `MCUHID_GetRaw3DSliderPosition` lit le curseur 3D, `update_3d_slider` (`0x107060`) le convertit, et le résultat est écrit à `0x1FF81080`.
 6. `write_touch_entry` puis `write_pad_entry` écrivent dans la mémoire partagée.
 7. Sous le verrou `0x10cb24`, les deux premiers signaux de chaque session active sont déclenchés.
@@ -243,10 +243,10 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 | | | `0x000D0000` | `MCUHID_GetMcuHidEventReason` | `0x106974` | Savoir pourquoi il a sonné |
 | | | `0x000E0000` | `MCUHID_GetSoundVolume` | `0x1080fc` | Répondre à la commande 23 |
 | | | `0x000F0040` | `MCUHID_EnableAccelerometerInterrupt` | `0x1054a0` | Allumer ou éteindre l'accéléromètre |
-| `gpio:HID` | `0x10c104` | `0x00020080` | `GPIOHID_cmd0002` | `0x102638` | Préparer la broche du gyroscope |
-| | | `0x00040080` | `GPIOHID_cmd0004` | `0x102714` | idem |
-| | | `0x00060080` | `GPIOHID_cmd0006` | `0x10274c` | idem |
-| | | `0x00070040` | `GPIOHID_GetGPIOData` | `0x104a5c` | Lire deux bits ajoutés aux boutons |
+| `gpio:HID` | `0x10c104` | `0x00020080` | `GPIOHID_SetDirection` | `0x102638` | Préparer la broche du gyroscope |
+| | | `0x00040080` | `GPIOHID_SetEdge` | `0x102714` | idem |
+| | | `0x00060080` | `GPIOHID_SetInterruptEnable` | `0x10274c` | idem |
+| | | `0x00070040` | `GPIOHID_GetData` | `0x104a5c` | Lire deux bits ajoutés aux boutons |
 | | | `0x00090082` | `GPIOHID_BindInterrupt` | `0x102670` | Lier l'interruption du gyroscope à un signal |
 | | | `0x000A0042` | `GPIOHID_UnbindInterrupt` | `0x1026c4` | La délier à l'arrêt |
 | `i2c::HID` | `0x10c040` | `0x000200C0` | `I2CHID_EnableRegisterBits8` | `0x1048c8` | Régler le gyroscope |

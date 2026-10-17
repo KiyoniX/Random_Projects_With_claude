@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), les 
 | Titre | `0004013000003302`, un titre de la CTRNAND (lu dans l'exheader ; nom `ir`) |
 | Fichier lu | `local/extrait/ir/exefs/code.bin` et `exheader.bin` |
 | Taille | 67 836 octets de code (`0x108fc`), 5 384 de données en lecture seule (`0x1508`), 1 376 de données (`0x560`), 9 192 de mémoire à zéro (`0x23e8`) ; pile de 4 096 octets ; priorité de départ 27 |
-| Fonctions | 455, dont 199 nommées dans `ir.noms.tsv` (12 en Thumb, 443 en ARM) |
+| Fonctions | 455 pour Ghidra, plus 25 entrées manquées, moins 1 qui n'est pas du code (`0x110080`) : 479 (14 en Thumb, 465 en ARM) ; 220 nommées dans `ir.noms.tsv`, 479 avec `local/analyse/ir/noms-proposes.tsv` |
 | Services offerts | `ir:u` (1 session), `ir:USER` (1 session), `ir:rst` (2 sessions) : trois sessions au plus en tout |
 | Services appelés | `i2c::IR` (le composant infrarouge, par bus), `gpio:IR` (sa broche d'interruption), `cfg:s`, `ptm:s`, plus `srv:` et le port `err:f`. Les quatre premiers sont ceux de l'exheader ; `srv:` n'a pas besoin d'y être |
 | Dépendances déclarées | `gpio` (`0004013000001B02`) et `i2c` (`0004013000001E02`) |
@@ -22,7 +22,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), les 
 `entry` (`0x100000`) appelle cinq fonctions puis `call_ir_main`, puis `svcExitProcess` :
 
 1. `clear_bss` (`0x100024`).
-2. `0x10020c` (non nommée) : prépare un petit contexte de bibliothèque.
+2. `init_program_args` (`0x10020c`) : range les tables de `_get_lc_ctype` (`0x10035c`) et `_get_lc_numeric` (`0x1003a4`) dans le bloc de paramètres régionaux de `__rt_locale` (`0x100260`).
 3. `init_runtime_and_srv` (`0x109bf0`) : `init_runtime` (`0x101038` : verrous, trois réserves d'adresses virtuelles, enregistrement du processus), puis `srv_init` (`0x109c00`), qui se connecte au port `srv:` (en réessayant toutes les 500 000 ns tant que le port n'existe pas) et envoie `SRV_RegisterClient`.
 4. `setup_heap` (`0x100318`) : fixe la taille du tas (`set_heap_size`, `0x10026c`, par `svcControlMemory` à `0x08000000`) et prépare l'allocateur des piles de fils.
 5. `run_static_initializers` (`0x100164`, Thumb), qui appelle les constructeurs de la table de distances : les objets globaux sont construits par `construct_global_objects` (`0x10f7e4`), qui range aussi les deux vtables des services (`ir:u` à `0x11221c`, `ir:USER` à `0x112188`).
@@ -34,14 +34,14 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), les 
 Un seul fil sert les commandes des trois services. `ir_main` fait :
 
 1. **Les trois noms.** Dans l'ordre, `ir:u`, `ir:USER`, `ir:rst` (table de `0x111060` : adresse du nom, nombre de sessions au plus) : `SRV_RegisterService` avec 1, 1 et 2 sessions. Les ports vont dans les emplacements 1 à 3 du tableau de poignées (`0x11592c`).
-2. **`ptm:s` et le fil.** `ptm_open` (`0x1011dc`) ouvre `ptm:s`. Le fil de communication est créé (`create_comm_thread`, `0x10105c`, priorité 16) avec `comm_thread_main` (`0x1015c0`).
+2. **`ptm:s` et le fil.** `ptm_open` (`0x1011dc`) ouvre `ptm:s`. Le fil de communication est créé (`create_thread_on_heap_stack`, `0x10105c`, priorité 16 ; même code que hid, i2c et spi) avec `comm_thread_main` (`0x1015c0`).
 3. **L'initialisation.** `init_rst_state` (`0x100b68`) prépare l'état de `ir:rst` (sa page de `0x98` octets, ses huit entrées de départ). `init_ir_module_state` (`0x100dcc`) ouvre le composant (`ir_open_devices`, `0x1016f8` : `i2c::IR`, `gpio:IR`, l'événement de l'interruption à `0x11328c`), prépare les huit entrées de `0x1140a8`, et lit le bloc de configuration `0x00040004` (`CFG_GetConfigInfoBlk8`).
 4. **Les notifications.** Trois objets de notification : `0x100` (`0x1107ac`), `0x104` (`0x110834`) et `0x105` (`0x1107c0`). `SRV_EnableNotification` rend le sémaphore (emplacement 0), `SRV_Subscribe` pour `0x104` et `0x105`.
 5. **L'attente.** `svcReplyAndReceive` (`0x100a94`, un seul appelant : `ir_main`) sur : le sémaphore, les trois ports, puis les sessions ouvertes (3 au plus).
    - Indice 0 : `handle_srv_notification` (`0x101278`) lit le numéro et appelle le gestionnaire.
    - Indice 1 à 3 : `svcAcceptSession`. S'il y a déjà trois sessions, la nouvelle est refermée. Sinon : pour `ir:u` et `ir:USER`, le contexte est un objet unique, fixe (`0x11331c` et `0x113f98`), et l'octet `0x113550` (« service courant », 3 s'il n'y en a pas) prend 0 ou 1 ; pour `ir:rst`, un objet de `0x10c` octets est alloué et construit pour la session (`rst_session_register`, `0x100d7c`). Chaque session garde (type, contexte) dans la table de `0x115850`.
    - Indice 4 et plus : `(*(0x111078 + type*4))(contexte)`, soit `iru_handle_command` (`0x10a170`), `iruser_handle_command` (`0x10a4bc`) ou `rst_handle_command` (`0x10ab4c`).
-6. **La fermeture d'une session** (résultat `0xC920181A`) : la poignée est refermée, le destructeur du contexte est appelé (entrée 2 de sa vtable), et pour `ir:u` ou `ir:USER` l'octet `0x113550` repasse à 3 (aucun service courant). Le destructeur de `ir:USER` (`iruser_destroy`, `0x10e110`) appelle `FinalizeIrnop` ; celui de `ir:u` (`iru_destroy`, `0x10bab8`) attend la réception en cours puis appelle `Shutdown`.
+6. **La fermeture d'une session** (résultat `0xC920181A`) : la poignée est refermée, l'entrée 2 de la vtable du contexte est appelée (`iru_destroy`, `iruser_destroy`, ou `rst_destroy` `0x104bc8`, vide), puis pour `ir:u` ou `ir:USER` l'octet `0x113550` repasse à 3 (aucun service courant) et pour `ir:rst` l'entrée 1 (`rst_session_delete`, `0x104bcc`) arrête la session et libère l'objet de `0x10c` octets. Le destructeur de `ir:USER` (`iruser_destroy`, `0x10e110`) appelle `FinalizeIrnop` ; celui de `ir:u` (`iru_destroy`, `0x10bab8`) attend la réception en cours puis appelle `Shutdown`.
 7. **La sortie.** Quand la notification `0x100` a levé l'octet `0x113528` et qu'il n'y a plus de session : les trois services sont retirés, le fil de communication est arrêté, `ir_close_devices` (`0x100f58`) referme le composant, `srv:` et `ptm:s` sont fermés.
 
 **Le fil de communication.** `comm_thread_main` (`0x1015c0`) attend un événement (la barrière `0x113328`), puis appelle l'entrée 3 de la vtable du service courant : `iruser_thread_main` (`0x10c7e8`) pour `ir:USER`, `iru_thread_main` (`0x10b684`) pour `ir:u`. `iruser_thread_main` attend sur deux événements (la table de `0x111020` en donne les adresses) : celui de l'interruption du composant (`0x11328c`, que lève aussi chaque envoi) et celui des commandes (`0x1132d4`), avec un délai calculé sur l'horloge du système. À chaque réveil elle traite une commande en attente (octet `+8` de `0x1132c8`) puis fait un pas de l'état courant de la liaison (partie 4).
@@ -119,15 +119,15 @@ Le même schéma, sans liaison : l'état est l'octet `+5` de l'objet `0x11329c` 
 | 7 | `0x00070000` | GetRecvTransferCount | `iru_GetRecvTransferCount` | `0x10b634` | `0x00070080` | rien reçu : `0xC8810FEF` |
 | 8 | `0x00080000` | GetSendState | `iru_GetSendState` | `0x10b65c` | `0x00080080` | aucune ; rend « l'état n'est pas 2 » |
 | 9 | `0x00090040` | SetBitRate | `iru_SetBitRate` | `0x1079dc` | `0x00090040` | verrou, veille, état 1 ; valeur de 3 à `0x12` sinon `0xE0E10FED` |
-| 10 | `0x000A0000` | GetBitRate | `iru_cmd000A` | `0x10afc8` | `0x000A0080` | verrou, veille, état 1 ; lit le composant (nom de 3dbrew non vérifié) |
-| 11 | `0x000B0040` | SetIRLEDState | `iru_cmd000B` | `0x10bd78` | `0x000B0040` | verrou, veille, état 1 (nom de 3dbrew non vérifié) |
+| 10 | `0x000A0000` | GetBitRate | `iru_GetBitRate` | `0x10afc8` | `0x000A0080` | verrou, veille, état 1 ; `ir_get_bit_rate` (`0x103e2c`) relit le diviseur de la liaison et rend le code de vitesse (3 à `0x12`) |
+| 11 | `0x000B0040` | SetIRLEDState | `iru_SetIRLEDState` | `0x10bd78` | `0x000B0040` | verrou, veille, état 1 ; écrit la valeur sur la broche `0x400` de `gpio:IR` (`ir_set_led_pin`) ; que ce soit la diode est supposé |
 | 12 | `0x000C0000` | GetIRLEDRecvState | `iru_GetIRLEDRecvState` | `0x10bae4` | `0x000C0080` | verrou, veille, état 1 ; lit la broche par `gpio:IR` |
 | 13 | `0x000D0000` | GetSendFinishedEvent | `iru_GetSendFinishedEvent` | `0x10b880` | `0x000D0042` | aucune ; événement à `0x11329c + 0x20` |
 | 14 | `0x000E0000` | GetRecvFinishedEvent | `iru_GetRecvFinishedEvent` | `0x10b978` | `0x000E0042` | aucune ; événement à `+0x24` |
 | 15 | `0x000F0000` | GetTransferState | `iru_GetTransferState` | `0x10be94` | `0x000F0080` | aucune ; rend l'octet `+5` |
 | 16 | `0x00100000` | GetErrorStatus | `iru_GetErrorStatus` | `0x10b61c` | `0x00100080` | aucune ; rend l'octet `+6` |
 | 17 | `0x00110040` | SetSleepModeActive | `iru_SetSleepModeActive` | `0x10b85c` | `0x00110040` | état 1 sinon `0xC8A10FF0` ; range l'octet à `+0` |
-| 18 | `0x00120040` | SetSleepModeState | `iru_SetSleepModeState` | `0x10bde8` | `0x00120040` | verrou, veille, état 1 ; 0 : active le composant, sinon le réinitialise |
+| 18 | `0x00120040` | SetSleepModeState | `iru_SetSleepModeState` | `0x10bde8` | `0x00120040` | verrou, veille, état 1 ; 0 : `ir_uart_enter_sleep` (`0x108c00`, bit de sommeil du registre 8 levé), sinon `ir_uart_exit_sleep` (`0x10733c`) (sens des registres supposé, SC16IS750) |
 
 ### `ir:rst` (9 commandes, aiguillage `0x10ab4c`)
 
@@ -138,10 +138,10 @@ Le matériel de la New 3DS. Deux sessions au plus (3dbrew : « deux sessions dep
 | 1 | `0x00010000` | GetHandles | `rst_GetHandles` | `0x104148` | `0x00010043` | rend 0, le descripteur `0x04000000` (deux poignées copiées), la poignée du bloc partagé (`0x114148 + 0x14`) et celle d'un événement (`0x113340 + 8`) |
 | 2 | `0x00020080` | Initialize | `rst_Initialize` | `0x1041a8` | `0x00020040` | mot 1 de `10` à `21` sinon `0xE0E10FFD` ; déjà deux sessions démarrées : `0xD8210FF9` ; la première démarre le fil de lecture (`rst_thread_main`, `0x104764`, priorité 16) |
 | 3 | `0x00030000` | Shutdown | `rst_Shutdown` | `0x103f5c` | `0x00030040` | tant qu'une autre session reste démarrée, ne fait que marquer la sienne ; la dernière arrête le fil ; rien de démarré : `0xD8210FF8` |
-| 4 | `0x00040000` | (octet lu dans le composant) | `rst_cmd0004` | `0x104434` | `0x00040080` | `0xC8A10FF0` si l'émulation du Circle Pad Pro est active ; sinon lit un octet par le bus (`0x106224`) |
+| 4 | `0x00040000` | (octet lu dans le composant) | `rst_cmd0004` | `0x104434` | `0x00040080` | `0xC8A10FF0` si l'émulation du Circle Pad Pro est active ; sinon `cstick_read_status_bit` (`0x106224`) relance le matériel, lit 5 octets et rend le bit 4 du deuxième |
 | 5 | `0x00050000` | (octet de l'état du module) | `rst_cmd0005` | `0x104184` | `0x00050080` | rend l'octet `0x114134 + 0xB` |
 | 6 | `0x00060000` | (deux octets de l'état) | `rst_cmd0006` | `0x10454c` | `0x000600C0` | rend les octets de `0x113332` et `0x113333` |
-| 7 | `0x00070080` | (deux octets en entrée) | `rst_cmd0007` | `0x104b68` | `0x00070040` | `0xE0A10FEA` si la console n'a pas ce matériel ; sinon lance le calcul d'étalonnage (`0x1029f0`) avec les deux octets |
+| 7 | `0x00070080` | (deux octets en entrée) | `rst_cmd0007` | `0x104b68` | `0x00070040` | `0xE0A10FEA` si la console n'a pas ce matériel ; sinon `cstick_start_calibration` (`0x1029f0`) envoie les commandes `0xF0`, `0xF1` ou `0xF2` selon les deux octets |
 | 8 | `0x00080080` (d'après les deux paramètres lus ; non vérifié) | (deux octets en entrée) | `rst_cmd0008` | `0x10463c` | `0x00080040` | `0xE0A10FEA` sans ce matériel ; range les deux octets en `0x113332`, `0x113333` |
 | 9 | `0x00090000` | (deux octets de la config) | `rst_cmd0009` | `0x104688` | `0x000900C0` | `0xE0A10FEA` sans ce matériel ; lit le bloc de configuration `0x00040004` (28 octets) et rend ses deux premiers octets |
 
@@ -156,7 +156,7 @@ C'est la première commande utile que Pokémon X envoie (la 24). L'arrivée : `i
 1. **Verrou.** Si `0x113294` est levé : la poignée est refermée et le résultat est `0xF9610C02`.
 2. **Déjà initialisé.** Si l'octet `0x1132c8` vaut 1 : la poignée est refermée, `0xD8210FF9`.
 3. **Tailles.** Il faut `R + E + 0x30 <= S` (le `0x30` n'est ajouté qu'en mode partagé), `Pr × 8 <= R` et `Pe × 8 <= E`. Sinon la poignée est refermée et le résultat est `0xE0E10FEC`.
-4. **Le composant.** `0x10733c` le remet à zéro, `ir_set_bit_rate` (`0x10738c`) range la vitesse (valeurs de 3 à `0x12` ; le résultat est ignoré par `ir_initialize_common`, une valeur hors de l'intervalle n'est donc pas signalée), `0x108c00` l'allume. Si l'allumage échoue, le verrou `0x113294` est levé et le résultat est `0xF9610C02`.
+4. **Le composant.** `ir_uart_exit_sleep` (`0x10733c`) sort la liaison du sommeil (bit 4 du registre 8 et bit 0 du registre `0x58` à 0), `ir_set_bit_rate` (`0x10738c`) range la vitesse (valeurs de 3 à `0x12` ; le résultat est ignoré par `ir_initialize_common`, une valeur hors de l'intervalle n'est donc pas signalée), puis `ir_uart_enter_sleep` (`0x108c00`) la remet en sommeil (registre `0x78` à 6, files vidées, bit 4 du registre 8 levé) jusqu'au premier échange (sens des registres supposé, SC16IS750). Si cet appel échoue, le verrou `0x113294` est levé et le résultat est `0xF9610C02`.
 5. **La page.** `map_shared_memory` (`0x10e424`) projette le bloc (S doit être multiple de `0x1000`, sinon `0xE0E01BF2`) avec les perms 3 (lecture et écriture) pour le module et 1 (lecture) pour le client. L'objet de la page est à `0x113dc4` : poignée à `+0x14`, adresse à `+8`.
 6. **L'en-tête et les deux anneaux.** En mode partagé l'en-tête commun est au début de la page (`0x113dc4 + 0x2c` sinon) ; l'anneau de réception commence à `base + 0x10`, de taille `R + 0x10`, celui d'envoi juste après, à `base + 0x20 + R`, de taille `E + 0x10` (`recv_ring_init`, `0x109d8c`, et `send_ring_init`, `0x106604`). Chaque anneau est décrit dans la partie 5.
 7. **Les événements.** Trois événements à remise à zéro automatique, rangés à `0x113de4` (`+0x20`, `+0x24`, `+0x28` de l'objet de la page) : réception, envoi, état de la liaison. Plus un quatrième (`0x1132d4`) pour réveiller le fil et un petit verrou (`0x113310`).
@@ -202,7 +202,7 @@ Cette disposition est celle que le jeu retrouve : `iruser_open_session` (`0x1e4e
 
 ## Partie 6 : le matériel infrarouge
 
-Le composant n'est pas lu directement : tout passe par `i2c::IR` (le bus) et `gpio:IR` (une broche d'interruption). Le composant est l'appareil d'adresse `0xD` du bus ; sa broche est la `0x40` de `gpio:IR` (`gpioir_attach_interrupt` configure la broche par les commandes 2, 4 et 6, puis la lie à l'événement `0x11328c` avec la priorité 8). La numérotation des commandes de `i2c::IR` est propre à ce service. Rien dans ce module n'indique le sens des registres du composant (interprété).
+Le composant n'est pas lu directement : tout passe par `i2c::IR` (le bus) et `gpio:IR` (les broches). Le composant infrarouge est l'appareil d'adresse `0xD` du bus ; son interruption est la broche `0x80` de `gpio:IR`, liée à l'événement `0x11328c` avec la priorité 8 par `ir_open_devices` (`gpioir_bind_ir_uart_interrupt`, `0x10294c`). La broche `0x40` est celle du matériel de la New 3DS (appareil `0x11`) : `gpioir_attach_interrupt` la configure par les commandes 2, 4 et 6 et la lie à `0x11328c` quand l'émulation du Circle Pad Pro est active, ou à `0x11334c` pour `ir:rst`. Les broches `0x400` et `0x800` sont la diode et sa réception (supposé), `0x200` la remise à zéro du matériel de la New 3DS. Les registres du composant sont tous des multiples de 8 et suivent la forme d'un pont I2C vers liaison série SC16IS750 (modèle supposé) : voir les fonctions `ir_uart_*` de `ir.noms.tsv`.
 
 ## Partie 7 : les services que ir appelle
 
@@ -221,23 +221,23 @@ Le composant n'est pas lu directement : tout passe par `i2c::IR` (le bus) et `gp
 | | | `0x04020082` | `CFG_SetConfigInfoBlk4` | `0x102770` | écrire un bloc |
 | | | `0x04030000` | `CFG_UpdateConfigNANDSavegame` | `0x1027bc` | enregistrer |
 | | `0x113400` | `0x00010082` | `CFG_GetConfigInfoBlk2` | `0x10eb8c` | lire un bloc (`0x00130000`) |
-| `gpio:IR` | `0x1133b8` | `0x00020080` | `GPIOIR_cmd0002` | `0x108da4` | régler la broche |
-| | | `0x00040080` | `GPIOIR_cmd0004` | `0x108aa4` | idem |
-| | | `0x00060080` | `GPIOIR_cmd0006` | `0x108a6c` | idem |
-| | | `0x00070040` | `GPIOIR_GetGPIOData` | `0x10ef68` | lire la broche |
-| | | `0x00080080` | `GPIOIR_cmd0008` | `0x108d60` | régler la broche |
+| `gpio:IR` | `0x1133b8` | `0x00020080` | `GPIOIR_SetDirection` | `0x108da4` | sens des broches (commande 2 de [gpio](gpio.md)) |
+| | | `0x00040080` | `GPIOIR_SetEdge` | `0x108aa4` | front d'interruption (commande 4) |
+| | | `0x00060080` | `GPIOIR_SetInterruptEnable` | `0x108a6c` | autorisation d'interruption (commande 6) |
+| | | `0x00070040` | `GPIOIR_GetData` | `0x10ef68` | lire la broche (commande 7) |
+| | | `0x00080080` | `GPIOIR_SetData` | `0x108d60` | écrire la broche (commande 8) |
 | | | `0x00090082` | `GPIOIR_BindInterrupt` | `0x10295c` | lier l'interruption |
 | | | `0x000A0042` | `GPIOIR_UnbindInterrupt` | `0x1029ac` | la délier |
 | `i2c::IR` | `0x113284` (copie `0x113288`) | `0x000500C0` | `I2CIR_WriteRegister8` | `0x108af0` | écrire un registre |
-| | | `0x00060080` | `I2CIR_cmd0006` | `0x108d04` | (non lue) |
-| | | `0x00090080` | `I2CIR_cmd0009` | `0x1089d0` | (non lue) |
-| | | `0x00150080` | `I2CIR_cmd0015` | `0x108ca4` | écriture avec un tampon statique |
-| | | `0x001100C2` | `I2CIR_cmd0011` | `0x10ee68` | envoi d'un tampon au composant (octets de l'anneau d'envoi) |
-| | | `0x001200C2` | `I2CIR_cmd0012` | `0x10eec0` | lecture d'un tampon du composant |
+| | | `0x00060080` | `I2CIR_WriteCommand8` | `0x108d04` | octet de commande seul (commande 6 d'[i2c](i2c.md)) |
+| | | `0x00090080` | `I2CIR_ReadRegister8` | `0x1089d0` | lire un registre (commande 9) |
+| | | `0x00150080` | `I2CIR_ReadDeviceRaw` | `0x108ca4` | lire n octets sans registre (commande `0x15`) |
+| | | `0x001100C2` | `I2CIR_WriteRegisterBuffer_cmd11` | `0x10ee68` | écrire un tampon au registre 0, la file d'émission (supposé) (commande `0x11`) |
+| | | `0x001200C2` | `I2CIR_ReadRegisterBuffer_cmd12` | `0x10eec0` | lire un tampon au registre 0, la file de réception (supposé) (commande `0x12`) |
 | `ptm:s` | `0x113484` | `0x04030042` | `PTMSYSM_NotifySleepPreparationComplete` | `0x10ef18` | accuser réception de `0x104` et `0x105` |
 | `err:f` (port) | connexion faite à chaque erreur | `0x00010800` | `ERRF_Throw` | `0x1027f4` | erreur fatale |
 
-Les noms `GPIOIR_cmd…` et `I2CIR_cmd…` portent le numéro de la commande : ces numéros n'ont pas de nom connu. `GPIOIR_BindInterrupt`, `UnbindInterrupt` et `GetGPIOData` ont les mêmes en-têtes que `GPIOHID_…` de [hid](hid.md) ; `I2CIR_WriteRegister8` a celui de `I2CHID_WriteRegister8`.
+Les noms des requêtes `GPIOIR_` et `I2CIR_` sont ceux des commandes du serveur dans les fiches de [gpio](gpio.md) (lignes 60 à 69) et d'[i2c](i2c.md) (lignes 68 à 84), lus aux mêmes en-têtes ; ce sont aussi ceux de mcu et codec (`GPIOMCU_SetData`, `I2CMCU_WriteRegisterBuffer_cmd11` …). La commande 7 du GPIO s'appelle `GPIO<X>_GetData` partout (mcu, codec, hid `GPIOHID_GetData`).
 
 ## Partie 8 : l'émulation du Circle Pad Pro (New 3DS)
 
@@ -308,12 +308,11 @@ Ce que le jeu lit dans la page (`0x1e5e18`, `0x1e69f0`, `0x1e6284`) : l'octet de
 - Le nom de 3dbrew de la commande 10 d'`ir:u` (`GetBitRate`) et de la 11 (`SetIRLEDState`).
 
 **Pas lu**
-- `ir_connect_step` (`0x10d914`, 2 012 octets), `ir_connected_step` au-delà de l'envoi (`0x10d484`), `ir_receive_bytes` (`0x106bfc`) : le protocole de connexion, la réception, la reprise sur erreur.
-- `iru_thread_main` (`0x10b684`) et `0x10b068` : le fil d'`ir:u`.
-- L'initialisation du composant (`0x10253c`, `0x102344`, `0x1088dc`, `0x1033cc`) : les écritures de registres.
-- `rst_thread_main` (`0x104764`), le calcul d'étalonnage (`0x1029f0`, 924 octets), `0x10a030`, `0x10f208`, `0x10f30c` (le calcul des valeurs du pad).
-- La bibliothèque de flottants (`0x1034d4` : un reste de division flottante, `0x103ac8`), les gestionnaires de tas (`0x1030cc`, `0x10362c`, `0x1033cc`).
-- 256 fonctions restent sans nom, en grande partie la bibliothèque et les petits accesseurs des anneaux.
+- `ir_connect_step` (`0x10d914`, 2 012 octets) et `ir_connected_step` au-delà de l'envoi (`0x10d484`) : le protocole de connexion et la reprise sur erreur (leurs aides sont nommées : `recv_ring_parse_bytes`, `recv_ring_begin_frame`, `ir_enter_receive_mode` …).
+- Le fil d'`ir:u` est nommé (`iru_do_recv_transfer` `0x10b068`, `iru_do_send_transfer` `0x10bb5c`) mais lu en surface.
+- Les écritures de registres de l'initialisation (`ir_uart_open` `0x10253c`, `cstick_probe` `0x102344`, `ir_uart_write_divisor` `0x1088dc`, `ir_uart_configure_line` `0x1033cc`) : lues, le sens des registres supposé (SC16IS750).
+- `rst_thread_main` (`0x104764`) et les calculs du pad (`cstick_convert_raw` `0x10a030`, `add_circle_pad_directions` `0x10f208`, `convert_circle_pad` `0x10f30c`) : nommés, calculs non suivis.
+- 232 noms nouveaux restent de confiance moyenne (`local/analyse/ir/noms-proposes.tsv`).
 
 ## Comment cette fiche a été faite
 

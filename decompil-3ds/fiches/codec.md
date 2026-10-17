@@ -29,7 +29,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), six 
 3. enregistre cinq gestionnaires de notifications (`register_notification_handler`) : `0x100` (arrêt, `on_terminate_notification`, `0x10492c`) et `0x104`, `0x105`, `0x214`, `0x213` (un seul gestionnaire pour les quatre : `codec_on_notification`, `0x1069d4`) ;
 4. appelle `codec_initialize` (`0x100b54`), partie 4 ;
 5. s'abonne à `0x104`, `0x105`, `0x213` et `0x214` (`SRV_Subscribe`, `0x103c1c`) : la veille et le réveil de la console, et l'ouverture et la fermeture du couvercle ;
-6. lit si la console est une New 3DS (`codec_is_new3ds`, `0x10089c`, par `PTMSYSM_CheckNew3DS`) et garde l'octet à `0x109030` ;
+6. lit si la console est une New 3DS (`is_new_3ds`, `0x10089c`, par `PTMSYSM_CheckNew3DS`) et garde l'octet à `0x109030` ;
 7. boucle sur `WaitSynchronizationN` de sept poignées (six ports, puis le sémaphore des notifications) : indice 6, `handle_srv_notification` ; indices 0 à 5, `svcAcceptSession` puis un fil de session ; si la session est celle de `cdc:HID` (indice 0) et que la console est une New 3DS, le fil a la priorité 15 et le processeur 3, sinon la priorité 20 et le processeur par défaut ;
 8. à la notification `0x100` : `codec_finalize` (`0x100d74`), retrait des six services, `srv_exit`.
 
