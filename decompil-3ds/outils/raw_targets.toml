@@ -157,3 +157,4 @@ made_by = "python outils/firm.py local/dump/systeme/native.firm"
 format = "raw"
 base = 0x0808A900
 language = "v5t"
+names = "fiches/arm9loader.noms.tsv"

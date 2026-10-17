@@ -1,0 +1,35 @@
+adresse	raison
+0x8018f48	donnée : pointeur vers la chaîne « KAddressArbiter » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f4c	donnée : pointeur vers la chaîne « KAutoObject » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f50	donnée : pointeur vers la chaîne « KCodeSet » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f54	donnée : pointeur vers la chaîne « KDmaObject » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f64	donnée : pointeur vers la chaîne « KEvent » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f68	donnée : pointeur vers la chaîne « KMutex » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f6c	donnée : pointeur vers la chaîne « KProcess » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f70	donnée : pointeur vers la chaîne « KSemaphore » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f74	donnée : pointeur vers la chaîne « KSynchronizationObject » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f78	donnée : pointeur vers la chaîne « KThread » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f7c	donnée : pointeur vers la chaîne « KTimer » de la table des noms de classes (0x8019404-0x801947c), lu par la case get_type_obj de la classe ; le code s'arrête au littéral 0x8018f44 de kprocess_destroy
+0x8018f58	donnée : configuration de périphérique DMA par défaut (10 octets, premier mot 0x00800FFF), source du memcpy de dma_channel_start_transfer (mot 0x8012ddc)
+0x8018f80	donnée : mot 0 (poignée de sortie par défaut) lu par create_address_arbiter (mot 0x800b790)
+0x8018f84	donnée : table {0xFFFF8001, 0} lue par svc_start_inter_process_dma_impl_body (mot 0x800cc38)
+0x8018f8c	donnée : mot 0 lu par svc_create_event_impl (mot 0x800a530)
+0x8018f90	donnée : {0xFFFF8000, 0xFFFF8001, 0} (pseudo-poignées fil et processus courants) lus par svc_duplicate_handle_impl (mot 0x800b308)
+0x8018f9c	donnée : {0xFFFF8000, 0xFFFF8001} lus par svc_get_thread_info_impl et svc_get_process_info_impl (mots 0x800ae7c, 0x800b074)
+0x8018fa4	donnée : mot 0 lu par create_mutex (mot 0x800a6a4)
+0x8018fa8	donnée : mot 0 lu par create_semaphore (mot 0x800b21c)
+0x8018fac	donnée : {0xFFFF8000, …} lu par create_thread et handle_table_get_thread (mots 0x800ac50, 0x800fe5c)
+0x8018fb8	donnée : mot 0 lu par svc_create_timer_impl (mot 0x800a818)
+0x8018fc4	donnée : kdma_object_vtable (deux mots nuls puis destroy 0x8018d2c en +8), rangée par dma_create_channel_object (mot 0x800e7c8)
+0x801b3a0	donnée : table des huit régions de l'unité de protection (12 octets par région), lue par kernel9_setup_mpu_and_caches (ldr fp, mot 0x801b378)
+0x800e800	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e804	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e808	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e80c	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e810	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e820	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e828	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e830	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e838	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e840	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv
+0x800e848	code mort supposé : table de vecteurs 0x800e800-0x800e84f, seulement désignée par le mot 0x801b108 que rien ne charge (la table 0x801b0f8 n'est lue qu'à l'index 0 par kernel9_entry), et CP15 c1 = 0x4307D (bit V) met les vecteurs en 0xFFFF0000 ; nommé en moyenne dans noms-proposes.tsv

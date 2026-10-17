@@ -1,0 +1,6 @@
+adresse	raison
+0x80901f4	pas une fonction : variable .data désignée par les littéraux 0x808ae98, 0x808b0f4 et 0x809017c (static_init_load_offset y écrit le mot +0xc en 0x809016c ; arm9loader_jump_to_arm9bin l'efface) ; entrée proposée à tort par couverture.py
+0x8090240	pas une fonction : variable de deux mots désignée par le seul littéral 0x808b890 : aes_configure y range deux de ses arguments (stmia en 0x808b840) ; aucun saut ni appel vers elle
+0x8090248	pas une fonction : variable désignée par le littéral 0x808b7f0, variable de deux mots que aes_select_keyslot met à zéro (stmia en 0x808b7cc) avant de régler AES_KEYSEL
+0x8090250	pas une fonction : début de la .bss (memclr de arm9loader_clear_bss_and_init, littéral 0x808b020) et structure de périphérique SD/MMC rendue par sdmmc_get_device_struct (littéraux 0x808c15c, 0x808c194)
+0x809028c	pas une fonction : structure de port SD/MMC (littéraux 0x808b8e4, 0x808b940, 0x808b9a0, 0x808c160, 0x808c17c), passée à sdmmc_device_struct_init
