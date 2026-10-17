@@ -13,7 +13,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module extrait du F
 | Titre | `0004013000001402`, rangé dans le NATIVE_FIRM (lu dans l'exheader) |
 | Fichier lu | `local/extrait/pxi/exefs/code.elf` |
 | Taille | 14 404 octets de code, 700 de données en lecture seule, 76 de données, 104 152 de mémoire à zéro (jusqu'à `0x11e724`) |
-| Fonctions | 151 pour Ghidra, dont 103 nommées dans `pxi.noms.tsv` |
+| Fonctions | 152 pour Ghidra, 4 entrées manquées, 156 au dénominateur ; 111 nommées dans `pxi.noms.tsv` |
 | Fils | 4 : le fil principal et trois fils créés au démarrage, tous de priorité `0x2D` |
 | Services offerts | 9 : `PxiFS0`, `PxiFS1`, `PxiFSB`, `PxiFSR`, `PxiPM`, `pxi:am9`, `pxi:dev`, `pxi:mc`, `pxi:ps9` |
 | Services appelés | `srv:` seulement (5 commandes, partie 9) |
@@ -22,7 +22,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module extrait du F
 
 ## Partie 1 : le démarrage et les quatre fils
 
-`entry` (`0x100000`) vide la mémoire à zéro (`clear_bss`, `0x100024`), prépare la bibliothèque C, se connecte une première fois à `srv:` (`runtime_init_then_srv_init`, `0x10252c`), lance les 9 constructeurs d'objets globaux (`run_static_initializers`, `0x100048`, en Thumb, table de distances à `0x104298`) puis appelle `pxi_main` (`0x1000ac`). Quand `pxi_main` revient, le processus se termine (`svcExitProcess`).
+`entry` (`0x100000`) vide la mémoire à zéro (`clear_bss`, `0x100024`), prépare la bibliothèque C, se connecte une première fois à `srv:` (`init_runtime_and_srv`, `0x10252c`), lance les 9 constructeurs d'objets globaux (`run_static_initializers`, `0x100048`, en Thumb, table de distances à `0x104298`) puis appelle `pxi_main` (`0x1000ac`). Quand `pxi_main` revient, le processus se termine (`svcExitProcess`, enrobage en `0x102768`).
 
 Le constructeur qui compte est `static_init_pxi_objects` (`0x103364`) : il fabrique toutes les tables de la partie 7 avant même `pxi_main`.
 
@@ -32,7 +32,7 @@ Le constructeur qui compte est `static_init_pxi_objects` (`0x103364`) : il fabri
 2. **Le matériel.** `pxi_hw_init` (`0x100a8c`) remet le PXI à zéro, branche l'interruption et fait la poignée de main avec Process9 (partie 5).
 3. **`srv:`.** `srv_init` (`0x10253c`) : déjà connecté, il ne fait que compter un utilisateur de plus.
 4. **Les neuf services.** Une boucle sur la table à `0x104044` appelle `SRV_RegisterService` (`0x100994`) pour chaque nom. Les neuf ports reçus sont rangés dans une liste de 10 poignées sur la pile, derrière une case laissée libre.
-5. **Trois fils**, par `thread_start` (`0x10243c`), priorité `0x2D`, processeur `-2` (celui par défaut du processus) :
+5. **Trois fils**, par `create_thread` (`0x10243c`), priorité `0x2D`, processeur `-2` (celui par défaut du processus) :
 
    | Fil | Point d'entrée | Fonction qui tourne | Sommet de pile | Rôle |
    | --- | --- | --- | --- | --- |
@@ -40,10 +40,10 @@ Le constructeur qui compte est `static_init_pxi_objects` (`0x103364`) : il fabri
    | récepteur | `receiver_thread_entry` (`0x100dc8`) | `pxi_receiver_loop` (`0x1012d4`) | `0x11c1e0` | réveillé par l'interruption, lit ce que Process9 a écrit dans la file |
    | sessions | `session_thread_entry` (`0x100da8`) | `session_manager_loop` (`0x1013fc`) | `0x11d1e0` | reçoit les requêtes des modules, les envoie, rend les réponses |
 
-6. **L'ordre d'arrêt.** `srv_register_notification_handler` (`0x1008e8`) inscrit un petit objet (à `0x106000`) pour la notification `0x100`, celle par laquelle `pm` demande à un module de s'arrêter. `srv_enable_notification` (`0x1007f8`) obtient de `srv:` le sémaphore des notifications, qui prend la case libre en tête de la liste de poignées.
+6. **L'ordre d'arrêt.** `register_notification_handler` (`0x1008e8`) inscrit un petit objet (à `0x106000`) pour la notification `0x100`, celle par laquelle `pm` demande à un module de s'arrêter. `get_notification_semaphore` (`0x1007f8`) obtient de `srv:` le sémaphore des notifications, qui prend la case libre en tête de la liste de poignées.
 7. **Les canaux.** Pour chacun des 9 services, la fiche de son canal (partie 7) reçoit l'objet du canal, le nombre de sessions permises et un jeton à 1 : une seule requête à la fois par canal.
 8. **La boucle du fil principal.** `svcWaitSynchronizationN` attend sur les 10 poignées, sans limite de temps.
-   - Case 0, le sémaphore : `srv_dispatch_notification` (`0x10082c`) demande le numéro de la notification (`SRV_ReceiveNotification`) et appelle l'objet inscrit pour ce numéro. Pour `0x100`, `TerminationHandler_on_notification` (`0x1032ec`) met l'octet `0x106010` à 1, et la boucle s'arrête (partie 6).
+   - Case 0, le sémaphore : `handle_srv_notification` (`0x10082c`) demande le numéro de la notification (`SRV_ReceiveNotification`) et appelle l'objet inscrit pour ce numéro. Pour `0x100`, `on_terminate_notification` (`0x1032ec`) met l'octet `0x106010` à 1, et la boucle s'arrête (partie 6).
    - Cases 1 à 9, un port : un module vient d'ouvrir le service. `svcAcceptSession` crée la session. Si le service a déjà son compte de sessions, elle est refermée aussitôt. Sinon elle est rangée dans la première fiche de session libre, avec le numéro du canal, et `svcSignalEvent` réveille le fil des sessions.
 
 Le fil principal ne lit donc aucune requête : il accepte les sessions et les confie au fil des sessions.
@@ -107,7 +107,7 @@ L'exemple est celui de la fiche `fs` : `PXIFS_ReadFile`, en-tête `0x00090142`, 
 2. **Le noyau traduit.** Les mots 6 et 7 (`taille << 8 | 4`, puis l'adresse du tampon chez `fs`) sont un descripteur de type 4. D'après 3dbrew (page IPC), le noyau ne projette pas ce tampon chez `pxi` : il écrit dans un tampon statique du destinataire la liste des morceaux de mémoire physique qui composent le tampon (adresse physique, taille), et remplace l'adresse par l'adresse physique de cette liste. C'est ce qui permet à l'ARM9, qui ne connaît pas les adresses virtuelles de l'ARM11, de retrouver le tampon. Cette étape se passe dans le noyau : elle n'est pas lue ici.
 3. **`pxi` reçoit.** `svcReplyAndReceive` revient avec le rang de la session. La fiche passe à l'état 1.
 4. **Les tampons statiques.** Avant chaque attente, `session_manager_loop` a déclaré quatre tampons statiques d'une page (`0x1000` octets) dans le stockage local du fil (`+0x180`, descripteur `0x04000002` puis l'adresse). Les pages viennent d'une réserve de 20 pages, de `0x107000` à `0x11afff`, tenue par un masque de bits (`0x11bb1c`, `0xFFFFF` au départ) ; la page libre de plus haut rang est prise en premier. À la réception, la session garde autant de pages que le dit la table de la partie 2 (2 pour `PxiFS0`) et rend les autres tout de suite ; quatre pages neuves sont prises pour l'attente suivante. Une page épuisée est déclarée avec le descripteur `0x00000002`, de taille nulle.
-5. **La copie.** Le message entier est recopié du stockage local (`+0x80`) vers le tampon de la session (`0x11b100 + rang × 0x100`) par `memcpy` (`0x102830`). La taille vient de l'en-tête : `(mots ordinaires + mots à traduire + 1) × 4`, et le programme s'arrête si elle dépasse `0x100` octets, soit `0x40` mots. `pxi` ne regarde ni ne modifie aucun des mots : les adresses physiques posées par le noyau partent telles quelles.
+5. **La copie.** Le message entier est recopié du stockage local (`+0x80`) vers le tampon de la session (`0x11b100 + rang × 0x100`) par `memcpy_words` (`0x102830`). La taille vient de l'en-tête : `(mots ordinaires + mots à traduire + 1) × 4`, et le programme s'arrête si elle dépasse `0x100` octets, soit `0x40` mots. `pxi` ne regarde ni ne modifie aucun des mots : les adresses physiques posées par le noyau partent telles quelles.
 6. **L'envoi.** `pxi_send_message` (`0x101cc8`) :
    - prend le mutex d'envoi (`0x105010`), pour que deux fils ne mélangent pas leurs mots dans la file. Le fil des sessions attend en même temps l'évènement d'arrêt ; s'il se lève, l'envoi est abandonné avec `0xD92043FB` ;
    - `pxi_send_word` (`0x101fc4`) écrit le numéro du canal (1 pour `PxiFS0`) dans `PXI_SEND` (`0x1EC63008`), après avoir attendu que la file ne soit plus pleine (bit 1 de `PXI_CNT`, `0x1EC63004`) ;
@@ -143,7 +143,7 @@ Process9 a écrit les octets lus directement dans la mémoire de `fs`, par les a
 | `0x1EC63008` | `PXI_SEND` | 32 bits | écrit : un mot vers l'ARM9 |
 | `0x1EC6300C` | `PXI_RECV` | 32 bits | lu : un mot venu de l'ARM9 |
 
-Les fonctions qui y touchent, et elles seules : `pxi_hw_reset` (`0x10114c`) et sa copie `pxi_hw_reset_at_exit` (`0x1011a8`), `pxi_send_fifo_is_full` (`0x101190`), `pxi_send_words` (`0x101c48`), `pxi_trigger_sync_irq` (`0x101c7c`), `pxi_recv_word` (`0x101fa8`), `pxi_send_word` (`0x101fc4`), `pxi_recv_fifo_is_empty` (`0x101fe0`), `pxi_unbind_interrupts` (`0x101ff8`), `pxi_bind_interrupts` (`0x1021a8`), `pxi_recv_words` (`0x102e14`) et `pxi_hw_init` (`0x100a8c`).
+Les fonctions qui y touchent, et elles seules : `pxi_hw_reset` (`0x10114c`) et sa copie `pxi_hw_reset_alt_1011a8` (`0x1011a8`, appelée par `pxi_hw_exit`), `pxi_send_fifo_is_full` (`0x101190`), `pxi_send_words` (`0x101c48`), `pxi_trigger_sync_irq` (`0x101c7c`), `pxi_recv_word` (`0x101fa8`), `pxi_send_word` (`0x101fc4`), `pxi_recv_fifo_is_empty` (`0x101fe0`), `pxi_unbind_interrupts` (`0x101ff8`), `pxi_bind_interrupts` (`0x1021a8`), `pxi_recv_words` (`0x102e14`) et `pxi_hw_init` (`0x100a8c`).
 
 Les attentes sur la file (pleine à l'envoi, vide à la lecture) sont des boucles actives : le fil relit `PXI_CNT` sans s'endormir.
 
@@ -264,7 +264,7 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 | `0x104120` | canaux 1 à 8 | `PxiChannel_on_reply` (`0x102f08`) | arrêt du programme (`0x102f88`) |
 | `0x10413c` | canal 0 | `PxiMcChannel_on_reply` (`0x103228`) | arrêt du programme (`0x102f88`) |
 | `0x1040c4` | canal 9 | `PxiEndpoint_on_message_deferred` (`0x1031c4`) | `Pxi11Channel_run_handler` (`0x1032fc`) |
-| `0x104158` | la classe de base, remplacée pendant la construction | la même, `0x1031c4` | une fonction Thumb à `0x1000a2`, qui n'appelle qu'une fonction vide |
+| `0x104158` | la classe de base, remplacée pendant la construction | la même, `0x1031c4` | `__cxa_pure_virtual` (`0x1000a2`, Thumb), qui appelle `pure_virtual_report_stub` (`0x100096`), lequel appelle la fonction vide `0x103318` |
 
 **Les autres adresses**
 
@@ -286,7 +286,7 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 | Appel | Numéro | Fonction | Adresse |
 | --- | --- | --- | --- |
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x1027dc` |
-| ExitProcess | `0x03` | `svcExitProcess` | `0x102764` |
+| ExitProcess | `0x03` | `svcExitProcess` | `0x102768` |
 | CreateThread | `0x08` | `svcCreateThread` | `0x100ebc` |
 | ExitThread | `0x09` | `svcExitThread` | `0x102c28` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x102824` |
@@ -320,9 +320,9 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 | En-tête | Commande | Fonction | Adresse | Appelée par |
 | --- | --- | --- | --- | --- |
 | `0x00010002` | RegisterClient | `SRV_RegisterClient` | `0x10108c` | `srv_init` |
-| `0x00020000` | EnableNotification | `SRV_EnableNotification` | `0x1010c8` | `srv_enable_notification` |
+| `0x00020000` | EnableNotification | `SRV_EnableNotification` | `0x1010c8` | `get_notification_semaphore` |
 | `0x00030100` | RegisterService | `SRV_RegisterService` | `0x100994` | `pxi_main`, neuf fois |
-| `0x000B0000` | ReceiveNotification | `SRV_ReceiveNotification` | `0x101104` | `srv_dispatch_notification` |
+| `0x000B0000` | ReceiveNotification | `SRV_ReceiveNotification` | `0x101104` | `handle_srv_notification` |
 | `0x000C0080` | PublishToSubscriber | `SRV_PublishToSubscriber` | `0x103184` | `pxi11_publish_notification` |
 
 `srv_init` (`0x10253c`) se connecte au port `srv:` par `svcConnectToPort` ; si le port n'existe pas encore, elle attend 500 000 nanosecondes et recommence.
@@ -336,7 +336,7 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 - L'ordre des mots dans la file (canal, en-tête, mots) et la limite de `0x40` mots : lus dans `pxi_send_message` et `PxiDispatcher_receive_message`, et donnés par 3dbrew.
 - Le canal 9 : la commande 1, l'appel à `SRV_PublishToSubscriber` avec le drapeau 1 et la réponse `0x00010040` sont lus dans le code et décrits par 3dbrew.
 - Les commandes 1 et 5 de `pxi:mc` : le message `0x00010000` envoyé après la notification `0x100` et le blocage des autres requêtes sur un argument non nul sont lus dans le code ; 3dbrew les nomme ShutdownPxi et Sleep avec les mêmes effets.
-- La priorité `0x2D` des trois fils : la constante `0x6C8DA52D` décodée par `thread_start`, et la priorité 45 du fil principal dans l'exheader.
+- La priorité `0x2D` des trois fils : la constante `0x6C8DA52D` décodée par `create_thread`, et la priorité 45 du fil principal dans l'exheader.
 - Qui appelle quoi : `svcReplyAndReceive` n'est appelée que par `session_manager_loop`, `pxi_bind_interrupts` que par `pxi_hw_init`, `PxiDispatcher_receive_message` que par `pxi_receiver_loop`, `pxi_trigger_sync_irq` que par `pxi_send_message`. Vu par REA et recompté dans l'assembleur.
 - La réserve de 20 pages : le masque `0xFFFFF`, et le calcul `0x107000 + 20 × 0x1000 = 0x11b000`, qui tombe juste sur le tampon du canal 9.
 - Les 25 appels système utilisés font tous partie des 67 que l'exheader autorise.
@@ -345,9 +345,9 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 - Les noms donnés aux états d'une session, au « genre » d'une requête et au « jeton » d'un canal. Les valeurs et leurs tests sont lus ; les mots sont les miens.
 - Les noms de classes (`PxiEndpoint`, `PxiChannel`, `PxiMcChannel`, `Pxi11Channel`, `PxiDispatcher`) : le code ne porte aucun nom.
 - La traduction du tampon par le noyau (partie 4, étape 2) vient de 3dbrew seulement. Ce qui est lu dans `pxi` : il déclare quatre tampons statiques d'une page et ne touche à aucun mot du message.
-- Le rôle des verrous légers (`light_lock_lock` `0x102d30`, `light_event_wait` `0x1028a4`, `light_semaphore_release` `0x101bd0`) : reconnus à leur forme (un compteur modifié par `ldrex`/`strex`, puis `svcArbitrateAddress`), pas suivis cas par cas.
+- Le rôle des verrous légers (`lock_arbitrate_wait` `0x102d30`, `gate_wait` `0x1028a4`, `light_semaphore_release` `0x101bd0`) : reconnus à leur forme (un compteur modifié par `ldrex`/`strex`, puis `svcArbitrateAddress`), pas suivis cas par cas.
 - La taille des piles : seuls les sommets sont lus. Si les piles se suivent dans la mémoire, celle du fil récepteur fait `0x400` octets et les deux autres `0x1000`.
-- `panic_on_result` (`0x1026b8`) : elle lit l'octet `0x1FF80014` de la mémoire de configuration et le niveau du code d'erreur pour décider d'arrêter le programme ; les cas exacts ne sont pas démêlés.
+- `panic_on_failure` (`0x1026b8`) : elle lit l'octet `0x1FF80014` de la mémoire de configuration et le niveau du code d'erreur pour décider d'arrêter le programme ; les cas exacts ne sont pas démêlés.
 - Un point à relire dans la partie 3 : hors veille, le compteur `0x11bb20` est augmenté avant la prise du jeton. Si le jeton est pris (possible seulement pour `pxi:dev`, qui accepte deux sessions), la requête attend un tour et le compteur serait augmenté une seconde fois.
 - 3dbrew dit qu'un service PXI n'a qu'une session à la fois ; la table donne 2 pour `pxi:dev`. Le chiffre de la table est lu, et il est aussi celui passé à `SRV_RegisterService`.
 
@@ -358,7 +358,7 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 - La bibliothèque C et le démarrage : `0x10071c`, `0x100ddc`, `0x100e24` (tables de caractères), `0x100fd8`, `0x100ffc`, `0x101064` (bornes de mémoire, `svcQueryMemory`), `0x1029b0` et `0x102fc4` (cases du stockage local).
 - Les destructeurs d'objets globaux (`0x102eac`, `0x102ff8`, `0x103054`, `0x10307c`, `0x1030a4`, `0x103200`), qui ne servent qu'à l'arrêt.
 - Une table de 10 poignées à `0x11e408` : elle est mise à zéro au démarrage et fermée à l'arrêt, mais aucune fonction lue n'y écrit.
-- Les 48 fonctions sans nom, dont la plupart ne font qu'un `bx lr`.
+- 45 fonctions n'ont qu'un nom proposé en moyenne, dont la plupart ne font qu'un `bx lr`.
 
 ## Comment cette fiche a été faite
 
@@ -375,8 +375,8 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 
 - **Deux boucles cachées.** `worker_thread_entry` et `receiver_thread_entry` ne font que charger un argument et sauter (`b`, sans retour) vers la vraie boucle. Ghidra avait rangé `0x1011ec` et `0x1012d4` dans le corps des deux points d'entrée, et le pseudo-code était illisible. Deux graines `function` les ont séparées. `prescan.py` ne les signale pas : pour lui, elles étaient déjà « dans une fonction ».
 - **Une fausse enveloppe.** `prescan.py` avait nommé `0x103184` `svcSendSyncRequest`, parce que c'est une fonction courte avec un seul `svc`. C'est en fait `SRV_PublishToSubscriber` : elle remplit un message avant l'appel. Dans ce module, `svc 0x32` n'a pas d'enveloppe du tout. Le nom est corrigé dans `pxi.noms.tsv`.
-- **Des entrées doubles.** Trois fonctions ont un `nop` devant elles et sont appelées par les deux adresses : `pxi_send_message` (`0x101cc4` et `0x101cc8`), `panic` (`0x102660` et `0x102664`), `srv_init` (`0x10252c`, qui fait d'abord l'initialisation de la bibliothèque, et `0x10253c`). Ghidra en fait deux fonctions à chaque fois.
-- **Le Thumb.** Trois fonctions seulement : `run_static_initializers` (`0x100048`), `destroy_array` (`0x100074`) et `array_construct` (`0x102740`), nommées par des lignes `label`, et les noms ont pris. Le pointeur impair signalé par `prescan.py` est `0x1000a3`, dans la table de méthodes de base (`0x104158`).
+- **Des entrées doubles.** Trois fonctions ont un `nop` devant elles et sont appelées par les deux adresses : `pxi_send_message` (`0x101cc4` et `0x101cc8`), `abort` (`0x102660`, un `mov r0,r0` appelé seulement par `panic_on_failure`, en `0x1026fc` et `0x102710`), qui tombe dans `break_process` (`0x102664`), `init_runtime_and_srv` (`0x10252c`, qui fait d'abord l'initialisation de la bibliothèque, et `0x10253c`). Ghidra en fait deux fonctions à chaque fois.
+- **Le Thumb.** Cinq fonctions : `run_static_initializers` (`0x100048`), `destroy_array` (`0x100074`), `pure_virtual_report_stub` (`0x100096`), `__cxa_pure_virtual` (`0x1000a2`) et `construct_array` (`0x102740`), nommées par des lignes `label`, et les noms ont pris. Le pointeur impair signalé par `prescan.py` est `0x1000a3`, dans la table de méthodes de base (`0x104158`).
 - **Les sections serrées.** Dans `code.asm`, tout est désassemblé comme du code et seul `.text` est à la bonne adresse. Les tables de `.rodata` (à partir de `0x104000` en mémoire) sont à la position `0x3844` de `code.bin` : elles ont été lues par script.
 - **La Carte des services** n'a pas de tableau de commandes pour les services de `pxi`, ni les descripteurs de type 4 et 6. Les pages de 3dbrew ont été lues directement.
 

@@ -11,7 +11,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Titre | `0004013000001202`, rangé dans le NATIVE_FIRM (lu dans l'exheader) |
 | Fichier lu | `local/extrait/pm/exefs/code.elf` |
 | Taille | 25 108 octets de code, 924 de données en lecture seule, 472 de données, 14 340 de mémoire à zéro |
-| Fonctions | 175, dont 127 nommées dans `pm.noms.tsv` |
+| Fonctions | 177 pour Ghidra, 20 entrées manquées, 188 au dénominateur (9 morceaux de la division retirés) ; 156 nommées dans `pm.noms.tsv` |
 | Services offerts | `pm:app` (13 commandes, 3 sessions au plus) et `pm:dbg` (3 commandes, 1 session au plus) |
 | Services appelés | `Loader`, `fs:REG`, `srv:pm`, et le port `srv:` |
 | Dépendances déclarées | aucune |
@@ -23,10 +23,10 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 `entry` (`0x100000`) appelle six fonctions à la suite, puis `svcExitProcess` :
 
 1. `clear_bss` (`0x100024`) met à zéro la mémoire de `0x1081d8` à `0x10b9dc`.
-2. Une petite fonction de la bibliothèque C (`0x100494`), sans nom ici.
+2. `init_program_args` (`0x100494`) prépare les paramètres régionaux de la bibliothèque C.
 3. `init_runtime` (`0x100a48`) crée l'arbitre d'adresses dont se servent tous les verrous, et prépare deux réserves d'adresses.
-4. La fonction à `0x100048`, écrite en Thumb, appelle les 11 fonctions d'initialisation des objets globaux, par la table de `0x107370` à `0x10739c`.
-5. Une fonction vide (`0x100460`).
+4. `run_static_initializers` (`0x100048`), écrite en Thumb, appelle les 11 fonctions d'initialisation des objets globaux, par la table de `0x107370` à `0x10739c`.
+5. `run_init_array` (`0x100460`) parcourt une seconde table, vide ici (`0x10739c`-`0x10739c`).
 6. `pm_main` (`0x100084`, 932 octets) : tout le reste.
 
 `pm_main` commence par cinq préparatifs, puis entre dans la boucle de la partie 2 :
@@ -259,7 +259,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | | `0x00020000` | `SRV_EnableNotification` | `0x1012b8` | Obtenir le sémaphore des notifications |
 | | | `0x00030100` | `SRV_RegisterService` | `0x100c5c` | Créer `pm:app` et `pm:dbg` |
 | | | `0x000400C0` | `SRV_UnregisterService` | `0x100cb8` | Les retirer à l'arrêt |
-| | | `0x00050100` | `SRV_GetServiceHandle` | `0x103720` | Ouvrir les trois services ci-dessous |
+| | | `0x00050100` | `SRV_GetServiceHandle` | `0x101c94` | Ouvrir les trois services ci-dessous (par `srv_get_service_handle`, `0x103720`) |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x1012f4` | Lire le numéro de la notification arrivée |
 | | | `0x000C0080` | `SRV_PublishToSubscriber` | `0x102c40` | Publier `0x10C` et `0x110 + n` |
 | `srv:pm` | `0x10818c` | `0x00010042` | `SRVPM_PublishToProcess` | `0x103dac` | Envoyer `0x100` ou `0x179` à un processus |
@@ -363,7 +363,7 @@ Le jeu 0 est celui dont le code change la mémoire et le temps de processeur à 
 | Appel | Numéro | Fonction | Adresse |
 | --- | --- | --- | --- |
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x101448` |
-| ExitProcess | `0x03` | `svcExitProcess` | `0x100078` |
+| ExitProcess | `0x03` | `svcExitProcess` | `0x10007c` |
 | SetProcessAffinityMask | `0x05` | dans `register_process_with_services` | `0x103954` |
 | SetProcessIdealProcessor | `0x07` | dans `register_process_with_services` | `0x103954` |
 | CreateThread | `0x08` | `svcCreateThread` | `0x101424` |
@@ -399,7 +399,7 @@ Le jeu 0 est celui dont le code change la mémoire et le temps de processeur à 
 
 Les six derniers, à partir de `0x60`, et `Run` agissent sur d'autres processus que celui qui les appelle : ce sont eux qui font de `pm` le maître des processus. `svcKernelSetState` est appelé de trois façons : type 3 avec `0x12000000` au démarrage, type 6 avec 3 puis 0 ou 1 au lancement d'une application, type 0 avec le numéro du FIRM pour redémarrer.
 
-Les verrous du module (`recursive_lock_enter` à `0x1036e8`, `recursive_lock_leave` à `0x103674`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
+Les verrous du module (`lock_enter` à `0x1036e8`, `lock_leave` à `0x103674`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
@@ -430,9 +430,8 @@ Les verrous du module (`recursive_lock_enter` à `0x1036e8`, `recursive_lock_lea
 
 **Pas lu**
 - Le détail de `launch_with_dependencies` quand le lancement d'une dépendance échoue, et ce que devient alors le processus déjà créé.
-- Les 11 fonctions d'initialisation des objets globaux, sauf `static_init_pm_globals` (`0x105c88`), et les 10 fonctions de fermeture qui vont avec (les 8 de `0x105510` à `0x10570c`, puis `0x10618c` et `0x1061cc`).
-- Le démarrage de la bibliothèque C (`0x100494`, `0x100518`, `0x100da8`, `0x100df0`), les deux réserves d'adresses (`0x1010bc`, `0x101124`), les six petites fonctions passées à `create_thread` (`0x1013b4` à `0x1013f0`), le stockage local des fils (`0x101e40`, `0x10245c`, `0x1024a8`, `0x1038c8`, `0x1038dc`).
-- 48 fonctions n'ont pas de nom dans `pm.noms.tsv`. Les fonctions de calcul et de copie nommées (`memcpy`, `memclr`, `strlen`, `strcmp`, `__aeabi_uidivmod`) le sont d'après leur forme, sans avoir été relues ligne à ligne.
+- Les fonctions d'initialisation, de fermeture, de démarrage et de stockage local citées ici ont toutes un nom, haute ou moyenne (`local/analyse/pm/noms-proposes.tsv`).
+- 32 fonctions n'ont qu'un nom proposé en moyenne. `memcpy` n'existe pas sous ce nom (`__aeabi_memcpy`, `0x102b34` ; `memcpy_words`, `0x103e50`) ; l'ancien `memclr` (`0x103e10`) devient `memclr_bytes` et `clear_words` (`0x102bbc`) devient `memclr`. Copie, effacement, `memset_words` et `__aeabi_uidivmod` sont exécutés sous unicorn contre la spécification.
 
 ## Comment cette fiche a été faite
 
@@ -453,8 +452,8 @@ Les verrous du module (`recursive_lock_enter` à `0x1036e8`, `recursive_lock_lea
 - `prescan` ne compte que les appels système sans condition. Trois `TerminateProcess` s'exécutent sous condition (`0x103b34`, `0x104ce0`, `0x104ddc`) et lui échappent : il en annonce 6, il y en a 9. Les chiffres de la partie 9 viennent du désassemblage d'`objdump`.
 
 **Trois choses à savoir en relisant dans Ghidra.**
-- La fonction de départ du fil de surveillance n'est pas `0x101478` mais `0x100f58`, une instruction isolée qui appelle `0x101478` et ne revient jamais. `prescan` l'écarte et elle n'a pas de ligne dans `pm.noms.tsv` : dans `hid`, une graine posée sur une instruction isolée de ce genre faisait afficher deux fois la fonction suivante.
-- La fonction à `0x100048` est en Thumb, et le nom qu'on lui donne dans le fichier de graines ne prend pas. À nommer à la main (`run_static_initializers`).
+- La fonction de départ du fil de surveillance n'est pas `0x101478` mais `0x100f58`, une instruction isolée qui appelle `0x101478` et ne revient jamais. `prescan` l'écarte et elle a pour nom proposé `exit_monitor_thread_entry` (pointeur de réserve `0x1009a8`) : dans `hid`, une graine posée sur une instruction isolée de ce genre faisait afficher deux fois la fonction suivante.
+- La fonction à `0x100048` est en Thumb, et son nom est proposé (`run_static_initializers`, ligne `label`).
 - Ghidra écrit `software_interrupt(0x79)` sans arguments pour un appel système placé au milieu d'une fonction. Pour savoir ce qui est passé au noyau, il faut lire les quatre ou cinq instructions qui précèdent dans le désassemblage.
 
 **Pour reprendre.** `pm.noms.tsv` est le fichier de graines : une adresse, `function`, un nom. Les noms en majuscules (`SRV_`, `SRVPM_`, `LOADER_`, `FSREG_`) sont les requêtes que `pm` envoie à un autre service ; ceux en `pmapp_` et `pmdbg_` sont les commandes qu'il reçoit ; ceux en `job_` sont les travaux du fil de travail. Le pseudo-code brut, le désassemblage d'`objdump` et les scripts de recoupement sont dans `local/analyse/pm/`, non versionné.

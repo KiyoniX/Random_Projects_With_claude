@@ -11,7 +11,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module extrait du F
 | Titre | `0004013000001302`, rangé dans le NATIVE_FIRM (lu dans l'exheader) |
 | Fichier lu | `local/extrait/loader/exefs/code.elf` |
 | Taille | 14 488 octets de code, 868 de données en lecture seule, 832 de données, 4 356 de mémoire à zéro |
-| Fonctions | 134, dont 92 nommées dans `loader.noms.tsv` |
+| Fonctions | 136 pour Ghidra, 15 entrées manquées, 142 au dénominateur (9 morceaux de la division retirés) ; 106 nommées dans `loader.noms.tsv` |
 | Service offert | `Loader` (4 commandes, une seule session à la fois) |
 | Services appelés | `fs:LDR`, `fs:REG`, `PxiPM`, plus `srv:` |
 | Service autorisé par l'exheader | `fs:LDR` seulement. Les deux autres passent quand même : `sm` ne contrôle pas les modules système (voir la fiche `sm`, partie 4) |
@@ -23,9 +23,9 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module extrait du F
 `entry` (`0x14000000`) appelle six fonctions à la suite, puis saute dans `svcExitProcess` (`0x14001d5c`) :
 
 1. `clear_bss` (`0x14000024`) met à zéro la mémoire de `0x14005340` à `0x14006444`.
-2. `init_c_locale` (`0x14000414`) prépare les tables de caractères de la bibliothèque C.
+2. `init_program_args` (`0x14000414`) prépare les tables de caractères de la bibliothèque C.
 3. `init_runtime_and_srv` (`0x14001984`) appelle `init_runtime` (`0x14000a08`, les verrous et les réserves d'adresses), puis continue directement dans `srv_init` (`0x14001994`), qui se connecte au port `srv:` et s'y déclare (`SRV_RegisterClient`). Si la connexion échoue avec un code d'erreur précis (sans doute « ce port n'existe pas encore »), elle attend 500 000 nanosecondes et recommence.
-4. La fonction à `0x1400384c`, écrite en Thumb, appelle les 10 fonctions d'initialisation des objets globaux, par la table de `0x14003870` à `0x14003898`. L'une d'elles, `init_memory_pools` (`0x140035c0`), prépare trois petites réserves de blocs, dont celle des objets « fichier » (partie 5).
+4. `run_static_initializers` (`0x1400384c`), écrite en Thumb, appelle les 10 fonctions d'initialisation des objets globaux, par la table de `0x14003870` à `0x14003898`. L'une d'elles, `init_memory_pools` (`0x140035c0`), prépare trois petites réserves de blocs, dont celle des objets « fichier » (partie 5).
 5. `run_init_array` (`0x140003e0`) parcourt une seconde table, vide ici.
 6. `loader_main` (`0x14000054`, 860 octets) : tout le reste.
 
@@ -168,7 +168,7 @@ La fonction remplit une fiche de 0x40 octets sur sa pile :
 
 | Décalage | Contenu | D'où il vient |
 | --- | --- | --- |
-| `+0x00` | nom, 8 octets | exheader `+0x00`, copié par `copy_8_bytes` |
+| `+0x00` | nom, 8 octets | exheader `+0x00`, copié par `copy_service_name` |
 | `+0x10` | adresse de `.text` | exheader `+0x10` |
 | `+0x14` | pages de `.text` | taille `+0x18`, arrondie |
 | `+0x18` | adresse de `.rodata` | exheader `+0x20` |
@@ -217,7 +217,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | | `0x00020000` | `SRV_EnableNotification` | `0x14000af8` | Obtenir le sémaphore des notifications |
 | | | `0x00030100` | `SRV_RegisterService` | `0x14000738` | Créer le service `Loader` |
 | | | `0x000400C0` | `SRV_UnregisterService` | `0x14000794` | Le retirer à l'arrêt |
-| | | `0x00050100` | `SRV_GetServiceHandle` | `0x1400187c` | Ouvrir les trois services ci-dessous |
+| | | `0x00050100` | `SRV_GetServiceHandle` | `0x14000c8c` | Ouvrir les trois services ci-dessous |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x14000b34` | Lire le numéro de la notification arrivée |
 | `fs:LDR` | `0x14005298` | `0x08610042` | `FS_InitializeWithSdkVersion` | `0x14000bc4` | Se présenter au système de fichiers |
 | | | `0x08620040` | `FS_SetPriority` | `0x14000958` | Régler sa priorité à 0 |
@@ -279,9 +279,9 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x14000b70` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x14001be8` |
 | CloseHandle | `0x23` | écrit sur place, à 12 endroits | |
-| WaitSynchronization1 | `0x24` | dans une fonction non nommée | `0x140021ac` |
+| WaitSynchronization1 | `0x24` | dans `main_thread_dtor` | `0x140021ac` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x14000ef0` |
-| GetSystemTick | `0x28` | dans `random_below` et dans une fonction non nommée | `0x140017f8`, `0x140011f0` |
+| GetSystemTick | `0x28` | dans `random_below` et dans `fs_throttle` | `0x140017f8`, `0x140011f0` |
 | GetProcessInfo | `0x2B` | `svcGetProcessInfo` | `0x14000d08` |
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x14000914` |
 | SendSyncRequest | `0x32` | écrit sur place, à 19 endroits | |
@@ -317,14 +317,12 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 - Le sens des codes d'erreur `0xD8E00402` (pas de type de mémoire), `0xC900464F` (fichier trop gros) et `0xD8604659` (plus d'objet fichier libre).
 - Une temporisation avant chaque lecture de fichier (`0x140011f0`) : elle ne fait rien tant que l'octet `0x140052a0` vaut 0, et aucune écriture de cet octet n'a été trouvée.
 - Un défaut probable dans `commit_code_pages` : quand une réservation échoue en mode « désordre », les morceaux déjà réservés sont rendus avec une taille décalée de 12 bits une fois de trop (à `0x14002a14`). À relire.
-- `init_c_locale` : nommée d'après la table de classes de caractères à `0x14004244` et le nom de réglage `C` qu'elle compare.
+- `init_program_args` : nommée d'après la table de classes de caractères à `0x14004244` et le nom de réglage `C` qu'elle compare.
 
 **Pas lu**
-- Le détail de `init_runtime` et des réserves d'adresses (`0x14000a2c`, `0x14000a94`).
-- Neuf des dix fonctions d'initialisation des objets globaux, lues en diagonale : seule `init_memory_pools` est nommée.
-- Les destructeurs (`0x14002150`, `0x140021ac`, `0x14002200`, `0x14003804`) et la fonction à `0x14002058`.
+- `init_runtime`, les réserves d'adresses, les neuf fonctions d'initialisation, les destructeurs et `0x14002058` ont désormais un nom proposé.
 - Les deux entrées de division jamais appelées (`0x1400140c`, `0x1400154c`) : Ghidra n'en fait pas des fonctions, et elles ne sont pas en graines.
-- 42 fonctions restent sans nom.
+- 36 fonctions n'ont qu'un nom proposé en moyenne.
 
 ## Comment cette fiche a été faite
 
@@ -340,10 +338,10 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 **Les pièges rencontrés.**
 - **Le pseudo-code perd les arguments des appels système.** Autour d'un `svc`, Ghidra n'affiche pas ce qui est dans les registres : la poignée d'une requête, la taille passée à `svcControlMemory`, les cinq arguments de `svcCreateCodeSet`. Toute la partie 4 a été lue dans l'assembleur.
 - **La table d'initialisation est dans le code.** Comme dans `hid`, elle contient des distances et non des adresses. Mais ici elle est rangée dans `.text`, juste après la fonction qui la parcourt, et `prescan.py` ne cherche ces tables que dans les données. Huit fonctions d'initialisation ont été ajoutées en graines à la main, avec deux morceaux atteints seulement par un saut (`0x14000e20` et `0x14002ee0`) : Ghidra est passé de 110 à 124 fonctions avec les graines de prescan, puis à 134.
-- **Deux noms faux posés d'office.** Au premier passage, `prescan.py` a nommé `entry` (`0x14000000`) `svcExitProcess`, et un petit bout de code à `0x1400109c` `svcBreak` : dans les deux cas Ghidra avait rattaché à une fonction courte l'instruction `svc` d'une autre, atteinte par un saut. Les vraies enveloppes sont à `0x14001d5c` et `0x14000e20` ; le fichier de noms est corrigé.
+- **Deux noms faux posés d'office.** Au premier passage, `prescan.py` a nommé `entry` (`0x14000000`) `svcExitProcess`, et un petit bout de code à `0x1400109c` `svcBreak` : dans les deux cas Ghidra avait rattaché à une fonction courte l'instruction `svc` d'une autre, atteinte par un saut. Les vraies enveloppes sont à `0x14001d5c` et `0x14000e20` ; le fichier de noms est corrigé. Le bout de code à `0x1400109c` est `error_handler_panic` (nom proposé en moyenne), case de la table virtuelle `0x140040bc`.
 
 **Trois choses à savoir en relisant dans Ghidra.**
-- La fonction à `0x1400384c` est en Thumb, et le nom qu'on lui donne dans le fichier de graines ne prend pas. Elle n'a donc pas de ligne dans `loader.noms.tsv` : à nommer à la main (`run_static_initializers`).
+- La fonction à `0x1400384c` est en Thumb, et son nom est proposé (`run_static_initializers`, ligne `label`).
 - `__aeabi_uidivmod` commence à `0x14001b40`, mais son corps est ailleurs, de `0x14001440` à `0x14001530` : c'est une seconde entrée dans la routine de division de la bibliothèque.
 - `init_runtime_and_srv` (`0x14001984`) ne se termine pas par un retour : elle continue dans `srv_init`, la fonction suivante. Ghidra affiche donc le corps de `srv_init` deux fois. De même `loader_UnregisterProgram` continue dans `FSREG_UnloadProgram`, et `get_program_info` saute dans `PXIPM_GetProgramInfo`.
 

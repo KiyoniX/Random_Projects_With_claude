@@ -11,7 +11,7 @@ Fiche d'essai du 13 octobre 2026, produite avec REA et Ghidra sur le module extr
 | Titre | `0004013000001002`, rangé dans le NATIVE_FIRM (pas un titre de la CTRNAND) |
 | Fichier lu | `local/extrait/sm/exefs/code.elf` |
 | Taille | 16 784 octets de code, 584 de données en lecture seule, 80 de données, 20 808 de mémoire à zéro |
-| Fonctions | 117, dont 40 nommées dans `sm.noms.tsv` |
+| Fonctions | 118 pour Ghidra, 11 entrées manquées, 126 au dénominateur (3 morceaux de la division retirés) ; 74 nommées dans `sm.noms.tsv` |
 | Services offerts | `srv:` (14 commandes) et `srv:pm` (4 commandes) |
 | Sur cette console | Luma remplace `sm` par le sien au démarrage : ce qui est lu ici est l'original de Nintendo |
 
@@ -19,7 +19,7 @@ Fiche d'essai du 13 octobre 2026, produite avec REA et Ghidra sur le module extr
 
 Tout le module tient dans une seule grande fonction, `sm_service_loop` (`0x1000a0`, 2 096 octets), qui ne rend jamais la main.
 
-1. **Mise en place.** Elle prépare une réserve de 0xC00 octets découpée en blocs de 0x28 octets, la taille d'un contexte de session (interprété d'après les arguments de l'appel, à confirmer).
+1. **Mise en place.** Elle prépare une réserve de 0xC00 octets découpée en blocs de 0x28 octets, la taille d'un contexte de session (`block_pool_init(0x106050, 0x28, 0x106080, 0xC00, 8, 0)`, appel en `0x100138`).
 2. **Le port `srv:`.** `svcCreatePort` crée le port nommé `srv:`, avec 0x40 sessions au plus. Le nom est à `0x105008`.
 3. **Le service `srv:pm`.** Elle s'enregistre elle-même par `srv_RegisterService` sous le nom `srv:pm` (à `0x10500d`), 0x40 sessions au plus.
 4. **L'attente.** `svcReplyAndReceive` (appel système `0x4F`) répond au message précédent et attend le suivant, sur la liste de poignées rangée à `0x1099a4` (compteur à `0x109d30`).
@@ -111,18 +111,18 @@ Le découpage des 20 octets d'une entrée est lu dans les écritures de `srv_Reg
 | --- | --- | --- | --- |
 | ControlMemory | `0x01` | `svcControlMemory` | `0x10222c` |
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x1010cc` |
-| ExitProcess | `0x03` | dans `entry` | `0x100000` |
+| ExitProcess | `0x03` | `svcExitProcess` | `0x100098` |
 | CreateSemaphore | `0x15` | `svcCreateSemaphore` | `0x1021f8` |
 | ReleaseSemaphore | `0x16` | `svcReleaseSemaphore` | `0x101f1c` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x1010b4` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x101c34` |
 | CloseHandle | `0x23` | écrit sur place, à onze endroits | |
-| WaitSynchronization1 | `0x24` | dans une fonction non nommée | `0x101788` |
+| WaitSynchronization1 | `0x24` | dans `main_thread_dtor` | `0x101788` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x1015f4` |
 | GetSystemInfo | `0x2A` | `svcGetSystemInfo` | `0x100ee8` |
 | GetProcessInfo | `0x2B` | `svcGetProcessInfo` | `0x10131c` |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x10241c` |
-| Break | `0x3C` | une seule fois | `0x1014d8` |
+| Break | `0x3C` | `svcBreak` | `0x1014d8` |
 | CreatePort | `0x47` | `svcCreatePort` | `0x102434` |
 | CreateSessionToPort | `0x48` | `svcCreateSessionToPort` | `0x1015dc` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x1009a4` |
@@ -146,7 +146,7 @@ Le découpage des 20 octets d'une entrée est lu dans les écritures de `srv_Reg
 
 **Pas lu**
 - Le corps de 11 des 18 commandes : seuls GetServiceHandle, RegisterService, EnableNotification, PublishToProcess et RegisterProcess ont été décompilés ici, et Subscribe et ReceiveNotification par le contrat des petits services. PublishToSubscriber, qui fait entrer une notification dans la file d'un processus, n'est pas lue.
-- Les 77 fonctions sans nom, dont la gestion de la mémoire et le démarrage.
+- Les 52 fonctions qui n'ont qu'un nom proposé en moyenne (`local/analyse/sm/noms-proposes.tsv`), dont la gestion de la mémoire et le démarrage.
 
 ## Comment cette fiche a été faite
 
