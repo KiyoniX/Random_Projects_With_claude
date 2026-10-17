@@ -117,5 +117,6 @@ Défini le 17/10/2026 sur `gpio` et `codec`, les premiers à l'atteindre. Un mod
 - une case de table virtuelle n'est nommée que si son rôle est prouvé chez un appelant de l'interface, ou si c'est un destructeur au motif lu ; un bouchon dit ce qu'il fait (`_unsupported`, `_nop`) ;
 - `_wrapper` et `_thunk` sont réservés à un corps qui ne fait que transmettre (arguments, un seul appel, retour), sans suffixes en chaîne ; sinon on nomme d'après l'effet ;
 - `_alt_<adresse>` reste le nom d'un code identique à une fonction déjà nommée.
+- une méthode dont le rôle est prouvé chez un appelant de l'interface, sur une classe dont on ne sait pas encore nommer le rôle, s'écrit `<famille>_<adresse de la table>_<méthode>` (par exemple `file_134530_read`) : l'action est prouvée, l'adresse ne fait que distinguer la classe ; confiance moyenne au plus, et le nom de la classe remplace l'adresse dès qu'il est lu (décision du 17/10, lot de fs).
 
 « 100 % » veut dire « tout est nommé et justifié », pas « tout est sûr » : `outils/couverture.py mesure` affiche le compte des noms de confiance moyenne à côté.
