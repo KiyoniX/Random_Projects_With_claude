@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013020004102`, un titre de la CTRNAND (New 3DS seulement) ; nom interne `mvd`, priorité 55 (`0x37`) |
 | Fichier lu | `local/extrait/mvd/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x19F08` octets de code (`0x1A` pages), `0x67E8` de données en lecture seule (7 pages), `0x100` de données (1 page), `0x8CC` de mémoire à zéro, pile de `0x1000` |
-| Fonctions | 803 pour Ghidra, dont 745 en Thumb et 58 en ARM ; 110 nommées dans `mvd.noms.tsv`, aucun nom sans fonction |
+| Fonctions | 803 pour Ghidra (745 en Thumb, 58 en ARM), plus 2 entrées manquées, moins 0x10309e (suite de `mvd_process_nal_unit_impl`) et 2 codes morts (`0x100c2a`, `0x100c44`) : 802 ; 142 nommées dans `mvd.noms.tsv`, 492 avec `local/analyse/mvd/noms-proposes.tsv` |
 | Services offerts | `mvd:STD`, `l2b:u`, `l2b2:u`, `y2r2:u`, **1 session chacun** : table (nom, nombre de sessions) à `0x11A02C`, noms à `0x11A06C`, `0x11A074`, `0x11A07A`, `0x11A081` |
 | Services appelés | **aucun** : la liste de services de l'exheader est vide (le module n'appelle que `sm` pour s'enregistrer). Seule la chaîne `srv:pm` (`0x11A1FD`) est dans le module |
 | Droits du noyau (exheader) | les interruptions `0x4F`, `0x4E`, `0x46` et `0x45` (décodage de l'exheader par `capdec.py`) ; pas de plage d'adresses déclarée |
@@ -22,9 +22,9 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 `mvd_main` (`0x1001A8`, un seul fil de service) :
 
 1. Prépare la mémoire et enregistre les quatre services auprès de `sm` (`0x100630`, en-tête de commande 3, le nombre de sessions 1 pris dans la table `0x11A02C`).
-2. Prépare deux contextes de décodeur (deux structures de `0x50` octets d'écart, initialisées par `0x1103D8` avec les indices 0 et 1 : le module peut tenir deux instances du matériel, interprété), puis `0x100724` (lie les interruptions du bloc : `BindInterrupt`, `svc_bind_interrupt`, `0x110218`) et un abonnement à une notification de `sm` (`0x100578` avec `0x100`).
-3. **Boucle** sur `ReplyAndReceive` (`svc_reply_and_receive`, `0x119954`) avec neuf poignées au plus : la notification, les quatre ports (rangs 1 à 4) puis les sessions (rangs 5 à 8 : **quatre sessions au plus**). Un port actif : `AcceptSession` (`svc_accept_session`, `0x119918`). Une session : l'aiguillage du service dont l'adresse est dans la table `0x11A04C` (`0x1124E9` pour `mvd:STD`, `0x111E65` pour `l2b:u` **et** `l2b2:u`, `0x11328D` pour `y2r2:u` ; adresses Thumb). Une session fermée est retirée.
-4. À l'arrêt : retire les services, délie les interruptions (`svc_unbind_interrupt`, `0x11019C`).
+2. Prépare les deux unités L2B (deux structures de `0x50` octets d'écart, `l2b_unit_initialize` `0x1103D8` avec les indices 0 et 1 : base `0x1EC30000` + indice << 12, interruptions `0x45` et `0x46` de la table `0x11A000`), puis `mvd_y2r_init` (`0x100724` : `y2r_driver_initialize_impl` sur l'unité 1, `BindInterrupt` de `0x4E`, `svcBindInterrupt` `0x110218`) et un abonnement à une notification de `sm` (`register_notification_handler` `0x100578` avec `0x100`).
+3. **Boucle** sur `ReplyAndReceive` (`svcReplyAndReceive`, `0x119954`) avec neuf poignées au plus : la notification, les quatre ports (rangs 1 à 4) puis les sessions (rangs 5 à 8 : **quatre sessions au plus**). Un port actif : `AcceptSession` (`svcAcceptSession`, `0x119918`). Une session : l'aiguillage du service dont l'adresse est dans la table `0x11A04C` (`0x1124E9` pour `mvd:STD`, `0x111E65` pour `l2b:u` **et** `l2b2:u`, `0x11328D` pour `y2r2:u` ; adresses Thumb). Une session fermée est retirée.
+4. À l'arrêt : retire les services, délie les interruptions (`svcUnbindInterrupt`, `0x11019C`).
 
 Appels système trouvés : 0x17 CreateEvent, 0x19 ClearEvent, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x27 DuplicateHandle, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest, 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive, **0x50 BindInterrupt, 0x51 UnbindInterrupt, 0x52 InvalidateProcessDataCache, 0x53 StoreProcessDataCache, 0x54 FlushProcessDataCache, 0x55 StartInterProcessDma, 0x56 StopDma, 0x57 GetDmaState** (le groupe des appels de DMA et de cache n'apparaît dans aucun autre module de cette série). Les noms viennent de `fiches/kernel11.md`.
 
@@ -173,10 +173,10 @@ Notes :
 `mvd:STD`, commande 8 (3dbrew : ProcessNALUnit, `0x00080142`, réponse `0x00080100`) : le client envoie une unité de flux H.264 à décoder. Lu dans `mvd_std_cmd_0008_ProcessNALUnit` (`0x112C04`), les rôles sont interprétés.
 
 1. L'aiguillage `0x1124E8` lit le numéro 8, vérifie l'en-tête en entier (`0x00080142` : 5 mots ordinaires, 1 descripteur) et appelle le gestionnaire.
-2. Le gestionnaire vide le cache de la zone de données du client (`0x10B80C`).
+2. Le gestionnaire range la poignée de processus du client (`mvd_set_client_process` `0x10B80C`), qui sert aux DMA entre processus ; il ne vide pas de cache.
 3. Il alloue un tampon de la taille de l'unité (`0x10F82C`) ; s'il n'y en a pas, il rend un code d'erreur (constante `DAT_00112C68`).
-4. Il copie l'unité dans ce tampon (`0x10F474`), la donne au décodeur (`0x102F2C`, qui pilote le bloc matériel : dépôt dans la file d'entrée, démarrage), puis libère le tampon (`0x10F500`).
-5. Il vide encore le cache (`0x10B80C`) et rend le résultat du décodeur converti en code de retour (`0x10B608`).
+4. Il copie l'unité dans ce tampon (`memcpy_physical` `0x10F474`, par DMA si l'adresse est en mémoire linéaire), la donne au décodeur (`mvd_process_nal_unit_impl` `0x102F2C`), puis libère le tampon (`heap_free_default` `0x10F500`).
+5. Il remet la poignée de processus de référence (`mvd_set_client_process`) et rend le résultat du décodeur converti en code de retour (`mvd_status_to_result` `0x10B608`, après `mvd_status_normalize` `0x112BC4`).
 6. L'aiguillage répond `0x00080100`.
 
 `Initialize` (commande 1, `0x112D88`) suit le même style : si l'indicateur d'état est déjà levé il rend une erreur (« déjà initialisé »), sinon il vide le cache sur la zone partagée du client, prépare le tampon de travail (`0x114350`) et lève l'indicateur.
@@ -204,10 +204,10 @@ Rien : le jeu n'ouvre aucun service de `mvd` (le module n'existe que sur la New 
 
 **Interprété** :
 - Les noms (de la Carte ; 21 commandes sur 33 de `mvd:STD` n'en ont pas).
-- Le sens des deux contextes de décodeur, de l'indicateur d'initialisation et des étapes de ProcessNALUnit (le rôle des fonctions `0x10B80C`, `0x10F82C`, `0x102F2C`).
+- Le sens de l'indicateur d'initialisation et des étapes internes de ProcessNALUnit (`mvd_process_nal_unit_impl` est nommé, ses 18 sous-fonctions du décodeur ne le sont pas toutes).
 - Que `l2b:u` et `l2b2:u` sont deux services de conversion d'image (rien dans le module ne le dit).
 
 **Pas lu** :
-- Le décodeur lui-même : la programmation du bloc matériel, la file d'entrée, les interruptions, la sortie des images (`GetStatus`, `ControlFrameRendering`).
-- Le convertisseur `y2r2` et `l2b` : leurs registres et leurs transferts.
+- Le décodeur lui-même : la programmation du bloc matériel (registres `0x1ED07000`…), la gestion des images et leur sortie ; l'analyse H.264 (SPS, PPS, VUI, HRD, en-tête de tranche) et les interruptions (`0x4F` décodeur, `0x4E` Y2R2, `0x45`/`0x46` L2B) sont nommées dans `local/analyse/mvd/noms-proposes.tsv` ; 310 fonctions restent sans nom.
+- Les registres d'Y2R2 (`0x1EC02000` + 0x30000 × unité) et de L2B (`0x1EC30000` + 0x1000 × unité) sont nommés par champ (y2r_*, l2b_*) ; le sens de plusieurs bits de commande (10, 22, 23, 29) n'est pas lu.
 - La partie « Initialize » au-delà des premiers appels, et les tables de quantification.

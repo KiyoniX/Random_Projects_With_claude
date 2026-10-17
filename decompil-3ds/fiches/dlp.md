@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002802`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `dlp`, priorité 56 (`0x38`) |
 | Fichier lu | `local/extrait/dlp/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x11D1C` octets de code (`0x12` pages), `0xA30` de données en lecture seule (1 page), `0x1848` de données (2 pages), `0x9538` de mémoire à zéro, pile de `0x1000` |
-| Fonctions | 1 107 pour Ghidra, dont 1 033 en Thumb et 74 en ARM ; 54 nommées dans `dlp.noms.tsv`, aucun nom sans fonction |
+| Fonctions | 1 107 pour Ghidra (1 033 en Thumb, 74 en ARM), plus 10 entrées manquées, moins 7 morceaux du corps de division et 4 codes morts (`0x100e96`, `0x100eb0`, `0x109c9c`, `0x10156e`) : 1 106 ; 104 nommées dans `dlp.noms.tsv` (dont `0x109c9c`, code mort), 1 105 avec `local/analyse/dlp/noms-proposes.tsv` |
 | Services offerts | `dlp:CLNT`, `dlp:SRVR` et `dlp:FKCL`, **1 session chacun** (table des noms à `0x114594`, noms à `0x1127D8`, `0x1127E1`, `0x1127EA`) |
 | Services appelés | lus dans l'exheader : `fs:USER`, `am:u`, `cfg:u`, `nwm::UDS`, `ps:ps`, `ptm:s`. Dans le code, des chaînes pour `ps:ps` (`0x11202A`), `nwm::UDS` (`0x1121CE`, précédé d'un `2`), `am:net` (`0x112169`, dans la liste de la bibliothèque : le droit déclaré est `am:u`), `fs:USER` (`0x112187`) ; `cfg:u` et `ptm:s` sont dans les listes de noms (`0x112820`, `0x112802`) |
 | Appelants connus | `dlp:SRVR` et `dlp:FKCL` : l'application `maj` (exheader) ; `dlp:CLNT` : aucun exheader extrait ne le déclare. Pokémon X n'ouvre aucun des trois (`pokemon-x-services.md`) |
@@ -19,10 +19,10 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 
 ## Partie 1 : le démarrage et le serveur
 
-`dlp_main` (`0x100168`) est court : après trois préparations (`0x10AC6C`, `0x10051C`, `0x1005E0`, non relues) il enregistre les trois services auprès de `sm` (`0x1006AC`, en-tête de commande 3, avec le nombre de sessions 1) d'après la table `0x114594` (CLNT, SRVR, FKCL) et rend la main : le service tourne dans des fils. Puis :
+`dlp_main` (`0x100168`) est court : après trois préparations (`srv_init` `0x10AC6C`, `ptm_s_open` `0x10051C`, `register_notification_handler` `0x1005E0` avec `0x100`) il enregistre les trois services auprès de `sm` (`SRV_RegisterService` `0x1006AC`, en-tête `0x00030100`, avec le nombre de sessions 1) d'après la table `0x114594` (CLNT, SRVR, FKCL) et rend la main : le service tourne dans des fils. Puis :
 
-1. **Le fil d'acceptation** (`dlp_accept_thread`, `0x1001F8`) attend (`0x10AB66`, attente multiple) sur quatre poignées : les trois ports et une notification de `sm`. Un port actif : `AcceptSession` (`svc_accept_session`, `0x110FFC`), puis **un fil par session** (`0x10AB0C`, entrée prise dans un objet par service).
-2. **La session** est servie par une fonction d'ouverture propre au service (`0x10F37C` pour CLNT, `0x10F444` pour SRVR, `0x10F4A0` pour FKCL) qui construit l'objet du service (par exemple un bloc de `0x2680` octets pour le client) puis lance la boucle de service : `ReplyAndReceive` (`svc_reply_and_receive`, `0x107D98`) et l'aiguillage du service.
+1. **Le fil d'acceptation** (`dlp_accept_thread`, `0x1001F8`) attend (`svc_wait_synchronization` `0x10AB66`, attente multiple) sur quatre poignées : les trois ports et une notification de `sm`. Un port actif : `AcceptSession` (`svcAcceptSession`, `0x110FFC`), puis **un fil par session** (`create_thread` `0x10AB0C`, entrée prise dans un objet par service).
+2. **La session** est servie par une fonction d'ouverture propre au service (`0x10F37C` pour CLNT, `0x10F444` pour SRVR, `0x10F4A0` pour FKCL) qui construit l'objet du service (`dlp_client_ctor` `0x107484` pour le client et le faux client, `dlp_srvr_session_ctor` `0x106068` pour le serveur) puis lance la boucle de service : `ReplyAndReceive` (`svcReplyAndReceive`, `0x107D98`) et l'aiguillage du service.
 3. À l'arrêt, ferme les sessions et les services.
 
 | Service | Ouverture de session | Boucle de service | Aiguillage | Commandes (émulées) |
@@ -127,9 +127,9 @@ Notes :
 Le client commence à chercher des serveurs (`dlp:CLNT`, commande 5, `0x00050180` : six mots ordinaires dont un masque de canaux et une adresse MAC de 6 octets). Lu dans `dlp_clnt_cmd_0005_StartScan` (`0x107C9C`).
 
 1. `dlp_clnt_dispatch_command` (`0x10B8E0`) lit le numéro 5, vérifie le numéro (pas l'en-tête en entier) et appelle le gestionnaire avec l'objet client.
-2. Le gestionnaire prend le verrou de l'objet (`0x10A9B8`, relâché à la fin par `0x10A9AA`).
+2. Le gestionnaire prend le verrou de l'objet (`lock_guard_enter` `0x10A9B8`, relâché à la fin par `lock_guard_leave_alt_10a9aa` `0x10A9AA`).
 3. Il lit l'octet d'état à `+0x1FF8` de l'objet : la scrutation n'est permise que s'il vaut 1 (« initialisé »). Il teste aussi le masque de canaux contre une constante (interprété : un bit hors des canaux permis fait refuser).
-4. S'il est bon, il copie l'adresse MAC filtre (6 octets, `0x108B8C`), appelle la fonction qui lance la scrutation (`0x10CC6C`, avec le masque), passe l'état à 2 (« en scrutation ») et rend 0.
+4. S'il est bon, il copie l'adresse MAC filtre (6 octets, `memcpy_unaligned_thunk` `0x108B8C`), appelle la fonction qui lance la scrutation (`dlp_scan_start` `0x10CC6C`, avec le masque : elle range canal et filtre puis lance le fil `dlp_scan_thread_main` `0x10C63C`), passe l'état à 2 (« en scrutation ») et rend 0.
 5. Sinon il rend un code d'erreur (constantes `DAT_00107D08`/`DAT_00107D10`, un pour « mauvais état » et un pour « canal interdit » ; leurs valeurs ne sont pas relevées).
 6. L'aiguillage répond `0x00050040`.
 
@@ -161,6 +161,6 @@ Rien : le jeu n'ouvre aucun service de `dlp`. Pour le portage PC, `dlp` n'a rien
 - Que les trois aiguillages appartiennent aux services dans l'ordre CLNT, SRVR, FKCL (lu dans les appels, confirmé par le nombre de commandes).
 
 **Pas lu** :
-- Le protocole réseau : l'annonce du serveur, la négociation, le transfert du CIA par morceaux, les temporisations (`CreateTimer`).
-- Les appels à `am:u` (installation du jeu reçu) et à `ps:ps` (chiffrement des trames) : leurs commandes n'ont pas été suivies.
-- Les corps de presque tous les gestionnaires.
+- Le protocole réseau est nommé fonction par fonction (`local/analyse/dlp/noms-proposes.tsv`) : paquets de 8 octets d'en-tête et somme de contrôle à clé, morceaux de 0x5A0 octets du .cia, fils d'envoi, de réception et d'écriture ; le sens précis de chaque genre de paquet et des états n'est pas décrit ici.
+- `am:u` : 24 requêtes (AM_GetProgramInfos, AM_BeginImportProgramTemporarily, AM_CommitImportPrograms…, poignée `0x114694`) pour lire les .cia et installer le jeu reçu ; `ps:ps` ne sert qu'à PS_EncryptDecryptAes, qui dérive la clé de la somme de contrôle des paquets à partir de la MAC de l'hôte (`dlp_derive_network_key`), pas à chiffrer les trames.
+- Les corps des gestionnaires sont nommés mais pas décrits ici ; une fonction reste sans nom (`0x10d820`, requête `0x00120000` sur une poignée que rien n'ouvre).
