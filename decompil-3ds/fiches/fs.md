@@ -603,7 +603,7 @@ La session d'un fichier ouvert (`0x28` octets) :
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x123d84` |
 | SendSyncRequest | `0x32` | écrit sur place, à 86 endroits |  |
 | GetThreadId | `0x37` | `svcGetThreadId` | `0x12323c` |
-| Break | `0x3C` | dans `panic` | `0x11e1a8` |
+| Break | `0x3C` | dans `break_process` | `0x11e1a8` |
 | CreateSession | `0x49` | `svcCreateSession` | `0x11515c` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x123224` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x123de4` |
@@ -613,7 +613,7 @@ La session d'un fichier ouvert (`0x28` octets) :
 | StopDma | `0x56` | dans une fonction non nommée | `0x1263f0` |
 | GetDmaState | `0x57` | `svcGetDmaState` | `0x125f84` |
 
-Les trois appels « Dma » servent à copier des données d'un processus à l'autre sans passer par un message : c'est le sens de leur nom, leurs appelantes n'ont pas été lues. Les verrous du module (`lock_enter` à `0x11e2e0`, `lock_leave` à `0x11dce8`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`. `panic` (`0x11e1a8`) appelle `Break`.
+Les trois appels « Dma » servent à copier des données d'un processus à l'autre sans passer par un message : c'est le sens de leur nom, leurs appelantes n'ont pas été lues. Les verrous du module (`lock_enter` à `0x11e2e0`, `lock_leave` à `0x11dce8`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`. `break_process` (`0x11e1a8`) appelle `Break`.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 

@@ -11,16 +11,16 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Titre | `0004013000008002` (lu dans l'exheader) |
 | Fichier lu | `local/extrait/ns/exefs/code.elf` |
 | Taille | 129 596 octets de code, 5 544 de données en lecture seule, 9 376 de données, 995 764 de mémoire à zéro |
-| Fonctions | 919, dont 321 nommées dans `ns.noms.tsv` (309 à l'écriture de la fiche, 12 de plus venus du contrat APT) |
+| Fonctions | 938 pour Ghidra, plus 51 entrées manquées, moins 18 qui ne sont pas des fonctions et 1 code mort (`0x10bcdc`) : 970 ; 343 nommées dans `ns.noms.tsv` (dont 2 corps à retirer), 961 avec `local/analyse/ns/noms-proposes.tsv` |
 | Services offerts | `APT:A`, `APT:U`, `APT:S` (les mêmes 93 commandes, une session à la fois) ; `ns:s` (22 commandes, 3 sessions), `ns:p` (2 commandes, 1 session), `ns:c` (2 commandes, 1 session) |
 | Services appelés | `srv:`, `pm:app`, `am:u`, `fs:USER`, `ptm:sysm`, `cfg:s`, `ps:ps`, `cam:s`, `qtm:sp`, `nwm::EXT`, et le port `err:f` |
 | Dépendances déclarées | `ptm` (`0004013000002202`) et `cfg` (`0004013000001702`) |
 | Fils | le fil principal, plus six qu'il crée ou fait créer (partie 1) |
-| Code Thumb | presque rien : le début du fichier, de `0x100048` à `0x10022c`, qui vient de la bibliothèque du compilateur |
+| Code Thumb | presque rien, toujours de la bibliothèque : le début du fichier de `0x100078` à `0x10022c` (`0x100048` et `0x100070` sont des veneers ARM, et `0x10021C`–`0x100223` (`atexit_stub_veneer`, `add ip,pc,#1 ; bx ip`) est en ARM à l'intérieur de la plage Thumb), `utf16_strlen` (`0x110b44`), `mbrlen` (`0x111290`), `mbsinit` (`0x1112ae`), `mbrtowc` (`0x11295c`), `static_guard_acquire` (`0x10E8E4`) et `construct_array` (`0x1119B8`) en Thumb, et les corps de veneers `destroy_array` (`0x10d008`) et `atexit_stub_thumb` (`0x100224`) |
 
 ## Partie 1 : le démarrage et les fils
 
-`entry` (`0x100000`) appelle à la suite : `clear_bss` (`0x100024`), qui met à zéro la mémoire de `0x1244a0` à `0x217654` ; une fonction de la bibliothèque (`0x10027c`) ; une fonction de préparation (`0x112820`), qui continue dans `srv_init` ; le petit morceau en Thumb à `0x1001ec`, qui appelle les 64 fonctions d'initialisation des objets globaux par la table de `0x1214a8` à `0x1215a8` ; puis `ns_main` (`0x100318`) et enfin `svcExitProcess`.
+`entry` (`0x100000`) appelle à la suite : `clear_bss` (`0x100024`), qui met à zéro la mémoire de `0x1244a0` à `0x217654` ; `init_program_args` (`0x10027c`) ; `init_runtime_and_srv` (`0x112820`), qui continue dans `srv_init` ; `run_static_initializers` (`0x1001ec`, Thumb), qui appelle les 64 fonctions d'initialisation des objets globaux par la table de `0x1214a8` à `0x1215a8` ; `run_init_array` (`0x100248`, table vide) ; puis `ns_main` (`0x100318`) par `call_ns_main` (`0x100238`) et enfin `svcExitProcess`.
 
 **Ce que fait `ns_main` avant sa boucle, dans l'ordre :**
 
@@ -30,7 +30,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 4. `job_queue_start_thread` (`0x103410`) lance un fil qui exécute une file de travaux.
 5. Une minuterie est créée (`0x124204`), un gestionnaire est inscrit pour la notification `0x100`, et `SRV_EnableNotification` rend le sémaphore des notifications (`0x124484`).
 6. `PMAPP_GetFIRMLaunchParams` copie à `0x215000` la page de 0x1000 octets des paramètres de redémarrage (voir la fiche de `pm`).
-7. Deux fonctions de rattrapage, dont une cite le fichier `ns_Workaround.cpp`, peuvent redémarrer la console tout de suite. Pas lues en détail.
+7. Deux fonctions de rattrapage peuvent redémarrer la console tout de suite : `ns_boot_workaround_check` (`0x100c74`) vérifie un en-tête de la page des paramètres (CRC-16, table `0x120100`, désignée par le mot littéral `0x100f5c`) et peut rendre une cible de redémarrage ; `ns_workaround_update_firmware` (`0x101078`), qui cite `ns_Workaround.cpp`, envoie `AM_UpdateFirmwareTo` puis redémarre, et consigne chaque échec par `errf_log_error` (genre 5). Détail des conditions non suivi.
 8. `start_shared_font_thread` (`0x101540`) crée un bloc de mémoire partagée de 0x332000 octets et le fil qui y charge la police du système.
 9. Les titres du système sont lancés par `PMAPP_LaunchTitle` : `0004003000008A02`, puis le menu HOME, dont le numéro vient de la table de la partie 5 (identifiant `0x101`).
 10. `start_apt_thread` (`0x101dc4`) appelle `apt_init` (`0x10287c`) puis crée le fil qui sert `APT`.
@@ -46,7 +46,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Police | `shared_font_thread_main` | `0x1020a4` | `start_shared_font_thread` | Charge la police dans la mémoire partagée, puis se termine |
 | File de travaux | `job_queue_thread_main` | `0x105c8c` | `job_queue_start_thread` | Exécute les travaux qu'on lui dépose, un par un |
 | Bouton HOME | `home_button_thread_main` | `0x118de8` | `on_notification_204`, à chaque appui | Prévient les programmes, puis se termine (partie 6) |
-| Erreur | la fonction à `0x118780` | `0x118780` | les objets des notifications `0x209` et `0x20A` (`0x1183f0`, `0x118320`) | Envoie une erreur fatale à `err:f`. Pas lu |
+| Erreur | `card_removed_error_thread_main` | `0x118780` | les actions des notifications `0x209` et `0x20A` (`on_sd_removed` `0x1183f0`, `on_card_removed` `0x118320`) | Si son argument (`0xCFE0F7FF` ou `0xCFE0EFFF`) est négatif, l'envoie à `err:f` en genre 2 (`errf_report_error_from_caller`) |
 
 **La boucle de `ns_main`.**
 
@@ -54,7 +54,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 2. **L'attente.** `svcReplyAndReceive` répond au message précédent et attend le suivant. Quand il n'y a rien à répondre, le code écrit `0xFFFF0000` à la place de l'en-tête.
 3. **Le tri**, d'après le rang de la poignée qui a sonné :
    - rang 0 : `handle_srv_notification` (`0x102608`) lit le numéro par `SRV_ReceiveNotification` et appelle le gestionnaire inscrit pour ce numéro ;
-   - rang 1 : la minuterie, traitée par la fonction à `0x1124d0` (elle fait avancer l'état de mise en veille) ;
+   - rang 1 : la minuterie, traitée par `ns_timer_handler` (`0x1124d0`), qui fait avancer l'état de mise en veille et diffuse l'annulation (notification 4, `on_sleep_timer_cancel` `0x103e20`) ;
    - rang 2 à 4 : un port. `svcAcceptSession` ouvre la session ; s'il y en a déjà quatre, elle est refermée aussitôt. Son type (0, 1 ou 2) et son contexte sont notés dans la table à `0x21754c` ;
    - rang 5 et plus : une session. Le gestionnaire de son type est appelé, par la table de trois pointeurs à `0x1201a0`.
 4. **Une session se ferme** (résultat `0xC920181A`) : sa poignée est fermée et la dernière session de la liste prend sa place.
@@ -78,7 +78,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 
 C'est ce qui explique la première commande d'un jeu, `GetLockHandle` : elle rend un verrou commun à tous les clients. Un programme le prend, ouvre une session `APT`, envoie ses commandes, ferme la session, puis rend le verrou. Sans cette discipline, deux programmes se bloqueraient à la porte. Cette façon de faire du côté du client n'est pas dans `ns` : elle est connue par libctru, la bibliothèque libre des programmes amateurs.
 
-**Ce qui distingue `APT:A`, `APT:U` et `APT:S`.** Il n'y a ni table à part ni aiguillage à part : les trois services partagent tout. La seule différence est l'octet `0x1241c2`, que deux petites fonctions consultent. Quand le service ne convient pas, elles n'envoient pas de code d'erreur : elles arrêtent `ns` par `panic` (`0x112724`, qui finit sur `svcBreak`).
+**Ce qui distingue `APT:A`, `APT:U` et `APT:S`.** Il n'y a ni table à part ni aiguillage à part : les trois services partagent tout. La seule différence est l'octet `0x1241c2`, que deux petites fonctions consultent. Quand le service ne convient pas, elles n'envoient pas de code d'erreur : elles arrêtent `ns` par `break_process` (`0x112724`, crochet éventuel puis `svcBreak`).
 
 | Fonction | Adresse | Exige | Appelée par |
 | --- | --- | --- | --- |
@@ -260,7 +260,7 @@ Si aucun programme n'est encore actif (`0x1240ec` vaut `0xFF`), c'est le tout pr
 
 1. La case est retrouvée comme à l'étape 2. Attributs sans case : `0xC8A0CC04`.
 2. **L'octet « inscrit » de la case (`+0x12`) passe à 1.** C'est le moment où le jeu devient visible pour le reste de `ns`.
-3. Au tout premier `Enable` reçu depuis le démarrage de `ns`, une fonction regarde l'état du couvercle par `ptm` (pas lue en détail).
+3. Au tout premier `Enable` reçu depuis le démarrage de `ns`, ouvert : état 1 et publication 0x213 (`publish_lid_open_and_set_awake`, `0x111F68`) ; fermé : état 5, publication 0x214, état de veille préparé et `PTMSYSM_RequestSleep`.
 4. Si un arrêt de la console, une demande de fermeture ou un appui sur le bouton d'alimentation est déjà en cours, la notification correspondante (7, 11 ou 8) est déposée tout de suite dans la case.
 5. L'octet « prêt » de la case (`+0x13`) passe à 1.
 
@@ -430,7 +430,7 @@ Le jeu n'est donc pas seul prévenu : le menu HOME, s'il est inscrit, reçoit la
 | --- | --- | --- |
 | 1 | InquireNotification (`0x0B`) | `apt_InquireNotification` (`0x108054`) rend l'octet `+0x10` de la case du demandeur, **1**, et le remet à 0. Programme non inscrit : `0xC880CFFA` |
 | 2 | PrepareToJumpToHomeMenu (`0x2B`) | `apt_PrepareToJumpToHomeMenu` (`0x108830`) refuse si un paramètre attend (`0xC8A0CC02`) ou si une opération est déjà préparée (`0xC8A0CFF0`). Sinon elle note la case active à `0x124139`, met l'octet « opération préparée » à `0x0E`, et, si le menu HOME ne tourne pas, le lance (`launch_applet_title`, `0x10ecd8`) |
-| 3 | JumpToHomeMenu (`0x2C`) | `apt_JumpToHomeMenu` (`0x106c30`) s'occupe de la caméra et du suivi du visage (pas lu), rend le menu HOME actif, et lui envoie le paramètre « expéditeur `0x300`, commande `0x0B` » avec les données fournies par le jeu. L'octet « opération préparée » repasse à 0 |
+| 3 | JumpToHomeMenu (`0x2C`) | `apt_JumpToHomeMenu` (`0x106c30`) s'occupe de la caméra et du suivi du visage (`camera_qtm_on_leave_application` `0x10f164` : lance camera si besoin, commande `0x43` de `cam:s`, état de `qtm:sp` d'après le réglage cfg `0x180000`), rend le menu HOME actif, et lui envoie le paramètre « expéditeur `0x300`, commande `0x0B` » avec les données fournies par le jeu. L'octet « opération préparée » repasse à 0 |
 | 4 | attendre son signal des paramètres | Rien ne se passe pour le jeu tant que le menu a la main |
 | 5 | ReceiveParameter (`0x0D`) | Quand on revient au jeu, le menu a envoyé `PrepareToLeaveHomeMenu` puis `LeaveHomeMenu` : `apt_LeaveHomeMenu` (`0x106a7c`) rend la case 0 active et envoie au jeu le paramètre « commande `0x0B` », de la part du menu |
 
@@ -464,13 +464,13 @@ Tous les envois passent par `broadcast_notification`. Dix appels dans le code, t
 | --- | --- | --- |
 | 1 | `home_button_thread_main` | la notification système `0x204` |
 | 3 | `on_notification_101` (`0x11ab28`) | la notification système `0x101` |
-| 4 | la fonction à `0x1124d0` (l'appel est à `0x103e5c`) | la minuterie de `ns_main` |
-| 5 | la fonction à `0x118944` | la notification système `0x103` |
-| 6 | la fonction à `0x11824c` | les notifications système `0x102` et `0x106` |
-| 7 | la fonction à `0x118c48` | la notification système `0x203`, suivie de `PTMSYSM_ShutdownAsync` |
+| 4 | `on_sleep_timer_cancel` (`0x103e20`, appel en `0x103e5c`), atteinte par `ns_timer_handler` (`0x1124d0`) | la minuterie de `ns_main` |
+| 5 | `sleep_enter_notify` (`0x118944`) | la notification système `0x103` |
+| 6 | `sleep_wakeup_notify` (`0x11824c`) | les notifications système `0x102` et `0x106` |
+| 7 | `post_shutdown_notification` (`0x118c48`) | la notification système `0x203`, suivie de `PTMSYSM_ShutdownAsync` |
 | 8 | `on_notification_202` (`0x10f310`) | la notification système `0x202`, et l'opération 12 d'`AppletUtility` |
 | 9 | `job_cancel_power_button` (`0x112f64`) | l'opération 0 d'`AppletUtility` |
-| 11 | les fonctions à `0x118794` et `0x102914`, deux appels | la notification système `0x100`, et l'arrêt de `ns` |
+| 11 | `apt_begin_shutdown_on_terminate` (`0x118794`) et `apt_begin_shutdown` (`0x102914`), deux appels | la notification système `0x100`, et l'arrêt de `ns` |
 
 Les numéros 2 et 10 ne sont déposés nulle part dans ce module.
 
@@ -487,20 +487,20 @@ Le code de Pokémon X confirme le sens de ces numéros, par ce qu'il fait de cha
 | `0x102` | `0x216910` | `on_notification_102` | `0x11ab78` | Mène à la notification 6 |
 | `0x103` | `0x216900` | `on_notification_103` | `0x11ad98` | Mène à la notification 5 |
 | `0x104` | `0x216930` | `on_notification_104` | `0x11ad10` | Appelle `PTMSYSM_SetWakeupTrigger` |
-| `0x105` | `0x216940` | `on_notification_105` | `0x11acf0` | Pas lu |
+| `0x105` | `0x216940` | `on_notification_105` | `0x11acf0` | `PTMSYSM_NotifySleepPreparationComplete(0)` (`ptm_ack_sleep_preparation_0` `0x117fc4`), `break_process` sur échec |
 | `0x106` | `0x216920` | `on_notification_106` | `0x11a88c` | Mène à la notification 6 |
 | `0x200` | `0x2168e0` | `on_notification_200` | `0x11a9e8` | Arme la minuterie de `ns_main` pour 200 millisecondes |
 | `0x202` | `0x2168c0` | `on_notification_202` | `0x10f310` | Dépose la notification 8 |
 | `0x203` | `0x2168d0` | `on_notification_203` | `0x11adbc` | Dépose la notification 7, puis `PTMSYSM_ShutdownAsync` avec un délai de 11 secondes |
 | `0x204` | `0x216950` | `on_notification_204` | `0x11aafc` | Lance le fil du bouton HOME (partie 6) |
 | `0x205` | `0x216960` | `on_notification_205` | `0x11adf8` | Met à jour l'état du bouton HOME (`0x20ba90`) |
-| `0x209` | `0x216984` | | `0x11aa78` | Appelle un test de l'objet (`0x118d4c`) puis, selon l'état de veille, son action (`0x1183f0`, qui crée le fil d'erreur). Survolé |
-| `0x20A` | `0x216970` | | `0x11aa78` | La même fonction, avec le test `0x118d08` et l'action `0x118320`. Survolé |
-| `0x110` à `0x113` | `0x216998`, 0x10 octets chacun | | `0x11aa48` | La fin d'un processus lancé par `ns` : voir `pm`, partie 6. Pas lu |
+| `0x209` | `0x216984` | `on_notification_media_removed` | `0x11aa78` | Appelle le test de l'objet (`sd_removed_check` `0x118d4c`) puis, selon l'état de veille (table de 7 cases), son action (`on_sd_removed` `0x1183f0`, qui crée le fil d'erreur avec `0xCFE0F7FF`) ou `sleep_mark_cancel` |
+| `0x20A` | `0x216970` | `on_notification_media_removed` | `0x11aa78` | La même fonction, avec le test `card_removed_check` (`0x118d08`) et l'action `on_card_removed` (`0x118320`, `0xCFE0EFFF`) |
+| `0x110` à `0x113` | `0x216998`, 0x10 octets chacun | `on_notification_110_113` | `0x11aa48` | La fin d'un processus lancé par `ns` (voir `pm`, partie 6) : case = numéro - `0x110`, puis `on_slot_process_exit` (`0x1184c0`) : `PMAPP_UnregisterProcess`, nettoyage de l'application pour la case 0, bit de la case dans `0x1240f9` et événement `0x1240fc`, case vidée |
 
 Le gestionnaire de `0x202` est rangé dans sa table sous l'adresse `0x11adf0`, une seule instruction qui saute à `0x10f310`.
 
-`ns` publie lui-même une notification, `0x214` (`SRV_PublishToSubscriber`, à quatre endroits du code qui gère la mise en veille).
+`ns` publie lui-même deux notifications : `0x214` (`SRV_PublishToSubscriber`, à quatre endroits du code qui gère la mise en veille : `0x10f908`, `0x112574`, `0x11a908`, `0x11abe8`). 0x213 part quand le couvercle est ouvert, et au réveil ou quand la veille est refusée (notifications 0x106 et 0x102), une seule fois, en `0x111F80`.
 
 ## Partie 8 : les commandes de ns:s, ns:p et ns:c
 
@@ -532,7 +532,7 @@ Le gestionnaire de `0x202` est rangé dans sa table sous l'adresse `0x11adf0`, u
 | `0x16` | `0x00160000` | RebootSystemClean | `nss_RebootSystemClean` | `0x117614` | `0x00160040` |
 
 - Quatre commandes n'ont pas de fonction à elles : l'aiguillage appelle directement la requête vers un autre module. `TerminateApplication` et `TerminateProcess` passent à `pm` un délai de 3 secondes, `ShutdownAsync` passe à `ptm` un délai de 14 secondes.
-- `RebootSystem` choisit dans l'aiguillage entre `reboot_with_firm_params` (`0x111e98`) et la fonction à `0x10fd50`.
+- `RebootSystem` choisit dans l'aiguillage entre `reboot_with_firm_params` (`0x111e98`) et `reboot_system_with_params` (`0x10fd50` : titre et état de cfg rangés dans les paramètres, puis `firm_reboot_now`).
 - `nss_LaunchTitle` appelle `PMAPP_LaunchTitle` en retirant le drapeau « application » et en ajoutant « avec ses dépendances » : par `ns:s`, on lance un module ou un applet, pas un jeu. Un jeu passe par `APT` (partie 4) ou par `LaunchApplication`.
 - Les commandes `0x09` à `0x0C` concernent, d'après 3dbrew, la mise à jour du système depuis une cartouche.
 
@@ -565,7 +565,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | `qtm:sp` | 1 | `0x124378` | Le suivi du visage de la New 3DS |
 | `nwm::EXT` | 1 | `0x12434c` | Le Wi-Fi |
 | `err:f` (port) | 1 | `0x124230` | Signaler une erreur fatale |
-| non identifié | 1 | `0x12444c` | L'en-tête `0x00120000`, envoyé par la fonction à `0x117f4c` |
+| non identifié | 1 | `0x12444c` | L'en-tête `0x00120000`, envoyé par la fonction à `0x117f4c` ; aucun mot ni branchement n'atteint `0x12444C` ; `0x2174E8` n'est cité que par son constructeur (mot `0x11B11C`) |
 
 **Les requêtes vers `srv:` et `pm:app`**, celles qui comptent pour suivre un lancement :
 
@@ -581,7 +581,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | `0x000B0000` | ReceiveNotification | `SRV_ReceiveNotification` | `0x102840` |
 | | `0x000C0080` | PublishToSubscriber | `SRV_PublishToSubscriber` | `0x111f30` |
 | `pm:app` | `0x00010140` | LaunchTitle | `PMAPP_LaunchTitle` | `0x1064a4` |
-| | `0x00020082` | LaunchFIRM | `PMAPP_LaunchFIRM` | `0x10acd8` |
+| | `0x00020082` | LaunchFIRM | `PMAPP_LaunchFIRM` | `0x10acd4` |
 | | `0x00030080` | TerminateApplication | `PMAPP_TerminateApplication` | `0x118184` |
 | | `0x00040100` | TerminateTitle | `PMAPP_TerminateTitle` | `0x114400` |
 | | `0x000500C0` | TerminateProcess | `PMAPP_TerminateProcess` | `0x1181c0` |
@@ -599,8 +599,8 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 
 | Service | En-tête | Nom sur 3dbrew | Fonction | Adresse |
 | --- | --- | --- | --- | --- |
-| `ptm:sysm` | `0x04020042` | ReplySleepQuery | `PTMSYSM_ReplySleepQuery` | `0x118050` |
-| | `0x04030042` | NotifySleepPreparationComplete | `PTMSYSM_NotifySleepPreparationComplete` | `0x1180dc` |
+| `ptm:sysm` | `0x04020042` | ReplySleepQuery | `PTMSYSM_ReplySleepQuery` | `0x11804c` |
+| | `0x04030042` | NotifySleepPreparationComplete | `PTMSYSM_NotifySleepPreparationComplete` | `0x1180e4` |
 | | `0x04040102` | SetWakeupTrigger | `PTMSYSM_SetWakeupTrigger` | `0x118094` |
 | | `0x04060000` | RequestSleep | `PTMSYSM_RequestSleep` | `0x10a98c` |
 | | `0x040700C0` | ShutdownAsync | `PTMSYSM_ShutdownAsync` | `0x11800c` |
@@ -671,7 +671,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 
 - La session `am` est ouverte sous le nom `am:u` (chaîne à `0x120308`), celui que l'exheader autorise. Les 21 en-têtes sont les mêmes dans `am:u` et dans `am:net`.
 - `cfg:s` sert deux fois la région : par la commande commune `0x00020000` et par la commande `0x04060000`.
-- `get_service_handle` (`0x111a84`) entoure `SRV_GetServiceHandle` : elle refuse un nom de plus de 8 caractères (`0xD9006405`) avant d'envoyer.
+- `srv_get_service_handle` (`0x111a84`) entoure `SRV_GetServiceHandle` : elle refuse un nom de plus de 8 caractères (`0xD9006405`) avant d'envoyer.
 
 ## Partie 10 : les autres adresses
 
@@ -717,7 +717,7 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x101eac` |
 | ExitProcess | `0x03` | `svcExitProcess` | `0x100230` |
 | CreateThread | `0x08` | `svcCreateThread` | `0x1057cc` |
-| ExitThread | `0x09` | dans `thread_trampoline` | `0x10bc90` |
+| ExitThread | `0x09` | `svcExitThread` (au milieu de `thread_trampoline` pour Ghidra ; adresse de retour posée par `thread_free_and_exit`) | `0x10bcd4` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x109bb8` |
 | CreateMutex | `0x13` | `svcCreateMutex` | `0x102e94` |
 | ReleaseMutex | `0x14` | écrit sur place, à 3 endroits | |
@@ -733,7 +733,7 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 | UnmapMemoryBlock | `0x20` | écrit sur place, une fois | |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x101e78` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x10e868` |
-| CloseHandle | `0x23` | écrit sur place, à 66 endroits | |
+| CloseHandle | `0x23` | `svcCloseHandle` (cible du b final de `ps_close`), et écrit sur place à 66 endroits | `0x101e70` |
 | WaitSynchronization1 | `0x24` | écrit sur place, et dans `wait_handle_forever` (`0x11406c` : handle lu dans un objet, délai infini ; pas une enveloppe nue) | `0x11406c` |
 | WaitSynchronizationN | `0x25` | `svcWaitSynchronizationN` | `0x101ef4` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x115030` |
@@ -742,7 +742,7 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x102e7c` |
 | SendSyncRequest | `0x32` | écrit sur place, à 91 endroits | |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x109ba0` |
-| Break | `0x3C` | une seule fois, à `0x10bc88`, où mène `panic` | |
+| Break | `0x3C` | `svcBreak`, une seule fois, où mène `break_process` (`0x112724`) | `0x10bc88` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x101e58` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x101edc` |
 | FlushProcessDataCache | `0x54` | écrit sur place, une fois | |
@@ -779,19 +779,15 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 - L'ordre des commandes que le jeu envoie après une notification (partie 6) : la première version de cette fiche donnait celui de libctru. Celui de Pokémon X est maintenant lu dans son code (contrat APT, et l'assembleur relu pour cette fiche) ; ce qui reste interprété est la condition qui le fait accepter ou refuser le menu HOME, et le fait que ces envois partent vraiment : rien n'a été exécuté.
 - Les neuf réponses minimales du démarrage (partie 4) : déduites des deux côtés, jamais essayées.
 - Les priorités des fils : le code passe des constantes codées (`0x6C8DA535` pour les fils d'APT, `0x6C8DA530` et `0x6C8DA52F` pour deux autres), qu'une addition dans `create_thread` ramène à `0x35`, `0x30` et `0x2F`.
-- Le fil de la police : lu en diagonale. Il ouvre l'archive `font:` d'un des quatre titres de `0x1201c8`, y lit un fichier `cbf_….bcfnt.lz` et le range dans la mémoire partagée.
+- Le fil de la police : il ouvre l'archive `font:` d'un des quatre titres de `0x1201c8` choisi par la région (`cfgs_secure_info_get_region` : 4, 5, 6 → `0x14102`, `0x14202`, `0x14302`), décompresse `cbf_….bcfnt.lz` par morceaux de 0x1000 octets (`lz_stream_decompress`), puis reloge la police (`res_font_set_resource`) et le range dans la mémoire partagée ; le format LZ11 est supposé.
 - Les titres lancés au démarrage : `0004003000008A02` serait le programme d'affichage des erreurs.
 
 **Pas lu**
-- Toute la mise en veille : l'état de `0x1241f8`, les gestionnaires `0x101` à `0x106`, `ReplySleepQuery`, `SleepSystem`, les requêtes vers `ptm`.
-- Les applets de bibliothèque et les applets système : les commandes `0x16` à `0x20`, `0x23` à `0x2A`, et les fonctions de travail `0x10b530`, `0x10b604`, `0x10b684`, `0x10d9a0`, `0x112fa0` ne sont que survolées.
-- Le saut d'une application à une autre (`0x31` à `0x35`), `Wrap` et `Unwrap`, la capture d'écran, `DebugFunc`.
-- Le corps de 16 des 22 commandes de `ns:s`, de `nsp_RebootSystem` et des deux de `ns:c` : seuls `LaunchTitle`, `RebootSystem` et les quatre qui renvoient à un autre module sont lus.
-- La mise à jour depuis une cartouche et l'installation par `am` (les fonctions autour de `0x115000` à `0x116000`).
-- Les deux fonctions de rattrapage (`0x100c74` et `0x101078`) appelées au démarrage, et ce que fait le démarrage quand la console sort d'un redémarrage.
-- Les gestionnaires des notifications `0x105` et `0x110` à `0x113` ; ceux de `0x209` et `0x20A` sont survolés.
-- La caméra et le suivi du visage autour du menu HOME (`0x10f164`, `0x10f254`).
-- 610 fonctions n'ont pas de nom. `strlen` (`0x112794`) est nommée d'après sa forme.
+- Les conditions exactes des deux rattrapages du démarrage (`ns_boot_workaround_check`, `ns_workaround_update_firmware`) et le sens de plusieurs champs des paramètres de redémarrage (`+0x400`, bit 1 de `+0x460`, `+0xd70`).
+- Le sens des genres de `PTMSYSM_NotifyPlayEvent` (`notify_play_event_0` à `_7`) et des commandes `0x41`, `0x43`, `0x44` de `cam:s`.
+- Les applets et les sauts d'application sont nommés fonction par fonction (`local/analyse/ns/noms-proposes.tsv`) mais leurs commandes `0x16` à `0x20`, `0x23` à `0x2A`, `0x31` à `0x35` ne sont pas décrites dans cette fiche.
+- La mise à jour par cartouche (`card_update_*`, `cup_list_*`, `cia_*`) est nommée mais pas décrite ici ; le sens « SD / carte » des genres de média 1 et 2 est supposé.
+- 9 fonctions restent sans nom (liste et raisons dans `local/analyse/ns/notes-100.md`) ; 571 noms nouveaux restent de confiance moyenne.
 
 ## Comment cette fiche a été faite
 
@@ -807,15 +803,15 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 
 **Les pièges rencontrés.**
 - Au premier passage Ghidra voyait 767 fonctions. Il lui manquait `apt_thread_main`, les trois gestionnaires de `ns:`, tous les gestionnaires de notifications et les fonctions d'initialisation. Avec les graines de `prescan`, 915 ; avec quatre requêtes trouvées à la main, 919.
-- Ces quatre requêtes (`SRV_GetServiceHandle`, `PMAPP_LaunchFIRM`, `PTMSYSM_ReplySleepQuery`, `QTMSP_SetQtmStatus`) ne sont jamais appelées : on y arrive par un saut à la fin d'une autre fonction, et Ghidra les fondait dans celle-ci. C'est en comptant les `SendSyncRequest` que le manque s'est vu.
+- Ces quatre requêtes (`SRV_GetServiceHandle`, `PMAPP_LaunchFIRM`, `PTMSYSM_ReplySleepQuery`, `QTMSP_SetQtmStatus`) ne sont jamais appelées : on y arrive par un saut à la fin d'une autre fonction, et Ghidra les fondait dans celle-ci. C'est en comptant les `SendSyncRequest` que le manque s'est vu. Pour `PMAPP_LaunchFIRM` et `PTMSYSM_ReplySleepQuery`, le saut vise un `mov r0,r0` (`0x10acd4`, `0x11804c`) qui tombe dans le corps : c'est l'entrée ; de même `PTMSYSM_NotifySleepPreparationComplete` commence en `0x1180e4`, et `0x1180dc` n'est que son appel avec 1.
 - `prescan` annonce « 45 pointeurs impairs, il y a du code Thumb ». C'est une fausse alerte ici : 39 sont le même pointeur `0x100227`, une fonction de la bibliothèque, un autre est `0x1000fd`, et les 5 derniers ne sont pas des adresses mais des nombres qui y ressemblent (`0x110001` est un numéro de réglage de `cfg`).
 - Les numéros de titre de la table des applets sont à zéro dans le fichier. Ils ne se lisent qu'après avoir exécuté la fonction d'initialisation.
 - Ghidra a perdu l'argument de `broadcast_notification` dans le fil du bouton HOME, et ceux de `svcKernelSetState`. Ils sont lus dans l'assembleur.
-- Le pseudo-code attribue l'unique `svcBreak` à `on_notification_203` : c'est faux, il est à `0x10bc88`, où mène `panic`.
+- Le pseudo-code attribue l'unique `svcBreak` à `on_notification_203` : c'est faux, il est à `0x10bc88`, où mène `break_process` (`0x112724`).
 
 **Trois choses à savoir en relisant dans Ghidra.**
 - `apt_handle_command` n'est pas un seul « switch » : une table de saut pour les numéros 0 à `0x2E`, puis des comparaisons en arbre pour le reste. Les commandes à partir de `0x47` sont à la fin de la fonction.
-- Les travaux du fil ouvrier (`0x10b604`, `0x10b684`, `0x10d9a0`, `0x112fa0`) finissent tous dans le même morceau de code, autour de `0x10da30`. Ghidra l'affiche dans chacun avec des avertissements « bloc inatteignable ».
-- Le début du fichier, de `0x100048` à `0x10022c`, est en Thumb. Les noms qu'on y poserait par une ligne `function` seraient désassemblés en ARM : rien n'y est nommé.
+- Les travaux du fil ouvrier (`job_close_slot_after_exit` `0x10b604`, `job_wakeup_and_close_slot` `0x10b684`, `job_launch_and_deliver_mode1` `0x10d9a0`, `job_wakeup_and_close_slot_quiet` `0x112fa0`) finissent tous dans `job_launch_and_deliver` (`0x10d9a8`, autour de `0x10da30`). Ghidra l'affiche dans chacun avec des avertissements « bloc inatteignable ».
+- Le début du fichier, de `0x100078` à `0x10022c`, est en Thumb (`0x100048` et `0x100070` sont des veneers ARM). Les noms s'y posent par des lignes `label`, comme dans les autres fiches.
 
 **Pour reprendre.** `ns.noms.tsv` porte 321 noms : les 309 de cette fiche, et 12 posés d'après le contrat APT (`busy_flags_set_wait`, `slot_from_position`, `request_sleep`…). Ceux en `apt_`, `nss_`, `nsp_` et `nsc_` sont les commandes reçues ; ceux en majuscules (`SRV_`, `PMAPP_`, `AM_`, `FSUSER_`, `FSFILE_`, `PTMSYSM_`, `CFG_`…) les requêtes envoyées ; ceux en `slot_`, `parameter_`, `worker_job_` et `job_` la mécanique des parties 4 et 5 ; ceux en `on_notification_` les gestionnaires de la partie 7. Le pseudo-code brut, l'assembleur et les scripts sont dans `local/analyse/ns/`, non versionné. `capstone` et `unicorn` sont ceux installés par la fiche de `fs`, dans `local/analyse/fs/pylib/`.
