@@ -13,7 +13,7 @@
 0x10074c	function	init_program_args
 0x1007a0	function	svcAcceptSession
 0x1007b8	function	svcWaitSynchronizationN
-0x10089c	function	codec_is_new3ds
+0x10089c	function	is_new_3ds
 0x1008f8	function	ptm_close
 0x10094c	function	ptm_open
 0x1009b4	function	get_notification_semaphore

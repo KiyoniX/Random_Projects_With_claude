@@ -80,7 +80,7 @@
 0x14003554	function	ldrro_UnloadCRO
 0x14003788	function	ldrro_Shutdown
 0x14003894	function	ldrro_Initialize
-0x14003d10	function	zero_bytes
+0x14003d10	function	memclr
 0x14003d64	function	cro_check_hash_range
 0x14003dd8	function	notification_handler_ctor
 0x14003e10	function	reloc_list_reset

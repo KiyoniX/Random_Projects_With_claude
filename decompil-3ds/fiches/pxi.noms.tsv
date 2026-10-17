@@ -60,7 +60,7 @@
 0x101fc4	function	pxi_send_word
 0x101fe0	function	pxi_recv_fifo_is_empty
 0x101ff8	function	pxi_unbind_interrupts
-0x102098	function	wait_handles
+0x102098	function	wait_on_handle_pointers
 0x1021a8	function	pxi_bind_interrupts
 0x1022dc	function	lock_init
 0x1022f8	function	join_thread

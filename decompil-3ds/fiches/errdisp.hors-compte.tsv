@@ -1,0 +1,12 @@
+adresse	raison
+0x1164a8	pas une fonction : morceau de la division
+0x1164cc	pas une fonction : morceau de la division
+0x1164d0	pas une fonction : morceau de la division
+0x116500	pas une fonction : morceau de la division
+0x116534	pas une fonction : morceau de la division
+0x116558	pas une fonction : morceau de la division
+0x11657c	pas une fonction : morceau de la division
+0x116690	pas une fonction : morceau de la division
+0x116598	pas une fonction : morceau de la division
+0x116474	code mort : __aeabi_idivmod, aucune référence
+0x12bec0	code mort : aucune référence (case +0x44 de 0x13758c vaut 0)

@@ -50,11 +50,11 @@
 0x102500	function	gyroscope_thread_main
 0x10254c	function	PTMSYSM_CheckNew3DS
 0x10258c	function	SRV_GetServiceHandle
-0x1025e8	function	GPIOHID_cmd0002
+0x1025e8	function	GPIOHID_SetDirection
 0x102620	function	GPIOHID_BindInterrupt
 0x102674	function	GPIOHID_UnbindInterrupt
-0x1026c4	function	GPIOHID_cmd0004
-0x1026fc	function	GPIOHID_cmd0006
+0x1026c4	function	GPIOHID_SetEdge
+0x1026fc	function	GPIOHID_SetInterruptEnable
 0x102734	function	CDCHID_Finalize
 0x10275c	function	handle_clear
 0x102768	function	pad_entry_ctor
@@ -87,7 +87,7 @@
 0x1047f8	function	I2CHID_EnableRegisterBits8
 0x104840	function	I2CHID_DisableRegisterBits8
 0x104888	function	add_circle_pad_directions
-0x10498c	function	GPIOHID_GetGPIOData
+0x10498c	function	GPIOHID_GetData
 0x1049d0	function	set_accelerometer_calibration
 0x104a74	function	load_touch_calibration
 0x104b18	function	load_gyroscope_calibration
