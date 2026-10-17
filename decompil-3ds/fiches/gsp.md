@@ -550,7 +550,7 @@ La file de commandes (`0x110cd0`) :
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x1023b8` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x107c7c` |
 | CloseHandle | `0x23` | écrit sur place, à 54 endroits | |
-| WaitSynchronization1 | `0x24` | `svcWaitSynchronization1` (`0x1075c0`), et sur place à 13 endroits | |
+| WaitSynchronization1 | `0x24` | sur place à 13 endroits, et dans `wait_handle_forever` (`0x1075c0` : handle lu dans un objet, délai infini ; pas une enveloppe nue) | |
 | WaitSynchronizationN | `0x25` | `svcWaitSynchronizationN` | `0x1089d0` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x10d86c` |
 | GetSystemTick | `0x28` | écrit sur place, à 12 endroits | |

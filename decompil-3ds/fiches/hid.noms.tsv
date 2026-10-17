@@ -22,6 +22,7 @@
 0x1011d0	function	strcmp
 0x10128c	function	create_lock_arbiter
 0x1012c8	function	unmap_shared_memory
+0x101334	function	init_heap_region
 0x101374	function	init_runtime
 0x1013d4	function	session_thread_main
 0x1014ec	function	init_shared_memory
@@ -88,6 +89,7 @@
 0x103fa4	function	svcArbitrateAddress
 0x103fbc	function	I2CHID_WriteRegister8
 0x104004	function	I2CHID_WriteRegisterBuffer
+0x104060	function	__aeabi_idivmod
 0x10428c	function	gyroscope_read_raw
 0x10436c	function	debug_pad_read
 0x1044f0	function	reset_pad_section
@@ -184,8 +186,10 @@
 0x107cec	function	thread_trampoline
 0x107d38	function	svcSleepThread
 0x107e98	function	lock_wait
+0x107f7c	function	heap_alloc_unlocked
 0x107fe0	function	find_session_events
 0x108090	function	I2CHID_ReadRegisterBuffer8
+0x108354	function	heap_alloc
 0x10845c	function	CFG_SetConfigInfoBlk4
 0x1084a8	function	CFG_UpdateConfigNANDSavegame
 0x108860	function	svcCreateMutex

@@ -35,6 +35,7 @@
 0x140013b0	function	throw_fatal_error_typed
 0x140013e8	function	ERRF_Throw
 0x14001428	function	svcSleepThread
+0x14001518	function	heap_alloc_unlocked
 0x14001584	function	heap_alloc
 0x140021c0	function	svcDuplicateHandle
 0x140021d8	function	svcQueryMemory

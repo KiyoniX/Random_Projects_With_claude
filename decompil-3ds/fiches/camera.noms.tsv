@@ -2,7 +2,9 @@
 0x100024	function	clear_bss
 0x100048	label	main_trampoline
 0x100054	label	run_init_array
+0x1000dc	label	init_heap
 0x100100	label	camera_main
+0x100378	label	set_heap_size
 0x100490	label	close_ptm_session
 0x1004c4	label	open_ptm_session
 0x10054c	label	handle_srv_notification
@@ -14,6 +16,7 @@
 0x100928	label	is_new3ds
 0x1009e8	label	create_thread_wrapper
 0x100a22	label	register_service
+0x100ab0	label	find_notification_handler
 0x100af4	label	SRV_RegisterClient
 0x100b2c	label	SRV_RegisterService
 0x100b80	label	SRV_EnableNotification
@@ -24,17 +27,20 @@
 0x100d10	label	init_driver_state
 0x1010a8	label	reset_driver_state
 0x1012a0	label	camq_thread_main
+0x1015f0	label	srv_is_initialized
 0x101604	label	SRV_UnregisterService
 0x1016a8	label	camera_manager_thread_main
 0x101c1c	label	camera_interrupt_thread_main
 0x101ee0	label	camq_receive_loop
 0x10217c	label	wait_synchronization_n_wrapper
 0x10220c	label	create_thread_impl
+0x102298	label	report_fatal_error
 0x102338	label	PTMSYSM_CheckNew3DS
 0x10238c	label	SRV_GetServiceHandle
 0x102c60	label	camq_handle_command
 0x1035bc	label	y2r_set_spacial_dithering_reg
 0x1035dc	label	y2r_set_temporal_dithering_reg
+0x103b42	label	thread_trampoline
 0x103bec	label	CFG_GetConfigInfoBlk8
 0x103c8c	label	ERRF_Throw
 0x103f10	label	CSND_ReleaseSoundChannels
@@ -94,6 +100,7 @@
 0x1063bc	label	camq_cmd003B
 0x1063f4	label	camq_cmd0038
 0x106430	label	camq_cmd003A
+0x106f98	label	break_process
 0x1070f0	label	CSND_AcquireSoundChannels
 0x107128	label	CSND_Initialize
 0x1071dc	label	cam_cmd0040
@@ -103,6 +110,7 @@
 0x108bb0	function	svcReleaseMutex
 0x108e7c	label	get_dma_state
 0x108e9e	label	start_dma
+0x109538	label	memcmp
 0x1097b0	label	get_camera_settings_record
 0x109bb8	label	is_dma_finished
 0x10a3c0	label	get_session_port_mask
@@ -149,6 +157,9 @@
 0x10bf68	function	svcBindInterrupt
 0x10bf8c	function	svcSendSyncRequest
 0x10bf94	label	ipc_write_header
+0x10bfd8	function	strlen
+0x10c038	label	create_thread
+0x10c058	label	static_guard_acquire
 0x10c09c	function	svcWaitSynchronization1
 0x10c0a4	function	svcCreateEvent
 0x10c100	label	scoped_lock_leave
@@ -158,6 +169,7 @@
 0x10c184	function	svcCloseHandle
 0x10c18c	function	svcReplyAndReceive
 0x10c1a4	function	get_command_buffer
+0x10c1b4	label	register_notification_handler
 0x10c210	label	check_result
 0x10c9cc	label	CFG_GetConfigInfoBlk2
 0x10cb8c	label	PDN_cmd0002

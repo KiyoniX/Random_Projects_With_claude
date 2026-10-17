@@ -1,7 +1,9 @@
 0x100024	function	clear_bss
 0x100048	function
+0x100150	label	memcmp
 0x100230	function	svcExitProcess
 0x100318	function	ns_main
+0x100a5c	function	strcmp
 0x1011a0	function	subscribe_system_notifications
 0x101540	function	start_shared_font_thread
 0x101ab4	function	SRV_RegisterClient
@@ -182,7 +184,11 @@
 0x10e558	function	parameter_store
 0x10e5bc	function	is_application_id
 0x10e5cc	function	is_system_applet_id
+0x10e5e0	function	__aeabi_ldivmod
+0x10e7b0	function	gate_rearm
 0x10e868	function	svcArbitrateAddress
+0x10e8e4	label	static_guard_acquire
+0x10e8f8	function	__aeabi_uidivmod
 0x10e9c8	function	PMAPP_SetAppResourceLimit
 0x10ea0c	function	PMAPP_GetAppResourceLimit
 0x10ecd8	function	launch_applet_title
@@ -204,6 +210,7 @@
 0x10f87c	function	slot_post_notification_wait
 0x10f980	function	require_apt_s
 0x10f99c	function	slot_from_attributes
+0x10fa04	function	__aeabi_memmove
 0x10fb00	function	light_event_signal
 0x10fbb8	function	light_event_wait
 0x10ff6c	function
@@ -224,6 +231,7 @@
 0x110834	function	start_application_title
 0x110920	function	CFG_GetConfigInfoBlk8
 0x11096c	function	light_event_init
+0x1109a0	function	__aeabi_memcpy
 0x110d70	function	svcCreateEvent
 0x110d88	function	launch_non_application_title
 0x110e0c	function	broadcast_notification
@@ -244,17 +252,20 @@
 0x112724	function	panic
 0x112794	function	strlen
 0x112830	function	srv_init
+0x112a60	function	lock_arbitrate_wait
 0x112ed8	function	parameter_copy_out
 0x112f64	function	job_cancel_power_button
 0x1134c0	function	job_wakeup_application
 0x113bc8	function
+0x113cac	function	__aeabi_uldivmod
 0x113fc4	function	AM_GetProgramList
 0x114024	function	AM_CheckDemoLaunchRights
-0x11406c	function	svcWaitSynchronization1
+0x11406c	function	wait_handle_forever
 0x11415c	function	FSUSER_GetPriority
 0x114194	function	FSUSER_GetSpecialContentIndex
 0x1141f0	function	FSUSER_ResetCardCompatibilityParameter
 0x1142b4	function	PS_EncryptSignDecryptVerifyAesCcm
+0x1143d0	function	fill_words
 0x114400	function	PMAPP_TerminateTitle
 0x114940	function	CAM_cmd_0x0043
 0x114970	function	CAM_cmd_0x0044
@@ -329,6 +340,7 @@
 0x117664	function
 0x117700	function
 0x1177b0	function
+0x11784c	function	reserve_address_range
 0x117b54	function
 0x117fcc	function	PTMSYSM_IsShutdownByBatteryEmpty
 0x11800c	function	PTMSYSM_ShutdownAsync

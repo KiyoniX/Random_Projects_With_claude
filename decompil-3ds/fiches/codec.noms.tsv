@@ -75,7 +75,7 @@
 0x1025ec	function	cdcmic_SetPower
 0x102654	function	codec_read_regs
 0x102694	function	svcReplyAndReceive
-0x1026ac	function	memcpy
+0x1026ac	function	__aeabi_memcpy
 0x102734	function	svcArbitrateAddress
 0x10274c	function	SPI_ReadWriteDevice2
 0x1027ac	function	SPI_ReadWriteDevice

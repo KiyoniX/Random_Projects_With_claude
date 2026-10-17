@@ -69,6 +69,7 @@
 0x10291c	label	report_fatal_error
 0x1029bc	label	get_service_handle_by_name2
 0x102c38	label	secure_info_get_region
+0x102d76	label	memcmp
 0x102f74	label	errf_close
 0x102f94	label	errf_connect
 0x102fbc	label	ERRF_Throw
@@ -83,6 +84,7 @@
 0x103c38	label	FSUSER_RenameFile
 0x103cb8	label	FSUSER_CreateDirectory
 0x103d18	label	FSUSER_OpenFile
+0x103f7c	label	static_guard_acquire
 0x103fee	label	SPI_cmd0005
 0x10403a	label	nor_wait_write_done
 0x10404a	label	nor_read_data_thunk
@@ -128,7 +130,7 @@
 0x104ee4	label	hwcal_item_is_valid
 0x105008	label	lock_leave
 0x10501a	label	lock_enter
-0x1050c4	function	memcpy
+0x1050c4	function	__aeabi_memcpy
 0x10514c	label	file_output_stream_dtor
 0x10516e	label	file_output_stream_write
 0x105186	label	file_output_stream_open

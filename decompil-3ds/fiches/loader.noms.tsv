@@ -80,6 +80,7 @@
 0x14002118	function
 0x1400211c	function
 0x140021ac	function
+0x14002228	function	fill_words
 0x140022b8	function	loader_LoadProcess
 0x1400276c	function	free_code_memory
 0x14002798	function	allocate_code_memory

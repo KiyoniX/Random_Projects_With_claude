@@ -1237,3 +1237,17 @@
 0x469b7c	function	_ZN9xy_system8dress_up16DressUpIHeroCoreD1Ev
 0x46ab88	function	_ZN9xy_system8dress_up19DressUpIHeroineCoreD0Ev
 0x46ab9c	function	_ZN9xy_system8dress_up19DressUpIHeroineCoreD1Ev
+0x1001d8	label	construct_array
+0x102ab8	label	srand
+0x1097c0	function	init_heap_region
+0x123bb8	function	lock_arbitrate_wait
+0x132d10	function	thread_trampoline
+0x133b74	function	gate_rearm
+0x13446c	function	fill_words
+0x15fb74	function	lock_leave
+0x15fb94	function	panic_on_failure
+0x16f4c4	function	light_semaphore_release
+0x16f540	function	reserve_address_range
+0x16fa34	function	heap_alloc_unlocked
+0x17d890	function	create_thread
+0x3031c6	label	static_guard_acquire

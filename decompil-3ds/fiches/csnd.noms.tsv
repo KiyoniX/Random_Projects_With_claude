@@ -10,6 +10,7 @@
 0x1003d8	label	SRV_ReceiveNotification
 0x100410	label	srv_exit
 0x10047c	label	csnd_accept_session
+0x10072c	label	set_heap_size
 0x1007d8	label	create_thread_wrapper
 0x10086c	label	PTMSYSM_NotifySleepPreparationComplete
 0x1008b0	label	srv_state_init
@@ -35,15 +36,18 @@
 0x101dd8	label	csnd_hw_channel_set_low_bits
 0x101e08	label	csnd_hw_channel_set_reg2
 0x101e34	label	csnd_hw_channel_set_repeat_mode
+0x101eb4	label	thread_trampoline
+0x101f14	label	report_fatal_error
 0x101fa0	label	srv_get_service_handle
 0x10205c	label	CDCCSN_cmd0004
 0x10209c	label	CDCCSN_cmd0003
 0x1020da	label	CDCCSN_cmd0001
 0x102106	label	CDCCSN_GetEventHandle
+0x102328	label	break_process
 0x102384	label	ERRF_Throw
 0x1023be	label	CDCCSN_cmd0005
 0x1023f6	label	CDCCSN_cmd0007
-0x102594	function	memcpy
+0x102594	function	__aeabi_memcpy
 0x102adc	label	ipc_check_header
 0x102afc	label	csnd_Shutdown
 0x102e14	label	ipc_make_header
@@ -104,5 +108,6 @@
 0x10613c	function	svcCreateMemoryBlock
 0x106158	function	svcCreateMutex
 0x106170	function	svcDuplicateHandle
+0x106198	function	svcMapMemoryBlock
 0x1061a0	function	svcReplyAndReceive
 0x1061c0	function	svcUnmapMemoryBlock

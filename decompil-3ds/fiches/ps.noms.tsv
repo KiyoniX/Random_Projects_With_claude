@@ -33,7 +33,7 @@
 0x101240	function	heap_alloc_unlocked
 0x10143c	function	svcDuplicateHandle
 0x1016f0	label	static_guard_acquire
-0x101708	function	memcpy
+0x101708	function	__aeabi_memcpy
 0x1017e8	function	ps_rng_seed
 0x101838	function	MCUPLS_GetTickCounter
 0x10186c	function	MCUPLS_GetDatetime
@@ -45,6 +45,7 @@
 0x10200c	function	ps_lock_leave
 0x10202c	function	ps_lock_enter
 0x1020bc	function	lock_init
+0x10213c	function	srv_get_service_handle_by_name
 0x102168	function	srv_get_service_handle
 0x10219c	function	srv_is_initialized
 0x1021b8	function	strlen

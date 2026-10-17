@@ -734,7 +734,7 @@ Les verrous du module (`lock_enter` à `0x111a4c`, `lock_leave` à `0x111a2c`) e
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x101e78` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x10e868` |
 | CloseHandle | `0x23` | écrit sur place, à 66 endroits | |
-| WaitSynchronization1 | `0x24` | `svcWaitSynchronization1`, et écrit sur place | `0x11406c` |
+| WaitSynchronization1 | `0x24` | écrit sur place, et dans `wait_handle_forever` (`0x11406c` : handle lu dans un objet, délai infini ; pas une enveloppe nue) | `0x11406c` |
 | WaitSynchronizationN | `0x25` | `svcWaitSynchronizationN` | `0x101ef4` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x115030` |
 | GetSystemTick | `0x28` | écrit sur place, à 3 endroits | |

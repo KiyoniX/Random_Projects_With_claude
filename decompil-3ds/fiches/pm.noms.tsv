@@ -54,10 +54,11 @@
 0x102444	function	light_lock_init
 0x1024fc	function	fill_words
 0x10252c	function	handle_clear
+0x102570	label	static_guard_acquire
 0x102588	function	wait_for_terminations
 0x1026cc	function	request_termination
 0x1027e8	function	launch_application
-0x102b34	function	memcpy
+0x102b34	function	__aeabi_memcpy
 0x102bbc	function	clear_words
 0x102c10	function	publish_to_process
 0x102c40	function	SRV_PublishToSubscriber

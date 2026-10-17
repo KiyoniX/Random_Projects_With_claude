@@ -68,6 +68,7 @@
 0x103058	function	i2c_bus_lock
 0x1030a4	function	i2c_service_may_access_device
 0x1031a4	function	svcArbitrateAddress
+0x1032b0	function	release_address_range
 0x103338	function	lock_enter
 0x103370	function	lock_init
 0x1034a8	function	create_thread

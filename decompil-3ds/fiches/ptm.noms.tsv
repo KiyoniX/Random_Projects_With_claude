@@ -112,6 +112,7 @@
 0x1045b4	label	SRV_GetServiceHandle
 0x104608	label	SRV_PublishToSubscriber
 0x1046fc	label	message_queue_send_blocking
+0x104afc	label	static_guard_acquire
 0x104b84	label	signal_if_all_replied
 0x104b9e	label	remove_pending_subscriber
 0x104bfe	label	ipc_is_pid_descriptor
@@ -147,6 +148,7 @@
 0x10542a	label	publish_and_expect_replies
 0x1055b4	label	ipc_make_header
 0x1055ca	label	wait_handle_timeout
+0x1058c8	function	__aeabi_ldivmod
 0x10606e	label	wait_handle
 0x10610c	label	send_time_to_pximc
 0x106166	label	read_rtc_time
@@ -313,5 +315,6 @@
 0x10be6c	function	svcClearEvent
 0x10be74	function	svcExitThread
 0x10be7c	function	svcSignalEvent
+0x10be88	function	__aeabi_uldivmod
 0x10c424	function	svcArbitrateAddress
 0x10c4d8	function	svcDuplicateHandle

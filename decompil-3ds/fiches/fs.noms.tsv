@@ -25,6 +25,7 @@
 0x10c5f0	label	pxi_release_session
 0x10d2a4	label	open_self_ncch_archive
 0x10f024	label	archive_permission_check
+0x1141e0	function	fill_words
 0x114458	label	fsmgr_read_file
 0x1144f8	function	file_session_read
 0x1147c8	function	fsuser_Initialize
@@ -44,24 +45,33 @@
 0x11561c	function	session_close_archive
 0x115684	label	session_open_archive
 0x11575c	function	session_has_archive
+0x11588c	function	light_semaphore_release
 0x115904	function	SRV_RegisterService
+0x115b28	label	static_guard_acquire
+0x117224	function	__aeabi_uldivmod
 0x1189b8	label	fsmgr_open_archive
 0x118ccc	label	check_archive_access
 0x1195e4	label	current_request_priority
 0x119948	label	path_get_binary12
 0x119bec	label	path_is_empty
 0x11a60c	function	__ARM_common_switch8
+0x11b38c	function	__aeabi_ldivmod
+0x11bdf0	function	__aeabi_memmove
 0x11daa0	function	svcArbitrateAddress
+0x11dc80	function	release_address_range
 0x11dce8	function	lock_leave
 0x11def8	function
+0x11e024	label	memcmp
 0x11e098	label	clamp_priority
 0x11e1a8	function	panic
+0x11e1fc	function	strlen
 0x11e2ba	label	guard_release
 0x11e2cc	label	guard_acquire
 0x11e2e0	function	lock_enter
 0x11e32c	label	pxi_open_archive
 0x11e460	function	pool_init
 0x11e520	label	pxi_open_session
+0x11e5d0	function	__aeabi_uidivmod
 0x122ad0	function	fs_main
 0x123110	function	run_init_array
 0x123224	function	svcAcceptSession
@@ -70,9 +80,11 @@
 0x123284	function	fsmgr_init
 0x12339c	function	fsuser_session_init
 0x123418	function
+0x12342c	function	set_heap_size
 0x1234d8	function	create_thread
 0x1235d8	function	srv_init
 0x1237ac	function
+0x1237bc	function	heap_alloc
 0x1238b0	function	worker_thread_main
 0x123d60	function
 0x123d74	function
@@ -81,7 +93,11 @@
 0x123d9c	function	svcControlMemory
 0x123dc0	function	svcCreateThread
 0x123de4	function	svcReplyAndReceive
+0x123dfc	function	strcmp
 0x123eb8	function	server_process_request
+0x123f80	function	reserve_address_range
+0x124130	function	init_heap_region
+0x12424c	function	heap_alloc_unlocked
 0x1242b0	function	SRV_RegisterClient
 0x1242ec	function
 0x124320	function	svcCreateAddressArbiter
@@ -104,8 +120,9 @@
 0x125f9c	function	svcGetSystemTick
 0x125fa4	function	svcSetThreadPriority
 0x125fac	function	svcStartInterProcessDma
+0x125ffc	function	strcpy
 0x1262fc	function	fsreg_GetProgramInfo
-0x126334	function	svcWaitSynchronization1
+0x126334	function	wait_handle_forever
 0x12645c	function
 0x1264e0	function	fsdir_Read
 0x126534	function	fsdir_Close

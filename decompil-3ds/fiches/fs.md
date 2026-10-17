@@ -595,7 +595,7 @@ La session d'un fichier ouvert (`0x28` octets) :
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x124320` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x11daa0` |
 | CloseHandle | `0x23` | `svcCloseHandle`, et écrit sur place à 24 autres endroits | `0x12f288` |
-| WaitSynchronization1 | `0x24` | `svcWaitSynchronization1`, et écrit sur place à 1 autre endroit | `0x126334` |
+| WaitSynchronization1 | `0x24` | écrit sur place à 2 endroits ; `0x126334` est `wait_handle_forever` (handle lu dans un objet, délai infini), pas l'enveloppe nue | `0x126334` |
 | WaitSynchronizationN | `0x25` | `svcWaitSynchronizationN` | `0x123254` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x125f64` |
 | GetSystemTick | `0x28` | `svcGetSystemTick` | `0x125f9c` |

@@ -3,3 +3,696 @@
 # origine de la règle (a) (deux binaires qui s'accordent) : un nom propagé n'est pas un témoin indépendant.
 # origine : la source de la proposition et sa règle (a : binaires d'origine ; b:nom, b:svc : le nom se prouve seul).
 binaire	adresse	nom	origine	date
+ac	0x100318	init_runtime	empreinte:csnd ; a (csnd, friends)	2026-10-17
+ac	0x100334	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+ac	0x1008e8	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+ac	0x1015fc	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac	0x108d88	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+ac	0x10bf7c	_ZNSs9_C_unlinkEv	appel:maj ; b:nom	2026-10-17
+ac	0x10c228	_ZNSs9_C_getRepEjj	empreinte:maj ; b:nom	2026-10-17
+ac	0x10c348	_ZNSsC1ERKSs	empreinte:maj ; b:nom	2026-10-17
+ac	0x10c384	_ZNSsC1EPKcRKSaIcE	empreinte:maj ; b:nom	2026-10-17
+ac	0x10d2c4	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+ac	0x10d650	memcmp	empreinte:dsp ; b:nom	2026-10-17
+ac	0x10e778	svcWaitSynchronization1	appel:ndm ; b:svc	2026-10-17
+ac	0x10fd34	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+ac	0x110904	svcCloseHandle	appel:friends ; b:svc	2026-10-17
+ac	0x110cf0	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+ac	0x11106c	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+ac	0x1120ac	_ZNSt6localeC1Ev	empreinte:maj ; b:nom	2026-10-17
+ac	0x1127bc	_ZNSs11_C_allocateEjjj	appel:maj ; b:nom	2026-10-17
+ac	0x113420	_ZNSsaSEPKc	empreinte:maj ; b:nom	2026-10-17
+ac	0x113a7a	_ZNSsaSERKSs	empreinte:maj ; b:nom	2026-10-17
+ac	0x113fd8	_ZNSs7replaceEjjPKcj	appel:maj ; b:nom	2026-10-17
+ac	0x11af74	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:maj ; b:nom	2026-10-17
+ac	0x11bf50	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:maj ; b:nom	2026-10-17
+ac	0x11c384	svcControlMemory	appel:camera ; b:svc	2026-10-17
+ac	0x11c3a8	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+ac	0x11c3c0	svcWaitSynchronizationN	appel:camera ; b:svc	2026-10-17
+ac	0x11c3f0	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+ac	0x11c458	svcCreateMemoryBlock	appel:friends ; b:svc	2026-10-17
+ac	0x11c474	svcCreateThread	appel:camera ; b:svc	2026-10-17
+ac	0x11c4c0	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+ac	0x11c4d8	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+ac	0x11c4f8	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+ac	0x11c688	svcBreak	appel:camera ; b:svc	2026-10-17
+ac	0x11c690	svcExitThread	appel:camera ; b:svc	2026-10-17
+ac	0x11c698	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+ac	0x11c72c	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+ac	0x11c830	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+ac	0x11cb34	strcpy	appel:maj ; b:nom	2026-10-17
+ac	0x11d7a8	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+act	0x1006f4	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+act	0x100ffc	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+act	0x1025ec	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+act	0x102d44	srand	empreinte:ir ; b:nom	2026-10-17
+act	0x103fac	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+act	0x1044de	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+act	0x10db94	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+act	0x10fc52	ipc_is_read_buffer_desc	empreinte:am ; a (am, cfg)	2026-10-17
+act	0x112db8	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+act	0x1130cc	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+act	0x113f92	memcmp	empreinte:dsp ; b:nom	2026-10-17
+act	0x114ae8	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+act	0x115374	svcSendSyncRequest	appel:camera ; b:svc	2026-10-17
+act	0x115390	ipc_write_header	appel:camera ; a (camera, friends, ptm)	2026-10-17
+act	0x115680	svcCloseHandle	appel:camera ; b:svc	2026-10-17
+act	0x115698	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+act	0x1156f4	strlen	appel:ac ; b:nom	2026-10-17
+act	0x124d28	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+act	0x124d40	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+act	0x124d7c	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+act	0x124d98	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+act	0x124db0	svcCreateMemoryBlock	appel:friends ; b:svc	2026-10-17
+act	0x124dcc	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+act	0x124fd0	svcCreateThread	appel:camera ; b:svc	2026-10-17
+act	0x124ff4	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+act	0x125070	svcBreak	appel:camera ; b:svc	2026-10-17
+act	0x125140	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+act	0x125158	svcExitThread	appel:camera ; b:svc	2026-10-17
+act	0x125990	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+am	0x100654	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+am	0x1006f0	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+am	0x10074c	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am	0x100bdc	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+am	0x100dcc	find_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+am	0x101274	create_thread	appel:csnd ; a (csnd, ndm)	2026-10-17
+am	0x101f2e	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+am	0x102260	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+am	0x108ed2	memcmp	empreinte:dsp ; b:nom	2026-10-17
+am	0x10a71c	svcWaitSynchronization1	appel:camera ; b:svc	2026-10-17
+am	0x10a8a0	create_thread_wrapper	empreinte:camera ; a (camera, csnd)	2026-10-17
+am	0x10a91c	svcCloseHandle	appel:camera ; b:svc	2026-10-17
+am	0x10a9a0	strlen	empreinte:ac ; b:nom	2026-10-17
+am	0x110f18	svcCreatePort	empreinte:errdisp ; a (errdisp, sm)	2026-10-17
+am	0x110f38	svcGetThreadId	empreinte:dsp ; b:svc	2026-10-17
+am	0x110fec	svcWaitSynchronizationN	appel:camera ; b:svc	2026-10-17
+am	0x1110fc	svcControlMemory	appel:camera ; b:svc	2026-10-17
+am	0x111120	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+am	0x111138	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+am	0x111258	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+am	0x111274	svcCreateThread	appel:camera ; b:svc	2026-10-17
+am	0x111298	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+am	0x1112d8	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+am	0x11135c	svcBreak	appel:camera ; b:svc	2026-10-17
+am	0x111364	svcExitThread	appel:camera ; b:svc	2026-10-17
+am	0x1113b8	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+am	0x1113d0	svcGetSystemTick	appel:cfg ; b:svc	2026-10-17
+am	0x111be4	svcCreateMutex	appel:camera ; b:svc	2026-10-17
+am	0x111bfc	svcCreateSessionToPort	empreinte:sm ; b:svc	2026-10-17
+am	0x111c14	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+boss	0x100118	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+boss	0x1001f0	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+boss	0x1015f8	find_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+boss	0x102060	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+boss	0x10256c	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+boss	0x102a3c	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+boss	0x114e2a	create_thread_wrapper	empreinte:camera ; a (camera, csnd)	2026-10-17
+boss	0x119b08	_ZNSs9_C_unlinkEv	appel:maj ; b:nom	2026-10-17
+boss	0x119b5c	_ZNSs9_C_getRepEjj	empreinte:maj ; b:nom	2026-10-17
+boss	0x11a4a4	_ZNSsC1ERKSs	empreinte:maj ; b:nom	2026-10-17
+boss	0x11a4e0	_ZNSsC1EPKcRKSaIcE	empreinte:maj ; b:nom	2026-10-17
+boss	0x11b120	ipc_is_read_buffer_desc	empreinte:am ; a (am, cfg)	2026-10-17
+boss	0x120168	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+boss	0x1228ec	strcpy	appel:maj ; b:nom	2026-10-17
+boss	0x122ada	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+boss	0x1231a4	memcmp	empreinte:dsp ; b:nom	2026-10-17
+boss	0x1233f4	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+boss	0x124e3c	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+boss	0x126954	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+boss	0x126f70	svcWaitSynchronization1	appel:ndm ; b:svc	2026-10-17
+boss	0x127330	create_thread	appel:csnd ; a (csnd, ndm)	2026-10-17
+boss	0x12775c	strlen	appel:ac ; b:nom	2026-10-17
+boss	0x127808	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+boss	0x1278b0	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+boss	0x127a88	svcSendSyncRequest	appel:ac ; b:svc	2026-10-17
+boss	0x127aa8	svcCloseHandle	appel:friends ; b:svc	2026-10-17
+boss	0x13bf68	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:maj ; b:nom	2026-10-17
+boss	0x13bf98	_ZNSt6localeC1Ev	empreinte:maj ; b:nom	2026-10-17
+boss	0x141a50	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:maj ; b:nom	2026-10-17
+boss	0x141ae6	_ZNSs11_C_allocateEjjj	appel:maj ; b:nom	2026-10-17
+boss	0x141b18	_ZNSs7replaceEjjPKcj	appel:maj ; b:nom	2026-10-17
+boss	0x141cbc	_ZNSsaSEPKc	empreinte:maj ; b:nom	2026-10-17
+boss	0x141d0c	_ZNSsaSERKSs	empreinte:maj ; b:nom	2026-10-17
+boss	0x142bbc	svcControlMemory	appel:camera ; b:svc	2026-10-17
+boss	0x142be0	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+boss	0x142bf8	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+boss	0x142c34	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+boss	0x142c50	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+boss	0x142c94	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+boss	0x142cac	svcCreateMemoryBlock	appel:friends ; b:svc	2026-10-17
+boss	0x142cc8	svcWaitSynchronizationN	appel:camera ; b:svc	2026-10-17
+boss	0x142e1c	svcBreak	appel:camera ; b:svc	2026-10-17
+boss	0x142e24	svcCreateThread	appel:camera ; b:svc	2026-10-17
+boss	0x142e48	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+boss	0x142ecc	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+boss	0x142fcc	svcExitThread	appel:camera ; b:svc	2026-10-17
+boss	0x142fd4	svcSetTimer	empreinte:codec ; b:svc	2026-10-17
+boss	0x1430d4	svcGetThreadId	empreinte:dsp ; b:svc	2026-10-17
+boss	0x143830	svcAcceptSession	appel:ndm ; b:svc	2026-10-17
+boss	0x143850	svcCreateMutex	appel:camera ; b:svc	2026-10-17
+boss	0x143868	svcCreateTimer	empreinte:codec ; b:svc	2026-10-17
+boss	0x143880	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+camera	0x1000dc	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+camera	0x100378	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+camera	0x100ab0	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+camera	0x1015f0	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+camera	0x102298	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+camera	0x103b42	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+camera	0x106f98	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+camera	0x109538	memcmp	empreinte:dsp ; b:nom	2026-10-17
+camera	0x10bfd8	strlen	appel:ac ; b:nom	2026-10-17
+camera	0x10c038	create_thread	appel:csnd ; a (csnd, ndm)	2026-10-17
+camera	0x10c058	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+camera	0x10c1b4	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+cecd	0x1000f0	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+cecd	0x100434	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+cecd	0x10072c	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+cecd	0x10261c	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+cecd	0x102750	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+cecd	0x1029cc	create_thread	appel:csnd ; a (csnd, ndm)	2026-10-17
+cecd	0x106510	srand	empreinte:ir ; b:nom	2026-10-17
+cecd	0x106b1c	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+cecd	0x107c60	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+cecd	0x10d034	ipc_is_read_buffer_desc	empreinte:am ; a (am, cfg)	2026-10-17
+cecd	0x10d8fc	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+cecd	0x10de04	_ZNSs9_C_unlinkEv	appel:maj ; b:nom	2026-10-17
+cecd	0x10e0e0	_ZNSsC1EPKcRKSaIcE	empreinte:maj ; b:nom	2026-10-17
+cecd	0x10ed0c	strcmp	empreinte:codec ; b:nom	2026-10-17
+cecd	0x10f156	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+cecd	0x10fe10	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+cecd	0x1111d2	memcmp	empreinte:dsp ; b:nom	2026-10-17
+cecd	0x111868	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+cecd	0x112db8	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+cecd	0x1137ea	create_thread_wrapper	empreinte:camera ; a (camera, csnd)	2026-10-17
+cecd	0x113838	svcSendSyncRequest	appel:friends ; b:svc	2026-10-17
+cecd	0x1139ec	svcWaitSynchronization1	appel:camera ; b:svc	2026-10-17
+cecd	0x113a08	svcCloseHandle	appel:camera ; b:svc	2026-10-17
+cecd	0x113a20	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+cecd	0x113a7c	strlen	appel:ac ; b:nom	2026-10-17
+cecd	0x114de0	_ZNSt6localeC1Ev	empreinte:maj ; b:nom	2026-10-17
+cecd	0x114e80	_ZNSsC1ERKSs	empreinte:maj ; b:nom	2026-10-17
+cecd	0x115970	_ZNSs11_C_allocateEjjj	appel:maj ; b:nom	2026-10-17
+cecd	0x116a14	_ZNSsaSEPKc	empreinte:maj ; b:nom	2026-10-17
+cecd	0x117106	_ZNSsaSERKSs	empreinte:maj ; b:nom	2026-10-17
+cecd	0x117680	_ZNSs7replaceEjjPKcj	appel:maj ; b:nom	2026-10-17
+cecd	0x117698	_ZNSs9_C_getRepEjj	empreinte:maj ; b:nom	2026-10-17
+cecd	0x11e270	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:maj ; b:nom	2026-10-17
+cecd	0x11fe14	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:maj ; b:nom	2026-10-17
+cecd	0x11ffac	svcControlMemory	appel:camera ; b:svc	2026-10-17
+cecd	0x11ffd0	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+cecd	0x11ffe8	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+cecd	0x120024	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+cecd	0x120040	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+cecd	0x120200	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+cecd	0x120390	svcCreateThread	appel:camera ; b:svc	2026-10-17
+cecd	0x1205b8	svcBreak	appel:camera ; b:svc	2026-10-17
+cecd	0x1205c0	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+cecd	0x120904	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+cecd	0x12091c	svcExitThread	appel:camera ; b:svc	2026-10-17
+cecd	0x120924	svcWaitSynchronizationN	appel:camera ; b:svc	2026-10-17
+cecd	0x12094c	strcpy	appel:maj ; b:nom	2026-10-17
+cecd	0x121aa0	svcCreateMutex	appel:camera ; b:svc	2026-10-17
+cecd	0x121ab8	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+cecd	0x121ad0	svcUnmapMemoryBlock	appel:camera ; b:svc	2026-10-17
+cfg	0x102d76	memcmp	empreinte:dsp ; b:nom	2026-10-17
+cfg	0x103f7c	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+csnd	0x10072c	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+csnd	0x101eb4	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+csnd	0x101f14	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+csnd	0x102328	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+csnd	0x106198	svcMapMemoryBlock	appel:camera ; b:svc	2026-10-17
+dlp	0x1000f8	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+dlp	0x10034c	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+dlp	0x1005e0	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+dlp	0x10063c	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+dlp	0x1009a4	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+dlp	0x100ada	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+dlp	0x100b64	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+dlp	0x100f6a	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+dlp	0x101540	srand	empreinte:ir ; b:nom	2026-10-17
+dlp	0x109382	memcmp	empreinte:dsp ; b:nom	2026-10-17
+dlp	0x10a16c	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+dlp	0x10a2c4	svcGetSystemTick	appel:cfg ; b:svc	2026-10-17
+dlp	0x10a8b8	svcWaitSynchronization1	appel:camera ; b:svc	2026-10-17
+dlp	0x10ab04	svcCloseHandle	appel:friends ; b:svc	2026-10-17
+dlp	0x10ab98	strlen	appel:ac ; b:nom	2026-10-17
+dlp	0x10ac0e	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+dlp	0x1110b4	svcControlMemory	appel:camera ; b:svc	2026-10-17
+dlp	0x1110d8	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+dlp	0x1110f0	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+dlp	0x111120	svcWaitSynchronizationN	appel:camera ; b:svc	2026-10-17
+dlp	0x111150	svcCreateThread	appel:camera ; b:svc	2026-10-17
+dlp	0x111174	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+dlp	0x1111b8	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+dlp	0x1111d0	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+dlp	0x1111e8	svcExitThread	appel:camera ; b:svc	2026-10-17
+dlp	0x1111f8	svcBreak	appel:camera ; b:svc	2026-10-17
+dlp	0x1112f0	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+dlp	0x111420	svcCreateMemoryBlock	appel:friends ; b:svc	2026-10-17
+dlp	0x11143c	svcCreateTimer	empreinte:codec ; b:svc	2026-10-17
+dlp	0x111454	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+dlp	0x11146c	svcGetHandleInfo	empreinte:maj ; b:svc	2026-10-17
+dlp	0x111498	svcSetTimer	empreinte:codec ; b:svc	2026-10-17
+dlp	0x1114b0	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+dsp	0x101c38	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+dsp	0x101c9c	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+dsp	0x1041a8	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+errdisp	0x108040	strcpy	empreinte:dsp ; b:nom	2026-10-17
+errdisp	0x11776c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+errdisp	0x117d64	fill_words	empreinte:pm ; a (pm, ro)	2026-10-17
+errdisp	0x11d35c	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+errdisp	0x11e650	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+errdisp	0x11e6b8	lock_leave	appel:loader ; a (loader, ns)	2026-10-17
+errdisp	0x11e868	strlen	empreinte:ac ; b:nom	2026-10-17
+errdisp	0x11e8c8	throw_fatal_error	empreinte:codec ; a (codec, spi)	2026-10-17
+errdisp	0x11ef78	strcmp	empreinte:codec ; b:nom	2026-10-17
+errdisp	0x11f06c	panic_on_failure	empreinte:codec ; a (codec, spi)	2026-10-17
+errdisp	0x11f218	construct_array	appel:loader ; a (loader, ns, ps)	2026-10-17
+errdisp	0x11f374	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+errdisp	0x120efc	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+errdisp	0x1233cc	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+errdisp	0x125714	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-17
+errdisp	0x1258f4	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+friends	0x104178	memcmp	empreinte:dsp ; b:nom	2026-10-17
+friends	0x10450a	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+friends	0x10a2b4	create_thread_wrapper	empreinte:camera ; a (camera, csnd)	2026-10-17
+friends	0x10adb0	_ZNSt6localeC1Ev	empreinte:maj ; b:nom	2026-10-17
+friends	0x10bc72	_ZNSs11_C_allocateEjjj	appel:maj ; b:nom	2026-10-17
+friends	0x10cfec	_ZNSsaSEPKc	empreinte:maj ; b:nom	2026-10-17
+friends	0x10d4ac	_ZNSsaSERKSs	empreinte:maj ; b:nom	2026-10-17
+friends	0x10db8c	_ZNSs7replaceEjjPKcj	appel:maj ; b:nom	2026-10-17
+friends	0x128928	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+friends	0x128e7c	strcmp	empreinte:codec ; b:nom	2026-10-17
+friends	0x130498	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+friends	0x130588	_ZNSs9_C_unlinkEv	appel:maj ; b:nom	2026-10-17
+friends	0x130a10	_ZNSs9_C_getRepEjj	empreinte:maj ; b:nom	2026-10-17
+friends	0x130c34	_ZNSsC1ERKSs	empreinte:maj ; b:nom	2026-10-17
+friends	0x130c70	_ZNSsC1EPKcRKSaIcE	empreinte:maj ; b:nom	2026-10-17
+friends	0x13131c	strcpy	appel:maj ; b:nom	2026-10-17
+friends	0x131568	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+friends	0x131f64	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+friends	0x1354ec	create_thread	appel:csnd ; a (csnd, ndm)	2026-10-17
+friends	0x13571c	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+friends	0x1358dc	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends	0x14673c	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:maj ; b:nom	2026-10-17
+friends	0x152e1c	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:maj ; b:nom	2026-10-17
+fs	0x1141e0	fill_words	empreinte:pm ; a (pm, ro)	2026-10-17
+fs	0x11588c	light_semaphore_release	empreinte:gsp ; a (gsp, pm, pxi)	2026-10-17
+fs	0x115b28	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+fs	0x117224	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+fs	0x11b38c	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+fs	0x11bdf0	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+fs	0x11dc80	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+fs	0x11e024	memcmp	empreinte:dsp ; b:nom	2026-10-17
+fs	0x11e1fc	strlen	empreinte:ac ; b:nom	2026-10-17
+fs	0x11e5d0	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-17
+fs	0x12342c	set_heap_size	empreinte:hid ; a (hid, ir, socket)	2026-10-17
+fs	0x1237bc	heap_alloc	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+fs	0x123dfc	strcmp	empreinte:codec ; b:nom	2026-10-17
+fs	0x123f80	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+fs	0x124130	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-17
+fs	0x12424c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+fs	0x125ffc	strcpy	empreinte:dsp ; b:nom	2026-10-17
+gsp	0x100070	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+gsp	0x100b54	strcmp	empreinte:codec ; b:nom	2026-10-17
+gsp	0x1037e4	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+gsp	0x105828	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+gsp	0x106f38	srv_get_service_handle_by_name	empreinte:codec ; a (codec, dsp, hid, ir)	2026-10-17
+gsp	0x1070c4	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-17
+gsp	0x10ab94	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+gsp	0x10b19c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+gsp	0x10cdcc	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+hid	0x101334	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-17
+hid	0x104060	__aeabi_idivmod	appel:maj ; b:nom	2026-10-17
+hid	0x107f7c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+hid	0x108354	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+http	0x100048	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+http	0x1002b4	set_heap_size	empreinte:hid ; a (hid, ir, socket)	2026-10-17
+http	0x100ad4	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-17
+http	0x105858	lock_arbitrate_wait	appel:ir ; a (ir, mcu, mic)	2026-10-17
+http	0x106490	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-17
+http	0x10cfd0	light_semaphore_release	empreinte:gsp ; a (gsp, pm, pxi)	2026-10-17
+http	0x10d048	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-17
+http	0x10ddb8	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+http	0x10e08c	construct_array	appel:loader ; a (loader, ns, ps)	2026-10-17
+http	0x10e2b4	gate_rearm	empreinte:ir ; a (ir, mcu, mic)	2026-10-17
+http	0x10e484	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+http	0x10f0ac	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+http	0x10f71c	strcmp	empreinte:codec ; b:nom	2026-10-17
+http	0x10f8b0	strlen	empreinte:ac ; b:nom	2026-10-17
+http	0x10fc50	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+http	0x112308	strcpy	empreinte:dsp ; b:nom	2026-10-17
+i2c	0x1032b0	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+ir	0x1018f4	create_shared_memory_block	empreinte:gsp ; a (gsp, hid)	2026-10-17
+ir	0x10282c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+ir	0x103a24	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+ir	0x103ac8	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+ir	0x106854	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+ir	0x107cf4	__aeabi_idivmod	appel:maj ; b:nom	2026-10-17
+ir	0x1092c8	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+ir	0x1098f8	construct_array	appel:loader ; a (loader, ns, ps)	2026-10-17
+ir	0x10991c	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+ir	0x109b80	panic_on_failure	appel:hid ; a (hid, i2c, spi)	2026-10-17
+ir	0x109d28	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+loader	0x14002228	fill_words	empreinte:pm ; a (pm, ro)	2026-10-17
+maj	0x1001d8	construct_array	appel:loader ; a (loader, ns, ps)	2026-10-17
+maj	0x102ab8	srand	empreinte:ir ; b:nom	2026-10-17
+maj	0x1097c0	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-17
+maj	0x123bb8	lock_arbitrate_wait	appel:ir ; a (ir, mcu, mic)	2026-10-17
+maj	0x132d10	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-17
+maj	0x133b74	gate_rearm	empreinte:ir ; a (ir, mcu, mic)	2026-10-17
+maj	0x13446c	fill_words	empreinte:pm ; a (pm, ro)	2026-10-17
+maj	0x15fb74	lock_leave	appel:loader ; a (loader, ns)	2026-10-17
+maj	0x15fb94	panic_on_failure	appel:hid ; a (hid, i2c, spi)	2026-10-17
+maj	0x16f4c4	light_semaphore_release	empreinte:gsp ; a (gsp, pm, pxi)	2026-10-17
+maj	0x16f540	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+maj	0x16fa34	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+maj	0x17d890	create_thread	appel:hid ; a (hid, i2c, ir, spi)	2026-10-17
+maj	0x3031c6	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+mic	0x10194c	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+mic	0x101e70	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+mic	0x10347c	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+mp	0x100148	srand	empreinte:ir ; b:nom	2026-10-17
+mp	0x1002a0	set_heap_size	empreinte:hid ; a (hid, ir, socket)	2026-10-17
+mp	0x100990	svcControlMemory	empreinte:camera ; b:svc	2026-10-17
+mp	0x1009cc	strcmp	empreinte:codec ; b:nom	2026-10-17
+mp	0x100f64	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-17
+mp	0x10155c	svcCreateAddressArbiter	empreinte:camera ; b:svc	2026-10-17
+mp	0x101698	create_shared_memory_block	empreinte:gsp ; a (gsp, hid)	2026-10-17
+mp	0x101b70	svcCreateMemoryBlock	empreinte:csnd ; b:svc	2026-10-17
+mp	0x101b8c	svcGetProcessInfo	empreinte:camera ; b:svc	2026-10-17
+mp	0x101df8	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+mp	0x1022f0	svcConnectToPort	empreinte:camera ; b:svc	2026-10-17
+mp	0x102308	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+mp	0x1023cc	gate_rearm	empreinte:ir ; a (ir, mcu, mic)	2026-10-17
+mp	0x102b14	lock_arbitrate_wait	appel:ir ; a (ir, mcu, mic)	2026-10-17
+mp	0x102d84	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+mp	0x1033b0	svcCreateMutex	empreinte:camera ; b:svc	2026-10-17
+mp	0x1033c8	svcCreateThread	empreinte:camera ; b:svc	2026-10-17
+mp	0x1033ec	svcDuplicateHandle	empreinte:camera ; b:svc	2026-10-17
+mp	0x103570	svcWaitSynchronizationN	empreinte:camera ; b:svc	2026-10-17
+mp	0x10beec	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+mp	0x10c3c8	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+mp	0x10d46c	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+mp	0x10fa18	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+mp	0x110288	light_semaphore_release	empreinte:gsp ; a (gsp, pm, pxi)	2026-10-17
+mp	0x110300	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-17
+mp	0x110330	svcArbitrateAddress	empreinte:camera ; b:svc	2026-10-17
+mp	0x110348	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+mp	0x112054	svcSetTimer	empreinte:codec ; b:svc	2026-10-17
+mp	0x112e04	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+mp	0x112f04	svcCreateTimer	empreinte:codec ; b:svc	2026-10-17
+mp	0x112f1c	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+mp	0x113878	strlen	empreinte:ac ; b:nom	2026-10-17
+mvd	0x1000d4	init_runtime	empreinte:csnd ; a (csnd, friends)	2026-10-17
+mvd	0x1000f0	set_heap_size	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+mvd	0x100578	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+mvd	0x1009b8	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+mvd	0x100cd4	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+mvd	0x10b36c	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+mvd	0x10f848	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+mvd	0x110150	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+mvd	0x11026c	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+mvd	0x110390	svcCloseHandle	appel:camera ; b:svc	2026-10-17
+mvd	0x110454	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+mvd	0x119930	svcControlMemory	appel:camera ; b:svc	2026-10-17
+mvd	0x11996c	strlen	empreinte:ac ; b:nom	2026-10-17
+mvd	0x119a6c	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+mvd	0x119a90	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+mvd	0x119aac	svcStopDma	appel:camera ; b:svc	2026-10-17
+mvd	0x119abc	svcBreak	appel:camera ; b:svc	2026-10-17
+mvd	0x119ac4	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+mvd	0x119b78	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+mvd	0x119cc8	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+mvd	0x119ce0	svcGetDmaState	appel:camera ; b:svc	2026-10-17
+mvd	0x119cf8	svcStartInterProcessDma	empreinte:camera ; a (camera, fs, gsp, ns)	2026-10-17
+ndm	0x100110	init_runtime	empreinte:csnd ; a (csnd, friends)	2026-10-17
+ndm	0x100f68	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ndm	0x101238	create_thread_wrapper	empreinte:camera ; a (camera, csnd)	2026-10-17
+ndm	0x102b0e	memcmp	empreinte:dsp ; b:nom	2026-10-17
+ndm	0x1059bc	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+ndm	0x105db0	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+ndm	0x109718	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+ndm	0x1097cc	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+news	0x1000e8	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+news	0x1004c0	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+news	0x1006bc	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+news	0x100b1c	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+news	0x100e70	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+news	0x1027b4	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+news	0x1038d2	ipc_is_read_buffer_desc	empreinte:am ; a (am, cfg)	2026-10-17
+news	0x1041c4	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+news	0x104e08	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+news	0x104fa4	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+news	0x1051b4	svcCloseHandle	appel:camera ; b:svc	2026-10-17
+news	0x10530c	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+news	0x1054b4	strlen	empreinte:ac ; b:nom	2026-10-17
+news	0x108eb0	svcControlMemory	appel:camera ; b:svc	2026-10-17
+news	0x108ed4	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+news	0x108eec	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+news	0x108f28	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+news	0x108f4c	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+news	0x108f64	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+news	0x10901c	svcBreak	appel:camera ; b:svc	2026-10-17
+news	0x109078	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+news	0x10909c	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+news	0x1094f8	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+news	0x109508	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+news	0x109520	svcUnmapMemoryBlock	appel:camera ; b:svc	2026-10-17
+nfc	0x10010c	set_heap_size	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+nfc	0x100934	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nfc	0x100eb4	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+nfc	0x101774	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+nfc	0x104454	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+nfc	0x1060b2	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+nfc	0x11269c	srand	empreinte:ir ; b:nom	2026-10-17
+nfc	0x113620	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+nfc	0x11a008	svcWaitSynchronization1	appel:ndm ; b:svc	2026-10-17
+nfc	0x11a21c	memcmp	empreinte:dsp ; b:nom	2026-10-17
+nfc	0x11bf04	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+nfc	0x11d37c	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+nfc	0x11d408	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+nfc	0x11d9a8	svcSendSyncRequest	appel:camera ; b:svc	2026-10-17
+nfc	0x11d9c4	ipc_write_header	appel:friends ; a (friends, ndm)	2026-10-17
+nfc	0x11db90	svcCloseHandle	appel:camera ; b:svc	2026-10-17
+nfc	0x11dbb0	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+nfc	0x11dc4c	strlen	appel:ac ; b:nom	2026-10-17
+nfc	0x1339ec	svcControlMemory	appel:camera ; b:svc	2026-10-17
+nfc	0x133ac8	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+nfc	0x133ae0	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+nfc	0x133b1c	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+nfc	0x133b38	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+nfc	0x133b50	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+nfc	0x133b68	svcGetThreadId	empreinte:dsp ; b:svc	2026-10-17
+nfc	0x133b90	svcCreateMutex	empreinte:camera ; b:svc	2026-10-17
+nfc	0x133c40	svcBreak	appel:camera ; b:svc	2026-10-17
+nfc	0x133c48	svcCreateThread	appel:camera ; b:svc	2026-10-17
+nfc	0x133c6c	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+nfc	0x134068	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+nfc	0x134080	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+nfc	0x134174	svcExitThread	appel:camera ; b:svc	2026-10-17
+nfc	0x1341b8	svcWaitSynchronizationN	appel:camera ; b:svc	2026-10-17
+nfc	0x1349f0	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+nim	0x100120	set_heap_size	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+nim	0x100a00	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nim	0x101dac	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+nim	0x102490	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+nim	0x102ad2	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+nim	0x11a3c8	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+nim	0x124030	_ZNSs9_C_unlinkEv	appel:maj ; b:nom	2026-10-17
+nim	0x1242a8	_ZNSs9_C_getRepEjj	empreinte:maj ; b:nom	2026-10-17
+nim	0x1243e0	_ZNSsC1ERKSs	empreinte:maj ; b:nom	2026-10-17
+nim	0x12441c	_ZNSsC1EPKcRKSaIcE	empreinte:maj ; b:nom	2026-10-17
+nim	0x127160	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+nim	0x128184	strcpy	appel:maj ; b:nom	2026-10-17
+nim	0x128d38	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+nim	0x1295f0	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+nim	0x12c716	memcmp	empreinte:dsp ; b:nom	2026-10-17
+nim	0x12f570	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+nim	0x12f9e2	ipc_is_read_buffer_desc	empreinte:am ; a (am, cfg)	2026-10-17
+nim	0x12ffb8	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+nim	0x1307d0	svcWaitSynchronization1	appel:ndm ; b:svc	2026-10-17
+nim	0x1309c4	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+nim	0x130ce8	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+nim	0x130d8c	ipc_write_header	appel:friends ; a (friends, ndm)	2026-10-17
+nim	0x130dba	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+nim	0x130f4c	svcCloseHandle	appel:friends ; b:svc	2026-10-17
+nim	0x130f5c	strlen	appel:ac ; b:nom	2026-10-17
+nim	0x13a308	_ZNSt6localeC1Ev	empreinte:maj ; b:nom	2026-10-17
+nim	0x13ac64	_ZNSs11_C_allocateEjjj	appel:maj ; b:nom	2026-10-17
+nim	0x13bbd0	_ZNSsaSEPKc	empreinte:maj ; b:nom	2026-10-17
+nim	0x13bcde	_ZNSs7replaceEjjPKcj	appel:maj ; b:nom	2026-10-17
+nim	0x13bd08	_ZNSsaSERKSs	empreinte:maj ; b:nom	2026-10-17
+nim	0x14c694	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:maj ; b:nom	2026-10-17
+nim	0x14e948	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:maj ; b:nom	2026-10-17
+nim	0x14ed04	svcControlMemory	appel:camera ; b:svc	2026-10-17
+nim	0x14ed40	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+nim	0x14ed58	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+nim	0x14ed88	svcWaitSynchronizationN	empreinte:camera ; b:svc	2026-10-17
+nim	0x14edb8	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+nim	0x14edd4	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+nim	0x14edec	svcCreateMemoryBlock	appel:friends ; b:svc	2026-10-17
+nim	0x14ee08	svcCreateThread	appel:camera ; b:svc	2026-10-17
+nim	0x14ee2c	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+nim	0x14ef0c	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+nim	0x14f044	svcBreak	appel:camera ; b:svc	2026-10-17
+nim	0x14f04c	svcExitThread	appel:camera ; b:svc	2026-10-17
+nim	0x150164	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+ns	0x100150	memcmp	empreinte:dsp ; b:nom	2026-10-17
+ns	0x100a5c	strcmp	empreinte:codec ; b:nom	2026-10-17
+ns	0x10e5e0	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+ns	0x10e7b0	gate_rearm	empreinte:ir ; a (ir, mcu, mic)	2026-10-17
+ns	0x10e8e4	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+ns	0x10e8f8	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-17
+ns	0x10fa04	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+ns	0x1109a0	__aeabi_memcpy	appel:maj ; b:nom	2026-10-17
+ns	0x112a60	lock_arbitrate_wait	appel:ir ; a (ir, mcu, mic)	2026-10-17
+ns	0x113cac	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+ns	0x1143d0	fill_words	empreinte:pm ; a (pm, ro)	2026-10-17
+ns	0x11784c	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+nwm	0x1002b8	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+nwm	0x100cc4	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+nwm	0x10128c	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm	0x10205e	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+nwm	0x1022f4	report_fatal_error	empreinte:cfg ; a (cfg, ptm, ssl)	2026-10-17
+nwm	0x104710	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+nwm	0x107878	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+nwm	0x109f24	srand	empreinte:ir ; b:nom	2026-10-17
+nwm	0x1127bc	_ZNSt6localeC1Ev	empreinte:maj ; b:nom	2026-10-17
+nwm	0x112ecc	_ZNSs11_C_allocateEjjj	appel:maj ; b:nom	2026-10-17
+nwm	0x113b34	_ZNSsaSEPKc	empreinte:maj ; b:nom	2026-10-17
+nwm	0x114186	_ZNSsaSERKSs	empreinte:maj ; b:nom	2026-10-17
+nwm	0x1146e4	_ZNSs7replaceEjjPKcj	appel:maj ; b:nom	2026-10-17
+nwm	0x11d624	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+nwm	0x11db1c	_ZNSs9_C_unlinkEv	appel:maj ; b:nom	2026-10-17
+nwm	0x11de20	_ZNSs9_C_getRepEjj	empreinte:maj ; b:nom	2026-10-17
+nwm	0x11df40	_ZNSsC1ERKSs	empreinte:maj ; b:nom	2026-10-17
+nwm	0x11df7c	_ZNSsC1EPKcRKSaIcE	empreinte:maj ; b:nom	2026-10-17
+nwm	0x11e374	create_thread_wrapper	empreinte:camera ; a (camera, csnd)	2026-10-17
+nwm	0x11e5b8	memcmp	empreinte:dsp ; b:nom	2026-10-17
+nwm	0x1223aa	ipc_is_read_buffer_desc	empreinte:am ; a (am, cfg)	2026-10-17
+nwm	0x1235d4	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+nwm	0x1238a8	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+nwm	0x123ea4	create_thread	appel:csnd ; a (csnd, ndm)	2026-10-17
+nwm	0x123f3c	svcCloseHandle	appel:camera ; b:svc	2026-10-17
+nwm	0x124004	strlen	appel:ac ; b:nom	2026-10-17
+nwm	0x124160	svcSendSyncRequest	appel:ndm ; b:svc	2026-10-17
+nwm	0x124168	ipc_write_header	appel:csnd ; a (csnd, ptm)	2026-10-17
+nwm	0x124248	svcWaitSynchronization1	appel:camera ; b:svc	2026-10-17
+nwm	0x12d9b8	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:maj ; b:nom	2026-10-17
+nwm	0x12da36	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+nwm	0x13aa8c	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:maj ; b:nom	2026-10-17
+nwm	0x13b038	svcControlMemory	appel:camera ; b:svc	2026-10-17
+nwm	0x13b05c	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+nwm	0x13b074	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+nwm	0x13b0c8	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+nwm	0x13b130	svcCreateMemoryBlock	empreinte:csnd ; b:svc	2026-10-17
+nwm	0x13b14c	svcCreateThread	appel:camera ; b:svc	2026-10-17
+nwm	0x13b170	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+nwm	0x13b32c	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+nwm	0x13b344	svcExitThread	appel:camera ; b:svc	2026-10-17
+nwm	0x13b3cc	svcBreak	appel:camera ; b:svc	2026-10-17
+nwm	0x13b3dc	svcCreateTimer	empreinte:codec ; b:svc	2026-10-17
+nwm	0x13b3f4	svcSetTimer	empreinte:codec ; b:svc	2026-10-17
+nwm	0x13b40c	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+nwm	0x13b4ac	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+nwm	0x13b4c4	svcWaitSynchronizationN	appel:camera ; b:svc	2026-10-17
+nwm	0x13b5d8	svcMapMemoryBlock	appel:camera ; b:svc	2026-10-17
+nwm	0x13b760	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+nwm	0x13bbe8	strcpy	appel:maj ; b:nom	2026-10-17
+nwm	0x13c940	svcCreateMutex	appel:camera ; b:svc	2026-10-17
+nwm	0x13c958	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+nwm	0x13c970	svcGetDmaState	appel:camera ; b:svc	2026-10-17
+nwm	0x13c9a4	svcStartInterProcessDma	empreinte:camera ; a (camera, fs, gsp, ns)	2026-10-17
+nwm	0x13c9cc	svcStopDma	appel:camera ; b:svc	2026-10-17
+nwm	0x13c9e4	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+pm	0x102570	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+ps	0x10213c	srv_get_service_handle_by_name	empreinte:codec ; a (codec, dsp, hid, ir)	2026-10-17
+ptm	0x104afc	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+ptm	0x1058c8	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+ptm	0x10be88	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+qtm	0x100114	memcmp	empreinte:dsp ; b:nom	2026-10-17
+qtm	0x101904	strcmp	empreinte:codec ; b:nom	2026-10-17
+qtm	0x1026a4	svcCreateAddressArbiter	empreinte:camera ; b:svc	2026-10-17
+qtm	0x1026bc	svcCreateThread	empreinte:camera ; b:svc	2026-10-17
+qtm	0x1026e0	svcQueryMemory	empreinte:camera ; a (camera, cfg, dsp, fs)	2026-10-17
+qtm	0x104674	svcGetProcessInfo	empreinte:camera ; b:svc	2026-10-17
+qtm	0x105d94	svcCreateMutex	empreinte:camera ; b:svc	2026-10-17
+qtm	0x105dac	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+qtm	0x105dc4	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+qtm	0x1069b8	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+qtm	0x1098d8	svcDuplicateHandle	empreinte:camera ; b:svc	2026-10-17
+qtm	0x10fe08	svcCreateEvent	empreinte:camera ; b:svc	2026-10-17
+qtm	0x110080	__aeabi_idivmod	empreinte:maj ; b:nom	2026-10-17
+qtm	0x111b98	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+qtm	0x1122e8	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+qtm	0x113ca4	svcConnectToPort	empreinte:camera ; b:svc	2026-10-17
+qtm	0x113dac	svcArbitrateAddress	empreinte:camera ; b:svc	2026-10-17
+qtm	0x114924	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+qtm	0x114c14	svcWaitSynchronizationN	empreinte:camera ; b:svc	2026-10-17
+qtm	0x114e04	srv_get_service_handle_by_name	empreinte:codec ; a (codec, dsp, hid, ir)	2026-10-17
+qtm	0x115198	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+qtm	0x115220	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+qtm	0x11562c	svcControlMemory	empreinte:camera ; b:svc	2026-10-17
+qtm	0x1159b0	strlen	empreinte:ac ; b:nom	2026-10-17
+ro	0x14001518	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+sm	0x1009e0	strlen	empreinte:ac ; b:nom	2026-10-17
+sm	0x100f04	strcmp	empreinte:codec ; b:nom	2026-10-17
+sm	0x101f34	memcmp	empreinte:dsp ; b:nom	2026-10-17
+sm	0x102250	fill_words	empreinte:pm ; a (pm, ro)	2026-10-17
+sm	0x10256c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+socket	0x100148	srand	empreinte:ir ; b:nom	2026-10-17
+socket	0x1011e8	strcmp	empreinte:codec ; b:nom	2026-10-17
+socket	0x101368	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-17
+socket	0x105810	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-17
+socket	0x109914	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+socket	0x112690	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+socket	0x112a7e	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+socket	0x1143cc	light_semaphore_release	empreinte:gsp ; a (gsp, pm, pxi)	2026-10-17
+socket	0x114444	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-17
+socket	0x115284	__aeabi_idivmod	empreinte:maj ; b:nom	2026-10-17
+socket	0x116a3c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-17
+socket	0x119dd4	memcmp	empreinte:dsp ; b:nom	2026-10-17
+socket	0x11bd1c	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17
+socket	0x11c820	reserve_address_range	empreinte:hid ; a (hid, i2c, spi)	2026-10-17
+socket	0x11c9d0	release_address_range	empreinte:hid ; a (hid, spi)	2026-10-17
+socket	0x11ce5c	strlen	empreinte:ac ; b:nom	2026-10-17
+socket	0x122b94	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+ssl	0x100128	init_heap	empreinte:csnd ; a (csnd, ndm, ptm)	2026-10-17
+ssl	0x10022c	set_heap_size	appel:ndm ; a (ndm, ptm)	2026-10-17
+ssl	0x100950	register_notification_handler	empreinte:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+ssl	0x101388	srv_is_initialized	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl	0x10139c	find_notification_handler	appel:cfg ; a (cfg, friends, ndm, ptm)	2026-10-17
+ssl	0x102232	thread_trampoline	empreinte:ndm ; a (ndm, ptm)	2026-10-17
+ssl	0x102fb4	break_process	empreinte:cfg ; a (cfg, ndm, ptm)	2026-10-17
+ssl	0x1144d0	static_guard_acquire	empreinte:codec ; a (codec, gpio, hid, loader)	2026-10-17
+ssl	0x11d610	__aeabi_memmove	empreinte:maj ; b:nom	2026-10-17
+ssl	0x125e10	ipc_is_read_buffer_desc	empreinte:am ; a (am, cfg)	2026-10-17
+ssl	0x126df8	memcmp	empreinte:dsp ; b:nom	2026-10-17
+ssl	0x12900c	__aeabi_ldivmod	empreinte:maj ; b:nom	2026-10-17
+ssl	0x129108	strcpy	empreinte:dsp ; b:nom	2026-10-17
+ssl	0x12b144	svcGetThreadId	empreinte:dsp ; b:svc	2026-10-17
+ssl	0x12b1d4	svcSendSyncRequest	appel:cfg ; b:svc	2026-10-17
+ssl	0x12b23c	strlen	empreinte:ac ; b:nom	2026-10-17
+ssl	0x12b29c	svcCloseHandle	appel:friends ; b:svc	2026-10-17
+ssl	0x141428	svcControlMemory	appel:camera ; b:svc	2026-10-17
+ssl	0x14144c	svcCreateAddressArbiter	appel:camera ; b:svc	2026-10-17
+ssl	0x141464	svcQueryMemory	appel:camera ; a (camera, cfg, ptm)	2026-10-17
+ssl	0x1414a0	svcGetProcessInfo	appel:camera ; b:svc	2026-10-17
+ssl	0x1414bc	svcCreateThread	appel:camera ; b:svc	2026-10-17
+ssl	0x1414e0	svcGetProcessId	empreinte:camera ; b:svc	2026-10-17
+ssl	0x1415b8	svcAcceptSession	appel:ndm ; b:svc	2026-10-17
+ssl	0x1415d0	svcConnectToPort	appel:camera ; b:svc	2026-10-17
+ssl	0x1415e8	svcCreateSemaphore	empreinte:http ; b:svc	2026-10-17
+ssl	0x141600	svcReleaseSemaphore	empreinte:http ; b:svc	2026-10-17
+ssl	0x141618	svcReplyAndReceive	appel:ndm ; b:svc	2026-10-17
+ssl	0x141638	svcWaitSynchronization1	appel:ndm ; b:svc	2026-10-17
+ssl	0x14164c	svcCreateMemoryBlock	appel:friends ; b:svc	2026-10-17
+ssl	0x141668	svcExitThread	appel:camera ; b:svc	2026-10-17
+ssl	0x141670	svcUnmapMemoryBlock	appel:friends ; b:svc	2026-10-17
+ssl	0x1416c4	svcBreak	appel:camera ; b:svc	2026-10-17
+ssl	0x141718	svcArbitrateAddress	appel:camera ; b:svc	2026-10-17
+ssl	0x141818	svcDuplicateHandle	appel:camera ; b:svc	2026-10-17
+ssl	0x141830	svcGetSystemTick	appel:friends ; b:svc	2026-10-17
+ssl	0x14501c	__aeabi_uldivmod	appel:maj ; b:nom	2026-10-17

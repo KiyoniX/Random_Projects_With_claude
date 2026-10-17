@@ -36,6 +36,7 @@
 0x1014a4	function	clear_thread_local_storage
 0x101554	function	vm_region_free
 0x101564	function	write_samples_to_buffer
+0x10194c	label	static_guard_acquire
 0x101964	function	mic_hw_start_sampling
 0x1019dc	function	mic_hw_is_sampling
 0x1019f4	function	throw_fatal_error
@@ -51,6 +52,7 @@
 0x101d30	function	CDCMIC_SetIirFilterMic
 0x101d70	function	CDCMIC_SetGain
 0x101da8	function	gate_wait
+0x101e70	function	release_address_range
 0x101ed8	function	lock_leave
 0x101efc	function	start_power_on_mute
 0x1020a4	function	CDCMIC_SetPower
@@ -90,6 +92,7 @@
 0x103050	function	abort_process
 0x103230	function	svcBreak
 0x103428	function	svcDuplicateHandle
+0x10347c	function	reserve_address_range
 0x10362c	function	map_shared_memory
 0x1037cc	function	vm_region_alloc
 0x103810	function	mic_handle_command

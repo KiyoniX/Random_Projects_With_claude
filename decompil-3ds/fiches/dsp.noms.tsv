@@ -50,6 +50,8 @@
 0x101978	function	wait_on_handle_pointers
 0x101adc	function	ERRF_Throw
 0x101b48	function	svcSleepThread
+0x101c38	function	heap_alloc_unlocked
+0x101c9c	function	heap_alloc
 0x102150	function	sha256_transform
 0x102288	function	memcpy_unaligned
 0x1029ac	function	svcDuplicateHandle
@@ -88,7 +90,7 @@
 0x1038d4	function	dsp_RecvFifoEx
 0x103a50	function	dsp_SendFifoEx
 0x103b4c	function	dsp_RecvDataIsReady
-0x103c0c	function	memcpy
+0x103c0c	function	__aeabi_memcpy
 0x103c9c	function	destroy_array
 0x103cc0	function	memcpy_words
 0x103d34	function	svcArbitrateAddress
@@ -105,6 +107,7 @@
 0x1040a8	function	dsp_RecvData
 0x1040e0	function	dsp_SendData
 0x10410c	function	process_set_irq_hook
+0x1041a8	label	static_guard_acquire
 0x1041c0	function	break_process
 0x104214	function	copy_service_name
 0x104228	function	svcConnectToPort

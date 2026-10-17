@@ -37,6 +37,7 @@
 0x1016b0	function	svcCreateAddressArbiter
 0x1016c8	function	svcQueryMemory
 0x1016f8	function	ir_open_devices
+0x1018f4	function	create_shared_memory_block
 0x1019dc	function	create_thread
 0x101af4	function	SRV_EnableNotification
 0x101b30	function	SRV_ReceiveNotification
@@ -51,6 +52,7 @@
 0x102770	function	CFG_SetConfigInfoBlk4
 0x1027bc	function	CFG_UpdateConfigNANDSavegame
 0x1027f4	function	ERRF_Throw
+0x10282c	function	heap_alloc_unlocked
 0x10295c	function	GPIOIR_BindInterrupt
 0x1029ac	function	GPIOIR_UnbindInterrupt
 0x102f90	function	thread_trampoline
@@ -60,6 +62,8 @@
 0x1038fc	function	svcCreateMutex
 0x103914	function	svcDuplicateHandle
 0x103a00	function	svcWaitSynchronizationN
+0x103a24	function	__aeabi_ldivmod
+0x103ac8	function	__aeabi_uldivmod
 0x103f5c	function	rst_Shutdown
 0x104148	function	rst_GetHandles
 0x104184	function	rst_cmd0005
@@ -81,6 +85,7 @@
 0x106598	function	ring_bytes_free
 0x106604	function	send_ring_init
 0x10666c	function	ring_slots_free
+0x106854	label	static_guard_acquire
 0x10686c	function	ring_commit_packet
 0x1068a0	function	ring_push_packet
 0x106bfc	function	ir_receive_bytes
@@ -98,6 +103,7 @@
 0x1079dc	function	iru_SetBitRate
 0x107aec	function	iru_WaitRecvTransfer
 0x107be8	function	iru_Shutdown
+0x107cf4	function	__aeabi_idivmod
 0x107ffc	label	random_byte
 0x108574	function	crc8_build_table
 0x108750	function	cfg_check_cstick_present
@@ -113,6 +119,7 @@
 0x108da4	function	GPIOIR_cmd0002
 0x108f84	function	gate_rearm
 0x10903c	function	svcArbitrateAddress
+0x1092c8	function	reserve_address_range
 0x109478	function	gate_wait
 0x109598	function	copy_u64
 0x1095ac	function	ring_unlock
@@ -125,12 +132,16 @@
 0x109754	function	cfg_acquire
 0x109808	function	init_lock
 0x109824	function	crc8_update
+0x1098f8	label	construct_array
+0x10991c	function	svcCreateEvent
 0x109934	function	join_thread
 0x109974	function	gate_open
 0x109abc	function	gate_close
 0x109af0	function	strlen
+0x109b80	function	panic_on_failure
 0x109bf0	function	init_runtime_and_srv
 0x109c00	function	srv_init
+0x109d28	function	heap_alloc
 0x109d8c	function	recv_ring_init
 0x109f0c	function	ring_release_packets
 0x10a170	function	iru_handle_command

@@ -199,7 +199,7 @@ C'est la commande par laquelle un jeu lit la langue ou le nom d'utilisateur. Req
 8. **La recherche.** `config_find_block` (`0x10526c`) parcourt les entrées une par une, de la première à la dernière, en comparant l'identifiant. Introuvable : `0xD90103FA`.
 9. **Les droits.** Le droit demandé est réduit aux bits `0xA`, puis comparé aux droits de l'entrée. Aucun bit commun : `0xD90103EA`. Un jeu ne lit donc que les blocs qui portent le droit 2.
 10. **La taille, encore.** La taille de l'entrée doit être exactement celle demandée. Sinon `0xD90103EC`.
-11. **La copie.** Jusqu'à 4 octets, la donnée est dans l'entrée elle-même ; au-delà, l'entrée donne sa position dans le tampon. `memcpy` (`0x1050c4`) copie vers le tampon de l'appelant.
+11. **La copie.** Jusqu'à 4 octets, la donnée est dans l'entrée elle-même ; au-delà, l'entrée donne sa position dans le tampon. `__aeabi_memcpy` (`0x1050c4`, qui rend `dest+n` : ce n'est pas `memcpy`) copie vers le tampon de l'appelant.
 12. **La réponse.** En-tête `0x00010042`, le résultat, puis le descripteur (`taille × 16 + 0xC`) et l'adresse du tampon, pour que le noyau le rende au client.
 
 | Mot de la requête | Contenu | Lu par le code |

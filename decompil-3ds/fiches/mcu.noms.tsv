@@ -78,7 +78,7 @@
 0x10321c	function	mcu_SetScreenFlickerTop
 0x103238	function	mcu_WriteCameraLedState
 0x103254	function	svcReplyAndReceive
-0x10347c	function	memcpy
+0x10347c	function	memcpy_words
 0x1034f0	function	gate_wait
 0x1035d0	function	gate_rearm
 0x103688	function	svcArbitrateAddress
