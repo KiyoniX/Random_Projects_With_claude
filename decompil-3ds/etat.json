@@ -3,7 +3,7 @@
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-10-17",
-  "prochaine_action": "Pousser le jeu plus loin par le cycle des trous sur des scénarios plus longs (combat, menus, changements de ville), puis l'écran tactile, le son (dsp_aac), et les applets. Écarts ouverts de la Carte : act sur 3dbrew à réextraire, act 0x1F, sessions de nfc.",
+  "prochaine_action": "Finir la console à 100 % d'abord : les huit modules système restants (act, camera, cecd, friends, http, nfc, nwm, ssl), la seconde voie des noms moyens, les applets, puis le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu, en lui reportant par empreinte les noms de la console (le SDK que le jeu embarque). Écarts ouverts de la Carte : act sur 3dbrew à réextraire, act 0x1F, sessions de nfc.",
   "fonctions": {
     "total": 255031,
     "identifiees": 255031,
