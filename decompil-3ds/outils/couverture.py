@@ -1065,7 +1065,9 @@ def apply(source=PROPOSALS, exclusions=EXCLUSIONS, binaries=None, provenance=PRO
     ont la leur, remplie par les jumeaux). Chaque nom versé est noté dans fiches/noms-propages.tsv."""
     binaries = binaries or load_all(cro_images=False)
     by_name = {b.name: b for b in binaries}
-    excluded = {(r[0], int(r[1], 16)) for r in read_rows(exclusions)}
+    # Toutes les exclusions relues du dossier, pas seulement le fichier donné : un fichier oublié ferait verser des
+    # noms que la relecture a refusés.
+    excluded = read_excluded(os.path.dirname(exclusions))
     proposals, skipped = [], collections.Counter()
     for binary, address, name, origin, confidence, rule, proof in (r[:7] for r in read_rows(source)):
         b, address = by_name.get(binary), int(address, 16)

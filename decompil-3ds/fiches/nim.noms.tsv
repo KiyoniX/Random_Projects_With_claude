@@ -172,12 +172,17 @@
 0x128184	function	strcpy
 0x128d38	function	svcGetSystemTick
 0x1295f0	function	__aeabi_memmove
+0x12a06c	function	strncpy
 0x12c716	label	memcmp
+0x12d054	function	strcmp
+0x12ec0c	function	memcpy_unaligned
 0x12f570	function	__aeabi_uldivmod
+0x12f9ac	function	__aeabi_uidivmod
 0x12f9e2	label	ipc_is_read_buffer_desc
 0x12fa74	label	bitfield_extract
 0x12fd54	function	svc_reply_and_receive
 0x12ffb8	function	svcCreateEvent
+0x130364	function	strncmp
 0x1307d0	function	svcWaitSynchronization1
 0x1309c4	function	svcArbitrateAddress
 0x130cc6	label	destroy_array

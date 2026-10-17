@@ -31,9 +31,11 @@
 0x113b00	label	nfc_cmd_0004_StopCommunication
 0x113b24	label	nfc_cmd_0001_Initialize
 0x113b78	label	bitfield_extract
+0x119a9c	function	strncpy
 0x11a008	function	svcWaitSynchronization1
 0x11a21c	label	memcmp
 0x11bf04	function	svcGetSystemTick
+0x11d154	function	__aeabi_uidivmod
 0x11d37c	label	static_guard_acquire
 0x11d408	function	svcCreateEvent
 0x11d9a8	function	svcSendSyncRequest
@@ -215,6 +217,7 @@
 0x1339d4	function	svc_accept_session
 0x1339ec	function	svcControlMemory
 0x133a10	function	svc_reply_and_receive
+0x133a28	function	strcmp
 0x133ac8	function	svcCreateAddressArbiter
 0x133ae0	function	svcQueryMemory
 0x133b1c	function	svcGetProcessInfo
@@ -229,6 +232,8 @@
 0x134080	function	svcUnmapMemoryBlock
 0x134174	function	svcExitThread
 0x1341b8	function	svcWaitSynchronizationN
+0x1341dc	function	strncmp
+0x1342cc	function	memcpy_unaligned
 0x134654	function	__aeabi_memmove
 0x1349f0	function	svcDuplicateHandle
 0x134a08	function	svcMapMemoryBlock

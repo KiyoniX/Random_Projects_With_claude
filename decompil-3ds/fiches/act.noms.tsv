@@ -62,6 +62,7 @@
 0x10a898	label	act_u_dispatch_command
 0x10b20c	label	act_a_dispatch_command
 0x10db94	label	static_guard_acquire
+0x10f920	function	strncpy
 0x10fc52	label	ipc_is_read_buffer_desc
 0x10fc68	label	act_cmd_0022_Unknown
 0x10fd6c	label	act_cmd_0021_Unknown
@@ -96,6 +97,7 @@
 0x111874	label	act_cmd_0002_GetErrorCode
 0x1123f8	label	act_cmd_0001_Initialize
 0x112db8	function	__aeabi_uldivmod
+0x1130a8	function	__aeabi_uidivmod
 0x1130cc	function	__aeabi_ldivmod
 0x113f92	label	memcmp
 0x114ae8	function	svcGetSystemTick
@@ -104,17 +106,20 @@
 0x115680	function	svcCloseHandle
 0x115698	label	register_notification_handler
 0x1156f4	function	strlen
+0x124c88	function	strcmp
 0x124d28	function	svcCreateAddressArbiter
 0x124d40	function	svcQueryMemory
 0x124d7c	function	svcGetProcessInfo
 0x124d98	function	svcConnectToPort
 0x124db0	function	svcCreateMemoryBlock
 0x124dcc	function	svcGetProcessId
+0x124e00	function	strncmp
 0x124fd0	function	svcCreateThread
 0x124ff4	function	svcUnmapMemoryBlock
 0x125070	function	svcBreak
 0x125140	function	svcArbitrateAddress
 0x125158	function	svcExitThread
+0x12526c	function	memcpy_unaligned
 0x1255f4	function	__aeabi_memmove
 0x125990	function	svcDuplicateHandle
 0x1259a8	function	svcMapMemoryBlock

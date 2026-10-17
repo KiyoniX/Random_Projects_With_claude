@@ -17,6 +17,7 @@
 0x101fd4	function	FSUSER_SetPriority
 0x1020a4	function	shared_font_thread_main
 0x102458	function	call_thread_function
+0x1024a0	function	service_open
 0x1025c8	function	PTMSYSM_GetShellStatus
 0x102608	function	handle_srv_notification
 0x1026c4	function	register_notification_handler

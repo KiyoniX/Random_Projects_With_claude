@@ -25,6 +25,7 @@
 0x108208	function	process_error_info
 0x1086f8	function	PTMSYSM_CheckNew3DS
 0x114340	function	svcConnectToPort
+0x1143a8	function	service_open
 0x115c18	function	svcGetProcessId
 0x115c30	function	svcGetSystemTick
 0x115c3c	function	svcSleepThread

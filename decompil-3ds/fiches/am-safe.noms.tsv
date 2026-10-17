@@ -101,6 +101,7 @@
 0x109d70	label	ipc_check_header
 0x109da8	label	bitfield_extract
 0x10a054	function	svc_reply_and_receive
+0x10a1a8	function	__aeabi_uidivmod
 0x10a4e4	function	svc_send_sync_request
 0x10a500	label	ipc_make_header
 0x10a5e4	function	svcWaitSynchronization1
@@ -169,6 +170,7 @@
 0x110d90	function	svcCreatePort
 0x110db0	function	svcGetThreadId
 0x110e64	function	svcWaitSynchronizationN
+0x110e88	function	strcmp
 0x110f74	function	svcControlMemory
 0x110f98	function	svcCreateAddressArbiter
 0x1110a0	function	svcGetProcessInfo
@@ -179,6 +181,7 @@
 0x1111ac	function	svcExitThread
 0x111200	function	svcArbitrateAddress
 0x111218	function	svcGetSystemTick
+0x111308	function	memcpy_unaligned
 0x111690	function	__aeabi_memmove
 0x111a2c	function	svcCreateMutex
 0x111a44	function	svcCreateSessionToPort

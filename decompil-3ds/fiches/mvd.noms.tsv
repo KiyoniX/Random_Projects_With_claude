@@ -121,6 +121,7 @@
 0x119930	function	svcControlMemory
 0x119954	function	svc_reply_and_receive
 0x11996c	function	strlen
+0x1199cc	function	strcmp
 0x119a6c	function	svcCreateAddressArbiter
 0x119a90	function	svcGetProcessInfo
 0x119aac	function	svcStopDma

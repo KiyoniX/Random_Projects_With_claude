@@ -103,10 +103,14 @@
 0x1148b4	label	sslc_service_descriptor_init
 0x11d610	function	__aeabi_memmove
 0x125e10	label	ipc_is_read_buffer_desc
+0x1260ec	function	strcmp
+0x126bcc	function	strncpy
 0x126df8	label	memcmp
 0x12900c	function	__aeabi_ldivmod
 0x129108	function	strcpy
 0x12939c	label	destroy_array
+0x129b04	function	__aeabi_uidivmod
+0x12a804	function	memcpy_unaligned
 0x12b144	function	svcGetThreadId
 0x12b1d4	function	svcSendSyncRequest
 0x12b23c	function	strlen

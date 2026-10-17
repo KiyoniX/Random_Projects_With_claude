@@ -94,6 +94,7 @@
 0x1045ac	label	daemon_enable_by_index
 0x1045b8	label	check_daemon_mask
 0x1045cc	label	check_daemon_index
+0x104e04	function	__aeabi_uidivmod
 0x104e28	function	svcClearEvent
 0x104e9a	label	daemon_request_suspend
 0x104ebe	label	daemon_request_resume
@@ -209,6 +210,7 @@
 0x109054	label	exclusive_state_transition
 0x109170	label	ndmu_session_create
 0x10918c	function	svcExitProcess
+0x109230	function	strcmp
 0x1092d0	function	svcControlMemory
 0x1092f4	function	svcCreateAddressArbiter
 0x10930c	function	svcGetThreadId

@@ -93,6 +93,7 @@
 0x10849c	function	I2CIR_cmd0006
 0x1084f8	function	GPIOIR_cmd0008
 0x10853c	function	GPIOIR_cmd0002
+0x1085b8	function	service_open
 0x108888	function	svcCreateEvent
 0x1088a0	function	gate_wait
 0x10896c	function	break_process

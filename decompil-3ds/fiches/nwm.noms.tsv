@@ -151,6 +151,7 @@
 0x113b34	label	_ZNSsaSEPKc
 0x114186	label	_ZNSsaSERKSs
 0x1146e4	label	_ZNSs7replaceEjjPKcj
+0x1197a4	function	strcmp
 0x11d624	function	__aeabi_memmove
 0x11db1c	label	_ZNSs9_C_unlinkEv
 0x11de20	label	_ZNSs9_C_getRepEjj
@@ -158,10 +159,12 @@
 0x11df7c	label	_ZNSsC1EPKcRKSaIcE
 0x11e374	label	create_thread_wrapper
 0x11e5b8	label	memcmp
+0x11ec40	function	memcpy_unaligned
 0x1200b0	label	uds_send_frame
 0x12022c	label	uds_decrypt_beacon_data
 0x1204c0	label	uds_get_state
 0x1204d4	label	uds_get_state_object
+0x120b4c	function	__aeabi_uidivmod
 0x121560	label	nwm_make_result
 0x121576	label	tst_cmd_0031
 0x1215cc	label	tst_cmd_0011_shared

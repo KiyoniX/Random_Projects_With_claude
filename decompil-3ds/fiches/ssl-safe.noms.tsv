@@ -73,10 +73,14 @@
 0x114414	label	static_guard_acquire
 0x1147f8	label	sslc_service_descriptor_init
 0x125d46	label	ipc_is_read_buffer_desc
+0x126024	function	strcmp
+0x126b04	function	strncpy
 0x126d30	label	memcmp
 0x128f44	function	__aeabi_ldivmod
 0x129040	function	strcpy
 0x1292d4	label	destroy_array
+0x129a3c	function	__aeabi_uidivmod
+0x12a73c	function	memcpy_unaligned
 0x12aac4	function	__aeabi_memmove
 0x12b07c	function	svcGetThreadId
 0x12b10c	function	svcSendSyncRequest

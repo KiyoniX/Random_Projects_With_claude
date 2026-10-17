@@ -48,10 +48,12 @@
 0x107f18	label	dlp_cmd_0012_StopSession
 0x108dc0	label	dlp_fkcl_cmd_0002_Finalize
 0x109382	label	memcmp
+0x109914	function	memcpy_unaligned
 0x109c9c	function	__aeabi_memmove
 0x10a16c	function	svcCreateEvent
 0x10a2c4	function	svcGetSystemTick
 0x10a600	label	destroy_array
+0x10a650	function	__aeabi_uidivmod
 0x10a8b8	function	svcWaitSynchronization1
 0x10a960	function	svc_send_sync_request
 0x10a97c	label	ipc_make_header
@@ -70,6 +72,7 @@
 0x10f444	label	dlp_srvr_open_session
 0x10f4a0	label	dlp_fkcl_open_session
 0x110ffc	function	svc_accept_session
+0x111014	function	strcmp
 0x1110b4	function	svcControlMemory
 0x1110d8	function	svcCreateAddressArbiter
 0x1110f0	function	svcQueryMemory
@@ -89,3 +92,4 @@
 0x111498	function	svcSetTimer
 0x1114b0	function	svcUnmapMemoryBlock
 0x1114b8	function	__aeabi_uldivmod
+0x1117a8	function	strncmp

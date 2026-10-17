@@ -8,6 +8,7 @@
 0x101724	function	set_heap_size
 0x1024b4	function	svcControlMemory
 0x1025fc	function	init_heap_region
+0x102700	function	service_open
 0x1034e0	function	svcCreateAddressArbiter
 0x1034f8	function	svcCreateThread
 0x103554	function	reserve_address_range
@@ -22,11 +23,14 @@
 0x12d0e8	function	__aeabi_ldivmod
 0x12d6fc	function	strcpy
 0x12f4c4	function	__aeabi_uldivmod
+0x130df8	function	strncpy
 0x1349a0	label	memcmp
 0x135194	function	heap_alloc_unlocked
+0x1374f0	function	memcpy_unaligned
 0x137878	function	__aeabi_memmove
 0x137eac	function	gate_rearm
 0x137f64	function	svcArbitrateAddress
+0x138808	function	strncmp
 0x1391d4	function	fill_words
 0x139720	function	strcmp
 0x139c84	function	panic_on_failure

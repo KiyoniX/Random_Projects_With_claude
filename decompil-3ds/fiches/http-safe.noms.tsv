@@ -45,6 +45,7 @@
 0x105750	function	lock_arbitrate_wait
 0x105c90	function	SSLC_Initialize
 0x1063d4	function	thread_trampoline
+0x10641c	function	strncmp
 0x10661c	function	socket_setup_and_connect
 0x1068e0	function	socket_create_for_request
 0x107880	function	SSLC_DestroyContext
@@ -60,12 +61,14 @@
 0x109f3c	function	request_send_post_data
 0x10a5a8	function	result_from_internal_code
 0x10a6b0	function	request_wait_event
+0x10abf8	function	strncpy
 0x10ac64	function	client_find_context
 0x10b918	function	socket_set_option
 0x10c130	function	light_semaphore_release
 0x10c1a8	function	__aeabi_uidivmod
 0x10c340	label	destroy_array
 0x10c40c	function	svcArbitrateAddress
+0x10c43c	function	memcpy_unaligned
 0x10c7c4	function	__aeabi_memmove
 0x10cca0	function	shared_memory_unmap
 0x10cecc	function	heap_alloc_unlocked

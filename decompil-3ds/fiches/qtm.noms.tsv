@@ -28,6 +28,7 @@
 0x1070e8	function	qtm_cmd_0402_GetCameraLuminance
 0x1072ec	function	qtm_cmd_0409_GetQtmStatus
 0x107430	function	qtm_cmd_0401_SetCentralBarrierPosition
+0x107974	function	strncmp
 0x1098d8	function	svcDuplicateHandle
 0x10fe08	function	svcCreateEvent
 0x110080	function	__aeabi_idivmod

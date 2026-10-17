@@ -4290,3 +4290,129 @@ ssl-safe	0x141720	svcDuplicateHandle	appel:ac ; b:svc	2026-10-17
 ssl-safe	0x141738	svcGetSystemTick	appel:ac ; b:svc	2026-10-17
 ssl-safe	0x141740	svcMapMemoryBlock	appel:nwm ; b:svc	2026-10-17
 ssl-safe	0x144f24	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-17
+ac	0x10df64	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+ac	0x10fc94	strcmp	empreinte:cfg ; b:nom	2026-10-17
+ac	0x110044	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ac	0x11d7c0	strncmp	empreinte:cfg ; b:nom	2026-10-17
+ac-safe	0x10dee0	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+ac-safe	0x10fbbc	strcmp	empreinte:cfg ; b:nom	2026-10-17
+ac-safe	0x10ff6c	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ac-safe	0x11d5a8	strncmp	empreinte:cfg ; b:nom	2026-10-17
+act	0x10f920	strncpy	empreinte:cfg ; b:nom	2026-10-17
+act	0x1130a8	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+act	0x124c88	strcmp	empreinte:cfg ; b:nom	2026-10-17
+act	0x124e00	strncmp	empreinte:cfg ; b:nom	2026-10-17
+act	0x12526c	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+am	0x10a2e0	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+am	0x111010	strcmp	empreinte:cfg ; b:nom	2026-10-17
+am	0x1114c0	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+am-safe	0x10a1a8	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+am-safe	0x110e88	strcmp	empreinte:cfg ; b:nom	2026-10-17
+am-safe	0x111308	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+boss	0x11d4d8	strncpy	empreinte:cfg ; b:nom	2026-10-17
+boss	0x11f8f0	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+boss	0x1201f4	strcmp	empreinte:cfg ; b:nom	2026-10-17
+boss	0x125148	strncmp	empreinte:cfg ; b:nom	2026-10-17
+boss	0x125fb4	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+camera	0x108f40	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+camera	0x113198	strcmp	empreinte:cfg ; b:nom	2026-10-17
+cecd	0x10e4a4	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+cfg-safe	0x100000	entry	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x1033e8	hmac_sha256	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x10373c	sha256_transform	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x104490	memcpy_words	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x104e30	__ARM_common_switch8	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x105214	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+cfg-safe	0x105aac	memset_words	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x10966a	construct_array	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x10974c	static_init_errf_port	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x1099f0	static_init_main_thread_handle	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x109ab0	static_init_config_buffer	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x109e68	strcmp	empreinte:cfg ; b:nom	2026-10-17
+cfg-safe	0x109f48	__aeabi_lmul	jumeau:cfg ; jumeau	2026-10-17
+cfg-safe	0x109ff8	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+cfg-safe	0x10a8d8	strncmp	empreinte:cfg ; b:nom	2026-10-17
+cfg-safe	0x10a9c8	strncpy	empreinte:cfg ; b:nom	2026-10-17
+dlp	0x109914	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+dlp	0x10a650	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+dlp	0x111014	strcmp	empreinte:cfg ; b:nom	2026-10-17
+dlp	0x1117a8	strncmp	empreinte:cfg ; b:nom	2026-10-17
+errdisp	0x1143a8	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+errdisp-safe	0x1143a8	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+friends	0x128174	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+friends	0x1338f0	strncpy	empreinte:cfg ; b:nom	2026-10-17
+friends	0x15562c	strncmp	empreinte:cfg ; b:nom	2026-10-17
+friends-safe	0x128174	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+friends-safe	0x1338f0	strncpy	empreinte:cfg ; b:nom	2026-10-17
+friends-safe	0x15562c	strncmp	empreinte:cfg ; b:nom	2026-10-17
+fs	0x125828	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+gsp-safe	0x100bf4	create_lock_arbiter_once	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x100d30	init_runtime	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x100d68	init_vm_region_10000000	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x100d7c	store_thread_local_owner	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x102394	release_address_range	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x1034dc	thread_functor_copy	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x1034ec	thread_functor_invoke	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x103674	clear_thread_local_storage	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x10390c	pdn_close	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x107000	i2c_close	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x108654	copy_service_name	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x1088ac	construct_array	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x10aaa4	lock_arbitrate_wait	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x10af68	SRV_GetServiceHandle	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x10ccec	QTMSP_GetCameraLuminance	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x10d18c	session_threads_dtor	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x10d43c	shared_memory_dtor	jumeau:gsp ; jumeau	2026-10-17
+gsp-safe	0x10d664	static_init_main_thread_handle	jumeau:gsp ; jumeau	2026-10-17
+http	0x1064dc	strncmp	empreinte:cfg ; b:nom	2026-10-17
+http	0x10b84c	strncpy	empreinte:cfg ; b:nom	2026-10-17
+http	0x10d2dc	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+http-safe	0x10641c	strncmp	empreinte:cfg ; b:nom	2026-10-17
+http-safe	0x10abf8	strncpy	empreinte:cfg ; b:nom	2026-10-17
+http-safe	0x10c43c	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+ir	0x108e20	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+ir-safe	0x1085b8	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+maj	0x1a2100	strncpy	empreinte:cfg ; b:nom	2026-10-17
+mvd	0x1199cc	strcmp	empreinte:cfg ; b:nom	2026-10-17
+ndm	0x104e04	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ndm	0x109230	strcmp	empreinte:cfg ; b:nom	2026-10-17
+news	0x103980	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+news	0x108e10	strcmp	empreinte:cfg ; b:nom	2026-10-17
+nfc	0x119a9c	strncpy	empreinte:cfg ; b:nom	2026-10-17
+nfc	0x11d154	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+nfc	0x133a28	strcmp	empreinte:cfg ; b:nom	2026-10-17
+nfc	0x1341dc	strncmp	empreinte:cfg ; b:nom	2026-10-17
+nfc	0x1342cc	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+nim	0x12a06c	strncpy	empreinte:cfg ; b:nom	2026-10-17
+nim	0x12d054	strcmp	empreinte:cfg ; b:nom	2026-10-17
+nim	0x12ec0c	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+nim	0x12f9ac	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+nim	0x130364	strncmp	empreinte:cfg ; b:nom	2026-10-17
+nim-safe	0x102700	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+nim-safe	0x130df8	strncpy	empreinte:cfg ; b:nom	2026-10-17
+nim-safe	0x1374f0	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+nim-safe	0x138808	strncmp	empreinte:cfg ; b:nom	2026-10-17
+ns	0x1024a0	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+ns-safe	0x102004	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+nwm	0x1197a4	strcmp	empreinte:cfg ; b:nom	2026-10-17
+nwm	0x11ec40	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+nwm	0x120b4c	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+nwm-safe	0x11966c	strcmp	empreinte:cfg ; b:nom	2026-10-17
+nwm-safe	0x11eaf0	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+nwm-safe	0x120980	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ptm	0x1058a4	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ptm	0x10bafc	strcmp	empreinte:cfg ; b:nom	2026-10-17
+ptm-safe	0x1057b4	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ptm-safe	0x10ba04	strcmp	empreinte:cfg ; b:nom	2026-10-17
+qtm	0x107974	strncmp	empreinte:cfg ; b:nom	2026-10-17
+ro	0x14001a9c	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+socket	0x11b16c	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+socket-safe	0x11b098	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+ssl	0x1260ec	strcmp	empreinte:cfg ; b:nom	2026-10-17
+ssl	0x126bcc	strncpy	empreinte:cfg ; b:nom	2026-10-17
+ssl	0x129b04	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ssl	0x12a804	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+ssl-safe	0x126024	strcmp	empreinte:cfg ; b:nom	2026-10-17
+ssl-safe	0x126b04	strncpy	empreinte:cfg ; b:nom	2026-10-17
+ssl-safe	0x129a3c	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
+ssl-safe	0x12a73c	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17

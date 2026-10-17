@@ -2,6 +2,7 @@
 # Remplie par « python outils/couverture.py apply » avec la règle « jumeau » : une fonction prend le nom
 # de fiches/cfg.noms.tsv quand elle a le même code à la même place dans les deux modules. Chaque nom
 # versé est aussi noté dans fiches/noms-propages.tsv. Même format : adresse, function ou label, nom.
+0x100000	function	entry
 0x100048	label	cfg_main
 0x100210	label	init_console_unique_ids
 0x1003fe	label	mount_system_save
@@ -63,6 +64,8 @@
 0x102fd8	label	sha256_update_impl
 0x1030f0	label	lock_is_owner
 0x10332e	label	I2CEEP_ReadEEPROM
+0x1033e8	label	hmac_sha256
+0x10373c	label	sha256_transform
 0x10389a	label	create_system_save_evac
 0x103b9c	label	FSUSER_DeleteFile
 0x103bf8	label	FSUSER_RenameFile
@@ -85,6 +88,7 @@
 0x1042f8	label	get_region_canada_usa
 0x104358	label	get_model_nintendo_2ds
 0x1043a0	label	get_system_model
+0x104490	function	memcpy_words
 0x1048a8	label	sha256_hash
 0x104a54	label	hwcal_load_slot
 0x104b8c	label	ipc_set_read_buffer_desc
@@ -92,6 +96,7 @@
 0x104c64	function	build_block_00040001
 0x104d6c	label	build_block_00060000
 0x104e18	label	make_ipc_header
+0x104e30	function	__ARM_common_switch8
 0x104e70	label	reset_block_00040001
 0x104ea4	label	reset_block_00060000
 0x104ed4	label	hwcal_item_is_valid
@@ -101,6 +106,7 @@
 0x105176	label	file_output_stream_open
 0x1051c8	label	fs_delete_file
 0x1051d8	label	fs_file_exists
+0x105214	function	__aeabi_uidivmod
 0x10525c	label	config_find_block
 0x105294	label	config_create_block_thunk
 0x1052a0	label	build_block_00040004
@@ -130,6 +136,7 @@
 0x105a90	label	config_create_block_flags_c
 0x105a9c	label	config_create_block_flags_e
 0x105aa8	function	memclr_aligned
+0x105aac	function	memset_words
 0x105afc	label	config_set_block_thunk
 0x105b50	label	config_get_block
 0x105bb4	label	config_set_block
@@ -216,18 +223,27 @@
 0x1094e0	label	local_friend_code_seed_get_data
 0x109538	label	local_friend_code_seed_verify
 0x1095e0	label	local_friend_code_seed_fetch
+0x10966a	label	construct_array
+0x10974c	label	static_init_errf_port
+0x1099f0	label	static_init_main_thread_handle
+0x109ab0	label	static_init_config_buffer
 0x109d04	label	on_terminate_notification
 0x109d94	function	svcExitProcess
 0x109e38	function	svcAcceptSession
 0x109e50	function	svcReplyAndReceive
+0x109e68	function	strcmp
 0x109f08	function	svcCreateAddressArbiter
 0x109f2c	function	svcGetProcessInfo
+0x109f48	function	__aeabi_lmul
 0x109f60	function	svcConnectToPort
 0x109f78	function	svcSleepThread
 0x109f80	function	svcBreak
 0x109f88	function	svcGetProcessId
 0x109fa0	function	svcGetSystemTick
+0x109ff8	function	memcpy_unaligned
 0x10a380	function	__aeabi_memmove
 0x10a770	function	svcArbitrateAddress
 0x10a8b8	function	svcDuplicateHandle
 0x10a8d0	function	svcWaitSynchronization1
+0x10a8d8	function	strncmp
+0x10a9c8	function	strncpy

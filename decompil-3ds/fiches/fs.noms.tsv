@@ -115,6 +115,7 @@
 0x1251f0	function	pool_put
 0x125450	function	PXIFS_cmd004F
 0x1254f4	function	PXIFS_SetPriority
+0x125828	function	memcpy_unaligned
 0x125f4c	function	svcCreateEvent
 0x125f64	function	svcDuplicateHandle
 0x125f7c	function	svcFlushProcessDataCache

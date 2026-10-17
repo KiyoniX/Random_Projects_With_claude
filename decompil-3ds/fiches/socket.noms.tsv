@@ -63,6 +63,7 @@
 0x119dd4	label	memcmp
 0x11a484	function	svcSetTimer
 0x11aa68	function	socu_001F_GetResolverInfo
+0x11b16c	function	memcpy_unaligned
 0x11bd1c	function	__aeabi_uldivmod
 0x11c3f4	function	SRV_Subscribe
 0x11c820	function	reserve_address_range

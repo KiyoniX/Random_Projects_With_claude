@@ -119,6 +119,7 @@
 0x108d04	function	I2CIR_cmd0006
 0x108d60	function	GPIOIR_cmd0008
 0x108da4	function	GPIOIR_cmd0002
+0x108e20	function	service_open
 0x108f84	function	gate_rearm
 0x10903c	function	svcArbitrateAddress
 0x1092c8	function	reserve_address_range

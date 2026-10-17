@@ -22,6 +22,7 @@
 0x10de04	label	_ZNSs9_C_unlinkEv
 0x10e01c	label	destroy_array
 0x10e0e0	label	_ZNSsC1EPKcRKSaIcE
+0x10e4a4	function	memcpy_unaligned
 0x10ec80	label	cec_delete
 0x10ed0c	function	strcmp
 0x10f156	label	static_guard_acquire

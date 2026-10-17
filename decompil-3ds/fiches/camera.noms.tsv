@@ -111,6 +111,7 @@
 0x108bb0	function	svcReleaseMutex
 0x108e7c	label	get_dma_state
 0x108e9e	label	start_dma
+0x108f40	function	__aeabi_uidivmod
 0x109538	label	memcmp
 0x1097b0	label	get_camera_settings_record
 0x109bb8	label	is_dma_finished
@@ -274,6 +275,7 @@
 0x112fc8	label	on_wake_notification
 0x112ff8	label	on_sleep_notification
 0x1130f4	function	svcExitProcess
+0x113198	function	strcmp
 0x113238	function	svcAcceptSession
 0x113250	function	svcCreateAddressArbiter
 0x113268	function	svcQueryMemory

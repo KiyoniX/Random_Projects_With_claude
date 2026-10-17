@@ -129,6 +129,7 @@
 0x105314	label	wait_all_replies
 0x10533a	label	publish_and_expect_replies
 0x1054c4	label	ipc_make_header
+0x1057b4	function	__aeabi_uidivmod
 0x1057d8	function	__aeabi_ldivmod
 0x105f7e	label	wait_handle
 0x10601c	label	send_time_to_pximc
@@ -245,6 +246,7 @@
 0x10b930	function	svcExitProcess
 0x10b9d4	function	svcAcceptSession
 0x10b9ec	function	svcReplyAndReceive
+0x10ba04	function	strcmp
 0x10baa4	function	svcControlMemory
 0x10bac8	function	svcCreateAddressArbiter
 0x10baec	function	svcCreateEvent

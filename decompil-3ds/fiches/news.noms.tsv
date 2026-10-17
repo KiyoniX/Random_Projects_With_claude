@@ -12,6 +12,7 @@
 0x1038a0	label	ipc_check_header
 0x1038d2	label	ipc_is_read_buffer_desc
 0x1038e8	label	bitfield_extract
+0x103980	function	__aeabi_uidivmod
 0x1041c4	function	__aeabi_ldivmod
 0x104e08	function	svcCreateEvent
 0x104fa4	label	static_guard_acquire
@@ -45,6 +46,7 @@
 0x108084	label	news_u_cmd_0001_AddNotification
 0x108de0	label	svc_accept_session
 0x108df8	label	svc_reply_and_receive
+0x108e10	function	strcmp
 0x108eb0	function	svcControlMemory
 0x108ed4	function	svcCreateAddressArbiter
 0x108eec	function	svcQueryMemory

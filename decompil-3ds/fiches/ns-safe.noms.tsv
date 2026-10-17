@@ -15,6 +15,7 @@
 0x101b48	function	FSUSER_SetPriority
 0x101c08	function	shared_font_thread_main
 0x101fbc	function	call_thread_function
+0x102004	function	service_open
 0x10208c	function	PTMSYSM_GetShellStatus
 0x1020cc	function	SRV_EnableNotification
 0x102108	function	SRV_ReceiveNotification

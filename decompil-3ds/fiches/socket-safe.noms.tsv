@@ -62,6 +62,7 @@
 0x119d00	label	memcmp
 0x11a3b0	function	svcSetTimer
 0x11a994	function	socu_001F_GetResolverInfo
+0x11b098	function	memcpy_unaligned
 0x11b420	function	__aeabi_memmove
 0x11bc48	function	__aeabi_uldivmod
 0x11c320	function	SRV_Subscribe

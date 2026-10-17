@@ -195,6 +195,7 @@
 0x10d650	label	memcmp
 0x10de20	label	job_queue_push
 0x10de9c	label	is_connected
+0x10df64	function	memcpy_unaligned
 0x10e778	function	svcWaitSynchronization1
 0x10e8a0	label	acu_0041_SetTemporaryNetworkSettings
 0x10e990	label	acu_0040_SetClientVersion
@@ -262,8 +263,10 @@
 0x10faf8	label	check_static_buffer_descriptor
 0x10fb18	label	check_header
 0x10fb38	label	acu_0001_CreateDefaultConfig
+0x10fc94	function	strcmp
 0x10fd34	function	__aeabi_memmove
 0x10ffd0	label	job_close
+0x110044	function	__aeabi_uidivmod
 0x110068	label	job_unexclusive
 0x1100b4	label	job_exclusive
 0x1100f0	label	job_logout_hotspot
@@ -324,3 +327,4 @@
 0x11c830	function	__aeabi_uldivmod
 0x11cb34	function	strcpy
 0x11d7a8	function	svcDuplicateHandle
+0x11d7c0	function	strncmp
