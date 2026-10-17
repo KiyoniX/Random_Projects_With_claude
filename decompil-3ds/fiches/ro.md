@@ -11,8 +11,8 @@ Fiche du 14 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Titre | `0004013000003702`, installé dans la mémoire de la console (pas dans le NATIVE_FIRM) |
 | Fichier lu | `local/extrait/ro/exefs/code.elf` |
 | Taille | 33 636 octets de code, 616 de données en lecture seule, 1 000 de données, 5 016 de mémoire à zéro |
-| Code | ARM, sauf deux petites fonctions Thumb du démarrage (`construct_array`, `run_static_initializers`). Un seul pointeur impair dans tout le fichier, celui du `blx` vers la seconde |
-| Fonctions | 180, dont 123 nommées dans `ro.noms.tsv` |
+| Code | ARM, sauf 11 fonctions Thumb : les 8 de Ghidra (`__ARM_exceptions_buffer_init/_allocate/_free`, `__cxa_get_globals`, `construct_array`, `static_guard_acquire`, `memcmp`, `run_static_initializers`) et 3 entrées manquées (`__default_terminate_handler` `0x140000bc`, `static_guard_release` `0x14000164`, `destroy_array` `0x14000118`). Un seul mot impair dans tout le fichier : `0x140000bd` en `0x14000108`, l'adresse de `__default_terminate_handler` que range `__cxa_get_globals` |
+| Fonctions | 184 pour Ghidra, plus 22 entrées manquées et 2 trouvées à la main, moins 9 morceaux de la division et 1 code mort (`__aeabi_memmove`) : 198 ; 127 nommées dans `ro.noms.tsv`, 198 avec `local/analyse/ro/noms-proposes.tsv` |
 | Service offert | `ldr:ro`, 9 commandes, deux sessions au plus |
 | Services appelés | `fs:USER` (trois commandes), `ps:ps` (une), plus `srv:` |
 | Services autorisés par l'exheader | `fs:USER` et `ps:ps`, exactement ceux qu'il ouvre |
@@ -21,7 +21,7 @@ Fiche du 14 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 
 ## Partie 1 : le démarrage et la boucle
 
-`entry` (`0x14000000`) enchaîne `clear_bss` (`0x14000024`), `init_c_locale` (`0x14000644`), `init_runtime_and_srv` (`0x140007e8`, qui se connecte au port `srv:` et s'y déclare), les initialiseurs des objets globaux (`run_static_initializers`, `0x14008300`, en Thumb, seize entrées de `0x14008324` à `0x14008364`), puis `ro_main` (`0x14000174`), et sort par `svcExitProcess`.
+`entry` (`0x14000000`) enchaîne `clear_bss` (`0x14000024`), `init_program_args` (`0x14000644`), `init_runtime_and_srv` (`0x140007e8`, qui se connecte au port `srv:` et s'y déclare), les initialiseurs des objets globaux (`run_static_initializers`, `0x14008300`, en Thumb, seize entrées de `0x14008324` à `0x14008364`), puis `ro_main` (`0x14000174`), et sort par `svcExitProcess`.
 
 `ro_main` fait la mise en place, puis tourne dans une seule boucle, sur le même modèle que `loader` :
 
@@ -106,7 +106,7 @@ Le code d'un module commence à `0x180` dans le fichier : la page arrondie inclu
 3. Ouverture de la fenêtre ; l'adresse projetée est rangée dans le contexte (`+0x08`) : c'est elle qui dira, pour toutes les autres commandes, que la session est initialisée.
 4. `crs_initialize` (`0x14006390`) vide les deux listes de modules, met à 0 les champs `0x88` et `0x8C` de `static.crs`, puis lui applique `cro_rebase_and_relocate` (partie 6, étapes 4 à 10) **en sautant la conversion des segments et la table `0x120`** : les segments de `static.crs` donnent déjà des adresses (`0x100000`, `0x53F000`, `0x5A9000`…), seul leur contrôle de plage est fait. Ce passage convertit l'en-tête de `static.crs` en adresses, contrôle ses tables, et surtout **remplit ses 331 corrections d'import avec sa fonction « symbole non résolu »** : c'est-à-dire écrit `0x4D7BC0` plus l'addend dans les 331 mots du `.text` du programme principal. Seize de ces corrections ont un addend de 8 : leurs mots passent de `0x4D7BC0` à `0x4D7BC8` dès Initialize (vérifié en exécutant le code de `ro`, partie 14).
 5. Fermeture de la fenêtre.
-6. `get_process_unique_id` (`0x140056fc`) : `svcGetProcessId` sur la poignée, puis `FS_GetProgramLaunchInfo` (`0x082F0040`) donne le numéro de titre ; `ro` en garde les bits `0x0FFFFF00` du mot bas dans le contexte (`+0x314`). Pour Pokémon X : `0x00055D00`. C'est la valeur que LoadCRR comparera au champ `0x340` du `.crr`.
+6. `get_process_unique_id` (`0x140056fc`) : `svcGetProcessId` sur la poignée, puis `FSUSER_GetProgramLaunchInfo` (`0x082F0040`) donne le numéro de titre ; `ro` en garde les bits `0x0FFFFF00` du mot bas dans le contexte (`+0x314`). Pour Pokémon X : `0x00055D00`. C'est la valeur que LoadCRR comparera au champ `0x340` du `.crr`.
 7. En cas d'échec à l'étape 4 ou 6 : le contexte est remis à « non initialisé » et la projection défaite (UNMAP, lecture-écriture).
 
 `static.crs` n'est ni vérifié contre un `.crr`, ni fini (sa marque reste `CRO0`), ni passé en exécution.
@@ -151,7 +151,7 @@ C'est le cœur du module. `ldrro_LoadExeCRO` (`0x14002b6c`) ; LoadCRO_New ne dif
 
 1. SHA-256 des `0x80` premiers octets, cherché dans le ou les `.crr` (partie 5).
 2. Le décalage du code (`0xB0`) doit dépasser `0x138` (sinon `0xE0E12C20`).
-3. SHA-256 de `0x80` jusqu'au code, comparé à l'empreinte de `0x00` ; du code jusqu'au nom du module (`0xC0`), comparé à `0x20` ; du nom du module jusqu'aux données (`0xB8`), comparé à `0x40`. Différence : `0xD8E12C03`. Une plage qui sort du fichier : `0xE0E12C0C`. **L'empreinte des données (`0x60`) n'est pas vérifiée.** Au-delà de `0x2221` octets, le calcul est confié à `fs:USER` (`FS_UpdateSha256Context`, `0x084E0342`) ; en dessous, `ro` le fait lui-même.
+3. SHA-256 de `0x80` jusqu'au code, comparé à l'empreinte de `0x00` ; du code jusqu'au nom du module (`0xC0`), comparé à `0x20` ; du nom du module jusqu'aux données (`0xB8`), comparé à `0x40`. Différence : `0xD8E12C03`. Une plage qui sort du fichier : `0xE0E12C0C`. **L'empreinte des données (`0x60`) n'est pas vérifiée.** Au-delà de `0x2221` octets, le calcul est confié à `fs:USER` (`FSUSER_UpdateSha256Context`, `0x084E0342`) ; en dessous, `ro` le fait lui-même.
 
 **4. L'en-tête** (`cro_validate_and_rebase_header`, `0x14006e80`). Refus global `0xD9012C11`.
 
@@ -378,18 +378,18 @@ Les deux premiers mots et le troisième ont la forme d'une case : le contexte se
 | Appel | Numéro | Fonction | Adresse |
 | --- | --- | --- | --- |
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x140021d8` |
-| ExitProcess | `0x03` | `svcExitProcess` | `0x14000168` |
+| ExitProcess | `0x03` | `svcExitProcess` | `0x1400016c` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x14001428` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x14000e54` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x14003ed4` |
-| CloseHandle | `0x23` | `handle_holder_dtor`, et 70 fois écrit sur place | `0x140023d8` |
+| CloseHandle | `0x23` | `svcCloseHandle` (enveloppe, cible des `b` de `fs_exit` et `ps_close`), `handle_holder_dtor`, et 70 fois écrit sur place | `0x14000c94`, `0x140023d8` |
 | WaitSynchronization1 | `0x24` | sur place | `0x140023a8` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x140021c0` |
 | GetProcessInfo | `0x2B` | `svcGetProcessInfo` | `0x14001084` |
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x1400106c` |
 | SendSyncRequest | `0x32` | sur place, dans chacune des 11 fonctions de requête | |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x14001230` |
-| Break | `0x3C` | appelé par `panic_break` | `0x14001420` |
+| Break | `0x3C` | `svcBreak`, cible du `b` final de `break_process` (`0x1400546c`) | `0x14001420` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x14000698` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x140006b0` |
 | ControlProcessMemory | `0x70` | `svcControlProcessMemory` | `0x14004fa8` |
@@ -401,10 +401,10 @@ Les 19 sont dans la liste que l'exheader autorise.
 
 | Service | Commande | En-tête | Fonction | Pour quoi |
 | --- | --- | --- | --- | --- |
-| `srv:` | RegisterClient, EnableNotification, RegisterService, UnregisterService, GetServiceHandle, ReceiveNotification | `0x00010002`, `0x00020000`, `0x00030100`, `0x000400C0`, `0x00050100`, `0x000B0000` | `0x14000da0`, `0x14000ddc`, `0x14000ab8`, `0x14000b14`, `0x14000d6c`, `0x14000e18` | la vie du service |
-| `fs:USER` | Initialize | `0x08010002` | dans `fs_init` | |
-| `fs:USER` | GetProgramLaunchInfo | `0x082F0040` | `FS_GetProgramLaunchInfo`, `0x140022a8` | le numéro de titre du client (Initialize) |
-| `fs:USER` | UpdateSha256Context | `0x084E0342` | `FS_UpdateSha256Context`, `0x14002224` | le SHA-256 des grandes plages d'un `.cro` |
+| `srv:` | RegisterClient, EnableNotification, RegisterService, UnregisterService, GetServiceHandle, ReceiveNotification | `0x00010002`, `0x00020000`, `0x00030100`, `0x000400C0`, `0x00050100`, `0x000B0000` | `0x14000da0`, `0x14000ddc`, `0x14000ab8`, `0x14000b14`, `0x14000f8c`, `0x14000e18` | la vie du service |
+| `fs:USER` | Initialize | `0x08010002` | `FSUSER_Initialize`, `0x14000c9c` (b final de `fs_init`) | |
+| `fs:USER` | GetProgramLaunchInfo | `0x082F0040` | `FSUSER_GetProgramLaunchInfo`, `0x140022a8` | le numéro de titre du client (Initialize) |
+| `fs:USER` | UpdateSha256Context | `0x084E0342` | `FSUSER_UpdateSha256Context`, `0x14002224` | le SHA-256 des grandes plages d'un `.cro` |
 | `ps:ps` | VerifyRsaSha256 | `0x00020244` | `PS_VerifyRsaSha256`, `0x140024d4` | les deux signatures d'un `.crr` |
 | `err:f` | Throw | `0x00010800` | `ERRF_Throw`, `0x140013e8` | une erreur fatale de `ro` lui-même |
 
@@ -499,12 +499,12 @@ Le code de `ro` lui-même (sans les appels système ni les contrôles IPC) a ét
 - Les niveaux de finition 2 et plus, et le niveau 4 et au-delà : lus, jamais exécutés.
 
 **Pas lu**
-- Le détail de la bibliothèque de démarrage : tas (`heap_alloc` et ses aides), verrous légers (`0x14001248` à `0x14001434`), gestion des erreurs fatales (`handle_fatal_result`, `throw_fatal_error`).
-- Le corps des trois fonctions de copie (`0x14001a9c`, `0x1400529c`, `0x14005324`) et du calcul SHA-256 logiciel : nommés ou non d'après leurs appelants.
+- Le détail de la bibliothèque de démarrage : tas (`heap_alloc` et ses aides), verrous légers (`0x14001248` à `0x14001434`), gestion des erreurs fatales (`panic_on_failure`, `throw_fatal_error`).
+- Le corps de `memcpy_unaligned` (`0x14001a9c`). `__aeabi_memcpy` (`0x1400529c`) et `memcpy_words` (`0x14005324`) ont été exécutés (1 500 copies chacune, exactes) ; le SHA-256 logiciel est la classe de dsp (`sha256_digest`, `sha256_pad`, `sha256_transform`) ; `__aeabi_memmove` (`0x14001e24`) n'est atteint par rien.
 - Les fonctions d'initialisation des objets globaux (`0x14007cc4` à `0x140082d8`), sauf celle des contextes.
 - Le comportement exact sur une console de développement (seconde clé).
 - Les retouches que Luma fait peut-être à `ro` au chargement.
-- 57 fonctions restent sans nom.
+- 57 fonctions de Ghidra, 22 entrées manquées et 2 entrées trouvées à la main restaient sans nom ; toutes ont une proposition (`local/analyse/ro/noms-proposes.tsv`).
 
 ## Comment cette fiche a été faite
 

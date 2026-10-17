@@ -1,6 +1,6 @@
 # ps, les signatures, l'aléa et l'identité de la console
 
-`ps` (Process Services) est le guichet par lequel les autres modules demandent à Process9 ce qu'ils ne peuvent pas faire eux-mêmes : vérifier une signature RSA, déchiffrer en AES, lire l'identifiant de la console ou de la carte de jeu, tirer des octets aléatoires. Le module ne contient **aucun algorithme de chiffrement** : pour tout ce qui touche aux clés, il relaie la requête à `pxi:ps9` (Process9), qui détient les clés. Il fait une seule chose lui-même : le générateur d'aléa, qu'il alimente avec l'heure et le compteur de ticks du microcontrôleur (`mcu::PLS`).
+`ps` (Process Services) est le guichet par lequel les autres modules demandent à Process9 ce qu'ils ne peuvent pas faire eux-mêmes : vérifier une signature RSA, déchiffrer en AES, lire l'identifiant de la console ou de la carte de jeu, tirer des octets aléatoires. Le module ne contient **aucun algorithme de chiffrement** : pour tout ce qui touche aux clés, il relaie la requête à `pxi:ps9` (Process9), qui détient les clés. Même l'aléa passe par Process9 : le module rassemble une graine (ticks du système, heure et ticks de `mcu::PLS`) et la passe à `pxi:ps9` SeedRNG (`0x000C0042`), puis lui demande les octets (GenerateRandomBytes, `0x000D0042`).
 
 Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), l'aiguillage rejoué par `outils/emulate_dispatch.py`, l'assembleur de devkitPro et une copie de 3dbrew (voir la fin). Les adresses sont celles du module chargé à `0x00100000`. **Cette fiche ne contient ni clé ni constante cryptographique** : elle dit où les choses sont, jamais leur valeur.
 
@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), l'ai
 | Titre | `0004013000003102`, version 5.0.0 (`v5120`), un titre de la CTRNAND (lu dans l'exheader ; nom `ps`) ; la NAND porte aussi `ps-safe` (non lu) |
 | Fichier lu | `local/extrait/ps/exefs/code.bin` et `exheader.bin` |
 | Taille | 17 284 octets de code (`0x4384`), 696 de données en lecture seule (`0x2b8`), 904 de données (`0x388`), 4 536 de mémoire à zéro (`0x11b8`) ; pile de 4 096 octets ; priorité de départ 9 |
-| Fonctions | 185, dont 83 nommées dans `ps.noms.tsv` (8 en Thumb, 177 en ARM) |
+| Fonctions | 185 pour Ghidra, plus 19 entrées manquées, moins 9 morceaux de la division : 195 (9 en Thumb, 186 en ARM) ; 85 nommées dans `ps.noms.tsv`, 195 avec `local/analyse/ps/noms-proposes.tsv` |
 | Services offerts | `ps:ps`, **9 sessions** au plus (octet à `0x105018`) |
 | Services appelés | `pxi:ps9` (Process9), `mcu::PLS` (heure et ticks pour l'aléa), `fs:USER` (infos de lancement d'un programme) ; plus `srv:` et le port `err:f`. Ce sont les trois noms de l'exheader ; les chaînes `fs:LDR` et `srv:pm` sont dans le module et ne sont pas ouvertes |
 | Autres accès | **aucun** : pas de page matérielle, pas d'interruption |
@@ -22,7 +22,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), l'ai
 
 `entry` (`0x100000`) enchaîne les initialisations de bibliothèque, puis `ps_main` (`0x100164`, 920 octets) : `srv_init`, `SRV_RegisterService` de `ps:ps` (table à `0x105014` : nom, 9 sessions), notification `0x100` (arrêt), puis la boucle `svcReplyAndReceive` : indice 0 le sémaphore des notifications, indice 1 le port (`svcAcceptSession`), au-delà les sessions, servies par `ps_handle_command` (`0x102464`, contexte `0x106388`). Les sessions n'ont pas de type : un seul service. Le module ouvre `pxi:ps9`, `fs:USER` et `mcu::PLS` au besoin (poignées dans la zone `0x1062xx`) ; la poignée de `pxi:ps9` est à `0x1062a0`, celle de `srv:` à `0x1062ac`.
 
-Un verrou (`ps_lock_enter` `0x10202c`, `ps_lock_leave` `0x10200c`, objet `0x106aa8`) entoure toutes les opérations : deux clients ne parlent pas à Process9 en même temps.
+Un verrou (`lock_enter` `0x10202c`, `lock_leave` `0x10200c`, objet `0x106aa8`) entoure toutes les opérations : deux clients ne parlent pas à Process9 en même temps.
 
 ## Partie 2 : les commandes
 
@@ -41,8 +41,8 @@ Un verrou (`ps_lock_enter` `0x10202c`, `ps_lock_leave` `0x10200c`, objet `0x106a
 | 9 | (numéro seul) | GetCTRCardAutoStartupBit | `ps_GetCTRCardAutoStartupBit` | `0x102eac` | `0x10335c` | `0x00090080` | rend un octet |
 | 10 | (numéro seul) | GetLocalFriendCodeSeed | `ps_GetLocalFriendCodeSeed` | `0x102e40` | `0x1032f4` | `0x000A00C0` | rend 64 bits (que [cfg](cfg.md) range) |
 | 11 | (numéro seul) | GetDeviceId | `ps_GetDeviceId` | `0x102ae4` | `0x1030fc` | `0x000B0080` | rend un mot de 32 bits |
-| 12 | (numéro seul) | SeedRNG | `ps_SeedRNG` | `0x102b50` | (aucun) | `0x000C0040` | partie 3 |
-| 13 | `0x000D0042` | GenerateRandomBytes | `ps_GenerateRandomBytes` | `0x102d94` | (aucun) | `0x000D0042` | partie 3 ; utilisée par [ssl](ssl.md) (commandes `SeedRNG` et `GenerateRandomData` du service `ssl:`) |
+| 12 | (numéro seul) | SeedRNG | `ps_SeedRNG` | `0x102b50` | `0x1017e8` (`ps_relay_SeedRNG` → `PXIPS9_SeedRNG` `0x10356c`, `0x000C0042`) | `0x000C0040` | partie 3 |
+| 13 | `0x000D0042` | GenerateRandomBytes | `ps_GenerateRandomBytes` | `0x102d94` | `0x1017e8`, puis `0x1032c0` (`ps_relay_GenerateRandomBytes` → `PXIPS9_GenerateRandomBytes` `0x1037dc`, `0x000D0042`) | `0x000D0042` | partie 3 ; utilisée par [ssl](ssl.md) (commandes `SeedRNG` et `GenerateRandomData` du service `ssl:`) |
 | 14 | `0x000E0082` | (New 3DS, interface de PXI `0x04010084`) | `ps_cmd000E` | `0x102c18` | `0x1031b0` | `0x000E0042` | au plus `0x20` octets rendus dans un tampon statique ; utilisée par le module NFC |
 | 15 | `0x000F0082` | (PXI `0x04020082`) | `ps_cmd000F` | `0x102b10` | `0x103134` | `0x000F0040` | |
 | 16 | `0x00100042` | (PXI `0x04030044`) | `ps_cmd0010` | `0x102e6c` | `0x10332c` | `0x00100042` | au plus `0x400` octets |
@@ -52,17 +52,17 @@ Les commandes 14 à 17 sont acceptées par le module sur toutes les consoles ; s
 
 ## Partie 3 : le générateur d'aléa
 
-C'est la seule partie calculée dans le module (commandes 12 et 13).
+Le module ne calcule pas l'aléa : il prépare la graine et relaie les deux commandes à Process9.
 
-- **SeedRNG** (`ps_SeedRNG`, `0x102b50`) : lit le compteur de ticks du système (`svcGetSystemTick`), la date et l'heure du microcontrôleur (`MCUPLS_GetDatetime`, `mcu::PLS` commande 1, `0x10186c`) et le compteur de ticks du microcontrôleur (`MCUPLS_GetTickCounter`, commande 9, `0x101838`), les assemble en un bloc de `0x14` octets et l'envoie à `ps_rng_seed` (`0x1017e8`) sous le verrou.
-- **GenerateRandomBytes** (`ps_GenerateRandomBytes`, `0x102d94`) : refait la même mise en graine, puis demande à `ps_rng_generate` (`0x1032c0`) de remplir le tampon du client. Chaque appel remet donc de l'entropie avant de tirer.
+- **SeedRNG** (`ps_SeedRNG`, `0x102b50`) : lit le compteur de ticks du système (`svcGetSystemTick`), la date et l'heure du microcontrôleur (`MCUPLS_GetDatetime`, `mcu::PLS` commande 1, `0x10186c`) et le compteur de ticks du microcontrôleur (`MCUPLS_GetTickCounter`, commande 9, `0x101838`), les assemble en un bloc de `0x14` octets et l'envoie, sous le verrou, à `ps_relay_SeedRNG` (`0x1017e8`), qui la passe à `PXIPS9_SeedRNG` (`0x10356c`).
+- **GenerateRandomBytes** (`ps_GenerateRandomBytes`, `0x102d94`) : refait la même mise en graine, puis demande à `ps_relay_GenerateRandomBytes` (`0x1032c0`), donc à `PXIPS9_GenerateRandomBytes` (`0x1037dc`), de remplir le tampon du client. Chaque appel remet donc de l'entropie avant de tirer.
 
-L'état du générateur est dans la zone de données du module (`0x1062xx`). L'algorithme interne (`ps_rng_seed`, `ps_rng_generate`) n'est pas lu : ni sa nature ni ses constantes ne sont décrites ici. 3dbrew ne le décrit pas non plus.
+Le générateur et son état sont chez Process9 : `ps_rng_seed` et `ps_rng_generate` de la première version de cette fiche sont deux relais `pxi:ps9`.
 
 ## Partie 4 : où sont les clés et les constantes
 
 - **Dans ce module** : rien de cryptographique n'est utilisé par les commandes 1 à 11, qui passent les tampons du client à Process9. Les structures de clé RSA arrivent **du client** (la commande 1 lit la longueur du module RSA dans la structure `+0x200` qu'il envoie, `0x208` octets en tout).
-- **Dans le module aussi** : la section de données (`0x106000`, 904 octets) contient l'état du générateur et les tables de la bibliothèque ; je n'y ai pas cherché de constante.
+- **Dans le module aussi** : la section de données (`0x106000`, 904 octets) contient les tables de la bibliothèque et les objets globaux (poignées, verrous, réserves) ; je n'y ai pas cherché de constante.
 - **Chez Process9** : les clés AES et RSA, l'identifiant de la console (OTP) et la graine du code ami y sont ; voir [process9](process9.md) et [pxi](pxi.md).
 
 ## Partie 5 : les services que ps appelle
@@ -99,17 +99,15 @@ L'état du générateur est dans la zone de données du module (`0x1062xx`). L'a
 - Les services appelés : l'exheader autorise `pxi:ps9`, `mcu::PLS` et `fs:USER`, et les en-têtes des 28 requêtes envoyées sont ceux des services correspondants.
 - Les clients de `SeedRNG` et `GenerateRandomBytes` : la fiche de `ssl` lit les mêmes numéros (12, 13) et les mêmes en-têtes.
 - L'absence de matériel : liste de pages et d'interruptions vide.
+- La graine de `0x14` octets : +0 `svcGetSystemTick` (64 bits), +8 la date et l'heure (7 octets, `copy_datetime`), +0xF les 16 bits bas de `MCUPLS_GetTickCounter` ; les octets +0x11 à +0x13 ne sont pas écrits (pile). Process9 tient les gestionnaires ([process9](process9.md) lignes 468-469).
+- Les relais `0x1030fc` à `0x103460` : chacun appelle une requête `PXIPS9_*` (`0x103490` à `0x1039b4`) dont l'en-tête est celui de la commande que dit le tableau (Carte des services).
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
-- Que le générateur soit alimenté par l'heure et les ticks de `mcu::PLS` : les deux requêtes y sont envoyées par `ps_SeedRNG` et `ps_GenerateRandomBytes` ; leur usage exact dans le bloc de graine n'est pas lu.
 - Les rôles des quatre commandes New 3DS (14 à 17) : leurs noms viennent du numéro de commande PXI de 3dbrew.
-- Que les relais `0x103164` à `0x103460` soient chacun la commande que le tableau dit : lu par l'adresse du relais appelé par chaque fonction, pas par le contenu de la requête PXI.
 
 **Pas lu**
-- L'algorithme du générateur (`ps_rng_seed`, `ps_rng_generate`) et la structure de son état.
-- Les fonctions de relais en détail (en-têtes `pxi:ps9` associés à chaque).
 - Le traitement des commandes 6 à 8 avec `fs:USER`.
-- 102 fonctions sans nom, presque toutes de la bibliothèque.
+- 100 fonctions de Ghidra et 19 entrées manquées restaient sans nom ; toutes ont une proposition (`local/analyse/ps/noms-proposes.tsv`), presque toutes de la bibliothèque.
 
 ## Comment cette fiche a été faite
 
@@ -123,4 +121,4 @@ L'état du générateur est dans la zone de données du module (`0x1062xx`). L'a
 
 Les scripts et le brut sont dans `local/analyse/ps/` et `local/analyse/gpio/` (non versionné).
 
-**Pour reprendre.** `ps.noms.tsv` est le fichier de graines. Les noms en `ps_` sont les commandes reçues, `ps_relay_` les relais vers Process9. Endroits à relire en premier : `ps_rng_seed`, `ps_rng_generate` et les relais.
+**Pour reprendre.** `ps.noms.tsv` est le fichier de graines. Les noms en `ps_` sont les commandes reçues, `ps_relay_` les relais vers Process9. Endroits à relire en premier : le traitement de `fs:USER` pour les commandes 6 à 8 (`fs_get_program_launch_info`, `0x1017c0`).

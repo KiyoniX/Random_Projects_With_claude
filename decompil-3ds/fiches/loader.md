@@ -36,7 +36,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module extrait du F
 **La mise en place :**
 
 1. **Le service.** `SRV_RegisterService` (`0x14000738`) demande à `sm` de créer le service `Loader`, avec une session au plus. Le nom, le nombre de sessions et l'adresse du gestionnaire viennent d'une petite fiche à `0x14004028`.
-2. **Le système de fichiers.** `fs_init` (`0x140004a4`) ouvre `fs:LDR`, s'y présente (`FS_InitializeWithSdkVersion`, avec la version `0x0B0502C8`) et règle sa priorité à 0 (`FS_SetPriority`).
+2. **Le système de fichiers.** `fs_init` (`0x140004a4`) ouvre `fs:LDR`, s'y présente (`FSUSER_InitializeWithSdkVersion`, avec la version `0x0B0502C8`) et règle sa priorité à 0 (`FSUSER_SetPriority`).
 3. **Les deux autres services.** `open_pxipm_and_fsreg` (`0x14000540`) ouvre `PxiPM` puis `fs:REG`, et range les deux poignées côte à côte à `0x14005b40`. Ce couple de poignées est le « contexte » que toutes les commandes reçoivent.
 4. **L'arrêt.** `register_notification_handler` (`0x140006a8`) inscrit `on_terminate_notification` (`0x1400378c`) pour la notification `0x100`. `get_notification_semaphore` (`0x140005b8`) obtient de `sm` le sémaphore qui prévient de l'arrivée d'une notification.
 
@@ -137,7 +137,7 @@ Les 34 numéros : `0x209`, `0x219`, `0x229`, `0x269`, `0x279`, `0x289`, puis `0x
 
 `load_code_file` (`0x14002a70`) :
 
-1. **Ouvrir.** `open_file_directly` (`0x1400113c`) envoie `FS_OpenFileDirectly` à `fs:LDR`, avec l'archive `0x2345678E`. Le chemin de l'archive est le numéro de programme (8 octets). Le chemin du fichier fait 12 octets : le mot `1`, puis le texte `.code` complété par des zéros. Le fichier est ouvert en lecture.
+1. **Ouvrir.** `open_file_directly` (`0x1400113c`) envoie `FSUSER_OpenFileDirectly` à `fs:LDR`, avec l'archive `0x2345678E`. Le chemin de l'archive est le numéro de programme (8 octets). Le chemin du fichier fait 12 octets : le mot `1`, puis le texte `.code` complété par des zéros. Le fichier est ouvert en lecture.
 2. **Mesurer.** `file_get_size` (`0x14002fe0`) envoie `FSFILE_GetSize`. Si le fichier est plus gros que la mémoire réservée, le résultat est `0xC900464F`.
 3. **Lire.** `file_read_all` (`0x14001fd0`) lit tout le fichier à `0x10000000`, par `FSFILE_Read`, en recommençant tant qu'il manque des octets.
 4. **Fermer.** `file_close` (`0x140018b0`) envoie `FSFILE_Close`.
@@ -219,9 +219,9 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | | `0x000400C0` | `SRV_UnregisterService` | `0x14000794` | Le retirer à l'arrêt |
 | | | `0x00050100` | `SRV_GetServiceHandle` | `0x14000c8c` | Ouvrir les trois services ci-dessous |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x14000b34` | Lire le numéro de la notification arrivée |
-| `fs:LDR` | `0x14005298` | `0x08610042` | `FS_InitializeWithSdkVersion` | `0x14000bc4` | Se présenter au système de fichiers |
-| | | `0x08620040` | `FS_SetPriority` | `0x14000958` | Régler sa priorité à 0 |
-| | | `0x08030204` | `FS_OpenFileDirectly` | `0x1400136c` | Ouvrir le `.code` du programme |
+| `fs:LDR` | `0x14005298` | `0x08610042` | `FSUSER_InitializeWithSdkVersion` | `0x14000bc4` | Se présenter au système de fichiers |
+| | | `0x08620040` | `FSUSER_SetPriority` | `0x14000958` | Régler sa priorité à 0 |
+| | | `0x08030204` | `FSUSER_OpenFileDirectly` | `0x1400136c` | Ouvrir le `.code` du programme |
 | un fichier ouvert | dans l'objet fichier | `0x080200C2` | `FSFILE_Read` | `0x14001f14` | Lire le `.code` |
 | | | `0x08040000` | `FSFILE_GetSize` | `0x14001f98` | Connaître sa taille |
 | | | `0x08080000` | `FSFILE_Close` | `0x14001f6c` | Le refermer |
@@ -235,7 +235,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 
 - La Carte des services n'a pas de table pour `PxiPM`. Les trois noms sont posés d'après ce que le code en fait : les requêtes `0x00020200` et `0x00030080` ont exactement l'en-tête des commandes RegisterProgram et UnregisterProgram de `Loader` et servent au même moment, et `0x00010082` est celle qui remplit le tampon de l'exheader.
 - `PXIPM_GetProgramInfo` et `FSREG_GetProgramInfo` reçoivent l'exheader dans le tampon `0x14005740`, par deux moyens différents : la première passe l'adresse dans la requête (mot `0x00040004`), la seconde l'annonce comme tampon de réception du fil (à `+0x180` du stockage local, mot `0x01000002`).
-- La seconde poignée de `fs:LDR`, à `0x140052b0`, est une copie de la première : c'est celle dont `FS_OpenFileDirectly` se sert.
+- La seconde poignée de `fs:LDR`, à `0x140052b0`, est une copie de la première : c'est celle dont `FSUSER_OpenFileDirectly` se sert.
 - Les chaînes `fs:USER` et `srv:pm` sont dans les données du module, mais aucun pointeur du code ne les vise.
 
 **Un fichier ouvert** est un petit objet de 8 octets pris dans une réserve (`pool_alloc`, `0x140037a0`, sur la réserve `0x14005c28`) : une table de fonctions (`0x14004178`) et la poignée du fichier. S'il n'y a plus de place, `open_file_directly` referme le fichier et rend `0xD8604659`.
@@ -303,7 +303,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 - Le calcul des pages : la somme des trois sections arrondies donne exactement la taille du code décompressé, pour le jeu comme pour sa mise à jour.
 - La liste des 34 numéros : calculée à la main sur les comparaisons de l'assembleur, puis relue dans le pseudo-code de Ghidra, qui les présente autrement. Les deux lectures donnent les mêmes.
 - Les 19 fonctions de requête correspondent aux 19 appels à `SendSyncRequest`, et chaque en-tête existe dans la Carte des services pour le service visé (sauf `PxiPM`, qui n'y a pas de table).
-- La forme de la requête `FS_OpenFileDirectly` : 8 mots ordinaires et 4 mots de tampons, comme l'annonce son en-tête `0x08030204`.
+- La forme de la requête `FSUSER_OpenFileDirectly` : 8 mots ordinaires et 4 mots de tampons, comme l'annonce son en-tête `0x08030204`.
 
 **Interprété à la lecture du code, à relire dans Ghidra**
 - Le sens du drapeau de l'étape 3. Le code montre seulement que les morceaux sont réservés dans un ordre tiré au sort ; y voir un moyen de rendre imprévisible l'emplacement physique du code est une interprétation.
@@ -345,4 +345,4 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 - `__aeabi_uidivmod` commence à `0x14001b40`, mais son corps est ailleurs, de `0x14001440` à `0x14001530` : c'est une seconde entrée dans la routine de division de la bibliothèque.
 - `init_runtime_and_srv` (`0x14001984`) ne se termine pas par un retour : elle continue dans `srv_init`, la fonction suivante. Ghidra affiche donc le corps de `srv_init` deux fois. De même `loader_UnregisterProgram` continue dans `FSREG_UnloadProgram`, et `get_program_info` saute dans `PXIPM_GetProgramInfo`.
 
-**Pour reprendre.** `loader.noms.tsv` est le fichier de graines : une adresse, `function`, un nom. Les noms en majuscules (`SRV_`, `FS_`, `FSFILE_`, `FSREG_`, `PXIPM_`) sont les requêtes que `loader` envoie ; ceux en `loader_` sont les commandes qu'il reçoit. Le pseudo-code, l'assembleur et les scripts (dont `verif_lzss.py`, qui rejoue la décompression) sont dans `local/analyse/loader/`, non versionné.
+**Pour reprendre.** `loader.noms.tsv` est le fichier de graines : une adresse, `function`, un nom. Les noms en majuscules (`SRV_`, `FSUSER_`, `FSFILE_`, `FSREG_`, `PXIPM_`) sont les requêtes que `loader` envoie ; ceux en `loader_` sont les commandes qu'il reçoit. Le pseudo-code, l'assembleur et les scripts (dont `verif_lzss.py`, qui rejoue la décompression) sont dans `local/analyse/loader/`, non versionné.

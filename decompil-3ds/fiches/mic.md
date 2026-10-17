@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), un a
 | Titre | `0004013000002002`, un titre de la CTRNAND (lu dans l'exheader ; nom `mic`) |
 | Fichier lu | `local/extrait/mic/exefs/code.bin` et `exheader.bin` |
 | Taille | 18 600 octets de code (`0x48a8`), 704 de données en lecture seule (`0x2c0`), 228 de données (`0xe4`), 3 828 de mémoire à zéro (`0xef4`) ; pile de 4 096 octets ; priorité de départ 40 |
-| Fonctions | 179, dont 117 nommées dans `mic.noms.tsv` (8 en Thumb, 171 en ARM) |
+| Fonctions | 179 pour Ghidra, plus 18 entrées manquées, moins 1 qui n'est pas du code (`0x100040`) : 196 (9 en Thumb, 187 en ARM) ; 121 nommées dans `mic.noms.tsv` (119 de Ghidra, 2 entrées), 196 avec `local/analyse/mic/noms-proposes.tsv` |
 | Services offerts | `mic:u`, une seule session à la fois (voir la partie 2) |
 | Services appelés | `cdc:MIC` (le codec du micro), `ptm:s`, plus `srv:` et le port `err:f`. L'exheader en déclare deux, `cdc:MIC` et `ptm:s` ; le code en ouvre bien deux, plus `srv:` qui n'a pas besoin d'être déclaré |
 | Autres accès | la page matérielle `0x1EC62000` (descripteur `0xFFE1EC62` de l'exheader) ; l'interruption `0x5A` (la seule déclarée dans l'exheader, et liée par le code) |
@@ -23,10 +23,10 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), un a
 `entry` (`0x100000`) appelle cinq fonctions, puis `call_mic_main`, puis `svcExitProcess` :
 
 1. `clear_bss` (`0x100024`) met à zéro la mémoire de `0x1060e8` à `0x106fd8`.
-2. `0x1001a8` (non nommée) prépare un petit contexte de bibliothèque.
+2. `init_program_args` (`0x1001a8`) range les tables de `_get_lc_ctype` (`0x1002bc`) et `_get_lc_numeric` (`0x100304`) dans le bloc de paramètres régionaux de `__rt_locale` (`0x106ebc`).
 3. `init_runtime_and_srv` (`0x102710`) : `init_runtime` (`0x100aac`, verrous, trois réserves d'adresses virtuelles, enregistrement du processus), puis `srv_init` (`0x102720`) qui se connecte au port `srv:` (en réessayant toutes les 500 000 ns tant que le port n'existe pas) et envoie `SRV_RegisterClient`.
 4. `setup_heap` (`0x100208`) réserve un tas à `0x08000000` (de la taille donnée par l'exheader) par `svcControlMemory`.
-5. `run_static_initializers` (`0x100110`, Thumb) appelle les constructeurs de la table de distances de `0x100118`.
+5. `run_static_initializers` (`0x100110`, Thumb) appelle les 16 constructeurs de la table de distances `0x105280`-`0x1052c0`.
 6. `run_init_array` (`0x100174`), vide ici.
 7. `call_mic_main` (`0x100164`) appelle `mic_main` (`0x10034c`, 1 428 octets) : tout le reste. Voir la partie 2.
 
@@ -197,7 +197,7 @@ Chaque requête a sa petite fonction qui écrit un en-tête et appelle `SendSync
 | | | `0x00020000` | `SRV_EnableNotification` | `0x1013c4` | obtenir le sémaphore des notifications |
 | | | `0x00030100` | `SRV_RegisterService` | `0x101040` | créer `mic:u` (1 session) |
 | | | `0x000400C0` | `SRV_UnregisterService` | `0x10109c` | le retirer à la sortie |
-| | | `0x00050100` | `SRV_GetServiceHandle` | `0x101ca0` | ouvrir `cdc:MIC` et `ptm:s` |
+| | | `0x00050100` | `SRV_GetServiceHandle` | `0x1028ec` (atteinte par l'enveloppe `srv_get_service_handle`, `0x101ca0`) | ouvrir `cdc:MIC` et `ptm:s` |
 | | | `0x00090040` | `SRV_Subscribe` | `0x102508` | s'abonner à cinq notifications |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x101400` | lire le numéro reçu |
 | `cdc:MIC` | `0x106010` | `0x00010040` | `CDCMIC_SetGain` | `0x101d70` | réglage du gain |
@@ -217,7 +217,7 @@ Les noms `CDCMIC_…` sont ceux de ce fichier ; l'exheader appelle le service `c
 | ControlMemory | `0x01` | `svcControlMemory` | `0x1026ec` |
 | ExitProcess | `0x03` | `svcExitProcess` (graine posée à la main, Ghidra ne l'avait pas vue) | `0x102844` |
 | CreateThread | `0x08` | `svcCreateThread` | `0x10144c` |
-| ExitThread, SleepThread | `0x09`, `0x0A` | dans `thread_trampoline` | `0x102e40` |
+| ExitThread, SleepThread | `0x09`, `0x0A` | `svcExitThread`, `svcSleepThread` | `0x102e80`, `0x102e88` |
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x10230c` |
 | SignalEvent | `0x18` | écrit sur place, à 5 endroits | |
 | ClearEvent | `0x19` | écrit sur place, à 2 endroits | |
@@ -235,7 +235,7 @@ Les noms `CDCMIC_…` sont ceux de ce fichier ; l'exheader appelle le service `c
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x102db0` |
 | SendSyncRequest | `0x32` | écrit sur place, à 14 endroits | |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x102dc8` |
-| Break | `0x3C` | dans `get_eh_globals_slot` | `0x103230` |
+| Break | `0x3C` | `svcBreak` (cible du `b` final de `abort_process`) | `0x10323c` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x100944` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x10095c` |
 | BindInterrupt | `0x50` | dans `mic_initialize` | `0x100be8` |
@@ -301,10 +301,10 @@ Pour un portage : fournir `mic:u` de façon à ce que l'ouverture réussisse une
 - Que le jeu n'envoie jamais `SetIirFilterMic` (l'octet de son état n'est écrit nulle part dans le code principal ; un `.cro` pourrait l'écrire).
 
 **Pas lu**
-- Le corps des fonctions de bibliothèque : le tas (`heap_alloc_unlocked`, `0x1030a8`, `0x103244`), `memcpy`, la gestion des réserves d'adresses au-delà de l'allocation (`vm_region_alloc`, `vm_region_free`), les petites fonctions de construction des objets globaux (`construct_global_objects`, `0x1031f0` à `0x103448`, `0x104698` à `0x1047e0`).
+- Le corps des fonctions de bibliothèque : le tas (`heap_alloc_unlocked`, `heap_find_block` `0x1030a8`, `heap_split_block` `0x103244`), `memcpy_words` (exécuté : 1 500 copies exactes), la gestion des réserves d'adresses au-delà de l'allocation (`vm_region_alloc`, `vm_region_free`), les petites fonctions de construction des objets globaux (`construct_global_objects`, `0x1031f0` à `0x103448`, `0x104698` à `0x1047e0`).
 - Les valeurs de gain admises (le module ne les vérifie pas ; `cdc:MIC` peut les refuser).
 - Ce que `cdc:MIC` fait de ses cinq commandes (il faudrait lire le module `codec`).
-- 62 fonctions restent sans nom, presque toutes de la bibliothèque (destructeurs, petits accesseurs).
+- 60 fonctions de Ghidra et 16 entrées manquées restaient sans nom ; toutes ont une proposition (`local/analyse/mic/noms-proposes.tsv`), presque toutes de la bibliothèque (destructeurs, petits accesseurs).
 
 ## Comment cette fiche a été faite
 
