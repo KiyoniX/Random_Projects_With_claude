@@ -21,6 +21,15 @@
     return m ? (+m[3] === 1 ? '1er' : +m[3]) + ' ' + MOIS[+m[2] - 1] + ' ' + m[1] : (iso || '?');
   }
   function virgule(n) { return n.toFixed(1).replace('.', ','); }
+  // Le détail du compteur de fonctions, binaire par binaire (écrit par outils/couverture.py mesure).
+  function parBinaire(f) {
+    if (!f.binaires || !f.binaires.length) return '';
+    var cols = ['trouvees', 'nommees', 'citees', 'recompilees'];
+    return '<details><summary>par binaire</summary><table><tr><th>binaire</th><th>trouvées</th><th>nommées</th><th>citées</th><th>recompilées</th></tr>' +
+      f.binaires.map(function (b) {
+        return '<tr><td>' + esc(b.nom) + '</td>' + cols.map(function (k) { return '<td>' + b[k] + '</td>'; }).join('') + '</tr>';
+      }).join('') + '</table></details>';
+  }
   function mo(octets) { return (octets / 1e6).toFixed(1).replace('.', ',') + ' Mo'; }
 
   // Même calcul que verifier.py, fonction avancement : poids × part des tâches faites, sur la somme des poids.
@@ -289,7 +298,7 @@
       '<dt>Ouverte le</dt><dd class="dates"><span>' + date(E.ouverture) + '</span><span>mise à jour le ' + date(E.mise_a_jour) + '</span></dd>' +
       '<dt>Avancement</dt><dd class="avancement"><span class="gros">' + virgule(pct) + ' %</span><span class="pads">' + pads + '</span></dd>' +
       '<dt>Dump</dt><dd>' + dumpTxt + '</dd>' +
-      '<dt>Fonctions</dt><dd>' + f.identifiees + ' identifiées sur ' + (f.total == null ? '?' : f.total) + ', ' + f.nommees + ' nommées, ' + f.reimplementees + ' réimplémentées</dd>' +
+      '<dt>Fonctions</dt><dd>' + f.identifiees + ' identifiées sur ' + (f.total == null ? '?' : f.total) + ', ' + f.nommees + ' nommées, ' + f.reimplementees + ' réimplémentées' + parBinaire(f) + '</dd>' +
       '</dl>' +
       '<p class="pied">Pour remettre la fiche à jour, dans le dossier du projet : <code>python outils/verifier.py</code></p>';
     document.getElementById('fiche-corps').innerHTML = h;

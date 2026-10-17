@@ -1017,14 +1017,26 @@ def run(only, out_dir=OUT):
 
 
 def merge_lines(path, additions, keep_sorted):
-    """Ajoute des lignes (adresse, genre, nom) à un .noms.tsv sans toucher aux lignes existantes."""
+    """Ajoute des lignes (adresse, genre, nom) à un .noms.tsv sans toucher aux lignes existantes. Une graine (ligne
+    sans nom) à la même adresse reçoit le nom sur place, avec son genre, plutôt qu'une seconde ligne."""
     existing = []
     if os.path.isfile(path):
         with open(path, encoding='utf-8') as f:
             existing = f.read().split('\n')
         if existing and existing[-1] == '':
             existing.pop()
-    new = ['%#x\t%s\t%s' % item for item in additions]
+    seeds = {}
+    for i, old in enumerate(existing):
+        fields = old.split('\t')
+        if old.startswith('0x') and (len(fields) < 3 or not fields[2]):
+            seeds[int(fields[0], 16)] = i
+    new = []
+    for address, kind, name in additions:
+        if address in seeds:
+            fields = existing[seeds[address]].split('\t')
+            existing[seeds[address]] = '%s\t%s\t%s' % (fields[0], fields[1] if len(fields) > 1 else kind, name)
+        else:
+            new.append('%#x\t%s\t%s' % (address, kind, name))
     if keep_sorted:
         # Insère chaque ligne neuve avant la première ligne d'adresse plus grande ; les anciennes ne bougent pas.
         for line in sorted(new, key=lambda s: int(s.split('\t')[0], 16)):
@@ -1144,6 +1156,10 @@ def test():
         merge_lines(path, [(0x100050, 'function', 'b')], True)
         check(open(path, encoding='utf-8').read() == '0x100000\tfunction\ta\n0x100050\tfunction\tb\n0x100100\tlabel\tc\n',
               'fusion triée')
+        with open(path, 'w', encoding='utf-8', newline='\n') as f:
+            f.write('0x100000\tlabel\t\n')
+        merge_lines(path, [(0x100000, 'function', 'd')], True)
+        check(open(path, encoding='utf-8').read() == '0x100000\tlabel\td\n', 'graine nommée sur place')
     print('%d échec(s)' % len(failures) if failures else 'name_pass : tous les essais passent')
     return failures
 

@@ -1,4 +1,5 @@
 """Lance les tests de tous les lecteurs de formats et du repérage des graines de Ghidra : python outils/tests.py"""
+import couverture
 import cro_loader
 import elfer
 import firm
@@ -23,6 +24,7 @@ if __name__ == '__main__':
     svc_check.test()
     cro_loader.test()
     nand.test()
+    assert not couverture.test(), "couverture : essais en échec"
     # Le banc d'essai (banc/tests.py) : programme ARM fabriqué, et le vrai jeu jusqu'au palier P1 s'il est là.
     import importlib.util
     import os

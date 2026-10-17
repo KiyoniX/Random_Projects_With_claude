@@ -131,10 +131,13 @@ def avancement(etat):
     return round(100 * fait / total, 1)
 
 
-if __name__ == '__main__':
+def lire():
     with open(ETAT_JSON, encoding='utf-8') as f:
-        etat = json.load(f)
-    etat = mesurer(etat)
+        return json.load(f)
+
+
+def ecrire(etat):
+    """etat.json, et etat.js pour la page. Aussi appelé par couverture.py, qui y range le compteur de fonctions."""
     with open(ETAT_JSON, 'w', encoding='utf-8') as f:
         json.dump(etat, f, ensure_ascii=False, indent=2)
         f.write('\n')
@@ -142,6 +145,11 @@ if __name__ == '__main__':
         f.write('// Écrit par outils/verifier.py. Éditer etat.json, pas ce fichier.\nwindow.ETAT = ')
         json.dump(etat, f, ensure_ascii=False, indent=1)
         f.write(';\n')
+
+
+if __name__ == '__main__':
+    etat = mesurer(lire())
+    ecrire(etat)
     print('Avancement global : %s %%' % avancement(etat))
     for o in etat['outils']:
         if o['lieu'] == 'pc':

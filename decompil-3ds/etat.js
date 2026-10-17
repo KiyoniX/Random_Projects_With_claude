@@ -6,10 +6,448 @@ window.ETAT = {
  "mise_a_jour": "2026-10-17",
  "prochaine_action": "Pousser le jeu plus loin par le cycle des trous sur des scénarios plus longs (combat, menus, changements de ville), puis l'écran tactile, le son (dsp_aac), et les applets. Écarts ouverts de la Carte : act sur 3dbrew à réextraire, act 0x1F, sessions de nfc.",
  "fonctions": {
-  "total": 23883,
-  "identifiees": 23883,
-  "nommees": 1239,
-  "reimplementees": 0
+  "total": 110765,
+  "identifiees": 110765,
+  "nommees": 8173,
+  "reimplementees": 0,
+  "typees": 0,
+  "citees": 6702,
+  "recompilees": 61738,
+  "binaires": [
+   {
+    "nom": "ac",
+    "trouvees": 1575,
+    "nommees": 286,
+    "typees": 0,
+    "citees": 340,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ac-safe",
+    "trouvees": 1569,
+    "nommees": 0,
+    "typees": 0,
+    "citees": 0,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "act",
+    "trouvees": 1862,
+    "nommees": 88,
+    "typees": 0,
+    "citees": 100,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "am",
+    "trouvees": 1081,
+    "nommees": 245,
+    "typees": 0,
+    "citees": 163,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "am-safe",
+    "trouvees": 1082,
+    "nommees": 0,
+    "typees": 0,
+    "citees": 0,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "appleted",
+    "trouvees": 2872,
+    "nommees": 0,
+    "typees": 0,
+    "citees": 0,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "boss",
+    "trouvees": 3690,
+    "nommees": 207,
+    "typees": 0,
+    "citees": 235,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "cabinet",
+    "trouvees": 835,
+    "nommees": 0,
+    "typees": 0,
+    "citees": 0,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "camera",
+    "trouvees": 1029,
+    "nommees": 287,
+    "typees": 0,
+    "citees": 276,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "cecd",
+    "trouvees": 1731,
+    "nommees": 106,
+    "typees": 0,
+    "citees": 162,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "cfg",
+    "trouvees": 689,
+    "nommees": 440,
+    "typees": 0,
+    "citees": 288,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "codec",
+    "trouvees": 235,
+    "nommees": 147,
+    "typees": 0,
+    "citees": 92,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "csnd",
+    "trouvees": 457,
+    "nommees": 108,
+    "typees": 0,
+    "citees": 60,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "dlp",
+    "trouvees": 1107,
+    "nommees": 54,
+    "typees": 0,
+    "citees": 63,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "dsp",
+    "trouvees": 280,
+    "nommees": 189,
+    "typees": 0,
+    "citees": 156,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "errdisp",
+    "trouvees": 709,
+    "nommees": 34,
+    "typees": 0,
+    "citees": 43,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "friends",
+    "trouvees": 4666,
+    "nommees": 170,
+    "typees": 0,
+    "citees": 182,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "fs",
+    "trouvees": 1996,
+    "nommees": 330,
+    "typees": 0,
+    "citees": 410,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "gpio",
+    "trouvees": 118,
+    "nommees": 76,
+    "typees": 0,
+    "citees": 52,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "gsp",
+    "trouvees": 431,
+    "nommees": 265,
+    "typees": 0,
+    "citees": 200,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "hid",
+    "trouvees": 303,
+    "nommees": 186,
+    "typees": 0,
+    "citees": 138,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "http",
+    "trouvees": 739,
+    "nommees": 326,
+    "typees": 0,
+    "citees": 337,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "i2c",
+    "trouvees": 194,
+    "nommees": 123,
+    "typees": 0,
+    "citees": 68,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ir",
+    "trouvees": 455,
+    "nommees": 199,
+    "typees": 0,
+    "citees": 155,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "loader",
+    "trouvees": 136,
+    "nommees": 92,
+    "typees": 0,
+    "citees": 83,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "maj",
+    "trouvees": 23883,
+    "nommees": 1239,
+    "typees": 0,
+    "citees": 514,
+    "recompilees": 23883,
+    "reimplementees": 0
+   },
+   {
+    "nom": "mcu",
+    "trouvees": 285,
+    "nommees": 217,
+    "typees": 0,
+    "citees": 166,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "mic",
+    "trouvees": 179,
+    "nommees": 117,
+    "typees": 0,
+    "citees": 94,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "mp",
+    "trouvees": 726,
+    "nommees": 22,
+    "typees": 0,
+    "citees": 53,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "mvd",
+    "trouvees": 803,
+    "nommees": 110,
+    "typees": 0,
+    "citees": 121,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ndm",
+    "trouvees": 880,
+    "nommees": 223,
+    "typees": 0,
+    "citees": 227,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "news",
+    "trouvees": 719,
+    "nommees": 33,
+    "typees": 0,
+    "citees": 44,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "nfc",
+    "trouvees": 2389,
+    "nommees": 197,
+    "typees": 0,
+    "citees": 212,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "nim",
+    "trouvees": 3466,
+    "nommees": 165,
+    "typees": 0,
+    "citees": 165,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ns",
+    "trouvees": 938,
+    "nommees": 321,
+    "typees": 0,
+    "citees": 326,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "nwm",
+    "trouvees": 2812,
+    "nommees": 181,
+    "typees": 0,
+    "citees": 182,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "pdn",
+    "trouvees": 103,
+    "nommees": 60,
+    "typees": 0,
+    "citees": 21,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "pm",
+    "trouvees": 177,
+    "nommees": 127,
+    "typees": 0,
+    "citees": 114,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ps",
+    "trouvees": 185,
+    "nommees": 83,
+    "typees": 0,
+    "citees": 40,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ptm",
+    "trouvees": 813,
+    "nommees": 317,
+    "typees": 0,
+    "citees": 264,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "pxi",
+    "trouvees": 152,
+    "nommees": 103,
+    "typees": 0,
+    "citees": 93,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "qtm",
+    "trouvees": 647,
+    "nommees": 36,
+    "typees": 0,
+    "citees": 47,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ro",
+    "trouvees": 184,
+    "nommees": 123,
+    "typees": 0,
+    "citees": 81,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "sm",
+    "trouvees": 118,
+    "nommees": 40,
+    "typees": 0,
+    "citees": 42,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "socket",
+    "trouvees": 829,
+    "nommees": 126,
+    "typees": 0,
+    "citees": 146,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "spi",
+    "trouvees": 143,
+    "nommees": 80,
+    "typees": 0,
+    "citees": 33,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": "ssl",
+    "trouvees": 2638,
+    "nommees": 95,
+    "typees": 0,
+    "citees": 114,
+    "recompilees": 0,
+    "reimplementees": 0
+   },
+   {
+    "nom": ".cro (133 modules)",
+    "trouvees": 37855,
+    "nommees": 200,
+    "typees": 0,
+    "citees": 0,
+    "recompilees": 37855,
+    "reimplementees": 0
+   }
+  ],
+  "sans_analyse": 5
  },
  "paliers": [
   {
