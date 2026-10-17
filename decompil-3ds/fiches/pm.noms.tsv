@@ -71,7 +71,7 @@
 0x1026cc	function	request_termination
 0x1027e8	function	launch_application
 0x102b34	function	__aeabi_memcpy
-0x102bbc	function	clear_words
+0x102bbc	function	memclr
 0x102bc0	function	memset_words
 0x102c10	function	publish_to_process
 0x102c40	function	SRV_PublishToSubscriber
@@ -116,7 +116,7 @@
 0x103dac	function	SRVPM_PublishToProcess
 0x103df0	function	svcKernelSetState
 0x103df8	function	svcDuplicateHandle
-0x103e10	function	memclr
+0x103e10	function	memclr_bytes
 0x103e50	function	memcpy_words
 0x103ec4	function	job_launch_firm
 0x103f1c	function	pmapp_GetFIRMLaunchParams

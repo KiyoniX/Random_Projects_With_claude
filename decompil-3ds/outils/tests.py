@@ -9,6 +9,7 @@ import ghidra_raw
 import inspecter
 import lz11
 import nand
+import oracles
 import svc_check
 import texte
 
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     cro_loader.test()
     nand.test()
     assert not couverture.test(), "couverture : essais en échec"
+    assert not oracles.test(), "oracles : essais en échec"
     # Le banc d'essai (banc/tests.py) : programme ARM fabriqué, et le vrai jeu jusqu'au palier P1 s'il est là.
     import importlib.util
     import os

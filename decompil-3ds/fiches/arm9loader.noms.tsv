@@ -18,7 +18,7 @@
 0x808b898	function	aes_wait_idle
 0x808c198	function	memcpy_words
 0x808cfcc	function	copy_words_from_port
-0x808d0fc	function	memcpy
+0x808d0fc	function	__aeabi_memcpy
 0x808d1d0	function	aes_write_in_fifo
 0x808d1e0	function	aes_clear_keyslot
 0x808d21c	function	aes_ecb_decrypt_block

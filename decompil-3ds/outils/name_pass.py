@@ -382,39 +382,78 @@ def import_unicorn():
 
 class Prober:
     """Exécute une fonction sur des entrées fabriquées. Le code est en lecture et exécution seules : la moindre écriture
-    dans le programme, la moindre lecture hors de lui ou de la zone d'essai, fait refuser la fonction."""
+    dans le programme, la moindre lecture hors de lui ou de la zone d'essai, fait refuser la fonction.
+    chunks : [(adresse, octets)], les morceaux du programme (un seul pour code.bin, un par segment d'un ELF)."""
 
-    def __init__(self, image, base, limit=60000):
+    def __init__(self, chunks, limit=60000):
         self.u, self.a = import_unicorn()
         u, a = self.u, self.a
         self.uc = u.Uc(u.UC_ARCH_ARM, u.UC_MODE_ARM)
         self.uc.ctl_set_cpu_model(a.UC_CPU_ARM_11MPCORE)
-        size = (len(image) + 0xFFF) & ~0xFFF
-        self.uc.mem_map(base, size, u.UC_PROT_READ | u.UC_PROT_EXEC)
-        self.uc.mem_write(base, bytes(image))
+        pages = sorted((start & ~0xFFF, (start + len(data) + 0xFFF) & ~0xFFF) for start, data in chunks if data)
+        merged = []
+        for low, high in pages:
+            if merged and low <= merged[-1][1]:
+                merged[-1][1] = max(merged[-1][1], high)
+            else:
+                merged.append([low, high])
+        for low, high in merged:
+            self.uc.mem_map(low, high - low, u.UC_PROT_READ | u.UC_PROT_EXEC)
+        for start, data in chunks:
+            self.uc.mem_write(start, bytes(data))
         self.uc.mem_map(DATA_BASE, DATA_SIZE, u.UC_PROT_READ | u.UC_PROT_WRITE)
         self.uc.mem_map(STACK_BASE, STACK_SIZE, u.UC_PROT_READ | u.UC_PROT_WRITE)
         self.uc.mem_map(SENTINEL, 0x1000, u.UC_PROT_READ | u.UC_PROT_EXEC)
         self.uc.mem_write(SENTINEL, struct.pack('<I', 0xE12FFF1E))
         self.limit = limit
         self.regs = [a.UC_ARM_REG_R0, a.UC_ARM_REG_R1, a.UC_ARM_REG_R2, a.UC_ARM_REG_R3]
+        # La VFP, allumée comme le noyau le fait pour les processus (sinon « vpush » est une instruction invalide).
+        self.uc.reg_write(a.UC_ARM_REG_C1_C0_2, self.uc.reg_read(a.UC_ARM_REG_C1_C0_2) | 0xF << 20)
+        self.uc.reg_write(a.UC_ARM_REG_FPEXC, 0x40000000)
+        # Ce qui a arrêté le dernier appel : why (texte), blocked (une limite du banc d'essai, pas une faute de la
+        # fonction : appel système, écriture dans les variables du programme, que l'essai ne fournit pas).
+        self.why, self.blocked = '', False
+        self.uc.hook_add(u.UC_HOOK_MEM_INVALID, self._on_memory)
+        self.uc.hook_add(u.UC_HOOK_INTR, self._on_interrupt)
+
+    def _on_memory(self, uc, access, address, size, value, data):
+        u = self.u
+        kind = {u.UC_MEM_WRITE_PROT: 'écriture dans le programme', u.UC_MEM_READ_UNMAPPED: 'lecture hors mémoire',
+                u.UC_MEM_WRITE_UNMAPPED: 'écriture hors mémoire', u.UC_MEM_FETCH_UNMAPPED: 'saut hors mémoire'}
+        self.why = '%s à %#x (pc=%#x)' % (kind.get(access, 'accès refusé'), address, uc.reg_read(self.a.UC_ARM_REG_PC))
+        self.blocked = access == u.UC_MEM_WRITE_PROT
+        return False
+
+    def _on_interrupt(self, uc, number, data):
+        self.why = 'exception %d (2 : svc) à pc=%#x' % (number, uc.reg_read(self.a.UC_ARM_REG_PC))
+        self.blocked = True
+        uc.emu_stop()
 
     def reset(self, canvas):
         self.uc.mem_write(DATA_BASE, bytes(canvas) + bytes(DATA_SIZE - len(canvas)))
 
     def call(self, address, thumb, args):
-        """Lance la fonction avec r0..r3 = args ; rend [r0..r3] ou None si elle a échoué ou n'a pas fini."""
+        """Lance la fonction avec r0..r3 = args (la suite sur la pile) ; rend [r0..r3] ou None si elle a échoué ou
+        n'a pas fini (self.why dit pourquoi)."""
         a = self.a
+        self.why, self.blocked = '', False
         for reg, value in zip(self.regs, args):
             self.uc.reg_write(reg, value & 0xFFFFFFFF)
+        sp = STACK_BASE + STACK_SIZE - 0x100
+        if len(args) > 4:
+            self.uc.mem_write(sp, struct.pack('<%dI' % (len(args) - 4), *(v & 0xFFFFFFFF for v in args[4:])))
         self.uc.reg_write(a.UC_ARM_REG_R12, 0)
-        self.uc.reg_write(a.UC_ARM_REG_SP, STACK_BASE + STACK_SIZE - 0x100)
+        self.uc.reg_write(a.UC_ARM_REG_SP, sp)
         self.uc.reg_write(a.UC_ARM_REG_LR, SENTINEL)
         try:
             self.uc.emu_start(address | (1 if thumb else 0), SENTINEL, count=self.limit)
-        except self.u.UcError:
+        except self.u.UcError as error:
+            self.why = self.why or str(error)
+            return None
+        if self.why:
             return None
         if self.uc.reg_read(a.UC_ARM_REG_PC) != SENTINEL:
+            self.why = 'ne rend pas la main en %d instructions' % self.limit
             return None
         return [self.uc.reg_read(r) for r in self.regs]
 
@@ -435,25 +474,48 @@ def make_canvas(rng, size=0x1000):
 
 
 class Spec:
-    """Une famille de cas d'essai. check(prober, address, thumb) rend True si la fonction se comporte comme prévu."""
+    """Une famille de cas d'essai. Chaque cas (prober, address, thumb) rend None s'il passe, sinon ce qui a manqué."""
 
     def __init__(self, name, cases):
         self.name = name
-        self.cases = cases           # liste de fonctions (prober, address, thumb) -> bool
+        self.cases = cases
+
+    def failure(self, prober, address, thumb):
+        """Le premier cas en échec, décrit, ou None."""
+        for case in self.cases:
+            why = case(prober, address, thumb)
+            if why:
+                return why
+        return None
 
     def check(self, prober, address, thumb):
-        for case in self.cases:
-            if not case(prober, address, thumb):
-                return False
-        return True
+        return self.failure(prober, address, thumb) is None
 
 
-def copy_cases(seed, alignment, overlap, ret_dst):
-    """memcpy/memmove (dst, src, n) : adresses alignées sur `alignment`, avec ou sans recouvrement."""
+def crash(prober, what):
+    return '%s : plantage, %s' % (what, prober.why)
+
+
+def memory_diff(prober, expected, what):
+    """None si la zone d'essai vaut `expected`, sinon le premier octet qui diffère."""
+    got = prober.read(DATA_BASE, len(expected))
+    if got == bytes(expected):
+        return None
+    k = next(i for i in range(len(expected)) if got[i] != expected[i])
+    return '%s : octet %#x attendu %02x, obtenu %02x' % (what, DATA_BASE + k, expected[k], got[k])
+
+
+def returned(out, want, what):
+    return None if out[0] == want else '%s : rend %#x au lieu de %#x' % (what, out[0], want)
+
+
+def copy_cases(seed, alignment, overlap, ret, rounds=1):
+    """memcpy/memmove (dst, src, n) : adresses alignées sur `alignment`, avec ou sans recouvrement.
+    ret : 'dst' (rend la destination), 'end' (rend destination + n) ou None (rien de promis)."""
     rng = random.Random(seed)
     cases = []
     sizes = [0, 1, 2, 3, 4, 5, 7, 8, 9, 13, 16, 17, 31, 33, 64, 100, 129]
-    for n in sizes:
+    for n in sizes * rounds:
         def case(prober, address, thumb, n=n, salt=rng.randrange(1 << 30)):
             r = random.Random(salt)
             canvas = make_canvas(r)
@@ -465,53 +527,64 @@ def copy_cases(seed, alignment, overlap, ret_dst):
             else:
                 src = DATA_BASE + pick(0x100)
                 dst = DATA_BASE + pick(0x800)
+            what = '(dst=%#x, src=%#x, n=%d)' % (dst, src, n)
             prober.reset(canvas)
             out = prober.call(address, thumb, [dst, src, n, r.randrange(1 << 32)])
             if out is None:
-                return False
+                return crash(prober, what)
             expected = bytearray(canvas)
             expected[dst - DATA_BASE:dst - DATA_BASE + n] = canvas[src - DATA_BASE:src - DATA_BASE + n]
-            if prober.read(DATA_BASE, len(canvas)) != bytes(expected):
-                return False
-            return out[0] == dst if ret_dst else True
+            return memory_diff(prober, expected, what) or (
+                returned(out, {'dst': dst, 'end': dst + n}[ret], what) if ret else None)
         cases.append(case)
     return cases
 
 
-def set_cases(seed, alignment, order, ret_dst, clear):
-    """memset(dst, c, n) ; __aeabi_memset(dst, n, c) ; __aeabi_memclr(dst, n)."""
+def set_cases(seed, alignment, order, ret_dst, clear, word=False, rounds=1):
+    """memset(dst, c, n) ; __aeabi_memset(dst, n, c) ; __aeabi_memclr(dst, n). word : c est passé répété sur les
+    quatre octets d'un mot (memset_words)."""
     rng = random.Random(seed)
     cases = []
-    for n in [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 32, 33, 64, 100, 129]:
+    for n in [0, 1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 32, 33, 64, 100, 129] * rounds:
         def case(prober, address, thumb, n=n, salt=rng.randrange(1 << 30)):
             r = random.Random(salt)
             canvas = make_canvas(r)
             dst = DATA_BASE + 0x200 + (r.randrange(0, 64) // alignment) * alignment
             c = 0 if clear else r.randrange(1, 256)
+            value = c * 0x01010101 if word else c
             prober.reset(canvas)
             garbage = r.randrange(1 << 32)
             if clear:
                 args = [dst, n, garbage, garbage ^ 0x5A5A5A5A]
+                what = '(dst=%#x, n=%d)' % (dst, n)
             elif order == 'cn':
-                args = [dst, c, n, garbage]
+                args = [dst, value, n, garbage]
+                what = '(dst=%#x, c=%#x, n=%d)' % (dst, value, n)
             else:
-                args = [dst, n, c, garbage]
+                args = [dst, n, value, garbage]
+                what = '(dst=%#x, n=%d, c=%#x)' % (dst, n, value)
             out = prober.call(address, thumb, args)
             if out is None:
-                return False
+                return crash(prober, what)
             expected = bytearray(canvas)
             expected[dst - DATA_BASE:dst - DATA_BASE + n] = bytes([c]) * n
-            if prober.read(DATA_BASE, len(canvas)) != bytes(expected):
-                return False
-            return out[0] == dst if ret_dst else True
+            return memory_diff(prober, expected, what) or (returned(out, dst, what) if ret_dst else None)
         cases.append(case)
     return cases
 
 
-def string_cases(seed, kind):
+def c_strncmp(a, b, n):
+    """strncmp sur deux chaînes terminées (octets non signés, arrêt au premier nul)."""
+    for x, y in zip(a[:n], b[:n]):
+        if x != y or not x:
+            return (x > y) - (x < y)
+    return 0
+
+
+def string_cases(seed, kind, rounds=1):
     rng = random.Random(seed)
     cases = []
-    for length in [0, 1, 2, 3, 4, 5, 7, 8, 15, 17, 40]:
+    for length in [0, 1, 2, 3, 4, 5, 7, 8, 15, 17, 40] * rounds:
         def case(prober, address, thumb, length=length, salt=rng.randrange(1 << 30)):
             r = random.Random(salt)
             canvas = bytearray(make_canvas(r).replace(b'\0', b'\1'))     # pas d'octet nul par hasard
@@ -520,17 +593,27 @@ def string_cases(seed, kind):
             canvas[a - DATA_BASE + length] = 0
             if kind == 'strlen':
                 prober.reset(canvas)
+                what = '(s=%#x, longueur %d)' % (a, length)
                 out = prober.call(address, thumb, [a, r.randrange(1 << 32), 0, 0])
-                return out is not None and out[0] == length and prober.read(DATA_BASE, len(canvas)) == bytes(canvas)
+                if out is None:
+                    return crash(prober, what)
+                return memory_diff(prober, canvas, what) or returned(out, length, what)
             # une copie de la chaîne en b, puis une différence éventuelle
             canvas[b - DATA_BASE:b - DATA_BASE + length] = canvas[a - DATA_BASE:a - DATA_BASE + length]
             canvas[b - DATA_BASE + length] = 0
-            if kind == 'strcpy':
-                prober.reset(canvas)
-                out = prober.call(address, thumb, [b + 0x200, a, 0, 0])
+            if kind in ('strcpy', 'strncpy'):
+                dst = b + 0x200
+                n = r.randrange(0, length + 10)
+                count = length + 1 if kind == 'strcpy' else n
                 expected = bytearray(canvas)
-                expected[b + 0x200 - DATA_BASE:b + 0x200 - DATA_BASE + length + 1] = canvas[a - DATA_BASE:a - DATA_BASE + length + 1]
-                return out is not None and out[0] == b + 0x200 and prober.read(DATA_BASE, len(canvas)) == bytes(expected)
+                source = bytes(canvas[a - DATA_BASE:a - DATA_BASE + length + 1]) + bytes(max(0, count - length - 1))
+                expected[dst - DATA_BASE:dst - DATA_BASE + count] = source[:count]
+                what = '(dst=%#x, src=%#x de longueur %d%s)' % (dst, a, length, ', n=%d' % n if kind == 'strncpy' else '')
+                prober.reset(canvas)
+                out = prober.call(address, thumb, [dst, a, n, 0])
+                if out is None:
+                    return crash(prober, what)
+                return memory_diff(prober, expected, what) or returned(out, dst, what)
             mode = r.randrange(3)       # 0 égales, 1 b plus grande, 2 b plus petite
             if length and mode:
                 k = r.randrange(length)
@@ -550,34 +633,43 @@ def string_cases(seed, kind):
             ca = bytes(canvas[a - DATA_BASE:a - DATA_BASE + length + 1])
             cb = bytes(canvas[b - DATA_BASE:b - DATA_BASE + length + 1])
             prober.reset(canvas)
+            what = '(%r, %r)' % (ca, cb)
             if kind == 'strcmp':
                 out = prober.call(address, thumb, [a, b, 0, 0])
                 want = sign((ca > cb) - (ca < cb))
+            elif kind == 'strncmp':
+                n = r.randrange(0, length + 4)
+                what = '(%r, %r, n=%d)' % (ca, cb, n)
+                out = prober.call(address, thumb, [a, b, n, 0])
+                want = c_strncmp(ca, cb, n)
             elif kind == 'memcmp':
                 out = prober.call(address, thumb, [a, b, length + 1, 0])
                 want = (ca > cb) - (ca < cb)
             else:                                   # strchr
                 target = canvas[a - DATA_BASE + r.randrange(length)] if length else 7
                 first = ca.find(bytes([target]))
+                what = '(%r, %#x)' % (ca, target)
                 out = prober.call(address, thumb, [a, target, 0, 0])
-                if out is None or prober.read(DATA_BASE, len(canvas)) != bytes(canvas):
-                    return False
-                return out[0] == (a + first if 0 <= first < length else 0)
-            if out is None or prober.read(DATA_BASE, len(canvas)) != bytes(canvas):
-                return False
-            return sign(signed32(out[0])) == want
+                if out is None:
+                    return crash(prober, what)
+                return memory_diff(prober, canvas, what) or returned(out, a + first if 0 <= first < length else 0, what)
+            if out is None:
+                return crash(prober, what)
+            if sign(signed32(out[0])) != want:
+                return '%s : signe %d attendu, rend %#x' % (what, want, out[0])
+            return memory_diff(prober, canvas, what)
         cases.append(case)
     return cases
 
 
-def division_cases(seed, signed, modulo, wide):
+def division_cases(seed, signed, modulo, wide, count=40):
     rng = random.Random(seed)
     edge = [0, 1, 2, 3, 7, 10, 0x7FFFFFFF, 0x80000000, 0xFFFFFFFF, 0x12345678, 100, 65535, 65536, 0x00010001]
     if wide:
         edge += [0x1FFFFFFFF, 0xFFFFFFFFFF, 0x123456789ABCDEF0, 0xFFFFFFFFFFFFFFFF, 1 << 40, (1 << 63) + 5]
     pairs = []
     bits = 64 if wide else 32
-    for _ in range(40):
+    for _ in range(count):
         a = rng.choice(edge + [rng.getrandbits(bits), rng.getrandbits(rng.randrange(1, bits + 1))])
         b = rng.choice(edge + [rng.getrandbits(rng.randrange(1, bits + 1))])
         pairs.append((a, b))
@@ -593,39 +685,43 @@ def division_cases(seed, signed, modulo, wide):
                 x = a - (1 << bits) if a >> (bits - 1) else a
                 y = b - (1 << bits) if b >> (bits - 1) else b
                 if x == -(1 << (bits - 1)) and y == -1:
-                    return True
+                    return None
                 q = abs(x) // abs(y) * (1 if (x < 0) == (y < 0) else -1)
             else:
                 q = x // y
             r = x - q * y
+            what = '%#x / %#x' % (a, b)
             if wide:
                 out = prober.call(address, thumb, [a & 0xFFFFFFFF, a >> 32, b & 0xFFFFFFFF, b >> 32])
                 if out is None:
-                    return False
-                got_q = out[0] | out[1] << 32
-                if got_q != q & mask:
-                    return False
-                return not modulo or (out[2] | out[3] << 32) == r & mask
-            out = prober.call(address, thumb, [a, b, 0, 0])
-            if out is None or out[0] != q & mask:
-                return False
-            return not modulo or out[1] == r & mask
+                    return crash(prober, what)
+                got_q, got_r = out[0] | out[1] << 32, out[2] | out[3] << 32
+            else:
+                out = prober.call(address, thumb, [a, b, 0, 0])
+                if out is None:
+                    return crash(prober, what)
+                got_q, got_r = out[0], out[1]
+            if got_q != q & mask or modulo and got_r != r & mask:
+                return '%s : attendu q=%#x r=%#x, obtenu q=%#x r=%#x' % (what, q & mask, r & mask, got_q, got_r)
+            return None
         cases.append(case)
     return cases
 
 
-def build_specs():
-    """[(nom, nombre minimal d'appels d'essai, Spec)] dans l'ordre où on les essaie : le plus exigeant d'abord."""
+def build_specs(rounds=1):
+    """[(nom, Spec)] dans l'ordre où on les essaie : le plus exigeant d'abord. rounds : combien de fois chaque famille
+    reprend ses tailles (40 couples de division par tour)."""
     specs = []
     seed = 100
     for alignment, suffix in ((1, ''), (4, '4'), (8, '8')):
         for overlap_name, overlap in (('memmove', 1), ('memcpy', 0)):
             for ret_dst in (True, False):
                 seed += 1
+                ret = 'dst' if ret_dst else None
                 if overlap:
-                    cases = copy_cases(seed, alignment, 1, ret_dst) + copy_cases(seed + 1, alignment, 2, ret_dst)
+                    cases = copy_cases(seed, alignment, 1, ret, rounds) + copy_cases(seed + 1, alignment, 2, ret, rounds)
                 else:
-                    cases = copy_cases(seed, alignment, 0, ret_dst)
+                    cases = copy_cases(seed, alignment, 0, ret, rounds)
                 if ret_dst:
                     name = overlap_name if not suffix else '__aeabi_%s%s' % (overlap_name, suffix)
                 else:
@@ -634,18 +730,20 @@ def build_specs():
     for alignment, suffix in ((1, ''), (4, '4'), (8, '8')):
         seed += 1
         name = 'memset' if not suffix else '__aeabi_memset' + suffix
-        specs.append((name, Spec(name, set_cases(seed, alignment, 'cn' if not suffix else 'nc', not suffix, False))))
+        specs.append((name, Spec(name, set_cases(seed, alignment, 'cn' if not suffix else 'nc', not suffix, False,
+                                                 rounds=rounds))))
         if not suffix:
-            specs.append(('__aeabi_memset', Spec('__aeabi_memset', set_cases(seed + 1, 1, 'nc', False, False))))
-        specs.append(('__aeabi_memclr' + suffix, Spec('__aeabi_memclr' + suffix, set_cases(seed + 2, alignment, 'cn', False, True))))
+            specs.append(('__aeabi_memset', Spec('__aeabi_memset', set_cases(seed + 1, 1, 'nc', False, False, rounds=rounds))))
+        specs.append(('__aeabi_memclr' + suffix, Spec('__aeabi_memclr' + suffix,
+                                                      set_cases(seed + 2, alignment, 'cn', False, True, rounds=rounds))))
     for kind in ('strlen', 'strcmp', 'strcpy', 'memcmp', 'strchr'):
         seed += 1
-        specs.append((kind, Spec(kind, string_cases(seed, kind))))
+        specs.append((kind, Spec(kind, string_cases(seed, kind, rounds))))
     for name, signed, modulo, wide in (('__aeabi_uidivmod', False, True, False), ('__aeabi_uidiv', False, False, False),
                                        ('__aeabi_idivmod', True, True, False), ('__aeabi_idiv', True, False, False),
                                        ('__aeabi_uldivmod', False, True, True), ('__aeabi_ldivmod', True, True, True)):
         seed += 1
-        specs.append((name, Spec(name, division_cases(seed, signed, modulo, wide))))
+        specs.append((name, Spec(name, division_cases(seed, signed, modulo, wide, 40 * rounds))))
     return specs
 
 
@@ -662,7 +760,7 @@ def pass_stdlib(game):
         import_unicorn()
     except ImportError:
         return [], ['stdlib : unicorn manque dans local/pylib, passe sautée']
-    prober = Prober(game.code, BASE)
+    prober = Prober([(BASE, game.code)])
     specs = build_specs()
     called = game.called_count()
     tried = 0
@@ -1130,7 +1228,7 @@ def test():
     put(0x100, ARM_STRLEN)
     put(0x200, ARM_NOP_RET)
     put(0x300, ARM_WRITES_CODE)
-    prober = Prober(bytes(blob), base)
+    prober = Prober([(base, bytes(blob))])
     specs = build_specs()
     check(recognise(prober, base + 0x000, False, specs) == 'memcpy', 'memcpy fabriquée reconnue')
     check(recognise(prober, base + 0x100, False, specs) == 'strlen', 'strlen fabriquée reconnue')
@@ -1139,7 +1237,7 @@ def test():
     # un memcpy qui copie un octet de trop doit être refusé
     broken = bytearray(blob)
     struct.pack_into('<I', broken, 0x14, 0xE2522002)        # subs r2,r2,#2 : copie trop ou trop peu
-    check(recognise(Prober(bytes(broken), base), base, False, specs) is None, 'memcpy cassée refusée')
+    check(recognise(Prober([(base, bytes(broken))]), base, False, specs) is None, 'memcpy cassée refusée')
     # Fabrication d'un décodage d'appel système
     game = Game.__new__(Game)
     game.code = struct.pack('<IIII', 0xEF000013, 0xE12FFF1E, 0xEF000032, 0xE12FFF1E)

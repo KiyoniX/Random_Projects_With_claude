@@ -493,7 +493,7 @@
 0xfff1a7b4	function	scheduler_force_reschedule
 0xfff1a7c0	function	reschedule
 0xfff1a83c	function	copy_memory_between_page_tables
-0xfff1a9cc	function	memcpy
+0xfff1a9cc	function	__aeabi_memcpy
 0xfff1aa54	function	cache_op_broadcast_range_begin
 0xfff1abe0	function	scheduler_change_thread_priority
 0xfff1ac5c	function	page_heap_validate_block

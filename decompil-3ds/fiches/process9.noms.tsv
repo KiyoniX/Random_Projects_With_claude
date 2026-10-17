@@ -221,7 +221,7 @@
 0x8061bfc	label	panic
 0x8061c06	label	light_lock_release
 0x8061c8c	label	handle_table_lookup
-0x8061dbc	function	memcpy
+0x8061dbc	function	__aeabi_memcpy
 0x8061e90	function	__aeabi_uidivmod
 0x806642c	label	ncch_open_exefs_file
 0x806c658	label	title_build_content_path
