@@ -44,8 +44,10 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
    Les entrées manquées (« entrees », find_entries) : toutes les cibles de b, bl et blx, les mots des réserves de
    littéraux et les mots de l'image qui visent le texte (ARM pair, Thumb impair), qui ne tombent pas sur un début de
    fonction de Ghidra, y compris au milieu d'une fonction de Ghidra (une taille trop grande avale l'enrobage suivant) ;
-   les veneers ARM vers Thumb (« add ip, pc, #1 ; bx ip ») et leur corps Thumb, même quand le veneer visé par un b
-   ou un bl est dans la taille d'une fonction Thumb de Ghidra (ro 0x14000110). Genres : cible de b (appel terminal),
+   les veneers ARM vers Thumb (« add ip, pc, #1 ; bx ip », précédé ou non d'un « mov r0, r0 ») et leur corps Thumb,
+   même quand le veneer visé par un b ou un bl est dans la taille d'une fonction Thumb de Ghidra (ro 0x14000110) ; les
+   tables de distances des données qu'un module recopie au démarrage (RUNTIME_COPIES : les constructeurs statiques de
+   qtm), lues à l'adresse de la copie. Genres : cible de b (appel terminal),
    cible de bl, veneer, corps de veneer, pointeur de réserve, pointeur seul, « au milieu de » la fonction qui la
    couvre. Une case d'aiguillage ou un saut qui reste dans sa fonction n'en est pas une. Relevé à la main dans gpio
    (11) et codec (16, local/analyse/<m>/notes-100.md) : toutes retrouvées. Les entrées trouvées deviennent des
@@ -183,6 +185,11 @@ SAFE = '-safe'                          # la variante du mode sans échec d'un m
 # peut finir par une adresse (init_vm_region_10000000).
 GENERIC_NAME = re.compile(r'^(?:FUN|LAB|thunk|trou)_|_alt_')
 PADDING = {0, 0x46C0, 0xE1A00000}       # demi-mot nul, « mov r8, r8 » Thumb, « mov r0, r0 » ARM
+# Les données qu'un module recopie au démarrage ailleurs que là où le fichier les charge : (adresse dans le fichier,
+# adresse de la copie, taille). Une table de distances y compte depuis la copie, pas depuis le fichier.
+# qtm : copy_qtm_ram_image (0x1007a8, littéraux 0x100804, 0x100808, 0x10080c) recopie l'image des données vers la
+# mémoire QTM ; run_static_initializers (0x1001d0) y parcourt la table des 31 constructeurs statiques (0x1eb6338c).
+RUNTIME_COPIES = {'qtm': [(0x12503C, 0x1EADD800, 0x85E0C)]}
 
 
 # --- Les binaires ---
@@ -205,6 +212,7 @@ class Binary:
         self.starts = {a for a, _, _ in self.functions}
         self.entries = {}                    # les entrées manquées par Ghidra (add_entries)
         self.target = None                   # les réglages de raw_targets.toml pour une cible brute (ghidra_raw)
+        self.copies = RUNTIME_COPIES.get(name, [])
         self.pieces = {}                     # les morceaux d'une fonction de Ghidra en plusieurs morceaux
         self.spans = [(b, b + max(fs, ms)) for b, _, fs, ms, _ in image.segments] if image else []
         self.jump_slots = set()
@@ -457,8 +465,11 @@ def fingerprints(binary):
 # --- Les entrées que Ghidra n'a pas en début de fonction ---
 
 def veneer_body(image, address):
-    """Le corps Thumb d'un veneer ARM vers Thumb (« add ip, pc, #1 ; bx ip », ou « ldr ip, [pc] ; bx ip ; .word »)."""
+    """Le corps Thumb d'un veneer ARM vers Thumb (« add ip, pc, #1 ; bx ip », ou « ldr ip, [pc] ; bx ip ; .word »),
+    précédé ou non d'un « mov r0, r0 » où arrivent les appelants (fs 0x100194, corps en 0x1001a0)."""
     first, second = image.word(address), image.word(address + 4)
+    if first == 0xE1A00000 and second == 0xE28FC001:
+        address, first, second = address + 4, second, image.word(address + 8)
     if second != 0xE12FFF1C:
         return None
     if first == 0xE28FC001:
@@ -582,6 +593,14 @@ def find_entries(binary):
         word = int(origin.split()[-1], 16) if origin.startswith('pointeur à ') else None
         if word is None or not inside(word, target):
             note(target, mode, 'pointeur seul', origin)
+    # Les tables de distances des données recopiées au démarrage, lues à l'adresse de la copie : une image où ces
+    # octets sont aussi à cette adresse. Seules les tables : les pointeurs absolus sont déjà lus dans le fichier.
+    for source, copy, size in binary.copies:
+        alias = ghidra_direct.Image(binary.image.data, binary.image.segments + [
+            (copy, binary.image.offset(source), size, size, 0)], binary.image.code_ranges)
+        for target, mode, origin, group in ghidra_direct.find_pointers(alias, [(copy, copy + size)])[1]:
+            if group != '-':
+                note(target, mode, 'pointeur seul', '%s (copie de %#x)' % (origin, source))
 
     def scan_outside():
         """Le code que Ghidra n'a mis dans aucune fonction : ses b et bl, lus mot à mot (ARM seulement). Un saut qui
@@ -1588,6 +1607,26 @@ def test():
     kinds = {a - base: (m, k) for a, (m, k, _) in find_entries(vt).items()}
     check(kinds == {0x10: ('arm', 'veneer, au milieu de 0x100000'), 0x18: ('thumb', 'corps de veneer')},
           'veneer dans une fonction Thumb : %r' % kinds)
+    # Le veneer précédé d'un « mov r0, r0 » (fs 0x100194) : celui de Ghidra (0x000) et celui qu'atteint le b de 0x200
+    # (0x100) mènent à leur corps Thumb, après le bx ip
+    nop = [0xE1A00000, 0xE28FC001, 0xE12FFF1C, 0x4770]
+    nv = fake_binary('nv', base, [(0x000, nop, 'arm', 12), (0x100, nop, 'arm', 0), (0x200, [0xEAFFFFBE], 'arm', 4)], {})
+    nv.functions.remove((base + 0x100, 0, 'arm'))
+    nv.starts.discard(base + 0x100)
+    kinds = {a - base: (m, k) for a, (m, k, _) in find_entries(nv).items()}
+    check(kinds == {0x0C: ('thumb', 'corps de veneer'), 0x100: ('arm', 'veneer'), 0x10C: ('thumb', 'corps de veneer')},
+          'veneer « mov r0, r0 ; add ip, pc, #1 ; bx ip » : %r' % kinds)
+    # Une table de distances dans des données recopiées au démarrage (qtm) : les cases comptent depuis la copie. Dans
+    # le fichier (0x300), elles ne visent rien ; lues à 0x1e000300, elles visent les fonctions 0x040, 0x080 et 0x0c0.
+    rc = fake_binary('rc', base, [(0x000, [0xE3A00000, 0xE12FFF1E], 'arm', 8)], {})
+    rc.image.data = rc.image.data[:0x300] + struct.pack('<3I', *[(base + t - 0x1E000300 - 4 * k) & 0xFFFFFFFF
+                                                                  for k, t in enumerate((0x40, 0x80, 0xC0))])
+    for at in (0x40, 0x80, 0xC0):
+        rc.image.data = rc.image.data[:at] + struct.pack('<2I', 0xE92D4010, 0xE8BD8010) + rc.image.data[at + 8:]
+    rc.image.data += bytes(0x400 - len(rc.image.data))
+    check(not any(0x40 <= a - base <= 0xC0 for a in find_entries(rc)), 'données recopiées : rien sans la copie')
+    rc.copies = [(base + 0x300, 0x1E000300, 0x10)]
+    check(sorted(a - base for a in find_entries(rc)) == [0x40, 0x80, 0xC0], 'données recopiées : table lue à la copie')
     # Sur les vrais binaires s'ils sont là : les entrées relevées à la main dans gpio et codec (notes-100.md), et les
     # main_thread_terminate_handler de dsp et hid (un « bl abort » seul, juste après la réserve qui le désigne)
     by_hand = {'gpio': [0x100134, 0x100160, 0x100168, 0x100db0, 0x100e30, 0x100f48, 0x1011e8, 0x101580, 0x10169c,
@@ -1595,6 +1634,13 @@ def test():
                'codec': [0x100168, 0x100170, 0x1010a4, 0x10165c, 0x1016a0, 0x101828, 0x102318, 0x1022f4, 0x102514,
                          0x102f3c, 0x10343c, 0x103800, 0x103808, 0x103ec4, 0x103ee4, 0x103f70],
                'dsp': [0x1016e0], 'hid': [0x102fc4],
+               # fs (notes-100.md) : corps Thumb des veneers « mov r0, r0 ; add ip, pc, #1 ; bx ip »
+               'fs': [0x1001a0, 0x100488, 0x10049c, 0x1004bc, 0x10bbcc],
+               # qtm (noms-proposes.tsv) : les 31 constructeurs statiques de la table recopiée en mémoire QTM
+               'qtm': [0x12081c, 0x12086c, 0x1208c8, 0x120b34, 0x120bac, 0x120bc0, 0x120c20, 0x120c8c, 0x120ca0,
+                       0x120d00, 0x120d34, 0x120d48, 0x120dac, 0x120dc0, 0x120dd4, 0x120dd8, 0x120ddc, 0x120e14,
+                       0x120e28, 0x120e3c, 0x120e50, 0x120e64, 0x120e9c, 0x120eb0, 0x120ee8, 0x120efc, 0x120f10,
+                       0x120f48, 0x120f5c, 0x121090, 0x1210a4],
                # ro : le veneer de destroy_array dans la taille de FUN_140000c0 (Thumb), visé par le b de 0x14002218
                'ro': [0x14000110, 0x14000118],
                # kernel11 (notes-100.md) : relais des vecteurs, veneer de destroy_array, code de lancement d'un FIRM
