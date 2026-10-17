@@ -1254,3 +1254,15 @@
 0x100204	label	destroy_array
 0x1e74e4	function	thread_dtor
 0x1a2100	function	strncpy
+0x109784	function	create_lock_arbiter_once
+0x13435c	function	block_pool_init
+0x146924	function	light_event_init
+0x15f91c	function	light_event_wait
+0x164944	function	sha256_digest
+0x16f40c	function	light_event_signal
+0x1734ec	function	sha256_pad
+0x17396c	function	klinked_list_insert
+0x177974	function	join_thread
+0x199d24	function	sha256_transform
+0x300db0	function	shift_left_64
+0x4c9534	function	init_memory_pools

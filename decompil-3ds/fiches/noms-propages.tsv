@@ -4416,3 +4416,518 @@ ssl-safe	0x126024	strcmp	empreinte:cfg ; b:nom	2026-10-17
 ssl-safe	0x126b04	strncpy	empreinte:cfg ; b:nom	2026-10-17
 ssl-safe	0x129a3c	__aeabi_uidivmod	appel:cfg ; b:nom	2026-10-17
 ssl-safe	0x12a73c	memcpy_unaligned	empreinte:cfg ; a (cfg, dsp)	2026-10-17
+ac	0x1005f8	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac	0x1078c4	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ac	0x107b3c	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac	0x108bd4	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ac	0x10baec	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+ac	0x10d148	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+ac	0x10fefc	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac	0x110c74	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ac	0x110f2c	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac	0x110fc6	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ac	0x11b174	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac-safe	0x1005f8	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac-safe	0x1078a0	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ac-safe	0x107b14	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac-safe	0x108bd0	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ac-safe	0x10ba9c	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+ac-safe	0x10d0d8	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+ac-safe	0x10fe24	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac-safe	0x110b90	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ac-safe	0x110e48	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ac-safe	0x110ee2	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ac-safe	0x11aff4	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+act	0x10090c	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+act	0x101ce4	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+act	0x1027ae	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+act	0x103964	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+act	0x103e34	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+act	0x103e64	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+act	0x104a3e	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+act	0x104a54	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+act	0x104a94	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+act	0x104b50	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+act	0x104bbc	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+act	0x114672	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+act	0x114964	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+act	0x11537c	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+act	0x1153e8	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+act	0x1238a8	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am	0x1009dc	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+am	0x100a10	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am	0x100b78	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am	0x100ba8	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am	0x100f92	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+am	0x100fd2	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+am	0x1014b6	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am	0x1014cc	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am	0x101538	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+am	0x101c80	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am	0x101f84	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am	0x10a3a0	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+am	0x10a50c	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am	0x10a624	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am	0x11089c	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am-safe	0x1009dc	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+am-safe	0x100a10	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am-safe	0x100b78	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x100ba8	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x100f62	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x100fa2	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x101486	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x10149c	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x101508	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x101c50	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am-safe	0x101f50	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am-safe	0x10a268	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+am-safe	0x10a3d4	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+am-safe	0x10a4ec	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+am-safe	0x110714	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+boss	0x100500	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+boss	0x1014f8	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+boss	0x101d50	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x101d80	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x10238c	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x1023a2	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x1023e2	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x1023f8	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x11e4d4	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+boss	0x1243cc	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+boss	0x126f44	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+boss	0x126fb4	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x1273ba	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+boss	0x1279e4	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+boss	0x127ab0	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+boss	0x127b4c	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+boss	0x13c5a8	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+camera	0x1008fc	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+camera	0x103c44	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+camera	0x10b344	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+camera	0x10b740	__aeabi_idivmod	empreinte:ptm ; b:nom	2026-10-17
+camera	0x10bcbc	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+camera	0x10bf78	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+camera	0x10c06a	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+camera	0x1124c8	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+cecd	0x100aa4	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+cecd	0x103d18	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+cecd	0x106990	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x1069d0	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x108c60	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x108d30	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x108d9c	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x10cc78	sha256_pad	empreinte:dsp ; a (dsp, ro)	2026-10-17
+cecd	0x10d988	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+cecd	0x10f4c6	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+cecd	0x110828	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x110858	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x111efc	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+cecd	0x1137d0	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+cecd	0x113840	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+cecd	0x1138ac	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+cecd	0x11e5f8	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+cecd	0x121968	sha256_transform	empreinte:dsp ; a (dsp, ro)	2026-10-17
+cfg-safe	0x10127a	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+csnd-safe	0x100708	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+csnd-safe	0x100840	fatal_error_unless_minor	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x1008f4	srv_close	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x1009dc	SRV_UnregisterService	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x100a20	SRV_EnableNotification	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x100fac	SRV_RegisterClient	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x10174c	SRV_GetServiceHandle	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x101a70	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+csnd-safe	0x1022dc	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+csnd-safe	0x10249e	lock_is_owner	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x102b94	__aeabi_idivmod	empreinte:csnd ; b:nom	2026-10-17
+csnd-safe	0x103782	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+csnd-safe	0x103796	sleep_thread	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x103818	result_srv_not_initialized	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x104a4c	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+csnd-safe	0x104a84	static_init_main_thread_handle	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x105d90	svcCancelTimer	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x105e98	__aeabi_lmul	jumeau:csnd ; jumeau	2026-10-17
+csnd-safe	0x106144	svcFlushProcessDataCache	appel:csnd ; b:svc	2026-10-17
+csnd-safe	0x10614c	svcInvalidateProcessDataCache	appel:csnd ; b:svc	2026-10-17
+csnd-safe	0x106174	svcStoreProcessDataCache	appel:csnd ; b:svc	2026-10-17
+dlp	0x1007da	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+dlp	0x100d50	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+dlp	0x102a90	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+dlp	0x10343c	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+dlp	0x10a1e4	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+dlp	0x10a930	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+dlp	0x10a968	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+dlp	0x10a9e4	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+dlp	0x10f920	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+errdisp	0x101da0	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp	0x1084e4	errf_report_error	empreinte:codec ; a (codec, spi)	2026-10-17
+errdisp	0x116c10	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+errdisp	0x1178c0	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp	0x117d94	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+errdisp	0x11ccc0	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+errdisp	0x11d4b4	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+errdisp	0x11e710	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+errdisp	0x11f034	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+errdisp	0x11fd64	lock_arbitrate_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp	0x123adc	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp	0x12dfac	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+errdisp-safe	0x101da0	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp-safe	0x116c10	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+errdisp-safe	0x1178c0	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp-safe	0x117d94	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+errdisp-safe	0x11ccc0	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+errdisp-safe	0x11d4b4	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+errdisp-safe	0x11e710	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+errdisp-safe	0x11f034	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+errdisp-safe	0x11fd64	lock_arbitrate_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp-safe	0x123adc	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+errdisp-safe	0x12dfac	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+friends	0x103524	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends	0x10f3b8	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x10f3e8	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x10f434	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x10f44a	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x10f48a	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x10f5b8	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x10fa04	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x11001c	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends	0x13053c	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+friends	0x135118	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+friends	0x135304	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends	0x135662	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends	0x135688	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends	0x1357a8	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+friends	0x1469e0	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends-safe	0x103524	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends-safe	0x10f3b8	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x10f3e8	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x10f434	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x10f44a	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x10f48a	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x10f5b8	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x10fa04	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x11001c	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+friends-safe	0x13053c	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+friends-safe	0x135118	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+friends-safe	0x135304	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends-safe	0x135662	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends-safe	0x135688	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+friends-safe	0x1357a8	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+friends-safe	0x1469e0	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+fs	0x114334	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+fs	0x11d4e2	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+fs	0x11d9cc	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+fs	0x11da78	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+fs	0x11df04	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+fs	0x11e0c0	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+fs	0x123f44	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+fs	0x124dc8	lock_arbitrate_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+fs	0x12f23c	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+gsp-safe	0x103640	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+gsp-safe	0x105640	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+gsp-safe	0x10715c	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+http	0x100a98	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http	0x101ef8	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+http	0x10a300	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+http	0x10c10c	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+http	0x10df14	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http	0x10e0c8	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http	0x10eee0	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+http	0x10ef98	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+http	0x10f16c	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+http	0x10fa84	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http	0x1143bc	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+http	0x11a2bc	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+http-safe	0x100a98	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http-safe	0x101e70	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+http-safe	0x10979c	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+http-safe	0x10b2b8	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+http-safe	0x10d028	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http-safe	0x10d1dc	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http-safe	0x10dff4	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+http-safe	0x10e0ac	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+http-safe	0x10e280	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+http-safe	0x10eb98	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+http-safe	0x113bb0	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+http-safe	0x119050	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+i2c-safe	0x1006a8	setup_heap	jumeau:i2c ; jumeau	2026-10-17
+i2c-safe	0x100b84	_get_lc_ctype	jumeau:i2c ; jumeau	2026-10-17
+i2c-safe	0x100bcc	_get_lc_numeric	jumeau:i2c ; jumeau	2026-10-17
+i2c-safe	0x100dec	init_vm_region_10000000	jumeau:i2c ; jumeau	2026-10-17
+i2c-safe	0x1018ec	session_threads_dtor	jumeau:i2c ; jumeau	2026-10-17
+i2c-safe	0x104178	on_terminate_notification	jumeau:i2c ; jumeau	2026-10-17
+i2c-safe	0x105280	static_init_main_thread_handle	jumeau:i2c ; jumeau	2026-10-17
+ir	0x10677c	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+ir	0x1085c4	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+ir	0x108b38	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ir	0x109a2c	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+ir	0x1102f8	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+ir	0x1108d4	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+ir-safe	0x105e9c	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+ir-safe	0x107ddc	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+ir-safe	0x107ed0	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ir-safe	0x1082d0	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ir-safe	0x108eac	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+ir-safe	0x10f45c	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+ir-safe	0x10f938	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+kernel9	0x801102c	__aeabi_memcpy	empreinte:arm9loader ; b:nom	2026-10-17
+maj	0x109784	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+maj	0x13435c	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+maj	0x146924	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+maj	0x15f91c	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+maj	0x164944	sha256_digest	empreinte:dsp ; a (dsp, ro)	2026-10-17
+maj	0x16f40c	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+maj	0x1734ec	sha256_pad	appel:dsp ; a (dsp, ro)	2026-10-17
+maj	0x17396c	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+maj	0x177974	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+maj	0x199d24	sha256_transform	empreinte:dsp ; a (dsp, ro)	2026-10-17
+maj	0x300db0	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+maj	0x4c9534	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+mcu-safe	0x1011f0	init_runtime	jumeau:mcu ; jumeau	2026-10-17
+mcu-safe	0x10122c	init_vm_region_10000000	jumeau:mcu ; jumeau	2026-10-17
+mcu-safe	0x101bec	session_threads_dtor	jumeau:mcu ; jumeau	2026-10-17
+mcu-safe	0x106dc8	on_terminate_notification	jumeau:mcu ; jumeau	2026-10-17
+mcu-safe	0x107664	mcu_ReadRegister4Fh	jumeau:mcu ; jumeau	2026-10-17
+mcu-safe	0x107b20	static_init_main_thread_handle	jumeau:mcu ; jumeau	2026-10-17
+mp	0x1001ce	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+mp	0x100f28	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+mp	0x10bf14	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+mp	0x10fe90	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+mp	0x111754	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+mp	0x111ed0	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+mp	0x11201c	join_thread	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+mp	0x1126bc	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+mp	0x112f50	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+mp	0x1137e8	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+mp	0x113908	panic_on_failure	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+mp	0x11f6fc	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+mvd	0x100aa8	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+mvd	0x100e90	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+mvd	0x10e9e8	__aeabi_idivmod	empreinte:ptm ; b:nom	2026-10-17
+mvd	0x10f668	__aeabi_uidivmod	empreinte:ac ; b:nom	2026-10-17
+mvd	0x10fabc	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+mvd	0x110124	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+mvd	0x110176	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+mvd	0x114496	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+mvd	0x1144c8	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ndm	0x100394	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ndm	0x101958	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ndm	0x104b70	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+ndm	0x105426	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ndm	0x105578	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ndm	0x105a48	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ndm	0x105ae0	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ndm	0x108b1c	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+news	0x1014d4	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+news	0x101634	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+news	0x101b38	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+news	0x1039a4	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+news	0x10499e	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+news	0x105050	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+news	0x1050b0	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+news	0x105f3c	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+news	0x106178	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+news	0x1061a8	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+news	0x1063b0	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+news	0x1063c6	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+news	0x106406	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+news	0x106480	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+news	0x1064ec	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+news	0x10834c	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nfc	0x100cfc	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nfc	0x103384	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nfc	0x114d14	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x1190d6	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nfc	0x11b5d8	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+nfc	0x11bb18	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x11cb0c	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nfc	0x11d820	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nfc	0x11d9b0	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nfc	0x11f972	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x11f9e8	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x11f9fe	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x11fa3e	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x11fba0	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x11feec	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+nfc	0x12d414	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nim	0x100e80	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nim	0x1028c4	create_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x1028f4	delete_system_save	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x102940	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x1029c0	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x1030d0	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nim	0x1033a0	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x1033b6	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x103400	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x1034a8	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+nim	0x10368c	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nim	0x123bc4	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+nim	0x1278e0	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+nim	0x130be0	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nim	0x130d78	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nim	0x130fd4	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nim	0x14c890	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nim-safe	0x1025c0	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+nim-safe	0x1037d8	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+nim-safe	0x10bf60	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-17
+nim-safe	0x137f7c	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+nim-safe	0x138e44	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+nim-safe	0x138f0c	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+nim-safe	0x139648	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nim-safe	0x1398a4	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+nim-safe	0x1399f4	join_thread	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+nim-safe	0x139a34	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+nim-safe	0x139e78	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+nim-safe	0x13a114	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nim-safe	0x14773c	sha256_pad	empreinte:dsp ; a (dsp, ro)	2026-10-17
+nim-safe	0x159cfc	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+nim-safe	0x15a2cc	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+ns	0x1016a8	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+ns	0x10e708	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ns	0x10e928	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+ns	0x111ba8	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+ns	0x111fc0	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+ns	0x11defc	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+ns	0x11e570	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+ns-safe	0x10131c	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+ns-safe	0x10d60c	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ns-safe	0x10d9c8	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+ns-safe	0x110728	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+ns-safe	0x110914	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+ns-safe	0x110f94	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+ns-safe	0x11b9fc	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+ns-safe	0x11c05c	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+nwm	0x100cb0	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm	0x1047f8	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm	0x11d6b0	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+nwm	0x121280	__aeabi_idivmod	empreinte:ptm ; b:nom	2026-10-17
+nwm	0x12353e	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm	0x1238ec	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nwm	0x12397c	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm	0x123f04	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nwm	0x12db54	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm-safe	0x100cc8	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm-safe	0x1047dc	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm-safe	0x11d578	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+nwm-safe	0x12109c	__aeabi_idivmod	empreinte:ptm ; b:nom	2026-10-17
+nwm-safe	0x12337a	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm-safe	0x123728	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nwm-safe	0x1237b8	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+nwm-safe	0x123d40	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+nwm-safe	0x12d8d4	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+pdn-safe	0x100918	_get_lc_ctype	jumeau:pdn ; jumeau	2026-10-17
+pdn-safe	0x100960	_get_lc_numeric	jumeau:pdn ; jumeau	2026-10-17
+pdn-safe	0x100ad8	init_vm_region_10000000	jumeau:pdn ; jumeau	2026-10-17
+pdn-safe	0x101d40	handle_clear	jumeau:pdn ; jumeau	2026-10-17
+pdn-safe	0x1021bc	static_init_main_thread_handle	jumeau:pdn ; jumeau	2026-10-17
+pdn-safe	0x10233c	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+process9	0x805ba14	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+process9	0x8061a0e	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ps-safe	0x100ca8	init_vm_region_10000000	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x101478	FSUSER_GetProgramLaunchInfo	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x101614	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+ps-safe	0x102104	fs_get_session	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1031a4	ps_relay_GenerateAmiiboHMAC	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103484	PXIPS9_AmiiboEncryptDecryptDev	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1034dc	PXIPS9_GetDeviceId	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103510	PXIPS9_GenerateAmiiboKeyData	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103560	PXIPS9_SeedRNG	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1035a4	PXIPS9_SignRsaSha256	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103620	PXIPS9_GenerateAmiiboHMAC	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1036b4	PXIPS9_VerifyRsaSha256	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103730	PXIPS9_EncryptDecryptAes	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1037d0	PXIPS9_GenerateRandomBytes	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103814	PXIPS9_GetLocalFriendCodeSeed	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103848	PXIPS9_AmiiboEncryptDecrypt	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1038a0	PXIPS9_GetCTRCardAutoStartupBit	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1038d4	PXIPS9_EncryptSignDecryptVerifyAesCcm	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x10396c	PXIPS9_GetRomId	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x1039a8	PXIPS9_GetRomId2	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x103f08	static_init_main_thread_handle	jumeau:ps ; jumeau	2026-10-17
+ps-safe	0x104150	init_memory_pools	empreinte:loader ; a (loader, ps)	2026-10-17
+ps-safe	0x104350	invoke_notification_callback	empreinte:gpio ; a (gpio, loader, mic, pdn)	2026-10-17
+ptm-safe	0x100000	entry	jumeau:ptm ; jumeau	2026-10-17
+ptm-safe	0x100d70	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ptm-safe	0x101f26	create_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+ptm-safe	0x101f66	delete_system_save_impl	appel:cfg ; a (cfg, ptm)	2026-10-17
+ptm-safe	0x101fc0	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ptm-safe	0x102a4c	srv_close	jumeau:ptm ; jumeau	2026-10-17
+ptm-safe	0x102b0c	make_system_save_path	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ptm-safe	0x102b58	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ptm-safe	0x102c20	open_system_save_archive	appel:cfg ; a (cfg, ptm)	2026-10-17
+ptm-safe	0x1036b4	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ptm-safe	0x103c9c	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ptm-safe	0x104598	lock_is_owner	jumeau:ptm ; jumeau	2026-10-17
+ptm-safe	0x1046ec	fs_commit_archive_impl	jumeau:ptm ; jumeau	2026-10-17
+ptm-safe	0x1053d4	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ptm-safe	0x105504	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+ptm-safe	0x106900	__aeabi_lmul	jumeau:ptm ; jumeau	2026-10-17
+ptm-safe	0x106de8	__ARM_common_switch8	jumeau:ptm ; jumeau	2026-10-17
+ptm-safe	0x107074	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ptm-safe	0x107518	fatal_error_unless_minor	jumeau:ptm ; jumeau	2026-10-17
+ptm-safe	0x10aefe	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ptm-safe	0x10afd4	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ptm-safe	0x10b45c	static_init_main_thread_handle	jumeau:ptm ; jumeau	2026-10-17
+qtm	0x100818	run_init_array	empreinte:loader ; a (loader, ro)	2026-10-17
+qtm	0x112fc8	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+qtm	0x113dc4	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+qtm	0x115164	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+qtm	0x115650	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+qtm	0x115880	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+qtm	0x115940	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+sm	0x1024ac	block_pool_init	empreinte:loader ; a (loader, pm, ps, ro)	2026-10-17
+socket	0x10132c	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket	0x109708	lock_arbitrate_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket	0x1121cc	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+socket	0x114344	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+socket	0x116aa0	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+socket	0x11a388	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket	0x11a450	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket	0x11c42c	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+socket	0x11c5a0	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+socket	0x11c730	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+socket	0x11ca58	join_thread	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+socket	0x11cbfc	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket-safe	0x10132c	create_lock_arbiter_once	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket-safe	0x10962c	lock_arbitrate_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket-safe	0x1120f8	light_event_signal	empreinte:gsp ; a (gsp, ir, mcu, mic)	2026-10-17
+socket-safe	0x114270	__aeabi_memcpy	empreinte:cfg ; b:nom	2026-10-17
+socket-safe	0x1169cc	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+socket-safe	0x11a2b4	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket-safe	0x11a37c	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+socket-safe	0x11c358	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-17
+socket-safe	0x11c4cc	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+socket-safe	0x11c65c	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-17
+socket-safe	0x11c984	join_thread	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-17
+socket-safe	0x11cb28	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-17
+spi-safe	0x100a90	handle_clear	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x100afc	_get_lc_ctype	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x100b44	_get_lc_numeric	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x100b8c	thread_functor_copy	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x100b9c	thread_functor_invoke	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x100ce4	init_runtime	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x100e0c	init_vm_region_10000000	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x102ed8	session_threads_dtor	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x1033e8	on_terminate_notification	jumeau:spi ; jumeau	2026-10-17
+spi-safe	0x1034e0	static_init_main_thread_handle	jumeau:spi ; jumeau	2026-10-17
+ssl	0x1006f0	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl	0x102288	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl	0x10245c	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl	0x110860	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ssl	0x1145a0	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl	0x125b44	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ssl	0x1293c0	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+ssl	0x12a748	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl	0x12b070	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ssl	0x12b334	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ssl	0x14530c	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+ssl-safe	0x1006c0	make_result_level1	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl-safe	0x102250	errf_close	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl-safe	0x102424	make_result	appel:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl-safe	0x110820	register_mount_point	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ssl-safe	0x1144e4	static_init_errf_port	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl-safe	0x125a98	unmount_archive	empreinte:cfg ; a (cfg, ptm)	2026-10-17
+ssl-safe	0x1292f8	__aeabi_idivmod	appel:ptm ; b:nom	2026-10-17
+ssl-safe	0x12a680	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-17
+ssl-safe	0x12afa8	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ssl-safe	0x12b26c	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
+ssl-safe	0x145214	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17

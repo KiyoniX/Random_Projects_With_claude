@@ -86,6 +86,7 @@
 0x106598	function	ring_bytes_free
 0x106604	function	send_ring_init
 0x10666c	function	ring_slots_free
+0x10677c	function	block_pool_init
 0x106854	label	static_guard_acquire
 0x10686c	function	ring_commit_packet
 0x1068a0	function	ring_push_packet
@@ -108,6 +109,7 @@
 0x107ffc	label	random_byte
 0x1080d4	function	__aeabi_uidivmod
 0x108574	function	crc8_build_table
+0x1085c4	function	__aeabi_memcpy
 0x108750	function	cfg_check_cstick_present
 0x1087c8	function	gpioir_attach_interrupt
 0x108820	function	gpioir_detach_interrupt
@@ -115,6 +117,7 @@
 0x108a6c	function	GPIOIR_cmd0006
 0x108aa4	function	GPIOIR_cmd0004
 0x108af0	function	I2CIR_WriteRegister8
+0x108b38	function	memcpy_words
 0x108ca4	function	I2CIR_cmd0015
 0x108d04	function	I2CIR_cmd0006
 0x108d60	function	GPIOIR_cmd0008
@@ -139,6 +142,7 @@
 0x10991c	function	svcCreateEvent
 0x109934	function	join_thread
 0x109974	function	light_event_signal
+0x109a2c	function	register_notification_handler
 0x109abc	function	light_event_init
 0x109af0	function	strlen
 0x109b80	function	panic_on_failure
@@ -210,6 +214,8 @@
 0x10ef18	function	PTMSYSM_NotifySleepPreparationComplete
 0x10ef68	function	GPIOIR_GetGPIOData
 0x10f7e4	function	construct_global_objects
+0x1102f8	function	init_memory_pools
 0x1107ac	function	on_terminate_notification
 0x1107c0	function	on_wakeup_notification
 0x110834	function	on_sleep_notification
+0x1108d4	function	invoke_notification_callback

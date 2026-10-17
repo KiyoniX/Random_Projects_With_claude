@@ -194,6 +194,7 @@
 0x8010d40	function	scheduler_remove_thread
 0x8010de0	function	thread_sleep
 0x8010fd0	function	atomic_cmpxchg_u8
+0x801102c	function	__aeabi_memcpy
 0x8011420	function	thread_add_held_mutex
 0x80115e4	function	ksynchronization_object_construct
 0x8011610	function	dcache_flush_range

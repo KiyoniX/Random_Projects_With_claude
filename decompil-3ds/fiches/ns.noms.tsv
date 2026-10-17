@@ -6,6 +6,7 @@
 0x100a5c	function	strcmp
 0x1011a0	function	subscribe_system_notifications
 0x101540	function	start_shared_font_thread
+0x1016a8	function	create_lock_arbiter_once
 0x101ab4	function	SRV_RegisterClient
 0x101dc4	function	start_apt_thread
 0x101e58	function	svcAcceptSession
@@ -187,10 +188,12 @@
 0x10e5bc	function	is_application_id
 0x10e5cc	function	is_system_applet_id
 0x10e5e0	function	__aeabi_ldivmod
+0x10e708	function	memcpy_words
 0x10e7b0	function	light_event_clear
 0x10e868	function	svcArbitrateAddress
 0x10e8e4	label	static_guard_acquire
 0x10e8f8	function	__aeabi_uidivmod
+0x10e928	function	block_pool_init
 0x10e9c8	function	PMAPP_SetAppResourceLimit
 0x10ea0c	function	PMAPP_GetAppResourceLimit
 0x10ecd8	function	launch_applet_title
@@ -245,11 +248,13 @@
 0x111a4c	function	lock_enter
 0x111a84	function	get_service_handle
 0x111ab8	function	create_thread
+0x111ba8	function	join_thread
 0x111be0	function	nsc_UnlockSpecialContent
 0x111e60	function	subscribe_notification
 0x111e90	function	apt_HardwareResetAsync
 0x111e98	function	reboot_with_firm_params
 0x111f30	function	SRV_PublishToSubscriber
+0x111fc0	function	panic_on_failure
 0x1123e8	function	title_id_from_applet_id
 0x112724	function	panic
 0x112794	function	strlen
@@ -453,7 +458,7 @@
 0x11de2c	function
 0x11de88	function
 0x11dec4	function
-0x11defc	function
+0x11defc	function	init_memory_pools
 0x11e0b4	function
 0x11e0c8	function
 0x11e0dc	function
@@ -477,6 +482,6 @@
 0x11e550	function
 0x11e560	function
 0x11e56c	function
-0x11e570	function
+0x11e570	function	invoke_notification_callback
 0x11e598	function
 0x11e5a0	function

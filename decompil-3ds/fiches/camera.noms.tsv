@@ -13,6 +13,7 @@
 0x100784	label	register_notification_handlers
 0x100824	label	shutdown_services
 0x100880	label	close_session_slot
+0x1008fc	label	make_result_level1
 0x100928	label	is_new3ds
 0x1009e8	label	create_thread_wrapper
 0x100a22	label	register_service
@@ -42,6 +43,7 @@
 0x1035dc	label	y2r_set_temporal_dithering_reg
 0x103b42	label	thread_trampoline
 0x103bec	label	CFG_GetConfigInfoBlk8
+0x103c44	label	errf_close
 0x103c8c	label	ERRF_Throw
 0x103f10	label	CSND_ReleaseSoundChannels
 0x103f40	label	CSND_Shutdown
@@ -136,6 +138,7 @@
 0x10b2cc	label	y2r_set_alpha_reg
 0x10b2e0	label	y2r_set_input_lines_reg
 0x10b30c	label	y2r_set_input_line_width_reg
+0x10b344	function	memcpy_words
 0x10b3b8	label	y2r_set_coefficients_reg
 0x10b448	label	y2r_set_block_alignment_reg
 0x10b464	label	y2r_set_rotation_reg
@@ -144,11 +147,13 @@
 0x10b4b4	label	y2r_clear_start_bit
 0x10b4cc	label	init_session_cache
 0x10b704	label	get_session_camera_mask_unlocked
+0x10b740	function	__aeabi_idivmod
 0x10b9a2	label	get_session_camera_mask_locked
 0x10b9c8	label	session_is_open
 0x10ba5c	label	get_session_camera_mask
 0x10ba7c	label	CAMDEV_cmd0001
 0x10bc58	label	y2r_driver_finalize_impl
+0x10bcbc	label	construct_array
 0x10bd04	label	recursive_unlock
 0x10bd16	label	signal_event_object
 0x10bd5a	label	recursive_lock
@@ -157,11 +162,13 @@
 0x10bf40	label	event_clear_and_close
 0x10bf50	label	event_clear
 0x10bf68	function	svcBindInterrupt
+0x10bf78	label	ipc_copy_to_words
 0x10bf8c	function	svcSendSyncRequest
 0x10bf94	label	ipc_write_header
 0x10bfd8	function	strlen
 0x10c038	label	create_thread
 0x10c058	label	static_guard_acquire
+0x10c06a	label	make_result
 0x10c09c	function	svcWaitSynchronization1
 0x10c0a4	function	svcCreateEvent
 0x10c100	label	scoped_lock_leave
@@ -271,6 +278,7 @@
 0x112354	label	on_notification_10b
 0x11235c	label	resume_cameras_for_shell_open
 0x1123a8	label	pause_cameras_for_shell_close
+0x1124c8	label	static_init_errf_port
 0x112f9c	label	on_terminate_notification
 0x112fc8	label	on_wake_notification
 0x112ff8	label	on_sleep_notification

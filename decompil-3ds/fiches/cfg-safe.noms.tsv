@@ -31,6 +31,7 @@
 0x1011c4	label	close_session
 0x101228	label	make_result_level1
 0x10123c	label	fs_is_initialized
+0x10127a	label	delete_system_save_impl
 0x101290	label	register_mount_point
 0x10131c	label	open_system_save_archive
 0x1013bc	label	FSUSER_SetPriority

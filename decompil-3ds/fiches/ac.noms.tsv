@@ -4,6 +4,7 @@
 0x100318	label	init_runtime
 0x100334	label	init_heap
 0x100418	label	server_main_loop
+0x1005f8	label	make_result_level1
 0x10076c	label	load_network_settings_slots
 0x1008e8	label	set_heap_size
 0x100a68	label	ptm_s_open
@@ -181,16 +182,21 @@
 0x106efc	label	aci_049A
 0x10777c	label	acu_000A_GetLastErrorCode
 0x107790	label	acu_000B_GetLastDetailErrorCode
+0x1078c4	label	unmount_archive
+0x107b3c	label	errf_close
 0x107c28	label	NWMINF_cmd000E
 0x107c78	label	PTMS_NotifySleepPreparationComplete
 0x107df8	label	SRV_GetServiceHandle
+0x108bd4	label	register_mount_point
 0x108d88	label	break_process
 0x109ea0	label	SRV_PublishToSubscriber
+0x10baec	function	shift_left_64
 0x10bb14	label	destroy_array
 0x10bf7c	label	_ZNSs9_C_unlinkEv
 0x10c228	label	_ZNSs9_C_getRepEjj
 0x10c348	label	_ZNSsC1ERKSs
 0x10c384	label	_ZNSsC1EPKcRKSaIcE
+0x10d148	function	__aeabi_idivmod
 0x10d2c4	function	__aeabi_ldivmod
 0x10d650	label	memcmp
 0x10de20	label	job_queue_push
@@ -265,6 +271,7 @@
 0x10fb38	label	acu_0001_CreateDefaultConfig
 0x10fc94	function	strcmp
 0x10fd34	function	__aeabi_memmove
+0x10fefc	label	ipc_copy_to_words
 0x10ffd0	label	job_close
 0x110044	function	__aeabi_uidivmod
 0x110068	label	job_unexclusive
@@ -280,8 +287,11 @@
 0x110bd0	function	svcSendSyncRequest
 0x110bd8	label	ipc_write_header
 0x110bf8	function	strlen
+0x110c74	function	memcpy_words
 0x110ce8	function	get_tls
 0x110cf0	function	svcCreateEvent
+0x110f2c	label	make_result
+0x110fc6	label	construct_array
 0x11106c	label	static_guard_acquire
 0x111148	label	srv_init
 0x1120ac	label	_ZNSt6localeC1Ev
@@ -310,6 +320,7 @@
 0x117674	label	NWMINF_cmd0004
 0x1176a4	label	NWMINF_RecvBeaconBroadcastData
 0x11af74	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE
+0x11b174	label	static_init_errf_port
 0x11bf50	label	_ZNKSt8messagesIcE6do_getEiiiRKSs
 0x11c384	function	svcControlMemory
 0x11c3a8	function	svcCreateAddressArbiter

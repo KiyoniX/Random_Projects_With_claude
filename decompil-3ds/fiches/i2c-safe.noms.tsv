@@ -10,6 +10,7 @@
 0x100600	function	svcAcceptSession
 0x100618	function	svcWaitSynchronizationN
 0x100648	function	strlen
+0x1006a8	function	setup_heap
 0x10075c	function	init_runtime_and_srv
 0x10076c	function	srv_init
 0x100890	function	get_notification_semaphore
@@ -19,6 +20,8 @@
 0x100a2c	function	SRV_RegisterService
 0x100a88	function	SRV_UnregisterService
 0x100adc	function	srv_exit
+0x100b84	function	_get_lc_ctype
+0x100bcc	function	_get_lc_numeric
 0x100c34	function	svcControlMemory
 0x100c58	function	svcCreateThread
 0x100c7c	function	strcmp
@@ -26,6 +29,7 @@
 0x100d74	function	init_heap_region
 0x100db4	function	init_runtime
 0x100dd8	function	init_vm_region_0e000000
+0x100dec	function	init_vm_region_10000000
 0x100e00	function	store_thread_local_owner
 0x100e14	function	SRV_RegisterClient
 0x100e50	function	SRV_EnableNotification
@@ -48,6 +52,7 @@
 0x10185c	function	svcCreateMutex
 0x101874	function	svcDuplicateHandle
 0x10188c	function	svcReplyAndReceive
+0x1018ec	function	session_threads_dtor
 0x101a60	function	reserve_address_range
 0x101da0	function	create_thread_on_heap_stack
 0x101e50	function	thread_dtor
@@ -73,6 +78,8 @@
 0x103fa4	function	i2c_ReadDeviceRaw
 0x104018	function	i2c_WriteCommand8
 0x104130	function	i2c_SetRegisterBits8
+0x104178	function	on_terminate_notification
+0x105280	function	static_init_main_thread_handle
 0x10531c	function	construct_global_objects
 0x1055b8	function	i2c_session_thread_mcu
 0x105624	function	i2c_session_thread_cam

@@ -7,6 +7,7 @@
 0x1001dc	label	ssl_server_stop
 0x10022c	label	set_heap_size
 0x100594	label	ssl_server_init
+0x1006f0	label	make_result_level1
 0x100704	label	ssl_init_ps_and_fs
 0x100950	label	register_notification_handler
 0x100a98	label	ssl_register_services
@@ -19,8 +20,11 @@
 0x1015e4	label	soc_start_session
 0x1016cc	label	server_receive_loop
 0x102232	label	thread_trampoline
+0x102288	label	errf_close
+0x10245c	label	make_result
 0x102fb4	label	break_process
 0x106430	label	sslc_lib_create_context
+0x110860	label	register_mount_point
 0x110f80	label	is_process_id_descriptor
 0x111730	label	sslc_handle_command
 0x111ecc	label	sslmgr_CreateCrlStore
@@ -100,8 +104,10 @@
 0x114480	label	sslc_manager_find_context
 0x1144aa	label	sslc_session_queue_index
 0x1144d0	label	static_guard_acquire
+0x1145a0	label	static_init_errf_port
 0x1148b4	label	sslc_service_descriptor_init
 0x11d610	function	__aeabi_memmove
+0x125b44	label	unmount_archive
 0x125e10	label	ipc_is_read_buffer_desc
 0x1260ec	function	strcmp
 0x126bcc	function	strncpy
@@ -109,12 +115,16 @@
 0x12900c	function	__aeabi_ldivmod
 0x129108	function	strcpy
 0x12939c	label	destroy_array
+0x1293c0	function	__aeabi_idivmod
 0x129b04	function	__aeabi_uidivmod
+0x12a748	label	ipc_copy_to_words
 0x12a804	function	memcpy_unaligned
+0x12b070	label	construct_array
 0x12b144	function	svcGetThreadId
 0x12b1d4	function	svcSendSyncRequest
 0x12b23c	function	strlen
 0x12b29c	function	svcCloseHandle
+0x12b334	function	memcpy_words
 0x141428	function	svcControlMemory
 0x14144c	function	svcCreateAddressArbiter
 0x141464	function	svcQueryMemory
@@ -136,6 +146,7 @@
 0x141830	function	svcGetSystemTick
 0x141838	function	svcMapMemoryBlock
 0x14501c	function	__aeabi_uldivmod
+0x14530c	function	shift_left_64
 0x14a840	label	sslc_manager_vtable
 0x14a910	label	sslc_context_vtable
 0x14a990	label	sslc_session_vtable

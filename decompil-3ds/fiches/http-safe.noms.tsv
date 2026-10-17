@@ -10,6 +10,7 @@
 0x100430	function	srv_connect
 0x100498	function	run_module
 0x100770	function	svcControlMemory
+0x100a98	function	create_lock_arbiter_once
 0x100ad4	function	init_heap_region
 0x100bec	function	ptm_check_new_3ds_cached
 0x100c4c	function	SRV_RegisterClient
@@ -20,6 +21,7 @@
 0x101710	function	svcCreateSemaphore
 0x101728	function	server_start
 0x101cdc	function	PTMS_CheckNew3DS
+0x101e70	function	register_notification_handler
 0x102058	function	SRV_UnregisterService
 0x102180	function	socket_layer_init
 0x1023d8	function	server_worker_loop
@@ -56,6 +58,7 @@
 0x108d98	function	SSLC_ContextClearOpt
 0x108e04	function	SSLC_DestroyRootCertChain
 0x108e34	function	SSLC_CloseClientCertContext
+0x10979c	function	block_pool_init
 0x109964	function	request_receive_data
 0x109cf0	function	request_begin
 0x109f3c	function	request_send_post_data
@@ -63,6 +66,7 @@
 0x10a6b0	function	request_wait_event
 0x10abf8	function	strncpy
 0x10ac64	function	client_find_context
+0x10b2b8	function	__aeabi_memcpy
 0x10b918	function	socket_set_option
 0x10c130	function	light_semaphore_release
 0x10c1a8	function	__aeabi_uidivmod
@@ -72,18 +76,24 @@
 0x10c7c4	function	__aeabi_memmove
 0x10cca0	function	shared_memory_unmap
 0x10cecc	function	heap_alloc_unlocked
+0x10d028	function	light_event_init
 0x10d1a0	label	construct_array
 0x10d1c4	function	svcReplyAndReceive
+0x10d1dc	function	light_event_wait
 0x10d3c8	function	light_event_clear
 0x10d598	function	reserve_address_range
 0x10d7d4	function	svcReleaseSemaphore
 0x10d7ec	function	server_receive_loop
+0x10dff4	function	light_event_signal
+0x10e0ac	function	create_thread
 0x10e1c0	function	release_address_range
+0x10e280	function	memcpy_words
 0x10e470	function	job_queue_push
 0x10e5bc	function	context_core_from_id
 0x10e830	function	strcmp
 0x10e990	function	SRV_GetServiceHandle
 0x10e9c4	function	strlen
+0x10eb98	function	panic_on_failure
 0x10ed64	function	heap_alloc
 0x110444	function	SSLC_InitializeConnectionSession
 0x11047c	function	SSLC_CreateContext
@@ -109,6 +119,7 @@
 0x11360c	function	context_core_set_client_cert_default_impl
 0x113674	function	context_core_add_default_cert_impl
 0x113a58	function	shared_memory_map
+0x113bb0	function	join_thread
 0x113bfc	function	thread_dtor
 0x113e20	function	SSLC_CreateRootCertChain
 0x113e54	function	SSLC_OpenClientCertContext
@@ -188,4 +199,5 @@
 0x118710	function	httpc_0008_InitializeConnectionSession
 0x118834	function	httpc_session_release
 0x1189b4	function	httpc_session_destroy_and_free
+0x119050	function	init_memory_pools
 0x1195bc	function	job_queue_push_blocking

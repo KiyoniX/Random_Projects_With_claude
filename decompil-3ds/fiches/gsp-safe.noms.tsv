@@ -76,6 +76,7 @@
 0x1035d8	function	svcConnectToPort
 0x1035f0	function	svcCreateThread
 0x103614	function	svcGetProcessInfo
+0x103640	function	light_event_init
 0x103674	function	clear_thread_local_storage
 0x1036c0	function	reserve_address_range
 0x10390c	function	pdn_close
@@ -93,6 +94,7 @@
 0x1055c0	function	svcGetProcessId
 0x1055d8	function	svcGetThreadId
 0x1055f0	function	__aeabi_ldivmod
+0x105640	function	light_event_wait
 0x105774	function	wait_on_handle_pointers
 0x105a78	function	ERRF_Throw
 0x105ab0	function	MCUGPU_GetMcuFwVerHigh
@@ -122,6 +124,7 @@
 0x106fcc	function	srv_get_service_handle
 0x107000	function	i2c_close
 0x10712c	function	__aeabi_uidivmod
+0x10715c	function	memcpy_words
 0x1071d0	function	gsplcd_SetBrightnessRaw
 0x1075a8	function	write_hw_regs
 0x10760c	function	dma_release

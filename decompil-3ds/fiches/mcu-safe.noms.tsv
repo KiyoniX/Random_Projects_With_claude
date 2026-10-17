@@ -17,6 +17,8 @@
 0x10102c	function	mcu_upload_firmware
 0x101174	function	create_lock_arbiter_once
 0x1011b0	function	init_heap_region
+0x1011f0	function	init_runtime
+0x10122c	function	init_vm_region_10000000
 0x101240	function	store_thread_local_owner
 0x101254	function	mcu_interrupt_thread_main
 0x101304	function	SRV_RegisterClient
@@ -41,6 +43,7 @@
 0x1019cc	function	svcSleepThread
 0x1019d8	function	heap_alloc_unlocked
 0x101bd4	function	svcDuplicateHandle
+0x101bec	function	session_threads_dtor
 0x101d38	function	thread_dtor
 0x101d78	function	I2CMCU_DisableRegisterBits8
 0x101dc0	function	I2CMCU_SetRegisterBits8
@@ -119,6 +122,7 @@
 0x106a5c	function	mcu_pls_handle_command
 0x106d3c	function	mcu_TriggerInterrupt
 0x106d50	function	mcu_ReadInterrupt
+0x106dc8	function	on_terminate_notification
 0x106dd8	function	mcu_ResetMcu
 0x106dec	function	mcu_ReadGyroscopeValues
 0x106e40	function	mcu_SetRTCHours
@@ -168,6 +172,7 @@
 0x107634	function	mcu_ClearRegister02hBit0
 0x107640	function	mcu_ClearRegister02hBit1
 0x10764c	function	mcu_ReadCameraLedState
+0x107664	function	mcu_ReadRegister4Fh
 0x10771c	function	mcu_GetBatteryTemperature
 0x10772c	function	mcu_GetBatteryChargeState
 0x107760	function	mcu_GetLEDBrightness
@@ -183,6 +188,7 @@
 0x10794c	function	mcu_SetGpuLcdInterfaceState
 0x10798c	function	mcu_SetRTC
 0x1079e0	function	mcu_SetRTCDayOfMonth
+0x107b20	function	static_init_main_thread_handle
 0x107ea0	function	mcu_gpu_session_thread
 0x107f9c	function	mcu_hid_session_thread
 0x1080ec	function	mcu_rtc_session_thread

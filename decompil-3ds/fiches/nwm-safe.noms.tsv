@@ -4,12 +4,14 @@
 # versé est aussi noté dans fiches/noms-propages.tsv. Même format : adresse, function ou label, nom.
 0x1002b4	label	init_runtime
 0x1002d0	label	init_heap
+0x100cc8	label	make_result_level1
 0x100cdc	label	set_heap_size
 0x101274	label	srv_is_initialized
 0x1016e0	label	nwm_server_loop
 0x102046	label	find_notification_handler
 0x1022dc	label	report_fatal_error
 0x102410	label	nwm_uds_session_thread
+0x1047dc	label	errf_close
 0x1049b0	label	cec_handle_command
 0x105070	label	ext_handle_command
 0x1051c4	label	sap_handle_command
@@ -128,6 +130,7 @@
 0x113f6e	label	_ZNSsaSERKSs
 0x1144cc	label	_ZNSs7replaceEjjPKcj
 0x11966c	function	strcmp
+0x11d578	function	shift_left_64
 0x11d9e4	label	_ZNSs9_C_unlinkEv
 0x11dce8	label	_ZNSs9_C_getRepEjj
 0x11de08	label	_ZNSsC1ERKSs
@@ -141,6 +144,7 @@
 0x1202f4	label	uds_get_state
 0x120308	label	uds_get_state_object
 0x120980	function	__aeabi_uidivmod
+0x12109c	function	__aeabi_idivmod
 0x12137c	label	nwm_make_result
 0x121392	label	tst_cmd_0031
 0x1213f8	label	soc_cmd_0008_GetMACAddress
@@ -170,9 +174,13 @@
 0x12226c	label	inf_cmd_0002_shared
 0x122292	label	inf_cmd_0001_shared
 0x123088	label	tst_cmd_0005_shared
+0x12337a	label	ipc_copy_to_words
 0x123410	label	register_notification_handler
 0x1236e4	function	svcCreateEvent
+0x123728	function	memcpy_words
+0x1237b8	label	make_result
 0x123ce0	label	create_thread
+0x123d40	label	construct_array
 0x123d78	function	svcCloseHandle
 0x123e40	function	strlen
 0x123f9c	function	svcSendSyncRequest
@@ -181,6 +189,7 @@
 0x124084	function	svcWaitSynchronization1
 0x12d738	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE
 0x12d7b6	label	static_guard_acquire
+0x12d8d4	label	static_init_errf_port
 0x13a80c	label	_ZNKSt8messagesIcE6do_getEiiiRKSs
 0x13adb0	function	svcControlMemory
 0x13add4	function	svcCreateAddressArbiter

@@ -7,6 +7,7 @@
 0x10012c	label	init_heap
 0x100170	label	server_run
 0x100358	label	server_register_service
+0x100394	label	make_result_level1
 0x1003a8	label	set_heap_size
 0x1004e0	label	server_notification_loop
 0x100518	label	init_components
@@ -36,6 +37,7 @@
 0x1014d4	label	handle_srv_notification
 0x101598	label	server_receive_loop
 0x1018e0	label	create_thread_impl
+0x101958	label	errf_close
 0x1019a0	label	ERRF_Throw
 0x101bc8	label	nwm_ext_open
 0x101c10	label	ptm_s_open
@@ -94,6 +96,7 @@
 0x1045ac	label	daemon_enable_by_index
 0x1045b8	label	check_daemon_mask
 0x1045cc	label	check_daemon_index
+0x104b70	function	__aeabi_idivmod
 0x104e04	function	__aeabi_uidivmod
 0x104e28	function	svcClearEvent
 0x104e9a	label	daemon_request_suspend
@@ -112,7 +115,9 @@
 0x105208	label	lock_leave
 0x105372	label	lock_enter
 0x1053e8	function	svcCloseHandle
+0x105426	label	construct_array
 0x105484	label	handle_request_and_reply
+0x105578	label	ipc_copy_to_words
 0x10558c	function	svcSendSyncRequest
 0x105594	label	ipc_write_header
 0x1055f8	label	unregister_notification_handler
@@ -124,7 +129,9 @@
 0x10595c	label	mutex_guard_release
 0x10597a	label	mutex_guard_init
 0x1059bc	label	report_fatal_error
+0x105a48	function	memcpy_words
 0x105abc	function	get_tls
+0x105ae0	label	make_result
 0x105bec	label	server_main_loop
 0x105cc0	label	scheduler_disable
 0x105cf4	label	scheduler_enable
@@ -206,6 +213,7 @@
 0x108834	label	FRDN_cmd0002
 0x10887c	label	ndmu_0016_GetDefaultDaemons
 0x108908	label	ndmu_session_queue_index
+0x108b1c	label	static_init_errf_port
 0x108b6c	label	build_ndm_service_descriptor
 0x109054	label	exclusive_state_transition
 0x109170	label	ndmu_session_create

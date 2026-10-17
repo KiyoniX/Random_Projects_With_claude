@@ -7,6 +7,7 @@
 0x100430	function	srv_connect
 0x100498	function	run_module
 0x100770	function	svcControlMemory
+0x100a98	function	create_lock_arbiter_once
 0x100ad4	function	init_heap_region
 0x100c40	function	ptm_check_new_3ds_cached
 0x100ca0	function	SRV_RegisterClient
@@ -18,6 +19,7 @@
 0x10177c	function	svcQueryMemory
 0x1017ac	function	server_start
 0x101d64	function	PTMS_CheckNew3DS
+0x101ef8	function	register_notification_handler
 0x1020e0	function	SRV_UnregisterService
 0x102208	function	socket_layer_init
 0x102460	function	server_worker_loop
@@ -66,6 +68,7 @@
 0x109968	function	socket_close
 0x109e14	function	socket_create
 0x109e70	function	socket_connect
+0x10a300	function	block_pool_init
 0x10a3a4	function	request_set_post_type
 0x10a4c8	function	request_receive_data
 0x10a854	function	request_begin
@@ -77,6 +80,7 @@
 0x10b280	function	request_wait_event
 0x10b84c	function	strncpy
 0x10b940	function	client_find_context
+0x10c10c	function	__aeabi_memcpy
 0x10c76c	function	socket_set_option
 0x10cfd0	function	light_semaphore_release
 0x10d048	function	__aeabi_uidivmod
@@ -86,20 +90,26 @@
 0x10d664	function	__aeabi_memmove
 0x10db8c	function	shared_memory_unmap
 0x10ddb8	function	heap_alloc_unlocked
+0x10df14	function	light_event_init
 0x10df48	function	svcSleepThread
 0x10e08c	label	construct_array
 0x10e0b0	function	svcReplyAndReceive
+0x10e0c8	function	light_event_wait
 0x10e2b4	function	light_event_clear
 0x10e484	function	reserve_address_range
 0x10e6c0	function	svcReleaseSemaphore
 0x10e6d8	function	server_receive_loop
+0x10eee0	function	light_event_signal
+0x10ef98	function	create_thread
 0x10f0ac	function	release_address_range
+0x10f16c	function	memcpy_words
 0x10f35c	function	job_queue_push
 0x10f4a8	function	context_core_from_id
 0x10f684	function	context_core_set_state
 0x10f71c	function	strcmp
 0x10f87c	function	SRV_GetServiceHandle
 0x10f8b0	function	strlen
+0x10fa84	function	panic_on_failure
 0x10fc50	function	heap_alloc
 0x110988	function	SSLC_InitializeConnectionSession
 0x1109c0	function	SSLC_CreateContext
@@ -132,6 +142,7 @@
 0x113d80	function	context_core_set_client_cert_default_impl
 0x113e78	function	context_core_add_default_cert_impl
 0x114264	function	shared_memory_map
+0x1143bc	function	join_thread
 0x114408	function	thread_dtor
 0x114764	function	SSLC_CreateCrlStore
 0x114798	function	SSLC_CreateRootCertChain
@@ -345,4 +356,5 @@
 0x119c20	function	httpc_session_destroy_and_free
 0x119dbc	function	svcExitProcess
 0x119dc4	function	httpc_session_queue_index
+0x11a2bc	function	init_memory_pools
 0x11a828	function	job_queue_push_blocking

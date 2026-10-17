@@ -1,4 +1,5 @@
 0x1002b8	label	init_heap
+0x100cb0	label	make_result_level1
 0x100cc4	label	set_heap_size
 0x10128c	label	srv_is_initialized
 0x1016f8	label	nwm_server_loop
@@ -6,6 +7,7 @@
 0x1022f4	label	report_fatal_error
 0x102428	label	nwm_uds_session_thread
 0x104710	label	thread_trampoline
+0x1047f8	label	errf_close
 0x1049cc	label	cec_handle_command
 0x10508c	label	ext_handle_command
 0x1051e0	label	sap_handle_command
@@ -153,6 +155,7 @@
 0x1146e4	label	_ZNSs7replaceEjjPKcj
 0x1197a4	function	strcmp
 0x11d624	function	__aeabi_memmove
+0x11d6b0	function	shift_left_64
 0x11db1c	label	_ZNSs9_C_unlinkEv
 0x11de20	label	_ZNSs9_C_getRepEjj
 0x11df40	label	_ZNSsC1ERKSs
@@ -165,6 +168,7 @@
 0x1204c0	label	uds_get_state
 0x1204d4	label	uds_get_state_object
 0x120b4c	function	__aeabi_uidivmod
+0x121280	function	__aeabi_idivmod
 0x121560	label	nwm_make_result
 0x121576	label	tst_cmd_0031
 0x1215cc	label	tst_cmd_0011_shared
@@ -203,9 +207,13 @@
 0x122476	label	inf_cmd_0001_shared
 0x12324c	label	tst_cmd_0005_shared
 0x12334c	label	nwm_service_handler_for_index
+0x12353e	label	ipc_copy_to_words
 0x1235d4	label	register_notification_handler
 0x1238a8	function	svcCreateEvent
+0x1238ec	function	memcpy_words
+0x12397c	label	make_result
 0x123ea4	label	create_thread
+0x123f04	label	construct_array
 0x123f3c	function	svcCloseHandle
 0x124004	function	strlen
 0x124160	function	svcSendSyncRequest
@@ -214,6 +222,7 @@
 0x124248	function	svcWaitSynchronization1
 0x12d9b8	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE
 0x12da36	label	static_guard_acquire
+0x12db54	label	static_init_errf_port
 0x13aa8c	label	_ZNKSt8messagesIcE6do_getEiiiRKSs
 0x13b038	function	svcControlMemory
 0x13b05c	function	svcCreateAddressArbiter

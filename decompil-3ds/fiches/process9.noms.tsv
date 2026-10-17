@@ -190,6 +190,7 @@
 0x805b2a8	label	destroy_array
 0x805b468	function	svcGetSystemTick
 0x805b488	label	aes_set_mac
+0x805ba14	function	shift_left_64
 0x805bbdc	label	ncch_open_exefs_section
 0x805bd24	function	svcFlushProcessDataCache
 0x805be3c	label	phys_buffer_seek
@@ -216,6 +217,7 @@
 0x8061240	label	sha256_compute
 0x8061976	label	lock_enter
 0x80619d4	function	svcCreateMutex
+0x8061a0e	label	construct_array
 0x8061b14	label	panic_wrapper
 0x8061be0	label	light_lock_acquire
 0x8061bfc	label	panic

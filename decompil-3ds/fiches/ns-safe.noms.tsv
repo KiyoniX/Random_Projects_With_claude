@@ -6,6 +6,7 @@
 0x100900	function	strcmp
 0x100e90	function	subscribe_system_notifications
 0x1011b4	function	start_shared_font_thread
+0x10131c	function	create_lock_arbiter_once
 0x101658	function	SRV_RegisterClient
 0x101968	function	start_apt_thread
 0x101a04	function	svcCreateAddressArbiter
@@ -128,10 +129,12 @@
 0x10d0bc	function	slot_post_notification
 0x10d480	function	parameter_store
 0x10d4e4	function	__aeabi_ldivmod
+0x10d60c	function	memcpy_words
 0x10d8b4	function	light_event_clear
 0x10d96c	function	svcArbitrateAddress
 0x10d984	label	static_guard_acquire
 0x10d998	function	__aeabi_uidivmod
+0x10d9c8	function	block_pool_init
 0x10da68	function	PMAPP_SetAppResourceLimit
 0x10daac	function	PMAPP_GetAppResourceLimit
 0x10dc74	function	launch_applet_title
@@ -176,11 +179,14 @@
 0x1105cc	function	lock_enter
 0x110604	function	get_service_handle
 0x110638	function	create_thread
+0x110728	function	join_thread
 0x110794	function	subscribe_notification
 0x1107c4	function	apt_HardwareResetAsync
 0x1107cc	function	reboot_with_firm_params
 0x110824	function	svcCreateTimer
 0x110884	function	SRV_PublishToSubscriber
+0x110914	function	panic_on_failure
+0x110f94	function	register_notification_handler
 0x1111b0	function	strlen
 0x111250	function	srv_init
 0x111598	function	lock_arbitrate_wait
@@ -250,4 +256,6 @@
 0x1189b4	function	on_notification_103
 0x1189d8	function	on_notification_203
 0x11b538	function	static_init_notification_handlers
+0x11b9fc	function	init_memory_pools
 0x11c00c	function	on_notification_100
+0x11c05c	function	invoke_notification_callback

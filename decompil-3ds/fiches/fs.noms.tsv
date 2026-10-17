@@ -26,6 +26,7 @@
 0x10d2a4	label	open_self_ncch_archive
 0x10f024	label	archive_permission_check
 0x1141e0	function	fill_words
+0x114334	function	block_pool_init
 0x114458	label	fsmgr_read_file
 0x1144f8	function	file_session_read
 0x1147c8	function	fsuser_Initialize
@@ -59,12 +60,17 @@
 0x11bbb4	function	__aeabi_idivmod
 0x11bdf0	function	__aeabi_memmove
 0x11cb46	label	destroy_array
+0x11d4e2	label	construct_array
+0x11d9cc	function	panic_on_failure
+0x11da78	function	shift_left_64
 0x11daa0	function	svcArbitrateAddress
 0x11dc80	function	release_address_range
 0x11dce8	function	lock_leave
 0x11def8	function
+0x11df04	function	memcpy_words
 0x11e024	label	memcmp
 0x11e098	label	clamp_priority
+0x11e0c0	function	__aeabi_memcpy
 0x11e1a8	function	panic
 0x11e1fc	function	strlen
 0x11e2ba	label	guard_release
@@ -97,6 +103,7 @@
 0x123de4	function	svcReplyAndReceive
 0x123dfc	function	strcmp
 0x123eb8	function	server_process_request
+0x123f44	function	create_lock_arbiter_once
 0x123f80	function	reserve_address_range
 0x124130	function	init_heap_region
 0x12424c	function	heap_alloc_unlocked
@@ -110,6 +117,7 @@
 0x124d48	function	thread_trampoline
 0x124d94	function	svcGetProcessInfo
 0x124db0	function	svcGetThreadPriority
+0x124dc8	function	lock_arbitrate_wait
 0x12514c	function	PXIFS_OpenArchive
 0x1251a8	function	SRV_GetServiceHandle
 0x1251f0	function	pool_put
@@ -276,6 +284,7 @@
 0x12ef00	function	fsfile_SetSize
 0x12f058	function	session_control_stub
 0x12f160	function
+0x12f23c	function	join_thread
 0x12f274	function
 0x12f288	function	thread_dtor
 0x12f410	function	PXIFS_CreateFile

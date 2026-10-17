@@ -18,10 +18,13 @@
 0x1007cc	function	SRV_RegisterService
 0x100828	function	SRV_UnregisterService
 0x10087c	function	srv_exit
+0x100918	function	_get_lc_ctype
+0x100960	function	_get_lc_numeric
 0x1009a8	function	strcmp
 0x100a64	function	create_lock_arbiter_once
 0x100aa0	function	init_runtime
 0x100ac4	function	init_vm_region_0e000000
+0x100ad8	function	init_vm_region_10000000
 0x100aec	function	store_thread_local_owner
 0x100b00	function	SRV_RegisterClient
 0x100b3c	function	SRV_EnableNotification
@@ -53,7 +56,10 @@
 0x101b74	function	pdn_i_handle_command
 0x101bfc	function	pdn_s_handle_command
 0x101cb8	function	pdn_c_handle_command
+0x101d40	function	handle_clear
 0x101d4c	function	pdn_set_dsp_state
 0x101d98	function	pdn_set_gpu_state
 0x101e64	function	construct_global_objects
+0x1021bc	function	static_init_main_thread_handle
 0x102328	function	on_terminate_notification
+0x10233c	function	invoke_notification_callback

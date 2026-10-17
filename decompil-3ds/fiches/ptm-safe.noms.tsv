@@ -2,6 +2,7 @@
 # Remplie par « python outils/couverture.py apply » avec la règle « jumeau » : une fonction prend le nom
 # de fiches/ptm.noms.tsv quand elle a le même code à la même place dans les deux modules. Chaque nom
 # versé est aussi noté dans fiches/noms-propages.tsv. Même format : adresse, function ou label, nom.
+0x100000	function	entry
 0x100048	label	call_main
 0x100054	label	run_init_array
 0x1000a8	label	setup_heap
@@ -20,6 +21,7 @@
 0x1007bc	label	ptm_initialize
 0x100be0	label	ptm_finalize
 0x100cec	label	close_session
+0x100d70	label	make_result_level1
 0x100de4	label	create_system_save
 0x100e14	label	delete_system_save
 0x100e4c	label	fs_exit
@@ -52,7 +54,10 @@
 0x101dc4	label	sleep_cb_half_awake_begin
 0x101de0	label	sleep_cb_before_sleep_loop
 0x101e88	label	sync_uuid_clock_sequence
+0x101f26	label	create_system_save_impl
+0x101f66	label	delete_system_save_impl
 0x101f84	label	FSUSER_SendInitializeInfoTo9
+0x101fc0	label	unmount_archive
 0x102040	label	start_thread
 0x10211c	label	CFG_GetConfigInfoBlk8
 0x102168	label	CFG_SetConfigInfoBlk4
@@ -78,7 +83,11 @@
 0x1025b2	label	MCURTC_SetUUIDClockSequence
 0x1026bc	label	play_history_thread_main
 0x102974	label	on_hourly_timer
+0x102a4c	label	srv_close
 0x102aa0	label	message_queue_init
+0x102b0c	label	make_system_save_path
+0x102b58	label	register_mount_point
+0x102c20	label	open_system_save_archive
 0x102cc0	label	FSUSER_SetPriority
 0x102cf8	label	FSUSER_CreateSystemSaveData
 0x102d50	label	FSUSER_DeleteSystemSaveData
@@ -91,9 +100,11 @@
 0x103082	label	MCURTC_GetPlayCountRegisters
 0x1030e8	label	power_thread_loop
 0x103608	label	PXIMC_cmd000A
+0x1036b4	label	make_result
 0x103848	label	FSUSER_OpenArchive
 0x1038a4	label	FSUSER_CloseArchive
 0x1038e0	label	FSUSER_InitializeWithSdkVersion
+0x103c9c	label	errf_close
 0x103cbc	label	errf_connect
 0x103ce4	label	ERRF_Throw
 0x103dbc	label	MCURTC_SetPedometerRecordingMode
@@ -104,7 +115,9 @@
 0x10431c	label	shutdown_sequence
 0x104508	label	SRV_GetServiceHandle
 0x10455c	label	SRV_PublishToSubscriber
+0x104598	label	lock_is_owner
 0x104650	label	message_queue_send_blocking
+0x1046ec	label	fs_commit_archive_impl
 0x104a24	label	static_guard_acquire
 0x104aac	label	signal_if_all_replied
 0x104ac6	label	remove_pending_subscriber
@@ -128,7 +141,9 @@
 0x10530c	function	svcKernelSetState
 0x105314	label	wait_all_replies
 0x10533a	label	publish_and_expect_replies
+0x1053d4	function	memcpy_words
 0x1054c4	label	make_ipc_header
+0x105504	function	__aeabi_idivmod
 0x1057b4	function	__aeabi_uidivmod
 0x1057d8	function	__aeabi_ldivmod
 0x105f7e	label	wait_handle
@@ -150,6 +165,7 @@
 0x10689e	label	light_event_init
 0x1068c0	label	srv_get_service_handle
 0x1068ec	label	ipc_set_write_buffer_desc
+0x106900	function	__aeabi_lmul
 0x10693c	label	pedometer_set_shell_state
 0x106946	label	MCURTC_GetShellState
 0x106b00	label	play_history_stop_thread
@@ -160,6 +176,7 @@
 0x106d34	label	timer_set
 0x106d50	label	timer_create
 0x106d8c	label	clear_heartbeat_record_in_mcu
+0x106de8	function	__ARM_common_switch8
 0x106e48	label	refresh_battery_level
 0x106eb4	label	store_heartbeat_record_in_mcu
 0x106f0c	label	get_current_time
@@ -170,6 +187,7 @@
 0x106ff4	label	refresh_charge_state
 0x10702c	label	refresh_adapter_state
 0x10706c	function	svcSendSyncRequest
+0x107074	label	ipc_copy_to_words
 0x107088	label	ipc_set_header
 0x1070b4	label	lock_guard_enter
 0x1070c4	label	lock_init
@@ -180,6 +198,7 @@
 0x1071d0	function	strlen
 0x107288	label	srv_init
 0x107504	label	break_process
+0x107518	label	fatal_error_unless_minor
 0x107638	label	MCURTC_GetInterruptMask
 0x10766c	label	MCURTC_cmd0035
 0x107698	label	MCURTC_SetInterruptMask
@@ -238,6 +257,9 @@
 0x10adb4	label	on_shell_opened_notification
 0x10ae08	label	on_shell_closed_notification
 0x10ae5c	label	on_notification_20c
+0x10aefe	label	construct_array
+0x10afd4	label	static_init_errf_port
+0x10b45c	label	static_init_main_thread_handle
 0x10b7e0	label	sets_session_context_get
 0x10b7e6	label	session_context_alloc
 0x10b816	label	session_context_free

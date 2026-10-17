@@ -51,6 +51,7 @@
 0x102434	function	svcCreatePort
 0x102454	function	abort
 0x102458	function	break_process
+0x1024ac	function	block_pool_init
 0x10256c	function	heap_alloc_unlocked
 0x10270c	function	heap_find_block
 0x1028f4	function
