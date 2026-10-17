@@ -1153,18 +1153,26 @@ def read_proposed(binary):
     return out
 
 
+def read_hand_entries(name):
+    """{adresse} des entrées trouvées à la main par un lot de reverse : lignes « ABSENTE de funcs.tsv » de
+    local/analyse/<binaire>/noms-proposes*.tsv. Elles comptent au dénominateur même quand leur nom n'est que moyen."""
+    return {int(r[0], 16) for path in glob.glob(os.path.join(ANALYSE, name, 'noms-proposes*.tsv')) for r in read_rows(path)
+            if len(r) > 4 and r[0].startswith('0x') and r[1] in ('function', 'label') and r[4].startswith('ABSENTE')}
+
+
 def read_outside(name):
     """{adresse} de fiches/<binaire>.hors-compte.tsv (adresse, raison) : versionné, puisque le compteur en dépend."""
     return {int(r[0], 16) for r in read_rows(os.path.join(FICHES, name + '.hors-compte.tsv')) if r[0].startswith('0x')}
 
 
-def measure_binary(binary, sources, cited, recompiled, proposed=None, outside=frozenset()):
+def measure_binary(binary, sources, cited, recompiled, proposed=None, outside=frozenset(), hand=frozenset()):
     """Une ligne du compteur. Les adresses sont celles de la fiche. Le dénominateur : fonctions de Ghidra, entrées
     manquées trouvées (add_entries), et lignes « function » de la fiche de noms qui ne sont ni l'une ni l'autre, moins
     les adresses de fiches/<binaire>.hors-compte.tsv (adresse, raison) : une donnée, un milieu de fonction, du
     code mort, relevés à la relecture."""
     starts = {a - binary.base for a in binary.starts}
     declared = {a for a, (kind, _) in name_pass.read_names(binary.names_path).items() if kind == 'function'} - starts
+    declared |= set(hand) - starts
     outside = set(outside) & (starts | declared)
     total = (starts | declared) - outside
     named = {a for a in total if a in binary.names}
@@ -1199,7 +1207,8 @@ def measure(binaries):
             cro['origines'].update(row['origines'])
         else:
             rows.append(measure_binary(b, sources, cited_addresses(fiche_stem(b.names_path)),
-                                       recompiled if b.name == 'maj' else set(), read_proposed(b), read_outside(b.name)))
+                                       recompiled if b.name == 'maj' else set(), read_proposed(b), read_outside(b.name),
+                                       read_hand_entries(b.name)))
     if cro:
         cro['origines'] = dict(sorted(cro['origines'].items()))
         del cro['modules']
