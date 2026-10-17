@@ -13,7 +13,7 @@ Fiche du 14 octobre 2026, produite avec Ghidra lancé directement sous Ubuntu, s
 | Fichier lu | `local/extrait/firm/firm_1_1ff80000.bin` |
 | Point d'entrée ARM11 | `0x1FFAF064` (en-tête du FIRM, mot `+0x08`). Le point d'entrée ARM9 est `0x0801B01C` |
 | Version | noyau **2.58-0**, écrite par le noyau dans la page de configuration (partie 9). Version du SDK du noyau : `0xF450` |
-| Langage | ARM (ARMv6K) partout, sauf trois fonctions Thumb : `0x1FFB0438` (démarrage), `0xFFF0000C` (`destroy_array`, atteinte par le relais ARM `0xFFF00004`) et `0xFFF149E4` (`__aeabi_vec_ctor_nocookie_nodtor`, nom supposé) |
+| Langage | ARM (ARMv6K) partout, sauf trois fonctions Thumb : `0x1FFB0438` (démarrage), `0xFFF0000C` (`destroy_array`, atteinte par le relais ARM `0xFFF00004`) et `0xFFF149E4` (`construct_array`, même empreinte que `construct_array` des autres fiches) |
 | Fonctions | 988 selon Ghidra : 39 + 1 Thumb dans le démarrage, 589 + 1 Thumb dans le bas du code, 337 dans le haut, 21 dans la page des vecteurs. Ghidra manque 38 entrées, dont la table des vecteurs (`0xFFFF0000`), les cinq relais d'exception du bas du code (`0xFFF0060C`…`0xFFF0063C`), la fonction Thumb `0xFFF0000C`, `0xFFF26ED0`, `0xFFFF0578`, `0xFFFF05A0` et six entrées du code de lancement d'un FIRM (`0xFFFF0994`–`0xFFFF0C3C`) ; deux de ses fonctions sont des milieux de fonction et deux du code mort. Total : 1 022 |
 | Fonctions nommées | 359 sur 988 dans `kernel11.noms.tsv`, plus 67 étiquettes de données (tables virtuelles, réserves, variables) |
 | Appels système | 126 cases dans la table (`0x00`–`0x7D`) : 97 font quelque chose, 12 rendent « non implémenté » (`0xF8C007F4`), 17 sont vides |
@@ -94,7 +94,7 @@ Les quatre cœurs entrent ensemble à `0x1FFAF064`, traduction d'adresses coupé
    - Le tas des objets du noyau est installé à `0xFFF70000`. Puis 21 réserves d'objets de taille fixe y sont découpées par `slab_heap_init` (`0xFFF14894`), avec leur taille et leur nombre (partie 4).
 10. Cœur 1 seulement : `allocate_config_and_shared_pages` (`0xFFF01764`), `0xFFF02000`, et `dma_manager_init` (`0xFFF00768`), qui prépare le contrôleur DMA (PL330, `0xFFFC8000` = PA `0x10206000`) et lie ses interruptions `0x39` et `0x3A`. Les minuteries sont préparées par `hardware_timer_init` (`0xFFF01A8C`, interruptions `0x1D` et `0x1E`).
 11. Chaque cœur démarre un **fil de travail du noyau** (`start_core_work_thread`, `0xFFF00DBC`) : il exécute les tâches que les interruptions lui confient (`core_work_thread_main`, `0xFFF029B0`) puis se rendort. Les interruptions sont ouvertes.
-12. **Cœur 0 seulement : les pages partagées et les premiers processus.**
+12. **Cœur 0 seulement : les gestionnaires de tâches, le remplissage de la page de configuration et les premiers processus.**
     - Deux gestionnaires de tâches du noyau sont créés (`worker_task_manager_initialize`, `0xFFF00B00`, sur `0xFFF330E8` puis `0xFFF330FC`, priorités 1 et `0x10`) : chacun a un fil qui exécute les tâches mises en file par `worker_task_enqueue` (`0xFFF1B724`). Les pages de configuration et partagée ont été prises plus tôt, sur le cœur 1, par `allocate_config_and_shared_pages` (`0xFFF01764`). `init_config_memory` (`0xFFF01404`) remplit la première (partie 9).
     - **`create_firm_modules`** (`0xFFF00EA4`) crée les cinq processus du FIRM (ci-dessous).
     - L'état du démarrage (`0xFFF2F0C8`) passe de 1 à 2. `write_slab_heap_info_page` (`0xFFF007FC`) écrit le tableau des réserves (adresse, nombre, taille) dans une page (rôle interprété : une aide au débogage).
@@ -360,7 +360,7 @@ La borne `0x23A` refuse un programme fait pour un noyau plus récent. C'est une 
 
 ## Partie 4 : les objets du noyau
 
-Chaque objet que désigne une poignée est un `KAutoObject` : un pointeur de table virtuelle (`+0x0`) et un compteur de références (`+0x4`, augmenté par `kautoobject_increment_refcount` `0xFFF18B20`). Quand le compteur retombe à 0 (`kautoobject_close`, `0xFFF27494`), la méthode `+0x8` de la table virtuelle détruit l'objet : elle le retire de la liste de sa classe (`object_container_unregister`, `0xFFF1E244`), appelle sa méthode de fin (`+0xC`) et rend sa place à la réserve (`slab_free`, `0xFFF1C820`).
+Chaque objet que désigne une poignée est un `KAutoObject` : un pointeur de table virtuelle (`+0x0`) et un compteur de références (`+0x4`, augmenté par `kauto_object_increment_refcount` `0xFFF18B20`). Quand le compteur retombe à 0 (`kauto_object_close`, `0xFFF27494`), la méthode `+0x8` de la table virtuelle détruit l'objet : elle le retire de la liste de sa classe (`object_container_unregister`, `0xFFF1E244`), appelle sa méthode de fin (`+0xC`) et rend sa place à la réserve (`slab_free`, `0xFFF1C820`).
 
 Les objets ne sont jamais pris dans un tas général. Chaque classe a sa **réserve** (« slab heap ») de places de taille fixe, découpée une fois pour toutes au démarrage ; une réserve vide fait échouer la création. Le type d'un objet se lit par la méthode `+0x18` de sa table, qui rend son nom et un **jeton de classe**. Un objet appartient à la classe C si `jeton(objet) | jeton(C) == jeton(objet)` : les bits d'un jeton sont ceux de ses ancêtres. Par exemple, le bit 0 est celui des objets qu'on peut attendre.
 
