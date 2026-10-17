@@ -12,7 +12,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Fichier lu | `local/extrait/ptm/exefs/code.elf` |
 | Taille | 50 416 octets de code, 2 212 de données en lecture seule, 1 168 de données, 13 596 de mémoire à zéro |
 | Jeu d'instructions | Thumb presque partout : 746 fonctions Thumb et 67 ARM (le démarrage, les appels système, les calculs) |
-| Fonctions | 813 pour Ghidra lancé avec des graines Thumb (663 par le pont REA seul), dont 317 nommées dans `ptm.noms.tsv` |
+| Fonctions | 813 pour Ghidra lancé avec des graines Thumb (663 par le pont REA seul), plus 2 entrées manquées (815 ; la troisième entrée de couverture.py, 0x105620, est un morceau de la division, dans ptm.hors-compte.tsv) ; 322 nommées dans ptm.noms.tsv, 815 avec local/analyse/ptm/noms-proposes.tsv |
 | Services offerts | `ptm:u`, `ptm:sysm`, `ptm:s`, `ptm:play`, `ptm:gets`, `ptm:sets` : cinq aiguillages, 49 commandes au plus |
 | Services appelés | `mcu::RTC`, `pdn:s`, `pxi:mc`, `pm:app`, `cfg:s`, `fs:USER`, plus `srv:` et le port `err:f` |
 | Dépendances déclarées | `cfg` (`0004013000001702`), `gpio` (`…1B02`), `i2c` (`…1E02`), `mcu` (`…1F02`), `pdn` (`…2102`), `spi` (`…2302`) |
@@ -24,7 +24,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 `entry` (`0x100000`) appelle sept fonctions à la suite, puis `svcExitProcess` :
 
 1. `clear_bss` (`0x100024`) met à zéro la mémoire de `0x10e490` à `0x1119ac`.
-2. Une fonction non lue (`0x100070`).
+2. `init_program_args` (`0x100070`) : les tables de `_get_lc_ctype` et `_get_lc_numeric`.
 3. `init_runtime_and_srv` (`0x1000b4`) prépare les verrous (`init_runtime`, `0x1000c0`), puis `srv_init` (`0x107378`) se connecte au port `srv:` et s'y déclare (`SRV_RegisterClient`).
 4. `setup_heap` (`0x1000a8`) réserve un tas de `0x1000` octets à `0x08000000` (`set_heap_size`, `0x1003ec`).
 5. `run_static_initializers` (`0x1087b4`) appelle les 29 fonctions d'initialisation des objets globaux, par la table de distances de `0x10d830` à `0x10d8a4`. La plus grosse, `init_globals` (`0x10b110`), remplit la table des services et range les adresses des objets de la partie 8.
@@ -33,7 +33,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 
 `ptm_main` enregistre les six services, puis appelle `ptm_initialize` (`0x1007ec`), qui fait dans l'ordre :
 
-1. `fs_init` (`0x100db4`) ouvre `fs:USER`, puis la sauvegarde système `0x00010022` est montée sous le nom `ptmdb:`. Si le montage échoue, le code la crée ou la recrée (`create_system_save_data`, `delete_system_save_data`) : ce chemin n'est pas détaillé ici.
+1. `fs_init` (`0x100db4`) ouvre `fs:USER`, puis la sauvegarde système `0x00010022` est montée sous le nom `ptmdb:`. Si le montage échoue, le code la crée ou la recrée (`create_system_save`, `delete_system_save`) : ce chemin n'est pas détaillé ici.
 2. `pmapp_init` (`0x1018c4`) ouvre `pm:app`, puis `pdn:s` et `mcu::RTC` sont ouverts. La poignée de `mcu::RTC` est rangée à `0x10e28c` et recopiée à `0x10e290`.
 3. `MCURTC_GetInfoRegisters` lit dix octets ; le premier, passé par une table de sept cas, donne trois octets écrits dans la page partagée à `0x1FF81004`, `0x1FF81005` et `0x1FF81006`. Le bloc de configuration `0x000F0004` est relu et corrigé s'il ne dit pas la même chose.
 4. `power_manager_init` (`0x101104`) ouvre `pxi:mc`, crée le fil d'alimentation et inscrit le gestionnaire de la notification `0x179`.
@@ -67,7 +67,7 @@ Les trois minuteries du fil principal :
 Comme dans `sm`, une seule boucle sert tout : elle est dans `ptm_main`, la seule fonction qui appelle `svcReplyAndReceive` et `svcAcceptSession`.
 
 1. **Les services.** La table de `0x10e2c8` a six entrées de 8 octets : un pointeur vers le nom et le nombre de sessions permises. Pour chacune, `SRV_RegisterService` (`0x100604`) rend un port, rangé à partir de `0x11191c`.
-2. **Les notifications.** `on_terminate_notification` est inscrit pour `0x100`, `srv_get_notification_semaphore` (`0x10053c`) obtient le sémaphore des notifications, et `SRV_Subscribe` (`0x10722c`) abonne le module à `0x213`, `0x214` et `0x20C`.
+2. **Les notifications.** `on_terminate_notification` est inscrit pour `0x100`, `srv_enable_notification` (`0x10053c`) obtient le sémaphore des notifications, et `SRV_Subscribe` (`0x10722c`) abonne le module à `0x213`, `0x214` et `0x20C`.
 3. **La liste des poignées.** Elle est à `0x111908`, son compteur à `0x10e440`. Elle a 41 cases : 11 fixes, puis 30 sessions au plus.
 
 | Rang | Poignée | Quand elle sonne |
@@ -472,27 +472,27 @@ Chaque appel système n'apparaît qu'une fois dans le code, dans sa petite envel
 | Appel | Numéro | Fonction | Adresse | Appelée par |
 | --- | --- | --- | --- | --- |
 | ControlMemory | `0x01` | `svcControlMemory` | `0x10bb9c` | `set_heap_size` |
-| QueryMemory | `0x02` | `svcQueryMemory` | `0x10bbd8` | une fonction non nommée (`0x100498`) |
-| ExitProcess | `0x03` | `svcExitProcess` | `0x10ba28` | `entry` et `0x10af64` |
+| QueryMemory | `0x02` | `svcQueryMemory` | `0x10bbd8` | `init_vm_region_0e000000` (`0x100498`) |
+| ExitProcess | `0x03` | `svcExitProcess` | `0x10ba28` | `entry` et `default_exit_handler` (`0x10af64`) |
 | CreateThread | `0x08` | `svcCreateThread` | `0x10bc8c` | `create_thread` |
 | ExitThread | `0x09` | `svcExitThread` | `0x10be74` | `thread_trampoline` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x10bcb0` | `sleep_thread` |
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x10bc14` | `ptm_initialize`, `power_manager_init` |
-| SignalEvent | `0x18` | `svcSignalEvent` | `0x10be7c` | `signal_if_all_replied`, `0x107ccc` |
+| SignalEvent | `0x18` | `svcSignalEvent` | `0x10be7c` | `signal_if_all_replied`, `alarm_fire` (`0x107ccc`) |
 | ClearEvent | `0x19` | `svcClearEvent` | `0x10be6c` | `publish_and_expect_replies` |
 | CreateTimer | `0x1A` | `svcCreateTimer` | `0x10bc2c` | `start_hourly_timer`, `timer_create` |
-| SetTimer | `0x1B` | `svcSetTimer` | `0x106610` | `start_hourly_timer`, `timer_set`, `0x109088` |
+| SetTimer | `0x1B` | `svcSetTimer` | `0x106610` | `start_hourly_timer`, `timer_set`, `pedometer_get_step_history_all_impl` (`0x109088`) |
 | CancelTimer | `0x1C` | `svcCancelTimer` | `0x10bc6c` | `timer_cancel` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x10bbc0` | `create_address_arbiter` |
-| ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x10c424` | `0x104874`, `0x1055d4` |
+| ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x10c424` | `light_semaphore_acquire` (`0x104874`), `arbitrate_address` (`0x1055d4`) |
 | CloseHandle | `0x23` | `svcCloseHandle` | `0x107204` | 11 fonctions |
 | WaitSynchronization1 | `0x24` | `svcWaitSynchronization1` | `0x1065fc` | `sleep_cb_half_awake`, `wait_handle_timeout`, `play_history_stop_thread` |
-| DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x10c4d8` | `0x10900c` |
-| GetSystemTick | `0x28` | `svcGetSystemTick` | `0x10be04` | `0x104508`, `0x108970` |
-| GetProcessInfo | `0x2B` | `svcGetProcessInfo` | `0x10bc44` | `0x100f34` |
+| DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x10c4d8` | `main_thread_handle_ctor` (`0x10900c`) |
+| GetSystemTick | `0x28` | `svcGetSystemTick` | `0x10be04` | `shared_page_read_time` (`0x104508`), `fs_throttle` (`0x108970`) |
+| GetProcessInfo | `0x2B` | `svcGetProcessInfo` | `0x10bc44` | `init_linear_address_offset` (`0x100f34`) |
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x10bc74` | `srv_connect`, `errf_connect` |
 | SendSyncRequest | `0x32` | `svcSendSyncRequest` | `0x10715c` | les 90 fonctions de la partie 7 |
-| GetProcessId | `0x35` | `svcGetProcessId` | `0x10bdec` | `report_fatal_error`, `0x107b98` |
+| GetProcessId | `0x35` | `svcGetProcessId` | `0x10bdec` | `report_fatal_error`, `alarm_update_wakeup_trigger` (`0x107b98`) |
 | Break | `0x3C` | `svcBreak` | `0x10be64` | `break_process` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x10bacc` | `ptm_main` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x10bae4` | `ptm_main` |
@@ -511,7 +511,7 @@ Chaque appel système n'apparaît qu'une fois dans le code, dans sa petite envel
 | `3, 1` puis `7, 0` | `reboot_sequence` | Le redémarrage |
 | `10, octet` | `configure_new3ds_cpu` | La commande ConfigureNew3DSCPU |
 
-Les verrous du module (`critical_section_enter` à `0x106da4`, `critical_section_leave` à `0x10703e`) et ses signaux légers (`light_event_signal`, `light_event_clear`, `light_event_wait`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
+Les verrous du module (`lock_enter` à `0x106da4`, `lock_leave` à `0x10703e`) et ses signaux légers (`light_event_signal`, `light_event_clear`, `light_event_wait`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
@@ -536,7 +536,7 @@ Les verrous du module (`critical_section_enter` à `0x106da4`, `critical_section
 - Le masque d'interruptions du microcontrôleur pendant le sommeil : le code y écrit la réunion des réveils demandés ; le sens exact de chaque bit est dans le module `mcu`.
 - Le rôle des deux requêtes à `pxi:mc`, des requêtes `0x23` et `0x35` à `mcu::RTC`, et de l'événement 8, 9 ou 10 du journal de jeu.
 - Ce que font les sept fonctions appelées aux étapes de la veille (`sleep_cb_…`, `power_cb_shutdown`) : seuls leurs appels au microcontrôleur et aux minuteries sont sûrs. « Programme une alarme » et « range l'heure courante dans les registres libres » sont des lectures rapides.
-- Les priorités des fils : le code passe les constantes `0x6C8DA504` (alimentation) et `0x6C8DA53E` (journal), que la fonction `0x103a10` ramène à 4 et à `0x3E`.
+- Les priorités des fils : le code passe les constantes `0x6C8DA504` (alimentation) et `0x6C8DA53E` (journal), que `thread_priority_convert` (`0x103a10`) ramène à 4 et à `0x3E`.
 - Le découpage de l'objet « alimentation » et la disposition d'un réveil déclaré.
 - Les trois octets écrits à `0x1FF81004` au démarrage, et le bloc `0x000F0004`.
 - Le drapeau de l'exheader `0xFF000388` : ses bits 3 et 7 donneraient à `ptm` le droit d'écrire dans la page partagée et de continuer à tourner pendant la veille. Lu de mémoire dans 3dbrew, pas vérifié ici.
@@ -550,7 +550,7 @@ Les verrous du module (`critical_section_enter` à `0x106da4`, `critical_section
 - Les voyants : les quatre commandes `0x0801` à `0x0804` ne font que transmettre au microcontrôleur, leurs paramètres ne sont pas décrits.
 - La couche de fichiers (`0x108964` à `0x109000`) et la création de la sauvegarde.
 - 28 des 29 fonctions d'initialisation des objets globaux, la réserve de mémoire, les fonctions de calcul en ARM à la fin du code.
-- 494 fonctions restent sans nom.
+- aucune ; 458 noms restent de confiance moyenne.
 
 ## Comment cette fiche a été faite
 
@@ -569,7 +569,7 @@ Les verrous du module (`critical_section_enter` à `0x106da4`, `critical_section
 
 **Trois autres choses à savoir en relisant dans Ghidra.**
 - **Les « switch ».** Chaque aiguillage saute par `0x106ed8`, une aide du compilateur écrite en ARM et appelée depuis du Thumb, suivie d'une table d'octets : le nombre de cas, puis un octet par cas et un pour le cas par défaut ; la cible est l'adresse de retour plus deux fois l'octet. Ghidra reconnaît l'aide mais ne retrouve pas les cibles (« Could not recover jumptable »). Il faut les lui donner : c'est ce que fait `PtmSwitch.java` à partir de `switches.tsv`.
-- **Ne pas nommer `0x106ed8` dans le fichier de graines.** Une graine `function` à cette adresse crée la fonction avant l'analyse, Ghidra ne la reconnaît plus comme aide de saut, et tout ce qui suit un « switch » est perdu : REA tombait de 660 à 629 fonctions. Elle n'a donc pas de ligne dans `ptm.noms.tsv` ; Ghidra la nomme de lui-même `switch8_r3`.
+- **Ne pas nommer `0x106ed8` dans le fichier de graines.** Une graine `function` à cette adresse crée la fonction avant l'analyse, Ghidra ne la reconnaît plus comme aide de saut, et tout ce qui suit un « switch » est perdu : REA tombait de 660 à 629 fonctions. Elle a donc une ligne `label`, et non `function`, dans `ptm.noms.tsv` (`__ARM_common_switch8`) : par le pont REA une ligne `label` ne pose pas de graine, et `ghidra_direct.py`, qui reconnaît l'aide à son code avant l'analyse, ne fait que la renommer.
 - **Par le pont REA seul**, 56 des 317 noms restent de simples étiquettes sans fonction derrière : les cinq aiguillages, les commandes de `ptm:sysm`, cinq des sept fonctions de la veille, quatre gestionnaires de notifications. Pour les voir en pseudo-code, lancer `local/analyse/ptm/ghidra/run.sh` sous WSL, qui range tout dans `local/analyse/ptm/gh/`. Dans l'interface de Ghidra : se placer sur l'adresse, F12 pour désassembler en Thumb, F pour créer la fonction.
 
 **Pour reprendre.** `ptm.noms.tsv` est le fichier de graines : une adresse, `function` pour les 29 fonctions ARM ou `label` pour les 288 fonctions Thumb, un nom. Les noms en majuscules (`SRV_`, `MCURTC_`, `PDNS_`, `CFG_`…) sont les requêtes que `ptm` envoie à un autre service ; ceux en `ptm_`, `ptmsysm_`, `ptmplay_`, `ptmgets_` et `ptmsets_` sont les commandes qu'il reçoit. Dans `local/analyse/ptm/`, non versionné : `names.txt` et `names.py` (les noms et la fabrication du fichier de graines), `ghidra/` (les quatre scripts et `run.sh`), `gh/` (pseudo-code, assembleur annoté, références), `emu.py` (l'émulation des aiguillages), `switches.py`, `stubs.py`, `mktables.py`.
