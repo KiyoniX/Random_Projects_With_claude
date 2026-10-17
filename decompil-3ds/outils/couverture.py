@@ -82,11 +82,16 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
 
    La confiance suit la règle du carnet, deux voies indépendantes (colonne « règle » de proposals.tsv) :
     haute    (a) au moins deux binaires d'origine portent ce nom sur ce code (deux fiches qui s'accordent ; un nom
-             qu'apply a propagé, listé dans fiches/noms-propages.tsv, n'est pas un témoin et ne compte pas), ou
-             (b) le nom se prouve seul : symbole C++ manglé (_Z...), bibliothèque C (memcpy, strlen...) ou exécution
-             du compilateur (__aeabi_*, __cxa_*, __rw_*...), ou svc<Nom> sur une fonction ARM qui n'est que cet appel
-             système, du bon numéro (octets relus par name_pass.decode_svc et is_pure_svc_wrapper).
-             Et au moins --min instructions (8), sauf pour (b:svc).
+             qu'apply a propagé, listé dans fiches/noms-propages.tsv, n'est pas un témoin et ne compte pas, et un
+             module et sa variante « -safe » ne comptent que pour un), ou
+             (b) le nom se prouve seul : symbole C++ manglé (_Z...), bibliothèque C (strlen, memcmp... ; pas memcpy,
+             memmove ni memset, qu'armcc double de __aeabi_memcpy qui rend dest + n) ou exécution du compilateur
+             (__aeabi_*, __cxa_*, __rw_*...), ou svc<Nom> sur une fonction ARM qui n'est que cet appel système, du bon
+             numéro (octets relus par name_pass.decode_svc et is_pure_svc_wrapper) : un svc<Nom> n'est haute que
+             par là. Et au moins --min instructions (8), sauf pour (b:svc).
+             (jumeau) une fonction d'une variante « -safe » qui a l'empreinte d'une fonction nommée du module normal
+             ET la même place dans les deux suites de fonctions alignées par adresse (même code source, même
+             fonction : fiches/safe.md) ; sauf les adresses refusées par la relecture (exclusions*.tsv).
     moyenne  le reste : une seule origine ; moins de --min instructions ; un nom qui contient un mot de service
              (cfg, ptm, nwm... délimité par « _ » ; pas srv, errf, svc*, ni « ns » en dernier mot) sans que la
              fonction cite dans sa réserve la chaîne « xxx:yyy » de ce service ; un nom d'ouverture ou de fermeture de
@@ -161,6 +166,7 @@ NAME_PASS_PROPOSALS = os.path.join(name_pass.OUT, 'proposals.tsv')
 MIN_HIGH = 8
 MIN_LOW = 4
 GAME = 'jeu'                            # l'espace de noms de code.bin (« maj ») et des .cro
+SAFE = '-safe'                          # la variante du mode sans échec d'un module (fiches/safe.md)
 # Des noms qui disent une adresse ou un défaut d'outil, pas une fonction : on ne les recopie pas ailleurs.
 # Seulement les formes automatiques (Ghidra, trous du recompilateur, doublons « _alt_ » de name_pass) : un vrai nom
 # peut finir par une adresse (init_vm_region_10000000).
@@ -513,9 +519,13 @@ def find_entries(binary):
         return (starts[i - 1] if i else None), (starts[i] if i < len(starts) else None)
 
     def inside(origin, target):
-        """La cible reste dans la fonction de Ghidra d'où elle part (sa taille, ou jusqu'au début suivant)."""
+        """La cible reste dans la fonction de Ghidra d'où elle part (sa taille, ou jusqu'au début suivant). Pour un mot
+        de réserve connu (lu par un ldr pc de sa fonction), seule la taille compte : au-delà, c'est l'adresse d'une
+        autre fonction (main_thread_terminate_handler, un « bl abort » seul, juste après la réserve), pas une case."""
         first, end = region(origin)
-        return first is not None and (first in covering(target) or first <= target < (end or target + 1))
+        if first is None:
+            return False
+        return first in covering(target) or origin not in pools and first <= target < (end or target + 1)
 
     def note(target, mode, kind, origin):
         if target in binary.starts or target in found or not binary.image.in_code(target) or mode == 'arm' and target & 3:
@@ -637,7 +647,9 @@ def make_proposal(binary, address, name, source, confidence, proof, mode, rule='
 
 # Un nom de la bibliothèque C ou de l'exécution du compilateur : la fonction est la même partout où le code l'est.
 RUNTIME_NAME = re.compile(r'^(?:_Z|__aeabi_|__cxa_|__cxx|__rw_|__ARM_|__rt_|__gnu_)')
-LIBC_NAMES = set('memcpy memmove memset memcmp memchr strlen strnlen strcpy strncpy strcat strncat strcmp strncmp strchr '
+# memcpy, memmove et memset n'y sont pas : armcc a aussi __aeabi_memcpy, qui rend dest + n au lieu de dest, avec un
+# code presque pareil ; c'est la règle (a) qui les nomme.
+LIBC_NAMES = set('memcmp memchr strlen strnlen strcpy strncpy strcat strncat strcmp strncmp strchr '
                  'strrchr strstr strspn strcspn strpbrk strtok strtol strtoul strtoll strtoull strtod atoi atol wcslen '
                  'wcscpy wcscmp wcsncmp wcsncpy sprintf snprintf vsprintf vsnprintf printf abs labs qsort bsearch rand srand '
                  'malloc free calloc realloc tolower toupper setjmp longjmp sqrt sqrtf sin sinf cos cosf tan tanf atan atanf '
@@ -705,6 +717,8 @@ def grade(binary, address, print_, name, origins, ipc, min_high):
     bibliothèque C ou exécution du compilateur, enrobage svc vérifié sur les octets)."""
     if is_pure_svc(binary, address, name):
         return 'haute', 'b:svc'
+    if re.match(r'svc[A-Z]', name):
+        return 'moyenne', 'svc<Nom> : haute seulement par les octets (enrobage pur, bon numéro)'
     if ipc:
         return 'basse', 'envoi IPC : le service dépend d\'un handle masqué'
     if print_.count < min_high:
@@ -735,13 +749,51 @@ CONFIDENCE_RANK = {'basse': 1, 'moyenne': 2, 'haute': 3}
 PROPOSALS_HEADER = ('binaire', 'adresse', 'nom', 'source', 'confiance', 'règle', 'preuve')
 
 
-def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=frozenset()):
+def family(name):
+    """Un module et sa variante « -safe » : le même code source, une seule origine pour la règle (a)."""
+    return name[:-len(SAFE)] if name.endswith(SAFE) else name
+
+
+def twins(binaries, prints, excluded=frozenset()):
+    """La règle « jumeau » : [(variante, adresse, nom, module, adresse dans le module)]. Les fonctions du module et de
+    sa variante « -safe », chacune dans l'ordre des adresses, sont alignées sur leurs empreintes (la plus longue suite
+    commune, difflib) ; une fonction sans nom de la variante qui a l'empreinte d'une fonction nommée du module ET la
+    même place dans l'alignement en prend le nom. Pas si l'une des deux adresses est refusée par la relecture."""
+    import difflib
+    by_name = {b.name: b for b in binaries}
+    out = []
+    for safe in binaries:
+        normal = by_name.get(family(safe.name)) if safe.name.endswith(SAFE) else None
+        if normal is None or safe.name not in prints or normal.name not in prints:
+            continue
+        left, right = sorted(prints[normal.name]), sorted(prints[safe.name])
+        left_digests = [prints[normal.name][a].digest for a in left]
+        right_digests = [prints[safe.name][a].digest for a in right]
+        # Un code présent deux fois dans un module (deux enrobages de commandes pareils) rend la place ambiguë : quand
+        # la variante perd des commandes (http-safe, huit de moins), l'alignement pourrait donner le nom du voisin.
+        once = {d for d, n in collections.Counter(left_digests + right_digests).items() if n == 2}
+        matcher = difflib.SequenceMatcher(None, left_digests, right_digests, autojunk=False)
+        for i, j, size in matcher.get_matching_blocks():
+            for k in range(size):
+                here, there = left[i + k], right[j + k]
+                if left_digests[i + k] not in once:
+                    continue
+                name = normal.name_at(here)
+                refused = (normal.name, here - normal.base) in excluded or (safe.name, there - safe.base) in excluded
+                if usable(name) and safe.name_at(there) is None and not refused:
+                    out.append((safe, there, name, normal, here))
+    return out
+
+
+def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=frozenset(), excluded=frozenset()):
     """Rend (propositions, conflits [(empreinte, instructions, [(binaire, adresse, nom)])], compte). propagated : les
-    (binaire, adresse de fiche, nom de fiche) de fiches/noms-propages.tsv, qui ne comptent pas comme origine."""
+    (binaire, adresse de fiche, nom de fiche) de fiches/noms-propages.tsv, qui ne comptent pas comme origine ;
+    excluded : les (binaire, adresse de fiche) refusées par la relecture (exclusions*.tsv), pour les jumeaux."""
 
     def independent(witnesses):
-        """Les binaires d'origine des témoins [(binaire, adresse, nom)], sans les noms qu'apply a propagés."""
-        return sorted({b.name for b, a, n in witnesses if (b.name, a - b.base, b.prefix + n) not in propagated})
+        """Les origines des témoins [(binaire, adresse, nom)], sans les noms qu'apply a propagés ; un module et sa
+        variante « -safe » comptent pour un."""
+        return sorted({family(b.name) for b, a, n in witnesses if (b.name, a - b.base, b.prefix + n) not in propagated})
 
     modes = {(b.name, a): m for b in binaries for a, _, m in b.functions}
     clusters = collections.defaultdict(list)
@@ -757,6 +809,11 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
                 hashlib.blake2b(repr((pr.digest, callees, tails)).encode(), digest_size=12).hexdigest()
             clusters[key].append((b, address))
     proposals, conflicts, stats, seen = [], [], collections.Counter(), {}
+    # Les fonctions dont la grappe porte deux noms : la voie des appelées ne les nomme pas.
+    disputed = set()
+    for members in clusters.values():
+        if len({b.name_at(a) for b, a in members if usable(b.name_at(a))}) > 1:
+            disputed.update((b.name, a) for b, a in members)
 
     def sends_ipc(b, a):
         """Un envoi IPC dans la fonction ou dans une appelée de quatre instructions au plus (lecture du tampon de
@@ -764,10 +821,11 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
         own = prints[b.name]
         return own[a].ipc or any(t & ~1 in own and own[t & ~1].ipc and own[t & ~1].count <= 4 for t in own[a].calls)
 
-    def add(binary, address, name, source, origins, proof):
-        """Une proposition, jugée ; la même (binaire, adresse, nom) venue par deux chemins garde la confiance la plus haute."""
-        confidence, rule = grade(binary, address, prints[binary.name][address], name, origins, sends_ipc(binary, address),
-                                 min_high)
+    def add(binary, address, name, source, origins, proof, judged=None):
+        """Une proposition, jugée (ou déjà jugée : judged = (confiance, règle)) ; la même (binaire, adresse, nom) venue
+        par deux chemins garde la confiance la plus haute."""
+        confidence, rule = judged or grade(binary, address, prints[binary.name][address], name, origins,
+                                           sends_ipc(binary, address), min_high)
         p = make_proposal(binary, address, name, source, confidence, proof, modes[(binary.name, address)], rule)
         key = (binary.name, address, name)
         if key not in seen:
@@ -811,7 +869,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
             callees = []
             for b, a, targets in calls:
                 target = targets[rank] & ~1
-                if target in b.starts:
+                if target in b.starts and (b.name, target) not in disputed:
                     callees.append((b, a, target))
             known = [(b, a, t, b.name_at(t)) for b, a, t in callees if usable(b.name_at(t))]
             names = {n for _, _, _, n in known}
@@ -827,6 +885,14 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
                         'appelle à ce rang %s@%#x « %s »' % (rank, b.name, a - b.base, digest, count, witness[0].name,
                                                              witness[1] - witness[0].base, witness[0].name,
                                                              witness[2] - witness[0].base, name))
+    for safe, there, name, normal, here in twins(binaries, prints, excluded):
+        add(safe, there, name, 'jumeau:' + normal.name, [normal.name],
+            'jumeau : empreinte %s identique (%d instructions) à %s@%#x « %s », à la même place dans l\'alignement des '
+            'fonctions de %s et %s' % (prints[safe.name][there].digest, prints[safe.name][there].count, normal.name,
+                                       here - normal.base, name, normal.name, safe.name),
+            judged=('haute', 'jumeau') if not re.match(r'svc[A-Z]', name) or is_pure_svc(safe, there, name) else
+            ('moyenne', 'svc<Nom> : haute seulement par les octets (enrobage pur, bon numéro)'))
+        stats['jumeaux'] += 1
     stats['propositions brutes'] = len(proposals)
     return proposals, conflicts, stats
 
@@ -859,7 +925,7 @@ def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
             prints[b.name] = fingerprints(b)
     print('%d binaires, %d avec leurs octets, %d fonctions empreintes' % (
         len(binaries), len(prints), sum(len(v) for v in prints.values())), flush=True)
-    proposals, conflicts, stats = propose(binaries, prints, min_high, min_low, read_propagated())
+    proposals, conflicts, stats = propose(binaries, prints, min_high, min_low, read_propagated(), read_excluded())
     kept, dropped = reconcile_all(binaries, proposals)
     os.makedirs(out_dir, exist_ok=True)
     name_pass.write_tsv(os.path.join(out_dir, 'proposals.tsv'),
@@ -903,6 +969,13 @@ def read_rows(path):
         return []
     lines = [line.rstrip('\r\n') for line in open(path, encoding='utf-8')][1:]
     return [line.split('\t') for line in lines if line and not line.startswith('#')]
+
+
+def read_excluded(folder=OUT):
+    """{(binaire, adresse)} de toutes les exclusions relues (local/analyse/names-croises/exclusions*.tsv)."""
+    import glob
+    return {(r[0], int(r[1], 16)) for path in glob.glob(os.path.join(folder, 'exclusions*.tsv'))
+            for r in read_rows(path) if len(r) > 1 and r[1].startswith('0x')}
 
 
 def read_propagated(path=PROVENANCE):
@@ -1238,7 +1311,9 @@ def test():
         return [(p.confidence, p.rule.split(' ')[0]) for p in props if p.binary.name == 'r3' and p.address == 0x00700000]
     check(graded('heap_find_block') == [('haute', 'a')], 'deux binaires d\'origine : haute (a)')
     check(graded('heap_find_block', names_in=('r1',)) == [('moyenne', 'une')], 'une seule origine : moyenne')
-    check(graded('memcpy', names_in=('r1',)) == [('haute', 'b:nom')], 'bibliothèque C, une origine : haute (b)')
+    check(graded('strlen', names_in=('r1',)) == [('haute', 'b:nom')], 'bibliothèque C, une origine : haute (b)')
+    check(graded('memcpy', names_in=('r1',)) == [('moyenne', 'une')], 'memcpy ne se prouve pas seul (__aeabi_memcpy)')
+    check(graded('svcFooBar') == [('moyenne', 'svc<Nom>')], 'svc<Nom> : pas haute par la règle (a)')
     check(graded('_ZN2nn2os5Mutex4LockEv', names_in=('r1',)) == [('haute', 'b:nom')], 'symbole manglé : haute (b)')
     check(graded('cfg_read_block') == [('moyenne', 'service')], 'mot de service sans sa chaîne : moyenne')
     check(graded('cfg_read_block', literal_text=b'cfg:s\0') == [('haute', 'a')], 'mot de service avec « cfg:s » : haute')
@@ -1257,6 +1332,33 @@ def test():
     props, _, _ = propose([h1, h2, h3], {h.name: fingerprints(h) for h in (h1, h2, h3)})
     check([(p.confidence, p.source) for p in props if p.binary.name == 'h3' and p.address == 0x00700200]
           == [('haute', 'empreinte:h1')], 'deux chemins : la confiance la plus haute est gardée')
+    # Voie des appelées : une appelée dont la grappe porte deux noms (x dans k1, y dans k2) n'est pas nommée dans k3
+    k1, k2, k3 = (fake_binary(n, base, [(0x40, arm_function(base + 0x40, base + 0x200, base + 0x300, step=st), 'arm', 36),
+                                        (0x200, plain, 'arm', 36)], {0x200: nm} if nm else {})
+                  for n, base, st, nm in (('k1', 0x00500000, 1, 'x_name'), ('k2', 0x00600000, 2, 'y_name'),
+                                          ('k3', 0x00700000, 1, '')))
+    props, _, _ = propose([k1, k2, k3], {k.name: fingerprints(k) for k in (k1, k2, k3)})
+    check(not [p for p in props if p.binary.name == 'k3' and p.address == 0x00700200], 'appelée disputée : pas de nom')
+    # Un module et sa variante « -safe » ne font qu'une origine pour la règle (a)
+    m1, m2, m3 = (fake_binary(n, base, [(0, plain, 'arm', 36)], {0: 'heap_find_block'} if n != 'other' else {})
+                  for n, base in (('mod', 0x00500000), ('mod-safe', 0x00600000), ('other', 0x00700000)))
+    props, _, _ = propose([m1, m2, m3], {m.name: fingerprints(m) for m in (m1, m2, m3)})
+    check([(p.binary.name, p.confidence) for p in props] == [('other', 'moyenne')], 'module et variante : une origine')
+    # La règle « jumeau » : la variante a une fonction de plus (insérée) ; les fonctions identiques à la même place de
+    # l'alignement prennent le nom ; une adresse refusée par la relecture non
+    codes = [[0xE3A00000 | k, 0xE12FFF1E] for k in range(1, 5)]
+    tw = fake_binary('tw', 0x00500000, [(0x10 * k, codes[k], 'arm', 8) for k in range(4)],
+                     {0x00: 'first_fn', 0x10: 'second_fn', 0x20: 'third_fn'})
+    tws = fake_binary('tw-safe', 0x00600000, [(0x00, codes[0], 'arm', 8), (0x10, [0xE3A000FF, 0xE12FFF1E], 'arm', 8)] +
+                      [(0x10 * k + 0x10, codes[k], 'arm', 8) for k in range(1, 4)], {})
+    tprints = {t.name: fingerprints(t) for t in (tw, tws)}
+    props, _, _ = propose([tw, tws], tprints, excluded={('tw', 0x00500020)})
+    check(sorted((p.address, p.name, p.confidence, p.rule) for p in props if p.source.startswith('jumeau'))
+          == [(0x00600000, 'first_fn', 'haute', 'jumeau'), (0x00600020, 'second_fn', 'haute', 'jumeau')],
+          'jumeaux : même code à la même place, sauf l\'adresse refusée')
+    dp = fake_binary('dp', 0x00500000, [(0x00, codes[0], 'arm', 8), (0x10, codes[0], 'arm', 8)], {0x00: 'a_fn', 0x10: 'b_fn'})
+    dps = fake_binary('dp-safe', 0x00600000, [(0x00, codes[0], 'arm', 8)], {})
+    check(not twins([dp, dps], {d.name: fingerprints(d) for d in (dp, dps)}), 'jumeau : code en double, place ambiguë')
     # Collisions : le nom est déjà pris ailleurs dans le binaire visé, l'adresse est déjà nommée
     b.names = {b_base + 0x10: ('function', 'nnosMutexLock')}
     kept, dropped = reconcile_all([a, b], proposals)
@@ -1317,32 +1419,37 @@ def test():
     # X (0x200) : cible du b. H (0x300) : commence par un bl (find_pointers l'écarte), visé par la réserve de A.
     # C (0x040) : b M, où M (0x1c0) est dans la taille trop grande de B (0x180, 0x60 octets).
     # D (0x220) : un pointeur vers sa propre case (0x230), pas une entrée. E (0x260) : b vers 0x2a4, au milieu d'une
-    # suite d'instructions sans frontière (ni push, ni retour, ni réserve juste avant) : refusé.
+    # suite d'instructions sans frontière (ni push, ni retour, ni réserve juste avant) : refusé. F (0x380) : sa réserve
+    # (0x388) vise 0x38c, juste après elle, un « bl » seul : une fonction (dsp 0x1016e0), pas une case de F.
     base = 0x00100000
     ent = fake_binary('ent', base, [
         (0x000, [0xE92D4010, 0xEB00003D, 0xE59F0000, 0xEA00007B, base + 0x300], 'arm', 16),
         (0x040, [0xE92D4010, 0xEA00005D], 'arm', 8),
         (0x180, [0xE3A00001, 0xE12FFF1E], 'arm', 0x60),
         (0x220, [0xE3A00000, 0xE12FFF1E, base + 0x230, 0, 0xE3A00003, 0xE12FFF1E], 'arm', 0x18),
-        (0x260, [0xE92D4010, 0xEA00000E], 'arm', 8)], {})
+        (0x260, [0xE92D4010, 0xEA00000E], 'arm', 8),
+        (0x380, [0xE59F0000, 0xE12FFF1E, base + 0x38C], 'arm', 8)], {})
     for at, words in ((0x100, [0xE28FC001, 0xE12FFF1C, 0x00004770]), (0x200, [0xE3A00000, 0xE12FFF1E]),
                       (0x300, [0xEBFFFF3E, 0xE12FFF1E]), (0x1C0, [0xE3A00002, 0xE12FFF1E]),
-                      (0x2A0, [0xE3A00005, 0xE3A00006, 0xE12FFF1E])):
+                      (0x2A0, [0xE3A00005, 0xE3A00006, 0xE12FFF1E]), (0x38C, [0xEBFFFF1B])):
         ent.image.data = ent.image.data[:at] + struct.pack('<%dI' % len(words), *words) + ent.image.data[at + 4 * len(words):]
     found = add_entries(ent)
     kinds = {a - base: (m, k) for a, (m, k, _) in found.items()}
     check(kinds == {0x100: ('arm', 'veneer'), 0x108: ('thumb', 'corps de veneer'),
                     0x200: ('arm', 'cible de b (appel terminal)'), 0x300: ('arm', 'pointeur de réserve'),
-                    0x1C0: ('arm', 'cible de b (appel terminal), au milieu de 0x100180')}, 'entrées manquées : %r' % kinds)
+                    0x1C0: ('arm', 'cible de b (appel terminal), au milieu de 0x100180'),
+                    0x38C: ('arm', 'pointeur de réserve')}, 'entrées manquées : %r' % kinds)
     check(overruns(ent, found) == [(base + 0x180, 0x60, 0x40)], 'taille de Ghidra qui déborde, coupée à l\'entrée')
     check(fingerprints(ent)[base + 0x180].count == 2, 'empreinte coupée à l\'entrée suivante')
     row = measure_binary(ent, {}, set(), set())
-    check((row['ghidra'], row['manquees'], row['trouvees']) == (5, 5, 10), 'dénominateur avec les entrées : %r' % row)
-    # Sur les vrais binaires s'ils sont là : les entrées relevées à la main dans gpio et codec (notes-100.md)
+    check((row['ghidra'], row['manquees'], row['trouvees']) == (6, 6, 12), 'dénominateur avec les entrées : %r' % row)
+    # Sur les vrais binaires s'ils sont là : les entrées relevées à la main dans gpio et codec (notes-100.md), et les
+    # main_thread_terminate_handler de dsp et hid (un « bl abort » seul, juste après la réserve qui le désigne)
     by_hand = {'gpio': [0x100134, 0x100160, 0x100168, 0x100db0, 0x100e30, 0x100f48, 0x1011e8, 0x101580, 0x10169c,
                         0x101aa0, 0x101b0c],
                'codec': [0x100168, 0x100170, 0x1010a4, 0x10165c, 0x1016a0, 0x101828, 0x102318, 0x1022f4, 0x102514,
-                         0x102f3c, 0x10343c, 0x103800, 0x103808, 0x103ec4, 0x103ee4, 0x103f70]}
+                         0x102f3c, 0x10343c, 0x103800, 0x103808, 0x103ec4, 0x103ee4, 0x103f70],
+               'dsp': [0x1016e0], 'hid': [0x102fc4]}
     for module, expected in by_hand.items():
         if os.path.isfile(os.path.join(ANALYSE, module, 'gh', 'funcs.tsv')):
             real = load_system(module, True)

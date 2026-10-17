@@ -304,13 +304,14 @@ def is_pure_svc_wrapper(game, address):
     """Vrai si la fonction ARM n'a que des instructions d'enrobage : mise sur la pile, lecture des arguments sur la pile,
     mov, le svc, rangement des sorties dans la mémoire que les arguments désignent, retour. Aucun branchement, aucune
     comparaison, aucun calcul : sinon c'est une fonction de bibliothèque qui APPELLE l'appel système (fermer une poignée
-    seulement si elle n'est pas nulle, la remettre à zéro...), et le nom svc<Nom> serait faux."""
+    seulement si elle n'est pas nulle, la remettre à zéro...), et le nom svc<Nom> serait faux. Le pointeur de pile peut
+    être ajusté (add ou sub sp, sp, #imm : svcQueryMemory range cinq sorties en 48 octets)."""
     size, mode, _ = game.funcs[address]
-    if mode != 'arm' or size > 0x24:
+    if mode != 'arm' or size > 0x30:
         return False
     for i in range(0, size, 4):
         word = struct.unpack_from('<I', game.code, address - BASE + i)[0]
-        if word >> 24 == 0xEF or word in (0xE12FFF1E, 0xE28DD004):
+        if word >> 24 == 0xEF or word == 0xE12FFF1E or word & 0xFFFFFF00 in (0xE28DD000, 0xE24DD000):
             continue
         if word >> 16 in (0xE92D, 0xE8BD, 0xE59D) or word & 0xFFFF0FFF in (0xE52D0004, 0xE49D0004) or word >> 20 == 0xE58:
             continue
@@ -1148,6 +1149,14 @@ def test():
     game.code = struct.pack('<HHHH', 0xDF08, 0x4770, 0xB500, 0x4770)
     game.funcs = {BASE: (4, 'thumb', '')}
     check(decode_svc(game, BASE)[0] == [8], 'svc Thumb décodé')
+    # Enrobage pur : push, svc, ldr/str des sorties, add sp, bx lr (svcCreatePort) ; un cmp ou un bl le refuse
+    create_port = [0xE92D0003, 0xEF000047, 0xE59D3000, 0xE5831000, 0xE59D3004, 0xE5832000, 0xE28DD008, 0xE12FFF1E]
+    for words, pure, what in ((create_port, True, 'add sp, sp, #8 accepté'),
+                              (create_port[:6] + [0xE3500000] + create_port[7:], False, 'cmp refusé'),
+                              (create_port[:6] + [0xEB000000] + create_port[7:], False, 'bl refusé')):
+        game.code = struct.pack('<%dI' % len(words), *words)
+        game.funcs = {BASE: (4 * len(words), 'arm', '')}
+        check(is_pure_svc_wrapper(game, BASE) == pure, 'enrobage svc : ' + what)
     # Collisions
     game = Game.__new__(Game)
     game.names = {0x100010: ('function', 'taken')}
