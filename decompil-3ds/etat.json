@@ -7,10 +7,10 @@
   "fonctions": {
     "total": 255411,
     "identifiees": 255411,
-    "nommees": 14368,
+    "nommees": 14369,
     "reimplementees": 0,
     "typees": 0,
-    "citees": 7503,
+    "citees": 7510,
     "recompilees": 62490,
     "binaires": [
       {
@@ -111,8 +111,8 @@
         "hors_compte": 0,
         "trouvees": 193,
         "nommees": 0,
-        "proposees_haute": 0,
-        "proposees_moyenne": 2,
+        "proposees_haute": 36,
+        "proposees_moyenne": 152,
         "typees": 0,
         "citees": 0,
         "recompilees": 0,
@@ -215,11 +215,11 @@
         "fiche_seule": 1,
         "hors_compte": 11,
         "trouvees": 688,
-        "nommees": 461,
+        "nommees": 462,
         "proposees_haute": 0,
-        "proposees_moyenne": 227,
+        "proposees_moyenne": 226,
         "typees": 0,
-        "citees": 288,
+        "citees": 291,
         "recompilees": 0,
         "reimplementees": 0
       },
@@ -549,7 +549,7 @@
         "proposees_haute": 1,
         "proposees_moyenne": 130,
         "typees": 0,
-        "citees": 202,
+        "citees": 206,
         "recompilees": 0,
         "reimplementees": 0
       },

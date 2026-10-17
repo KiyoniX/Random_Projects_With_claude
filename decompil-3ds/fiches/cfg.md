@@ -11,7 +11,7 @@ Fiche du 13 octobre 2026, produite avec Ghidra, REA et un émulateur sur le modu
 | Titre | `0004013000001702`, un titre de la CTRNAND (lu dans l'exheader) |
 | Fichier lu | `local/extrait/cfg/exefs/code.elf` |
 | Taille | 43 616 octets de code, 7 656 de données en lecture seule, 2 112 de données, 42 744 de mémoire à zéro |
-| Fonctions | 686 pour Ghidra, dont 641 en Thumb ; 440 nommées dans `cfg.noms.tsv` |
+| Fonctions | 689 pour Ghidra, dont 643 en Thumb ; 443 nommées dans `cfg.noms.tsv` ; 688 au dénominateur |
 | Services offerts | `cfg:u` (11 commandes), `cfg:s` (26), `cfg:i` (58), `cfg:nor` (20) : un aiguillage par service |
 | Services appelés | `fs:USER`, `ps:ps`, `SPI::NOR`, `i2c::EEP`, plus `srv:` et le port `err:f` |
 | Dépendances déclarées | `ps` (`0004013000003102`) et `spi` (`0004013000002302`) |
@@ -24,8 +24,8 @@ Les quatre noms de la ligne « Services appelés » sont exactement la liste que
 `entry` (`0x100000`) appelle six fonctions à la suite, puis `svcExitProcess` :
 
 1. `clear_bss` (`0x100024`) met à zéro la mémoire de `0x10d840` à `0x117f38`.
-2. Une fonction non lue (`0x1001cc`).
-3. Une fonction (`0x100204`) qui crée l'arbitre d'adresses des verrous, fait d'autres préparatifs non lus, puis appelle `srv_init` (`0x106028`) : connexion au port `srv:` et `SRV_RegisterClient`.
+2. `init_program_args` (`0x1001cc`).
+3. `init_runtime_and_srv` (`0x100204`) : `init_runtime` (`0x10046e` : arbitre, propriétaire du TLS, deux réserves d'adresses, état du fil principal, décalage de la mémoire linéaire), puis `srv_init` (`0x106028`) : connexion au port `srv:` et `SRV_RegisterClient`.
 4. `run_static_initializers` (`0x10389c`) appelle les 23 fonctions d'initialisation des objets globaux, par la table de distances de `0x10cd8c` à `0x10cde8`. Deux comptent ici : celle de `0x109aac` prépare le tampon de configuration et son verrou, et `init_service_names_and_tables` (`0x109780`) recopie les quatre noms de services dans la table `0x10d578`.
 5. `run_init_array` (`0x1001b0`) parcourt une seconde table, vide dans ce module.
 6. `cfg_main` (`0x100048`) : tout le reste.
@@ -189,7 +189,7 @@ Les huit dernières ne sont pas dans la Carte des services : l'aiguillage va jus
 
 C'est la commande par laquelle un jeu lit la langue ou le nom d'utilisateur. Requête : `0x00010082`, la taille, l'identifiant du bloc, un descripteur de tampon et l'adresse du tampon.
 
-1. **L'aiguillage.** `cfgu_handle_command` (`0x107d40`) saute par la table d'un octet par case rangée à `0x107d62`, avec l'aide du compilateur `switch8_r3` (`0x104e40`). Le cas 1 est à `0x107d88`.
+1. **L'aiguillage.** `cfgu_handle_command` (`0x107d40`) saute par la table d'un octet par case rangée à `0x107d62`, avec l'aide du compilateur `__ARM_common_switch8` (`0x104e40`). Le cas 1 est à `0x107d88`.
 2. **L'en-tête.** `make_ipc_header` (`0x104e28`) fabrique `0x00010082` (commande 1, 2 mots, 2 mots de traduction) ; le code le compare à l'en-tête reçu. Différent : `0xD9001830`.
 3. **Le descripteur.** Les 4 bits du bas du mot 3 doivent valoir `0xC` (« tampon où le service écrit »). Sinon `0xD9001830`.
 4. **Les paramètres.** L'identifiant est le mot 2, l'adresse du tampon le mot 4. La taille est prise dans le descripteur (le mot 3 décalé de 4 bits) : le mot 1, où le client répète la taille, n'est jamais lu.
@@ -492,7 +492,7 @@ Les seize sont des enveloppes en ARM, chacune avec un seul `svc`.
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x109e34` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x109e4c` |
 
-`svcDuplicateHandle` n'est appelée par personne. Les verrous (`lock_enter` (`0x10501a`), `lock_leave` (`0x105008`)) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
+`svcDuplicateHandle` n'est appelée que par `main_thread_handle_ctor` (`blx` en `0x106300`), depuis `static_init_main_thread_handle`. Les verrous (`lock_enter` (`0x10501a`), `lock_leave` (`0x105008`)) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
@@ -528,8 +528,8 @@ Les seize sont des enveloppes en ARM, chacune avec un seul `svc`.
 - Le contenu des constantes par défaut : le tableau donne leur adresse, pas leur sens.
 - La bibliothèque de fichiers sous les fonctions nommées (les archives montées, les chemins), la gestion des erreurs fatales, le SHA-256 lui-même.
 - `PS_VerifyRsaSha256` côté appelant : la mise en forme de la clé (`0x108f50`).
-- 20 des 23 fonctions d'initialisation des objets globaux.
-- 686 fonctions moins 440 nommées : le reste est sans nom.
+- Aucune : les 23 fonctions d'initialisation sont nommées (table `0x10cd8c`-`0x10cde8`).
+- 689 fonctions moins 443 nommées, plus une entrée manquée (`0x105adc`), moins deux fausses fonctions (`0x102278`, `0x107360`) : 245, toutes nommées dans ce lot.
 
 ## Pour faire tourner un jeu sans cfg
 
@@ -553,12 +553,12 @@ Ce que cette fiche permet d'affirmer pour répondre à la place de `cfg:u` :
 | Lire le pseudo-code et nommer | Claude | le gros du temps |
 | Recouper avec la Carte des services, l'exheader, `hid.md` et `fs.md` | des scripts | immédiat |
 
-**Le piège rencontré : presque tout est en Thumb.** Sur 686 fonctions, 641 sont en Thumb et 45 en ARM. `prescan.py` ne lit que l'ARM : il a annoncé « aucune fonction manquée » alors que Ghidra n'en voyait que 469. Il manquait trois des quatre aiguillages (ils ne sont appelés que par la table `0x10b054`), tout ce qui n'est appelé que par eux, et 20 des 23 fonctions d'initialisation. Avec les graines Thumb, Ghidra arrive à 686.
+**Le piège rencontré : presque tout est en Thumb.** Sur 689 fonctions, 643 sont en Thumb et 46 en ARM. `prescan.py` ne lit que l'ARM : il a annoncé « aucune fonction manquée » alors que Ghidra n'en voyait que 469. Il manquait trois des quatre aiguillages (ils ne sont appelés que par la table `0x10b054`), tout ce qui n'est appelé que par eux, et 20 des 23 fonctions d'initialisation. Avec les graines Thumb, Ghidra arrive à 689.
 
 **Par le pont REA, la fiche n'est qu'à moitié visible.** Une graine de REA ne sait créer qu'une fonction ARM. Les fonctions Thumb sont donc écrites en lignes `label` dans `cfg.noms.tsv` : le nom se pose, mais REA ne crée pas la fonction. Par le pont, on voit 471 fonctions et 296 des 440 noms ; les 144 autres noms désignent des fonctions que REA ne connaît pas. Pour tout voir, il faut lancer Ghidra par `local/analyse/cfg/ghidra/run.sh` (scripts `CfgPre.java` et `CfgDump.java`, repris de ceux de `fs`) : les 440 noms y prennent tous.
 
 **Quatre autres choses à savoir en relisant dans Ghidra.**
-- Les « switch » des quatre aiguillages ne sont pas reconstruits : Ghidra reconnaît l'aide `switch8_r3` mais abandonne (« Too many branches »), comme dans 10 autres fonctions. Le pseudo-code des aiguillages est donc faux ou tronqué. Les tables de la partie 3 viennent de l'émulateur, pas du pseudo-code.
+- Les « switch » des quatre aiguillages ne sont pas reconstruits : Ghidra reconnaît l'aide `__ARM_common_switch8` mais abandonne (« Too many branches »), comme dans 10 autres fonctions. Le pseudo-code des aiguillages est donc faux ou tronqué. Les tables de la partie 3 viennent de l'émulateur, pas du pseudo-code.
 - Deux identifiants de blocs, `0x00100001` et `0x00100003`, ressemblent à des pointeurs Thumb vers le début du code. Un balayage des pointeurs impairs s'y trompe : le script de graines l'a fait au premier passage, et `entry` est sorti désassemblé en Thumb. Ils sont aussi comptés dans les 155 « pointeurs impairs » qu'annonce `prescan.py`.
 - Ghidra crée une fausse fonction à `0x102278` : c'est la réserve de constantes de `create_default_setting_blocks`, où se lisent justement les identifiants des blocs.
 - Le pseudo-code perd le dernier argument des enveloppes, passé par la pile : le droit (2, 4 ou 8) se lit dans l'assembleur, à l'instruction `movs r4, #…` de chaque enveloppe.

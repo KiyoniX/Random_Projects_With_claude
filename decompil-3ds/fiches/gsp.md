@@ -11,7 +11,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Titre | `0004013020001C02`, la version New 3DS du module (lu dans l'exheader) |
 | Fichier lu | `local/extrait/gsp/exefs/code.elf` |
 | Taille | 58 112 octets de code, 1 272 de données en lecture seule, 668 de données, 6 988 de mémoire à zéro |
-| Fonctions | 418, dont 265 nommées dans `gsp.noms.tsv` |
+| Fonctions | 431 pour Ghidra, 22 entrées manquées, 452 au dénominateur ; 276 nommées dans `gsp.noms.tsv` |
 | Services offerts | `gsp::Gpu` (31 commandes, 4 sessions au plus) et `gsp::Lcd` (21 commandes, 1 session) |
 | Services appelés | `pdn:g`, `mcu::GPU`, `i2c::LCD`, `ptm:s`, `cfg:s`, `qtm:sp`, plus `srv:` et le port `err:f` |
 | Dépendance déclarée | `qtm` (`0004013020004202`) |
@@ -23,11 +23,11 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 `entry` (`0x100000`) appelle sept fonctions à la suite, puis `ExitProcess` :
 
 1. `clear_bss` (`0x100024`) met à zéro la mémoire de `0x1102a0` à `0x111de8`.
-2. Une fonction non lue (`0x100214`).
+2. `init_program_args` (`0x100214`).
 3. `init_runtime_and_srv` (`0x108ccc`) prépare les verrous et la réserve d'adresses, se connecte au port `srv:` et s'y déclare (`SRV_RegisterClient`).
 4. `setup_heap` (`0x100274`) réserve un tas de `0x600000` octets à `0x08000000`. C'est exactement la taille de la mémoire vidéo : ce tas sert à la mettre de côté (partie 3, commandes 25 et 26).
 5. La fonction à `0x10013c`, écrite en Thumb, appelle les 27 fonctions d'initialisation des objets globaux, par la table de `0x10f48c` à `0x10f4f8`.
-6. Une fonction vide (`0x1001e0`).
+6. `run_init_array` (`0x1001e0`), sur une table vide (`0x10f4f8`-`0x10f4f8`).
 7. `gsp_main` (`0x100168`) : tout le reste.
 
 `gsp_main` fait quatre choses : demander à `sm` le sémaphore des notifications, appeler `gsp_initialize`, s'abonner à huit notifications (`subscribe_notifications`, `0x10052c`), puis entrer dans `gsp_service_loop` (partie 2). À la sortie de la boucle, `gsp_finalize` (`0x1003e4`) défait tout dans l'ordre inverse.
@@ -50,7 +50,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | 12 | `register_interrupt_callbacks` | `0x101a98` | `0x110428` | Les sept fonctions à appeler quand une interruption arrive |
 | 13 | `sleep_state_init` | `0x101080` | `0x110bdc` | L'état veille ou réveil |
 
-**Les fils.** Tous passent par `create_thread` (`0x108838`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x1057ac`), qui appelle la vraie fonction du fil puis `ExitThread`.
+**Les fils.** Tous passent par `create_thread` (`0x108838`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x1057ac`), qui appelle la vraie fonction du fil puis tombe dans l'enrobage `svcExitThread` (`0x1057f0`).
 
 | Fil | Fonction | Adresse | Créé par | Priorité | Ce qu'il fait |
 | --- | --- | --- | --- | --- | --- |
@@ -424,7 +424,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | | `0x00020000` | `SRV_EnableNotification` | `0x100eec` | Obtenir le sémaphore des notifications |
 | | | `0x00030100` | `SRV_RegisterService` | `0x100e3c` | Créer ses deux services |
 | | | `0x000400C0` | `SRV_UnregisterService` | `0x100e98` | Les retirer à l'arrêt |
-| | | `0x00050100` | `SRV_GetServiceHandle` | `0x106f64` | Ouvrir les six services ci-dessous |
+| | | `0x00050100` | `SRV_GetServiceHandle` | `0x10b458` | Ouvrir les six services ci-dessous (l'enrobage `srv_get_service_handle` est `0x106f64`) |
 | | | `0x00090040` | `SRV_Subscribe` | `0x108aa0` | S'abonner à huit notifications |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x1025c0` | Lire le numéro de la notification arrivée |
 | `pdn:g` | `0x110244` | `0x000100C0` | `PDNG_Control` | `0x103a64` | Alimenter ou couper le processeur graphique |
@@ -443,10 +443,10 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | | `0x04030042` | `PTMSYSM_NotifySleepPreparationComplete` | `0x105c28` | Dire à `ptm` que `gsp` est prêt pour la veille |
 | `cfg:s` | `0x110274` | `0x00050000` | `CFG_GetSystemModel` | `0x10d0b4` | Connaître le modèle de la console |
 | | | `0x04010082` | `CFG_GetConfigInfoBlk8` | `0x10d0f4` | Lire les réglages des écrans |
-| `qtm:sp` | `0x110260` | `0x04020000` | `QTMSP_GetCameraLuminance` | `0x10b34c` | Lire la lumière ambiante |
+| `qtm:sp` | `0x110294` | `0x04020000` | `QTMSP_GetCameraLuminance` | `0x10d340` | Lire la lumière ambiante |
 | | | `0x08010040` | `QTMSP_NotifyTopLcdModeChange` | `0x10b380` | Prévenir du passage en 3D ou en 2D |
 | | | `0x08020000` | `QTMSP_NotifyTopLcdPowerOn` | `0x10b3bc` | Prévenir que l'écran du haut s'allume |
-| | | `0x08030000` | `QTMSP_IsExpanderInUse` | `0x10d2cc` | Appelée par une fonction d'extinction non lue (`0x10a518`) |
+| | | `0x08030000` | `QTMSP_IsExpanderInUse` | `0x10d2cc` | Appelée par `lcd_power_off` (`0x10a518`) |
 | | | `0x08040000` | `QTMSP_NotifyTopLcdPowerOff` | `0x10d30c` | Prévenir que l'écran du haut s'éteint |
 | `err:f` (port) | `0x1101b0` | `0x00010800` | `ERRF_Throw` | `0x105afc` | Signaler une erreur fatale |
 
@@ -536,9 +536,9 @@ La file de commandes (`0x110cd0`) :
 | --- | --- | --- | --- |
 | ControlMemory | `0x01` | `svcControlMemory` | `0x100b30` |
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x1023ec` |
-| ExitProcess | `0x03` | dans `entry` | `0x100000` |
+| ExitProcess | `0x03` | `svcExitProcess`, cible du `b` de `entry` | `0x100160` |
 | CreateThread | `0x08` | `svcCreateThread` | `0x103764` |
-| ExitThread | `0x09` | dans `thread_trampoline` | `0x1057ac` |
+| ExitThread | `0x09` | `svcExitThread`, chute de `thread_trampoline` | `0x1057f0` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x10ab88` |
 | SetThreadPriority | `0x0C` | écrit sur place, à quatre endroits | |
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x107f10` |
@@ -546,10 +546,10 @@ La file de commandes (`0x110cd0`) :
 | ClearEvent | `0x19` | six fois dans `interrupt_thread_main`, une dans `gx_process_command_list` | |
 | CreateMemoryBlock | `0x1E` | `svcCreateMemoryBlock` | `0x1023d0` |
 | MapMemoryBlock | `0x1F` | dans `map_shared_memory` | `0x102434` |
-| UnmapMemoryBlock | `0x20` | dans `destroy_shared_memory_block` | `0x100ce0` |
+| UnmapMemoryBlock | `0x20` | dans `unmap_shared_memory` | `0x100ce0` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x1023b8` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x107c7c` |
-| CloseHandle | `0x23` | écrit sur place, à 54 endroits | |
+| CloseHandle | `0x23` | écrit sur place à 53 endroits, plus l'enrobage `svcCloseHandle` (pdn_close, gspgpu_RequestDma, gspgpu_SetCommandList) | `0x106fa0` |
 | WaitSynchronization1 | `0x24` | sur place à 13 endroits, et dans `wait_handle_forever` (`0x1075c0` : handle lu dans un objet, délai infini ; pas une enveloppe nue) | |
 | WaitSynchronizationN | `0x25` | `svcWaitSynchronizationN` | `0x1089d0` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x10d86c` |
@@ -559,7 +559,7 @@ La file de commandes (`0x110cd0`) :
 | SendSyncRequest | `0x32` | écrit sur place, à 29 endroits | |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x1057f8` |
 | GetThreadId | `0x37` | `svcGetThreadId` | `0x105810` |
-| Break | `0x3C` | une seule fois, dans `break_process` | `0x108bf8` |
+| Break | `0x3C` | `svcBreak`, cible du `b` de `break_process` | `0x10ab64` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x100b18` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x10241c` |
 | BindInterrupt | `0x50` | `svcBindInterrupt` | `0x10373c` |
@@ -573,7 +573,7 @@ La file de commandes (`0x110cd0`) :
 
 Les 36 appels sont tous autorisés par l'exheader. Les huit derniers du tableau sont le cœur du métier de `gsp` : lier des interruptions, vider le cache d'un autre processus, lancer un DMA.
 
-Les verrous (`lock_enter` à `0x108c4c`, `lock_leave` à `0x108bd4`) et les événements internes (`light_event_wait` à `0x107e48`, `light_event_signal` à `0x10871c`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
+Les verrous (`lock_enter` à `0x108c4c`, `lock_leave` à `0x108bd4`) et les événements internes (`gate_wait` à `0x107e48`, `light_event_signal` à `0x10871c`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
@@ -613,23 +613,23 @@ Les verrous (`lock_enter` à `0x108c4c`, `lock_leave` à `0x108bd4`) et les év�
 - Les trois quarts de `lcd_apply_config` et les calculs de `gsplcd_GetBrightness`.
 - La copie de la mémoire vidéo pour la mise en veille (`0x10b978`, `0x106214`, `0x10626c`, `0x10a6b4`).
 - Le cas particulier de la commande 2 (`0x10b96c`) et la fonction qui recalcule `0x1EF01394` (`0x109ac4`).
-- Les fonctions de calcul (`0x10ab94`, `0x1070c4`, `0x10b010`) et la réserve d'adresses (`0x1037e4`).
+- La réserve d'adresses (`0x1037e4`) ; `0x10b010` est `light_semaphore_wait_timeout`, `0x10ab94` et `0x1070c4` sont nommées (`__aeabi_uldivmod`, `__aeabi_uidivmod`).
 - Le détail des 27 fonctions d'initialisation des objets globaux. C'est l'une d'elles qui attribue la case du stockage local où va le numéro de client.
-- 153 fonctions restent sans nom.
+- Plus aucune fonction sans nom (176 nommées dans ce lot : 155 de funcs.tsv et 21 entrées manquées).
 
 ## Comment cette fiche a été faite
 
 | Étape | Qui | Durée |
 | --- | --- | --- |
 | Repérer les appels système, nommer leurs enveloppes, trouver les fonctions manquées | `outils/prescan.py`, deux passages | une minute par passage |
-| Décompiler les 418 fonctions d'un coup | `prescan.py --dump` | quelques secondes |
+| Décompiler les 431 fonctions d'un coup | `prescan.py --dump` | quelques secondes |
 | Calculer qui appelle qui, lire les tables d'aiguillage, relever les constantes | des scripts Python sur `code.bin` | immédiat |
 | Lire le pseudo-code et nommer | Claude | le gros du temps |
 | Recharger les noms dans Ghidra | arrêt et relance du pont REA | une à deux minutes, trois fois |
 | Recouper avec la Carte des services et l'exheader | un script | immédiat |
 
 **Les pièges rencontrés.**
-- Ghidra avait manqué 48 fonctions : il est passé de 370 à 418. Ce sont les fonctions de fil, les gestionnaires appelés par pointeur, et les 27 fonctions d'initialisation, rangées dans une table de distances. `prescan.py` les a toutes trouvées, sauf `svcDuplicateHandle` (`0x10d86c`), qu'il a fallu ajouter à la main.
+- Ghidra avait manqué 48 fonctions : il est passé de 370 à 418. Ce sont les fonctions de fil, les gestionnaires appelés par pointeur, et les 27 fonctions d'initialisation, rangées dans une table de distances. `prescan.py` les a toutes trouvées, sauf `svcDuplicateHandle` (`0x10d86c`), qu'il a fallu ajouter à la main. Il en manquait encore 22 (couverture.py entrees).
 - `prescan.py` avait nommé `entry` « `svcExitProcess` » : la fonction est courte et ne contient qu'un appel système, il l'a prise pour une enveloppe. Corrigé dans le fichier de noms.
 - Quand une fonction fait un appel système sur place, Ghidra ne montre pas ce qu'il rend. Il affiche à la place « rend le deuxième argument ». Les commandes 6 à 9 et 31 se lisent mal pour cette raison : il faut regarder l'assembleur.
 - Les aiguillages ne sont pas des suites de sauts comme on pourrait l'attendre, mais une instruction qui charge l'adresse dans une table posée juste après elle, au milieu du code. La taille que Ghidra donne à ces fonctions ne compte pas la table.
@@ -637,6 +637,6 @@ Les verrous (`lock_enter` à `0x108c4c`, `lock_leave` à `0x108bd4`) et les év�
 **Trois choses à savoir en relisant dans Ghidra.**
 - La fonction à `0x10013c` est en Thumb, et le nom qu'on lui donne dans le fichier de graines ne prend pas. Elle n'a donc pas de ligne dans `gsp.noms.tsv` : à nommer à la main (`run_static_initializers`).
 - Les fonctions `get_…` (`get_rights_manager`, `get_cmd_queue`, `get_display`…) ne font que rendre l'adresse d'un objet global. Dans le pseudo-code, un objet se reconnaît à la fonction `get_…` appelée juste avant.
-- `0x1039f4`, juste avant `throw_error_typed`, est une instruction isolée, pas un début de fonction.
+- `0x1039f4`, juste avant `errf_report_error`, est `main_thread_terminate_handler` (adresse rangée par init_thread_eh_globals, mot `0x1039f0`).
 
 **Pour reprendre.** `gsp.noms.tsv` est le fichier de graines : une adresse, `function`, un nom. Les noms en `gspgpu_` et `gsplcd_` sont les commandes que `gsp` reçoit ; ceux en `gx_` les commandes de la file ; ceux en majuscules (`SRV_`, `MCUGPU_`, `QTMSP_`…) les requêtes qu'il envoie à un autre service ; ceux en `on_…_interrupt` les fonctions appelées par le fil des interruptions. Le pseudo-code brut et les scripts de recoupement (`idx.py`, `switches.py`, `headers.py`, `make_tsv.py`) sont dans `local/analyse/gsp/`, non versionné.

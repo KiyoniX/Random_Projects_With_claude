@@ -130,6 +130,7 @@
 0x104c74	function	build_block_00040001
 0x104d7c	label	build_block_00060000
 0x104e28	label	make_ipc_header
+0x104e40	function	__ARM_common_switch8
 0x104e58	label	secure_info_get_region_locked
 0x104e80	label	reset_block_00040001
 0x104eb4	label	reset_block_00060000
