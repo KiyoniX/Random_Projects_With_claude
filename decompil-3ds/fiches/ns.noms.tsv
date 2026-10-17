@@ -1,23 +1,36 @@
+0x100000	function	entry
 0x100024	function	clear_bss
 0x100048	function
 0x100150	label	memcmp
+0x1001ec	label	run_static_initializers
 0x100230	function	svcExitProcess
+0x10027c	function	init_program_args
 0x100318	function	ns_main
 0x100a5c	function	strcmp
 0x1011a0	function	subscribe_system_notifications
 0x101540	function	start_shared_font_thread
 0x1016a8	function	create_lock_arbiter_once
+0x1016e4	function	init_runtime
+0x1017e4	function	ps_close
+0x101810	function	ps_open
+0x101860	function	cfg_init
+0x101914	function	cfg_exit
+0x101a80	function	get_notification_semaphore
 0x101ab4	function	SRV_RegisterClient
+0x101af0	function	srv_exit
 0x101dc4	function	start_apt_thread
 0x101e58	function	svcAcceptSession
+0x101e70	function	svcCloseHandle
 0x101e78	function	svcCreateAddressArbiter
 0x101e90	function	svcCreateMemoryBlock
 0x101eac	function	svcQueryMemory
 0x101edc	function	svcReplyAndReceive
 0x101ef4	function	svcWaitSynchronizationN
+0x101fa8	function	fs_initialize_session
 0x101fd4	function	FSUSER_SetPriority
 0x1020a4	function	shared_font_thread_main
 0x102458	function	call_thread_function
+0x10245c	function	service_close
 0x1024a0	function	service_open
 0x1025c8	function	PTMSYSM_GetShellStatus
 0x102608	function	handle_srv_notification
@@ -53,17 +66,21 @@
 0x103d80	function	applet_id_from_title_id
 0x103e6c	function	apt_handle_command
 0x1056c0	function	start_apt_worker_thread
+0x105774	function	file_get_size
 0x1057cc	function	svcCreateThread
 0x1057f0	function	svcSetTimer
 0x10585c	function	AM_CheckContentRights
+0x105978	function	file_read
 0x105b34	function	FSUSER_UnregisterTitleContentOverlay
 0x105b78	function	FSUSER_UnregisterSpecialTitleContent
 0x105bbc	function	apt_GetSharedFont
 0x105c8c	function	job_queue_thread_main
+0x105d4c	function	clear_thread_local_storage
 0x105df8	function	apt_Wrap1
 0x105eb4	function	apt_Unwrap1
 0x105f60	function	apt_Wrap
 0x10601c	function	apt_Unwrap
+0x1060c8	function	crc16
 0x106194	function	CFGS_SecureInfoGetRegion
 0x1061d4	function	CFG_SecureInfoGetSerialNo
 0x10621c	function	CFG_SecureInfoGetRegion
@@ -163,25 +180,30 @@
 0x10a954	function	PTMSYSM_RebootAsync
 0x10a98c	function	PTMSYSM_RequestSleep
 0x10ac88	function	PMAPP_SetFIRMLaunchParams
-0x10acd8	function	PMAPP_LaunchFIRM
+0x10acd4	function	PMAPP_LaunchFIRM
 0x10adf0	function	slot_register
 0x10ae20	function	busy_flags_set_wait
 0x10aea0	function	applet_pos_from_attributes
 0x10b0a4	function	application_jump_select_target
 0x10b1b0	function	require_not_apt_a
 0x10b56c	function	job_wakeup_first_applet
+0x10bc88	function	svcBreak
 0x10bc90	function	thread_trampoline
+0x10bcd4	function	svcExitThread
 0x10bd70	function	AM_GetProgramInfos
 0x10bddc	function	AM_GetProgramInfosIgnorePlatform
 0x10be94	function	FSUSER_GetCardType
 0x10becc	function	FSUSER_IsSdmcDetected
 0x10bf04	function	FSUSER_IsSdmcWritable
 0x10bf3c	function	FSUSER_GetProgramLaunchInfo
+0x10c268	function	notification_handler_ctor
 0x10d008	label	destroy_array
 0x10d8f4	function	job_deliver_parameter
 0x10d9a0	function
 0x10de9c	function	slot_post_notification
 0x10df10	function	set_applet_title_id
+0x10e000	function	qtm_close
+0x10e0bc	function	qtm_open
 0x10e1d0	function	slot_signal_parameter_event
 0x10e23c	function	launch_application_process
 0x10e558	function	parameter_store
@@ -190,12 +212,15 @@
 0x10e5e0	function	__aeabi_ldivmod
 0x10e708	function	memcpy_words
 0x10e7b0	function	light_event_clear
+0x10e814	function	light_lock_unlock
 0x10e868	function	svcArbitrateAddress
+0x10e880	function	pool_alloc
 0x10e8e4	label	static_guard_acquire
 0x10e8f8	function	__aeabi_uidivmod
 0x10e928	function	block_pool_init
 0x10e9c8	function	PMAPP_SetAppResourceLimit
 0x10ea0c	function	PMAPP_GetAppResourceLimit
+0x10ea64	function	dma_close
 0x10ecd8	function	launch_applet_title
 0x10ed90	function	parameter_is_pending
 0x10ee10	function	is_home_menu_id
@@ -218,6 +243,7 @@
 0x10fa04	function	__aeabi_memmove
 0x10fb00	function	light_event_signal
 0x10fbb8	function	light_event_wait
+0x10fc80	function	memclr_bytes
 0x10ff6c	function
 0x110058	function	sleep_ms
 0x1100b0	function	set_prepared_operation
@@ -237,26 +263,33 @@
 0x110920	function	CFG_GetConfigInfoBlk8
 0x11096c	function	light_event_init
 0x1109a0	function	__aeabi_memcpy
+0x110af0	function	memclr
+0x110af4	function	memset_words
 0x110d70	function	svcCreateEvent
 0x110d88	function	launch_non_application_title
 0x110e0c	function	broadcast_notification
 0x110e98	function	is_shutdown_pending
+0x111154	function	file_close
+0x111174	function	file_read_all
 0x11154c	function	apt_GetProgramInfo
 0x111924	function	SRV_Unsubscribe
 0x1119b8	function	construct_array
 0x111a2c	function	lock_leave
 0x111a4c	function	lock_enter
-0x111a84	function	get_service_handle
+0x111a84	function	srv_get_service_handle
 0x111ab8	function	create_thread
 0x111ba8	function	join_thread
 0x111be0	function	nsc_UnlockSpecialContent
+0x111e04	function	fs_get_session
 0x111e60	function	subscribe_notification
 0x111e90	function	apt_HardwareResetAsync
 0x111e98	function	reboot_with_firm_params
 0x111f30	function	SRV_PublishToSubscriber
 0x111fc0	function	panic_on_failure
+0x112320	function	ptm_check_new_3ds_cached
 0x1123e8	function	title_id_from_applet_id
-0x112724	function	panic
+0x112724	function	break_process
+0x112778	function	srv_is_initialized
 0x112794	function	strlen
 0x112830	function	srv_init
 0x112a60	function	lock_arbitrate_wait
@@ -317,6 +350,9 @@
 0x116298	function
 0x1162ac	function
 0x116338	function
+0x116344	function	file_close_and_free
+0x1163b4	function	file_read_impl
+0x116484	function	file_close_handle
 0x11654c	function
 0x1165d0	function
 0x1165d8	function
@@ -347,14 +383,20 @@
 0x117664	function
 0x117700	function
 0x1177b0	function
+0x1177e4	function	release_address_range
 0x11784c	function	reserve_address_range
 0x117b54	function
+0x117b60	function	handle_holder_dtor
+0x117b88	function	handle_holder_dtor_alt_117b88
+0x117bb0	function	handle_holder_dtor_alt_117bb0
 0x117bd8	function	thread_dtor
+0x117c30	function	handle_holder_dtor_alt_117c30
 0x117fcc	function	PTMSYSM_IsShutdownByBatteryEmpty
 0x11800c	function	PTMSYSM_ShutdownAsync
-0x118050	function	PTMSYSM_ReplySleepQuery
+0x11804c	function	PTMSYSM_ReplySleepQuery
 0x118094	function	PTMSYSM_SetWakeupTrigger
-0x1180dc	function	PTMSYSM_NotifySleepPreparationComplete
+0x1180dc	function	ptm_ack_sleep_preparation_1
+0x1180e4	function	PTMSYSM_NotifySleepPreparationComplete
 0x118124	function
 0x118128	function
 0x118148	function	PMAPP_UnregisterProcess
@@ -415,15 +457,16 @@
 0x11adf8	function	on_notification_205
 0x11ae20	function
 0x11ae24	function
+0x11ae4c	function	file_get_size_impl
 0x11af20	function
 0x11af6c	function
 0x11b078	function
 0x11b08c	function
 0x11b0c4	function
-0x11b124	function
+0x11b124	function	static_init_errf_port
 0x11b174	function
 0x11b504	function
-0x11b518	function
+0x11b518	function	static_init_main_thread_handle
 0x11b578	function
 0x11b5ec	function
 0x11b600	function

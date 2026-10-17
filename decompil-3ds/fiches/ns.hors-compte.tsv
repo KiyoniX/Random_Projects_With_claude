@@ -1,0 +1,21 @@
+adresse	raison
+0x100040	PAS UNE FONCTION : réserve de clear_bss (0x100024), mots 0x001244a0 et 0x00217654 = les bornes de la mémoire à zéro (fiche partie 1) ; le seul « pointeur » (mot
+0x10acd8	PAS UNE FONCTION (fonction de Ghidra) : CORRECTION de « PMAPP_LaunchFIRM » ; corps atteint seulement par la chute du mov r0,r0 en 0x10acd4 ; aucun b, bl ni mot 
+0x10bcdc	CODE MORT : ni b, ni bl, ni mot de l'image ne vise 0x10bcdc (xref.py, balayage complet) ; recopie à rebours par 16 octets puis b memcpy_words (0x10e708) ; __aea
+0x10d19c	CODE MORT : ni b, ni bl, ni mot de l'image ne vise 0x10d19c (xref.py, balayage complet) ; absente de funcs.tsv ; division signée (orrs r3,r0,r1 ; bmi 0x10d2dc) 
+0x10d1d0	PAS UNE FONCTION (entrée de couverture.py) : rang de la boucle au milieu du corps de __aeabi_idivmod (0x10d19c), atteint par le b final de __aeabi_uidivmod (0x1
+0x10d1f4	PAS UNE FONCTION (entrée de couverture.py) : même cas, bhs de la boucle (0x10d258)
+0x10d1f8	PAS UNE FONCTION (entrée de couverture.py) : même cas, blo depuis __aeabi_uidivmod (0x10e920) et depuis le corps (0x10d1cc)
+0x10d228	PAS UNE FONCTION (entrée de couverture.py) : même cas, blo depuis __aeabi_uidivmod (0x10e918) et depuis le corps (0x10d1c4, 0x10d1e8)
+0x10d25c	PAS UNE FONCTION (entrée de couverture.py) : même cas, blo depuis __aeabi_uidivmod (0x10e910) et le corps (0x10d1bc)
+0x10d280	PAS UNE FONCTION (entrée de couverture.py) : même cas, blo depuis __aeabi_uidivmod (0x10e908)
+0x10d2a4	PAS UNE FONCTION (entrée de couverture.py) : même cas, blo depuis __aeabi_uidivmod (0x10e900) ; contient la fin de la division (bx lr en 0x10d2bc)
+0x10d2c0	PAS UNE FONCTION (fonction de Ghidra) : branche « quotient 0 ou 1 » du corps de __aeabi_idivmod, atteinte seulement par son blo en 0x10d1a8 ; même cas que les l
+0x10d3b8	PAS UNE FONCTION (entrée de couverture.py) : branche du diviseur nul du corps de division, atteinte par le bhs en 0x10d1f0 ; appelle __aeabi_idiv0 (0x114d84) ; 
+0x115824	PAS UNE FONCTION (fonction de Ghidra) : corps de AM_DeleteAllImportContextsFiltered (0x115820, fiche), atteint seulement par la chute du mov r0,r0 en 0x115820 ;
+0x118050	PAS UNE FONCTION (fonction de Ghidra) : CORRECTION de « PTMSYSM_ReplySleepQuery » ; corps atteint seulement par la chute du mov r0,r0 en 0x11804c ; aucun b, bl 
+0x118098	PAS UNE FONCTION (fonction de Ghidra) : corps de PTMSYSM_SetWakeupTrigger (0x118094, fiche), atteint seulement par la chute du mov r0,r0 ; aucun b, bl ni mot ne
+0x118188	PAS UNE FONCTION (fonction de Ghidra) : corps de PMAPP_TerminateApplication (0x118184, fiche), atteint seulement par la chute du mov r0,r0 ; aucun b, bl ni mot 
+0x1181c4	PAS UNE FONCTION (fonction de Ghidra) : corps de PMAPP_TerminateProcess (0x1181c0, fiche), atteint seulement par la chute ; aucun b, bl ni mot ne vise 0x1181c4 
+0x1184c4	PAS UNE FONCTION (fonction de Ghidra, 660 octets) : corps de on_slot_process_exit (0x1184c0), atteint seulement par la chute du mov r0,r0 ; aucun b, bl ni mot n
+0x118804	PAS UNE FONCTION (fonction de Ghidra) : corps de on_sleep_query (0x118800), atteint seulement par la chute du mov r0,r0 ; aucun b, bl ni mot ne vise 0x118804 (x

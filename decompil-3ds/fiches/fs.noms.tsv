@@ -71,7 +71,7 @@
 0x11e024	label	memcmp
 0x11e098	label	clamp_priority
 0x11e0c0	function	__aeabi_memcpy
-0x11e1a8	function	panic
+0x11e1a8	function	break_process
 0x11e1fc	function	strlen
 0x11e2ba	label	guard_release
 0x11e2cc	label	guard_acquire
