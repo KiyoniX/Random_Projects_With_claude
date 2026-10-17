@@ -12,7 +12,7 @@
 0x101df8	function	reserve_address_range
 0x1022f0	function	svcConnectToPort
 0x102308	function	svcGetProcessId
-0x1023cc	function	gate_rearm
+0x1023cc	function	light_event_clear
 0x102b14	function	lock_arbitrate_wait
 0x102d84	function	heap_alloc
 0x1033b0	function	svcCreateMutex

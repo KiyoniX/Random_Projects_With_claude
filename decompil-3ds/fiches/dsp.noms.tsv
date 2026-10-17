@@ -71,7 +71,7 @@
 0x102a44	function	memclr_bytes
 0x102a84	function	client_event_handles_dtor
 0x102aa0	function	session_threads_dtor
-0x102abc	function	light_event_signal
+0x102abc	function	light_event_pulse
 0x102bb4	function
 0x102bb8	function
 0x102bbc	function
@@ -110,8 +110,8 @@
 0x103cc0	function	memcpy_words
 0x103d34	function	svcArbitrateAddress
 0x103d4c	function	dsp_SetSemaphore
-0x103d6c	function	gate_wait
-0x103e34	function	gate_close
+0x103d6c	function	light_event_wait
+0x103e34	function	light_event_init
 0x103e68	function	delay_loop
 0x103e78	function	svcCreateEvent
 0x103e90	function	errf_report_error

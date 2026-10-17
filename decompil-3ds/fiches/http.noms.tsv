@@ -89,7 +89,7 @@
 0x10df48	function	svcSleepThread
 0x10e08c	label	construct_array
 0x10e0b0	function	svcReplyAndReceive
-0x10e2b4	function	gate_rearm
+0x10e2b4	function	light_event_clear
 0x10e484	function	reserve_address_range
 0x10e6c0	function	svcReleaseSemaphore
 0x10e6d8	function	server_receive_loop

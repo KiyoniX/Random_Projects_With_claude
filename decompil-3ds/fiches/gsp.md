@@ -573,7 +573,7 @@ La file de commandes (`0x110cd0`) :
 
 Les 36 appels sont tous autorisés par l'exheader. Les huit derniers du tableau sont le cœur du métier de `gsp` : lier des interruptions, vider le cache d'un autre processus, lancer un DMA.
 
-Les verrous (`lock_enter` à `0x108c4c`, `lock_leave` à `0x108bd4`) et les événements internes (`gate_wait` à `0x107e48`, `light_event_signal` à `0x10871c`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
+Les verrous (`lock_enter` à `0x108c4c`, `lock_leave` à `0x108bd4`) et les événements internes (`light_event_wait` à `0x107e48`, `light_event_signal` à `0x10871c`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 

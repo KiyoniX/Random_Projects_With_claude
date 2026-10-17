@@ -109,8 +109,8 @@ C'est la séquence que fait Pokémon X (voir la partie 9) : ouvrir, projeter une
 2. Range dans l'objet `0x106938` : codage (`+0x19`), cadence (`+0x1a`), décalage de départ (`+0xc`), taille (`+0x10`), boucle (`+0x18`), curseur d'écriture à zéro (`+8`).
 3. Baisse l'événement « tampon plein » (`svcClearEvent`), met le mot de fin à zéro.
 4. Si `+9` (voir la commande 16) et le codage vaut 3 et la cadence 1 et la taille `0x5ffc`, lève `+0xa` : le chemin de lecture « ancien » avec correction de la dérive (partie 5).
-5. **Poignée de main avec le fil de lecture.** L'octet `+2` (« arrêté ») passe à 1, l'événement du fil (`0x106018`) est signalé, `gate_wait` (`0x101da8`) attend que le fil ait accusé réception (il le fait en arrêtant le matériel puis en ouvrant la barrière `0x10601c`, `gate_open`). Si le curseur est impair, il est reculé d'un.
-6. `+2` repasse à 0 ; `gate_rearm` (`0x101a2c`) referme la barrière.
+5. **Poignée de main avec le fil de lecture.** L'octet `+2` (« arrêté ») passe à 1, l'événement du fil (`0x106018`) est signalé, `light_event_wait` (`0x101da8`) attend que le fil ait accusé réception (il le fait en arrêtant le matériel puis en ouvrant la barrière `0x10601c`, `light_event_signal`). Si le curseur est impair, il est reculé d'un.
+6. `+2` repasse à 0 ; `light_event_clear` (`0x101a2c`) referme la barrière.
 7. `mic_hw_start_sampling` (`0x101964`), qui est la seule écriture qui allume le matériel : le registre 16 bits à `0x1EC62000` est mis à `0xF002 | (cadence << 2)`, après avoir passé par `(reg & 0x1fff) | 0x1000`. Une cadence supérieure à 3 est refusée (le résultat `0xE0E003ED` est rendu à la fonction appelante, qui l'ignore). La fonction note aussi l'heure (`svcGetSystemTick`) et remet à zéro le compteur d'échantillons de l'objet matériel (`0x1060e8`).
 
 **D. Le fil de lecture** (`sampling_thread_main`, `0x1011f8`, priorité 8) attend l'événement `0x106018`, que le noyau lève à chaque interruption `0x5A` (liée dans `mic_initialize` par `svcBindInterrupt(0x5a, événement, priorité 8, 0)`) et que `StartSampling` lève aussi pour la poignée de main. À chaque réveil :
@@ -295,7 +295,7 @@ Pour un portage : fournir `mic:u` de façon à ce que l'ouverture réussisse une
 - Les trois lecteurs de FIFO et le choix par `+9` et `+0xa` : le chemin `read_fifo_legacy_timed` corrige une dérive à partir de l'horloge du système (constantes `0xffd70a3b`, `0x110` non élucidées) ; `read_fifo` et `read_fifo_legacy` ne diffèrent que par la manière dont ils gèrent un nombre impair d'échantillons.
 - Le nom `SetClientSDKVersion`, et le fait que `+9` serve de « compatibilité avec les anciens SDK ».
 - Le sens des notifications `0x104` à `0x106`, `0x213` et `0x214` (repris de [ptm](ptm.md) et de [hid](hid.md)).
-- Le rôle exact de `gate_wait`, `gate_open`, `gate_close` et `gate_rearm` : une barrière à deux états dont l'usage se lit dans `StartSampling` et le fil de lecture, mais dont les états internes (`-1`, `-2`, 0, 1) n'ont pas tous été suivis.
+- Le rôle exact de `light_event_wait`, `light_event_signal`, `light_event_init` et `light_event_clear` : une barrière à deux états dont l'usage se lit dans `StartSampling` et le fil de lecture, mais dont les états internes (`-1`, `-2`, 0, 1) n'ont pas tous été suivis.
 - Les piles des fils (`0x106118` à `0x106918`, 1 024 octets chacune) : lues dans les arguments de `create_thread`.
 - Que les 50 octets du filtre IIR sont un filtre par défaut du module (`mic_finalize` les rend à `cdc:MIC`).
 - Que le jeu n'envoie jamais `SetIirFilterMic` (l'octet de son état n'est écrit nulle part dans le code principal ; un `.cro` pourrait l'écrire).

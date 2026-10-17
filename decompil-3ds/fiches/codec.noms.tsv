@@ -67,8 +67,8 @@
 0x102360	function	GPIOCDC_SetEdge
 0x102398	function	GPIOCDC_SetInterruptEnable
 0x102400	function	svcGetProcessId
-0x102418	function	gate_close
-0x10244c	function	gate_wait
+0x102418	function	light_event_init
+0x10244c	function	light_event_wait
 0x102514	function	atexit_stub
 0x102518	function	codec_set_output_route
 0x1025a0	function	cdccsn_cmd0003

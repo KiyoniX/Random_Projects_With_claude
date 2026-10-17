@@ -126,8 +126,8 @@
 0x105ca6	label	static_guard_acquire
 0x105e18	function	I2CHID_ReadRegisterBuffer
 0x106154	function	svcGetProcessId
-0x10616c	function	gate_close
-0x1061a0	function	gate_wait
+0x10616c	function	light_event_init
+0x1061a0	function	light_event_wait
 0x1062d4	function	reserve_address_range
 0x1064c8	function	service_open
 0x106524	function	CFG_GetConfigInfoBlk8

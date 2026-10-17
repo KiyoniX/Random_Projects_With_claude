@@ -187,7 +187,7 @@
 0x10e5bc	function	is_application_id
 0x10e5cc	function	is_system_applet_id
 0x10e5e0	function	__aeabi_ldivmod
-0x10e7b0	function	gate_rearm
+0x10e7b0	function	light_event_clear
 0x10e868	function	svcArbitrateAddress
 0x10e8e4	label	static_guard_acquire
 0x10e8f8	function	__aeabi_uidivmod

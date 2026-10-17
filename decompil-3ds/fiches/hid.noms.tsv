@@ -158,8 +158,8 @@
 0x105db8	function	update_accelerometer
 0x105f20	function	I2CHID_ReadRegisterBuffer
 0x10625c	function	svcGetProcessId
-0x106274	function	gate_close
-0x1062a8	function	gate_wait
+0x106274	function	light_event_init
+0x1062a8	function	light_event_wait
 0x106388	function	light_lock_unlock
 0x1063dc	function	reserve_address_range
 0x1065e0	function	service_close

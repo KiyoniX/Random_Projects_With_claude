@@ -95,7 +95,7 @@
 0x10853c	function	GPIOIR_cmd0002
 0x1085b8	function	service_open
 0x108888	function	svcCreateEvent
-0x1088a0	function	gate_wait
+0x1088a0	function	light_event_wait
 0x10896c	function	break_process
 0x1089c0	function	copy_u64
 0x1089d4	function	release_address_range
@@ -103,13 +103,13 @@
 0x108a64	function	lock_enter
 0x108a9c	function	srv_get_service_handle_by_name
 0x108ac8	function	srv_get_service_handle
-0x108b60	function	gate_rearm
+0x108b60	function	light_event_clear
 0x108c18	function	svcArbitrateAddress
 0x108d30	function	init_lock
 0x108d4c	function	crc8_update
 0x108db4	function	join_thread
-0x108df4	function	gate_open
-0x108f3c	function	gate_close
+0x108df4	function	light_event_signal
+0x108f3c	function	light_event_init
 0x108f70	function	strlen
 0x109000	function	panic_on_failure
 0x109070	function	init_runtime_and_srv

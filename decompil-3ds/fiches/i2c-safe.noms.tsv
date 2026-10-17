@@ -37,8 +37,8 @@
 0x101054	function	thread_trampoline
 0x10109c	function	svcGetProcessInfo
 0x1010bc	function	svcGetProcessId
-0x1010d4	function	gate_close
-0x101108	function	gate_wait
+0x1010d4	function	light_event_init
+0x101108	function	light_event_wait
 0x10123c	function	ERRF_Throw
 0x10127c	function	svcSleepThread
 0x1012fc	function	lock_arbitrate_wait

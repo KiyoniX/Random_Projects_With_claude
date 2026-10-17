@@ -25,7 +25,7 @@
 0x100e68	function	svcGetSystemInfo
 0x100e84	function	svcOpenProcess
 0x100e9c	function	strcmp
-0x100f5c	function	gate_close
+0x100f5c	function	light_event_init
 0x100f90	function	create_lock_arbiter_once
 0x100fcc	function	create_thread
 0x101124	function	init_vm_region_10000000
@@ -81,7 +81,7 @@
 0x102d78	function	count_nonzero_u64
 0x102e14	function	process_entry_free
 0x102e38	function	construct_array
-0x103088	function	gate_wait
+0x103088	function	light_event_wait
 0x103150	function	svcRun
 0x103174	function	LOADER_UnregisterProgram
 0x1031ac	function	LOADER_GetProgramInfo

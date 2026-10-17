@@ -13,7 +13,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), l'ai
 | Titre | `0004013020001e02`, version 5.0.1, un titre de la CTRNAND (lu dans l'exheader ; nom `i2c`) |
 | Fichier lu | `local/extrait/i2c/exefs/code.bin` et `exheader.bin` |
 | Taille | 21 396 octets de code (`0x5394`), 636 de données en lecture seule (`0x27c`), 200 de données (`0xc8`), 19 984 de mémoire à zéro (`0x4e10`) ; pile de 4 096 octets ; priorité de départ 9 |
-| Fonctions | 194, dont 123 nommées dans `i2c.noms.tsv` (7 en Thumb, 187 en ARM) |
+| Fonctions | 212 (194 pour Ghidra et 18 entrées manquées), 8 en Thumb, 204 en ARM |
 | Services offerts | neuf, une session au plus chacun : `i2c::MCU`, `i2c::CAM`, `i2c::LCD`, `i2c::DEB`, `i2c::HID`, `i2c::IR`, `i2c::EEP`, `i2c::NFC`, `i2c::QTM` (partie 2) |
 | Services appelés | aucun : seulement `srv:` et le port `err:f`. La liste de services de l'exheader est vide |
 | Autres accès | trois pages matérielles, `0x1EC61000`, `0x1EC44000`, `0x1EC48000` (descripteurs `0xFFE1EC61`, `0xFFE1EC44`, `0xFFE1EC48`) ; les interruptions `0x54`, `0x55` et `0x5C` |
@@ -22,7 +22,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), l'ai
 
 ## Partie 1 : le démarrage
 
-`entry` (`0x100000`) enchaîne `clear_bss`, les constructeurs et `run_init_array`, puis appelle `i2c_main` (`0x10013c`, 1 032 octets). `construct_global_objects` (`0x104d0c`) prépare les trois verrous de bus (`0x10b924`, 12 octets chacun), les trois événements de bus (`0x10b948`) et un objet de durées (`0x107058`) dont deux champs viennent de constantes de la bibliothèque (non élucidées).
+`entry` (`0x100000`) enchaîne `clear_bss`, les constructeurs et `run_init_array`, puis appelle `i2c_main` (`0x10013c`, 1 032 octets). `construct_global_objects` (`0x104d0c`) prépare les trois verrous de bus (`0x10b924`, 12 octets chacun), les trois événements de bus (`0x10b948`) et un objet de durées (`0x107058`) dont deux durées, 1 400 et 5 000 converties en 375 et 1 340 ticks par la constante `0x44A2FA85` (1,4 µs et 5 µs à 268 MHz, unités supposées).
 
 Les bus eux-mêmes ne sont pas initialisés au démarrage : `i2c_init_buses` (`0x10296c`) est appelée la première fois qu'une commande prend un verrou de bus (octet `0x107050`, voir la partie 4).
 
@@ -119,7 +119,7 @@ Les valeurs écrites dans `CNT` (bits de 3dbrew : 0 arrêt, 1 départ, 2 pause, 
 
 | Valeur | Fonction | Rôle |
 | --- | --- | --- |
-| `0xC2` | `i2c_bus_start_write` (`0x1028e0`) et `i2c_bus_start_read` (`0x1027ec`) | départ : `DATA` reçoit l'adresse de l'appareil (avec le bit 0 pour une lecture), pause de trois fois la durée de `0x107058`, puis `CNT` |
+| `0xC2` | `i2c_bus_start_write` (`0x1028e0`) et `i2c_bus_start_read` (`0x1027ec`) | départ : `DATA` reçoit l'adresse de l'appareil (avec le bit 0 pour une lecture), pause `delay_loop(3 × 375)` (`0x10187c`, environ 4,2 µs, supposé), puis `CNT` |
 | `0xC0` | `i2c_bus_write_byte` (`0x10287c`) | octet de plus à écrire |
 | `0xC1` | `i2c_bus_write_last_byte` (`0x102680`) | dernier octet, avec arrêt |
 | `0xC5` | `i2c_bus_abort` (`0x1026e4`) | arrêt avec pause après une erreur ; appelé avant chaque nouvel essai |
@@ -193,7 +193,7 @@ Seulement `srv:` et `err:f` ; 6 appels à `svcSendSyncRequest` (`0x32`) : `SRV_R
 **Pas lu**
 - Le détail de `i2c_update_bits16` (`0x1040dc`) et de `i2c_read_reg16`/`i2c_read_buffer16` jusqu'au dernier bit (l'ordre des deux octets de poids est lu, pas les cas limites de taille).
 - Le corps des fonctions de bibliothèque : tas, gestionnaire d'adresses (`reserve_address_range`), thread local, objets de verrous.
-- 71 fonctions restent sans nom, presque toutes de la bibliothèque.
+- 71 fonctions de Ghidra et 16 entrées manquées n'avaient pas de nom ; toutes en ont un (haute dans la fiche ou moyenne en proposition) ; la plupart viennent de la bibliothèque.
 - Ce que les clients envoient : les fiches de `hid`, `gsp`, `ir`, `cfg` donnent leurs commandes (2, 5, 5, 16) ; celles de `mcu`, `camera`, `nfc` et `qtm` restent à lire côté appelant.
 
 ## Comment cette fiche a été faite

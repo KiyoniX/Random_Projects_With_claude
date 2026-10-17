@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), les 
 | Titre | `0004013000002102`, version 2.0.0, un titre de la CTRNAND (lu dans l'exheader ; nom `pdn`) |
 | Fichier lu | `local/extrait/pdn/exefs/code.bin` et `exheader.bin` |
 | Taille | 9 060 octets de code (`0x2364`), 572 de données en lecture seule (`0x23c`), 144 de données (`0x90`), 1 660 de mémoire à zéro (`0x67c`) ; pile de 4 096 octets ; priorité de départ 9 |
-| Fonctions | 103, dont 60 nommées dans `pdn.noms.tsv` (8 en Thumb, 95 en ARM) |
+| Fonctions | 113 (103 pour Ghidra et 10 entrées manquées), 9 en Thumb, 104 en ARM |
 | Services offerts | cinq noms, une session au plus chacun : `pdn:s`, `pdn:d`, `pdn:i`, `pdn:g`, `pdn:c` (partie 2) |
 | Services appelés | aucun : seulement `srv:` et le port `err:f`. La liste de services de l'exheader est vide |
 | Autres accès | la page matérielle `0x1EC41000` (descripteur `0xFFE1EC41` de l'exheader). Aucune interruption déclarée |
@@ -72,13 +72,13 @@ Ce sont les deux seules commandes qui font plus qu'un octet.
 
 1. Si `deassert` est vrai alors que `enable` est faux (`deassert & ~enable`), rend 0 : la commande répond alors `0xE0E02401` (niveau 28, résumé 7, module 9, description 1).
 2. Sinon écrit `(reset ^ 1) | (enable << 1)` : le bit 0 est à 0 pendant la remise à zéro, le bit 1 allume l'horloge.
-3. Si `reset` et `deassert` sont vrais, attend `busy_delay(0x30)` (`0x100e60` : une boucle qui retranche 2 jusqu'à 0, soit 24 tours) puis écrit `(enable << 1) | 1`, c'est-à-dire relâche la remise à zéro. Rend 1 : réponse 0.
+3. Si `reset` et `deassert` sont vrais, attend `delay_loop(0x30)` (`0x100e60` : une boucle qui retranche 2 jusqu'à 0, soit 24 tours) puis écrit `(enable << 1) | 1`, c'est-à-dire relâche la remise à zéro. Rend 1 : réponse 0.
 
 `pdn_set_gpu_state(clock, resetEngines, resetRegisters)` (`0x101d98`), registre `PDN_GPU_CNT` (`0x10141200`) :
 
 1. Si `(resetEngines | resetRegisters) & ~clock` n'est pas nul, rend 0 : réponse `0xE0E02401`.
 2. Sinon écrit `(clock ? 0x10000 : 0) | (resetRegisters ? 0 : 0x7E) | (resetEngines ^ 1)`.
-3. Si `resetEngines` ou `resetRegisters` est vrai : attend `busy_delay(0xC)` (douze unités, ce que 3dbrew appelle « 12 ARM11 cycle delay ») et écrit `(clock ? 0x10000 : 0) | 0x7F`, c'est-à-dire relâche toutes les remises à zéro.
+3. Si `resetEngines` ou `resetRegisters` est vrai : attend `delay_loop(0xC)` (douze unités, ce que 3dbrew appelle « 12 ARM11 cycle delay ») et écrit `(clock ? 0x10000 : 0) | 0x7F`, c'est-à-dire relâche toutes les remises à zéro.
 
 Les bits suivent la table de 3dbrew (page « PDN Registers ») : pour `PDN_GPU_CNT`, bit 0 = bloc principal + VRAM + LCD, bits 1 à 6 = les autres blocs (0 = en remise à zéro), bit 16 = horloge ; pour `PDN_DSP_CNT`, voir 3dbrew (le bit 0 remet à zéro, le bit 1 allume).
 
@@ -115,7 +115,7 @@ Les registres `PDN_WAKE_ENABLE` et `PDN_WAKE_REASON` listent les causes de réve
 
 ## Partie 6 : les services que pdn appelle
 
-Seulement `srv:` et `err:f` ; les mêmes six requêtes que [gpio](gpio.md) (partie 6) : `SRV_RegisterClient`, `SRV_EnableNotification`, `SRV_RegisterService` (cinq appels), `SRV_UnregisterService`, `SRV_ReceiveNotification` et `ERRF_Throw` (`errf_report_error`, `0x100e88`). Les noms sont ceux de [sm](sm.md).
+Seulement `srv:` et `err:f` ; les mêmes six requêtes que [gpio](gpio.md) (partie 6) : `SRV_RegisterClient`, `SRV_EnableNotification`, `SRV_RegisterService` (cinq appels), `SRV_UnregisterService`, `SRV_ReceiveNotification` et `ERRF_Throw` (`0x101400`, `svc 0x32` en `0x101424` ; `errf_report_error` `0x100e88` remplit l'en-tête puis saute vers `errf_send_fatal_error` `0x1010a4`). Les noms sont ceux de [sm](sm.md).
 
 ## Partie 7 : les appels système utilisés
 
@@ -151,14 +151,14 @@ Les deux sens interprétés de `camera` et de `dsp` sont maintenant lus des deux
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Les noms des paramètres des deux commandes à trois octets (`enable`, `reset`, `deassert` ; `clock`, `resetEngines`, `resetRegisters`) : ceux de 3dbrew, accordés aux formules lues dans le code.
-- Que `busy_delay` soit une attente de quelques dizaines de cycles : la boucle `subs r0, r0, #2` est lue dans l'assembleur ; sa durée réelle dépend du cadencement.
+- Que `delay_loop` soit une attente de quelques dizaines de cycles : la boucle `subs r0, r0, #2` est lue dans l'assembleur ; sa durée réelle dépend du cadencement.
 - Que `0xE0E02401` (module 9, description 1) soit « paramètre invalide » : le résumé 7 de ce résultat est celui d'un argument invalide.
 - Les noms des fonctions de bibliothèque, reconnus par l'identité du code avec des fonctions déjà nommées dans d'autres modules.
 
 **Pas lu**
 - Les cinq octets de contexte à `0x104000` : les fonctions ne les lisent pas ; leur rôle (s'il y en a un) est inconnu.
 - Le corps des fonctions de bibliothèque : allocateurs, gestionnaire de réserve d'adresses, thread local.
-- 43 fonctions restent sans nom, presque toutes de la bibliothèque.
+- 43 fonctions de Ghidra et 10 entrées manquées n'avaient pas de nom ; toutes en ont un, haute dans la fiche ou moyenne dans local/analyse/pdn/noms-proposes.tsv ; la plupart viennent de la bibliothèque.
 
 ## Comment cette fiche a été faite
 

@@ -44,8 +44,8 @@
 0x1010ec	function	svcExitThread
 0x1010f4	function	svcGetProcessInfo
 0x101114	function	svcGetProcessId
-0x10112c	function	gate_close
-0x101160	function	gate_wait
+0x10112c	function	light_event_init
+0x101160	function	light_event_wait
 0x101240	function	light_lock_unlock
 0x101294	function	ERRF_Throw
 0x1012cc	function	svcBreak

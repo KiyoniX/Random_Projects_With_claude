@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), l'ai
 | Titre | `0004013020002302`, version 4.0.0, un titre de la CTRNAND (lu dans l'exheader ; nom `spi`) ; la NAND porte aussi `spi-safe` (mode sans échec, non lu) |
 | Fichier lu | `local/extrait/spi/exefs/code.bin` et `exheader.bin` |
 | Taille | 14 112 octets de code (`0x3720`), 484 de données en lecture seule (`0x1e4`), 128 de données (`0x80`), 1 464 de mémoire à zéro (`0x5b8`) ; pile de 4 096 octets ; priorité de départ 9 |
-| Fonctions | 143, dont 80 nommées dans `spi.noms.tsv` (7 en Thumb, 136 en ARM) |
+| Fonctions | 160 (143 pour Ghidra et 17 entrées manquées), 8 en Thumb, 152 en ARM |
 | Services offerts | cinq, une session au plus chacun : `SPI::NOR`, `SPI::CD2`, `SPI::CS2`, `SPI::CS3`, `SPI::DEF` (partie 2) |
 | Services appelés | aucun : seulement `srv:` et le port `err:f`. La liste de services de l'exheader est vide |
 | Autres accès | deux pages d'E/S, `0x1EC60000` et `0x1EC42000` (descripteurs `0xFFE1EC60` et `0xFFE1EC42`), et une plage d'une page `0x1EC40000` (descripteurs `0xFF81EC40` et `0xFF81EC41` : début et fin). Interruptions déclarées : `0x56` et `0x57`, **jamais liées** |
@@ -160,7 +160,7 @@ Seulement `srv:` et `err:f` ; 6 appels à `svcSendSyncRequest` (`0x32`) : `SRV_R
 **Pas lu**
 - Le sens précis des bits de cadence de l'octet d'état (2-6 ajoutés avec la 3DS, d'après 3dbrew).
 - Le corps des fonctions de bibliothèque : tas, gestionnaire d'adresses, thread local.
-- 63 fonctions restent sans nom, presque toutes de la bibliothèque.
+- 63 fonctions de Ghidra et 16 entrées manquées n'avaient pas de nom ; toutes en ont un (haute dans la fiche ou moyenne en proposition) ; la plupart viennent de la bibliothèque.
 - Ce que `codec` envoie : la fiche de `codec` est à relire de ce côté. La fiche de `cfg` note trois commandes de `SPI::NOR` : `0x00010080` (commande 1, deux paramètres : `SetDeviceState`), `0x00020040` (commande 2, qui ne fait rien ici) et `0x000500C0` (commande 5, trois paramètres : `WriteDevice`). Elles tombent sur des commandes de ce module ; `cfg` appelle donc la commande 2 pour rien.
 
 ## Comment cette fiche a été faite

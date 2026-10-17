@@ -1242,7 +1242,7 @@
 0x1097c0	function	init_heap_region
 0x123bb8	function	lock_arbitrate_wait
 0x132d10	function	thread_trampoline
-0x133b74	function	gate_rearm
+0x133b74	function	light_event_clear
 0x13446c	function	fill_words
 0x15fb74	function	lock_leave
 0x15fb94	function	panic_on_failure

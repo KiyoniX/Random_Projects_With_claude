@@ -128,7 +128,7 @@
 0x10d0bc	function	slot_post_notification
 0x10d480	function	parameter_store
 0x10d4e4	function	__aeabi_ldivmod
-0x10d8b4	function	gate_rearm
+0x10d8b4	function	light_event_clear
 0x10d96c	function	svcArbitrateAddress
 0x10d984	label	static_guard_acquire
 0x10d998	function	__aeabi_uidivmod

@@ -31,8 +31,8 @@
 0x100d04	function	clear_thread_local_storage
 0x100e14	function	svcGetProcessInfo
 0x100e34	function	svcGetProcessId
-0x100e4c	function	gate_close
-0x100e80	function	gate_wait
+0x100e4c	function	light_event_init
+0x100e80	function	light_event_wait
 0x100f48	function	light_lock_unlock
 0x100f9c	function	ERRF_Throw
 0x100fd4	function	svcSleepThread

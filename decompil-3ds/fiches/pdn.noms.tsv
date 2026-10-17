@@ -29,8 +29,8 @@
 0x100bcc	function	clear_thread_local_storage
 0x100cdc	function	svcGetProcessInfo
 0x100cfc	function	svcGetProcessId
-0x100d14	function	gate_close
-0x100d48	function	gate_wait
+0x100d14	function	light_event_init
+0x100d48	function	light_event_wait
 0x100e10	function	notification_handler_ctor
 0x100e48	label	static_guard_acquire
 0x100e5c	function	atexit_stub

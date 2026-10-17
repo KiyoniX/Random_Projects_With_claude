@@ -560,7 +560,7 @@ Le gestionnaire d'interruptions (`0x109278`) :
 
 Les 26 appels sont tous autorisés par l'exheader. `dsp` n'a ni tas ni mémoire partagée : ni `ControlMemory`, ni `CreateMemoryBlock`. Tout ce qu'il partage avec le jeu passe par la mémoire du DSP elle-même.
 
-Les verrous (`lock_enter` à `0x1043d0`, `lock_leave` à `0x1042a0`) et les événements internes (`gate_wait` à `0x103d6c`, `light_event_signal` à `0x102abc`) reposent sur `ArbitrateAddress`, comme dans les autres modules.
+Les verrous (`lock_enter` à `0x1043d0`, `lock_leave` à `0x1042a0`) et les événements internes (`light_event_wait` à `0x103d6c`, `light_event_pulse` à `0x102abc`) reposent sur `ArbitrateAddress`, comme dans les autres modules.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 

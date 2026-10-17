@@ -174,7 +174,7 @@
 0x107c7c	function	svcArbitrateAddress
 0x107c94	function	lcd_update_force_black
 0x107ce4	function	pdn_gpu_control
-0x107e48	function	gate_wait
+0x107e48	function	light_event_wait
 0x107f10	function	svcCreateEvent
 0x107f28	function	get_interrupt_manager
 0x107f34	function	lcd_apply_config
@@ -192,7 +192,7 @@
 0x108710	function	get_gpu_hw
 0x10871c	function	light_event_signal
 0x1087d4	function	lock_init
-0x1087f0	function	gate_close
+0x1087f0	function	light_event_init
 0x108824	function	copy_service_name
 0x108838	function	create_thread
 0x108928	function	join_thread

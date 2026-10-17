@@ -83,7 +83,7 @@
 0x10280c	function	svcReplyAndReceive
 0x102824	function	svcSleepThread
 0x102830	function	memcpy_words
-0x1028a4	function	gate_wait
+0x1028a4	function	light_event_wait
 0x102a04	function	PxiDispatcher_receive_message
 0x102b20	function	wait_mutex_or_cancel
 0x102bcc	function	svcBindInterrupt
@@ -102,7 +102,7 @@
 0x102f08	function	PxiChannel_on_reply
 0x102f88	function
 0x102f8c	function
-0x102f90	function	gate_close
+0x102f90	function	light_event_init
 0x102fc4	function
 0x1030fc	function	pxi11_publish_notification
 0x103134	function	pxi11_handle_command

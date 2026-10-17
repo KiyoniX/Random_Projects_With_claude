@@ -25,7 +25,7 @@
 0x1014d8	function	svcBreak
 0x1015dc	function	svcCreateSessionToPort
 0x1015f4	function	svcDuplicateHandle
-0x10160c	function	gate_close
+0x10160c	function	light_event_init
 0x1016f8	function
 0x101788	function
 0x1017dc	function	atexit_stub

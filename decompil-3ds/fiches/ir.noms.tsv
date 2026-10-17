@@ -120,10 +120,10 @@
 0x108d60	function	GPIOIR_cmd0008
 0x108da4	function	GPIOIR_cmd0002
 0x108e20	function	service_open
-0x108f84	function	gate_rearm
+0x108f84	function	light_event_clear
 0x10903c	function	svcArbitrateAddress
 0x1092c8	function	reserve_address_range
-0x109478	function	gate_wait
+0x109478	function	light_event_wait
 0x109598	function	copy_u64
 0x1095ac	function	ring_unlock
 0x1095b4	function	lock_leave
@@ -138,8 +138,8 @@
 0x1098f8	label	construct_array
 0x10991c	function	svcCreateEvent
 0x109934	function	join_thread
-0x109974	function	gate_open
-0x109abc	function	gate_close
+0x109974	function	light_event_signal
+0x109abc	function	light_event_init
 0x109af0	function	strlen
 0x109b80	function	panic_on_failure
 0x109bf0	function	init_runtime_and_srv

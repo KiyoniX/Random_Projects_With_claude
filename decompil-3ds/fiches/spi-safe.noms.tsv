@@ -61,8 +61,8 @@
 0x1020b8	function	heap_alloc
 0x10213c	function	thread_trampoline
 0x102184	function	svcGetProcessId
-0x10219c	function	gate_close
-0x1021d0	function	gate_wait
+0x10219c	function	light_event_init
+0x1021d0	function	light_event_wait
 0x1022ec	function	ERRF_Throw
 0x102324	function	spi_old_write
 0x1023d4	function	spi_nspi_write

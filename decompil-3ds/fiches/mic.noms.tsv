@@ -40,7 +40,7 @@
 0x101964	function	mic_hw_start_sampling
 0x1019dc	function	mic_hw_is_sampling
 0x1019f4	function	errf_report_error
-0x101a2c	function	gate_rearm
+0x101a2c	function	light_event_clear
 0x101ae4	function	svcArbitrateAddress
 0x101afc	function	svcSetTimer
 0x101c30	function	copy_u64
@@ -51,15 +51,15 @@
 0x101d0c	function	mic_hw_stop_sampling
 0x101d30	function	CDCMIC_SetIirFilterMic
 0x101d70	function	CDCMIC_SetGain
-0x101da8	function	gate_wait
+0x101da8	function	light_event_wait
 0x101e70	function	release_address_range
 0x101ed8	function	lock_leave
 0x101efc	function	start_power_on_mute
 0x1020a4	function	CDCMIC_SetPower
 0x1020dc	function	lock_enter
 0x102114	function	create_thread
-0x102204	function	gate_open
-0x1022bc	function	gate_close
+0x102204	function	light_event_signal
+0x1022bc	function	light_event_init
 0x10230c	function	svcCreateEvent
 0x102324	function	unmap_shared_memory
 0x1023e4	function	mic_UnmapSharedMem

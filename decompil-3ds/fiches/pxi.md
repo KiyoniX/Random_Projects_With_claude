@@ -345,7 +345,7 @@ Le code ne teste que le numéro de commande, 5, et cet octet ; l'en-tête comple
 - Les noms donnés aux états d'une session, au « genre » d'une requête et au « jeton » d'un canal. Les valeurs et leurs tests sont lus ; les mots sont les miens.
 - Les noms de classes (`PxiEndpoint`, `PxiChannel`, `PxiMcChannel`, `Pxi11Channel`, `PxiDispatcher`) : le code ne porte aucun nom.
 - La traduction du tampon par le noyau (partie 4, étape 2) vient de 3dbrew seulement. Ce qui est lu dans `pxi` : il déclare quatre tampons statiques d'une page et ne touche à aucun mot du message.
-- Le rôle des verrous légers (`lock_arbitrate_wait` `0x102d30`, `gate_wait` `0x1028a4`, `light_semaphore_release` `0x101bd0`) : reconnus à leur forme (un compteur modifié par `ldrex`/`strex`, puis `svcArbitrateAddress`), pas suivis cas par cas.
+- Le rôle des verrous légers (`lock_arbitrate_wait` `0x102d30`, `light_event_wait` `0x1028a4`, `light_semaphore_release` `0x101bd0`) : reconnus à leur forme (un compteur modifié par `ldrex`/`strex`, puis `svcArbitrateAddress`), pas suivis cas par cas.
 - La taille des piles : seuls les sommets sont lus. Si les piles se suivent dans la mémoire, celle du fil récepteur fait `0x400` octets et les deux autres `0x1000`.
 - `panic_on_failure` (`0x1026b8`) : elle lit l'octet `0x1FF80014` de la mémoire de configuration et le niveau du code d'erreur pour décider d'arrêter le programme ; les cas exacts ne sont pas démêlés.
 - Un point à relire dans la partie 3 : hors veille, le compteur `0x11bb20` est augmenté avant la prise du jeton. Si le jeton est pris (possible seulement pour `pxi:dev`, qui accepte deux sessions), la requête attend un tour et le compteur serait augmenté une seconde fois.

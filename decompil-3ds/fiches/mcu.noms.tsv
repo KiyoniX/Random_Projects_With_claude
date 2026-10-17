@@ -40,7 +40,7 @@
 0x101500	function	svcCreateAddressArbiter
 0x101518	function	svcCreateThread
 0x10153c	function	svcQueryMemory
-0x10156c	function	gate_open
+0x10156c	function	light_event_signal
 0x1016a0	function	thread_trampoline
 0x1016e4	function	svcExitThread
 0x1016ec	function	svcGetProcessInfo
@@ -97,8 +97,8 @@
 0x103254	function	svcReplyAndReceive
 0x103274	label	destroy_array
 0x10347c	function	memcpy_words
-0x1034f0	function	gate_wait
-0x1035d0	function	gate_rearm
+0x1034f0	function	light_event_wait
+0x1035d0	function	light_event_clear
 0x103634	function	light_lock_unlock
 0x103688	function	svcArbitrateAddress
 0x1036a0	function	mcu_read_regs_cmd12
@@ -122,7 +122,7 @@
 0x103be8	function	mcu_SetRTCAlarm
 0x103cbc	function	srv_get_service_handle_by_name
 0x103ce8	function	srv_get_service_handle
-0x103d1c	function	gate_close
+0x103d1c	function	light_event_init
 0x103d50	function	svcCreateEvent
 0x103d68	function	lock_init
 0x103d84	function	svcControlMemory

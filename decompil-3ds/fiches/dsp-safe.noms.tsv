@@ -60,7 +60,7 @@
 0x102968	function	memclr_bytes
 0x1029a8	function	client_event_handles_dtor
 0x1029c4	function	session_threads_dtor
-0x1029e0	function	light_event_signal
+0x1029e0	function	light_event_pulse
 0x102c2c	function	thread_dtor
 0x102c58	function	verify_rsa_sha256_signature
 0x102cb0	function	ps_close
@@ -90,8 +90,8 @@
 0x103c0c	function	memcpy_words
 0x103c80	function	svcArbitrateAddress
 0x103c98	function	dsp_SetSemaphore
-0x103cb8	function	gate_wait
-0x103d80	function	gate_close
+0x103cb8	function	light_event_wait
+0x103d80	function	light_event_init
 0x103db4	function	delay_loop
 0x103dc4	function	svcCreateEvent
 0x103e14	function	dsp_hw_power_down

@@ -13,7 +13,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`), sept
 | Titre | `0004013020001f02`, version 9.0.0 (`v9216`), un titre de la CTRNAND (lu dans l'exheader ; nom `mcu`) ; la NAND porte aussi `mcu-safe` (mode sans échec, `v9217`, non lu) |
 | Fichier lu | `local/extrait/mcu/exefs/code.bin` et `exheader.bin` |
 | Taille | 33 580 octets de code (`0x832c`), 16 960 de données en lecture seule (`0x4240`, dont 16 387 octets de micrologiciel), 216 de données (`0xd8`), 11 816 de mémoire à zéro (`0x2e28`) ; pile de 4 096 octets ; priorité de départ 9 |
-| Fonctions | 285, dont 217 nommées dans `mcu.noms.tsv` (7 en Thumb, 278 en ARM) |
+| Fonctions | 301 (285 pour Ghidra et 16 entrées manquées), 8 en Thumb, 293 en ARM |
 | Services offerts | neuf, une session au plus chacun : `mcu::CAM`, `mcu::GPU`, `mcu::HID`, `mcu::RTC`, `mcu::SND`, `mcu::NWM`, `mcu::HWC`, `mcu::PLS`, `mcu::CDC` (partie 2) |
 | Services appelés | `i2c::MCU` et `gpio:MCU`, plus `srv:` et le port `err:f`. L'exheader déclare en plus `ptm:s`, que le code n'ouvre pas : le nom n'est pas dans le module |
 | Autres accès | **aucun** : pas de page matérielle, pas d'interruption déclarée, et le masque d'appels système de l'exheader n'a ni `BindInterrupt` ni `UnbindInterrupt` (les interruptions passent par `gpio:MCU`) |
@@ -146,7 +146,7 @@ Les 161 commandes sont dans les neuf tableaux qui suivent. Pour toutes, seul le 
 | 31 | SetPedometerRecordingMode | `mcu_SetPedometerRecordingMode` | `0x102f28` | `0x001f0040` | SetRegisterBits8 sur le registre 0x40, bit 1 |
 | 32 | GetPedometerRecordingMode | `mcu_GetPedometerRecordingMode` | `0x1071d4` | `0x00200080` | lit 0x40 |
 | 33 | GetStepCount | `mcu_GetStepCount` | `0x1075d8` | `0x00210080` | lit 0x4b |
-| 34 | ReadRegister4Fh | dans l'aiguillage |  | `0x00220042` | lit le registre 0x4F (0x156 octets) |
+| 34 | ReadRegister4Fh | `mcu_ReadRegister4Fh` | `0x107740` | `0x00220042` | lit le registre 0x4F (0x156 octets) |
 | 35 | (sans nom) | `mcu_WriteRegister4Eh` | `0x1073b0` | `0x00230040` | écrit 1 dans le registre 0x4E |
 | 36 | GetPowerEventHandle | dans l'aiguillage |  | `0x00240042` | rend la poignée de l'événement 0x10E104 |
 | 37 | GetPowerInterruptHistory | dans l'aiguillage |  | `0x00250080` | rend l'historique 0x10E0E0 |
@@ -378,7 +378,7 @@ Autour de la réécriture, 3dbrew dit que les interruptions externes du microcon
 | Service | Poignée | En-tête | Fonction | Adresse | Pour quoi faire |
 | --- | --- | --- | --- | --- | --- |
 | `srv:` | `0x10E0AC` | `0x00010002`, `0x00020000`, `0x00030100`, `0x000400C0`, `0x000B0000` | les cinq de [sm](sm.md) | `0x101358`, `0x101394`, `0x100ed4`, `0x100f30`, `0x1013d0` | RegisterClient, EnableNotification, RegisterService (9 appels), UnregisterService, ReceiveNotification |
-| | | `0x00050100` | `srv_get_service_handle` | `0x103ce8` | ouvrir `i2c::MCU` et `gpio:MCU` |
+| | | `0x00050100` | `SRV_GetServiceHandle` | `0x1018d8` | ouvrir `i2c::MCU` et `gpio:MCU` (enrobage `srv_get_service_handle` `0x103ce8`) |
 | | | `0x000C0080` | `SRV_PublishToSubscriber` | `0x101934` | publier une notification système (partie 4) |
 | `i2c::MCU` | `0x10E00C` | `0x000D00C0` | `I2CMCU_ReadRegisterBuffer8` | `0x101760` | lire des registres (commande 13 d'[i2c](i2c.md)) |
 | | | `0x000B00C2` | `I2CMCU_WriteRegisterBuffer8` | `0x1017cc` | écrire des registres (11) |
@@ -446,7 +446,7 @@ Les noms `I2CMCU_*` et `GPIOMCU_*` sont ceux de ce fichier ; les en-têtes sont 
 - Le contenu du micrologiciel (`0x4003` octets à `0x1090E0`) : volontairement.
 - Le détail de `mcu_SetBatteryEmptyLEDPattern`, des routines de motif de la LED d'information, et des conversions de `mcu_SetRTC` et de `mcu_GetRTC` au-delà de leur forme (BCD sur sept octets).
 - Le corps des fonctions de bibliothèque : tas, gestionnaire d'adresses, thread local, files d'attente (`0x10156c`).
-- 68 fonctions restent sans nom, presque toutes de la bibliothèque.
+- 68 fonctions de Ghidra et 15 entrées manquées n'avaient pas de nom ; toutes en ont un (haute dans la fiche ou moyenne en proposition) ; la plupart viennent de la bibliothèque.
 - L'envoi de `0x213` et `0x214`, que `mcu` ne fait pas.
 
 ## Comment cette fiche a été faite
@@ -463,4 +463,4 @@ Les noms `I2CMCU_*` et `GPIOMCU_*` sont ceux de ce fichier ; les en-têtes sont 
 
 Les scripts et le brut sont dans `local/analyse/mcu/` et `local/analyse/gpio/` (non versionné).
 
-**Pour reprendre.** `mcu.noms.tsv` est le fichier de graines. Les noms en `mcu_` sont les fonctions de travail (nom de la commande de 3dbrew), les boucles et les fils ; `I2CMCU_` et `GPIOMCU_` les requêtes envoyées aux deux autres services. Endroits à relire en premier : `mcu_dispatch_interrupts`, `mcu_init_interrupts` et la commande RTC 22 (`ReadRegister4Fh`).
+**Pour reprendre.** `mcu.noms.tsv` est le fichier de graines. Les noms en `mcu_` sont les fonctions de travail (nom de la commande de 3dbrew), les boucles et les fils ; `I2CMCU_` et `GPIOMCU_` les requêtes envoyées aux deux autres services. Endroits à relire en premier : `mcu_dispatch_interrupts`, `mcu_init_interrupts` et la commande RTC 34 (`0x22`, `ReadRegister4Fh`).
