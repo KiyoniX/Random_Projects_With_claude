@@ -13,7 +13,7 @@ Fiche du 13 octobre 2026, produite avec REA, Ghidra sans interface et des script
 | Titre | `0004013000001102` (lu dans l'exheader), rangé dans le NATIVE_FIRM |
 | Fichier lu | `local/extrait/fs/exefs/code.elf` |
 | Taille | 212 912 octets de code, 6 912 de données en lecture seule, 560 de données, 207 400 de mémoire à zéro |
-| Fonctions | 1 995, dont 1 496 en Thumb ; 330 nommées dans `fs.noms.tsv` |
+| Fonctions | 1 996 pour Ghidra (1 498 en Thumb), plus 21 entrées manquées et 5 corps Thumb de veneers trouvés en plus, moins 4 qui ne sont pas des fonctions et 1 code mort : 2 017 (1 504 en Thumb, 513 en ARM) ; 359 nommées dans `fs.noms.tsv`, 1 340 avec `local/analyse/fs/noms-proposes.tsv` |
 | Services offerts | `fs:USER` (30 sessions au plus), `fs:LDR` (2), `fs:REG` (2), plus une session privée par fichier ou dossier ouvert |
 | Services appelés | `srv:`, et les quatre canaux vers Process9 : `PxiFS0`, `PxiFS1`, `PxiFSB`, `PxiFSR` |
 | Dépendances déclarées | aucune, et l'exheader ne liste aucun service autorisé |
@@ -26,7 +26,7 @@ Fiche du 13 octobre 2026, produite avec REA, Ghidra sans interface et des script
 `entry` (`0x100000`) appelle six fonctions à la suite, puis `fs_main`, puis `svcExitProcess` :
 
 1. `clear_bss` (`0x100024`) met à zéro la mémoire sans valeur initiale.
-2. Trois fonctions de mise en place non détaillées (`0x123144`, `0x1235c8`, `0x123198`). La deuxième mène à `srv_init`, qui connecte le module au port `srv:`.
+2. `init_program_args` (`0x123144`), `init_runtime_and_srv` (`0x1235c8` : `init_runtime` puis `srv_init`, qui connecte le module au port `srv:`) et `setup_heap` (`0x123198` : `set_heap_size(0xE2000)`, puis le tas par défaut dans un bloc réservé de 0x31000 octets).
 3. `run_static_initializers` (`0x100950`) appelle les 18 fonctions d'initialisation des objets globaux, par la table de distances de `0x135ab8` à `0x135b00`. La plus importante est `fsmgr_static_init` (`0x131a14`), qui prépare le grand objet « gestionnaire » décrit en partie 9.
 4. `run_init_array` (`0x123110`) parcourt une seconde table, vide dans ce module.
 5. `fs_main` (`0x122ad0`, 1 492 octets) : tout le reste.
@@ -215,7 +215,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew ; la fonction, l'adress
 | `0x0876` | `0x087600C0` | GetSaveArchiveSecureValue | `fsuser_GetSaveArchiveSecureValue` | `0x12975c` | `0x08760140` |  |
 | `0x0877` | `0x08770140` | RegisterSpecialTitleContent | `fsuser_RegisterSpecialTitleContent` | `0x129e28` | `0x08770040` |  |
 | `0x0878` | `0x08780100` | UnregisterSpecialTitleContent | `fsuser_UnregisterSpecialTitleContent` | `0x12a270` | `0x08780040` |  |
-| `0x0879` | `0x087900C2` | Same | `fsuser_Same` | `0x12a400` | `0x08790042` | oui |
+| `0x0879` | `0x087900C2` | (inconnue dans la Carte) | `fsuser_GetLegacyBannerData2` | `0x12a400` | `0x08790042` | oui |
 | `0x087A` | `0x087A0180` | AddSeed | `fsuser_AddSeed` | `0x128174` | `0x087A0040` |  |
 | `0x087B` | `0x087B0080` | GetSeed | `fsuser_GetSeed` | `0x127fb0` | `0x087B0140` |  |
 | `0x087C` | `0x087C0080` | DeleteSeed | `fsuser_DeleteSeed` | `0x128878` | `0x087C0040` |  |
@@ -248,7 +248,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew ; la fonction, l'adress
 | `0x0001` | `0x000100C6` | Dummy1 | dans l'aiguillage | `0x12e12c` | `0x00010040` |
 | `0x0401` | `0x040103C0` | Register | `fsreg_Register` | `0x12adf8` | `0x04010040` |
 | `0x0402` | `0x04020040` | Unregister | `fsreg_Unregister` | `0x12ada0` | `0x04020040` |
-| `0x0403` | `0x040300C0` | GetProgramInfo | `fsreg_GetProgramInfo` | `0x1262fc` | `0x04030042` |
+| `0x0403` | `0x040300C0` | GetProgramInfo | `fsreg_get_program_registry` (`0x12adec`) puis `fsreg_GetProgramInfo` | `0x1262fc` | `0x04030042` |
 | `0x0404` | `0x04040100` | LoadProgram | `fsreg_LoadProgram` | `0x12adb0` | `0x040400C0` |
 | `0x0405` | `0x04050080` | UnloadProgram | dans l'aiguillage | `0x12e298` | `0x04050040` |
 | `0x0406` | `0x04060080` | CheckHostLoadId | `fsreg_CheckHostLoadId` | `0x12add0` | `0x04060040` |
@@ -350,16 +350,16 @@ La réponse porte le résultat au mot 1 et le nombre d'octets lus au mot 2.
 
 **Par quel canal ?** `guard_acquire` appelle la méthode `+0x00` de l'objet « canaux », `pxi_acquire_session` (`0x10c574`). Elle lit la priorité de la commande en cours, rangée dans le stockage local par `server_run_request` (partie 2), et choisit : `PxiFSR` pour `-16`, `PxiFSB` pour `8` et `16`, `PxiFS0` ou `PxiFS1` pour le reste. Une session neuve a la priorité `0` : un jeu qui n'a jamais appelé SetPriority lit donc par `PxiFS0` ou `PxiFS1`, ou par `PxiFSB` quand les deux sont pris.
 
-**Et le romfs de Pokémon X ?** L'archive `0x00000003` n'est pas ouverte directement chez Process9. `open_self_ncch_archive` (`0x10d2a4`) fabrique un objet intermédiaire de `0x58` octets (table de méthodes `0x135610`) posé sur une archive de Process9. Sa méthode d'ouverture (`0x11ec5c`, puis `0x10cd44`) exige un chemin binaire de 12 octets et appelle à son tour la méthode `+0x0C` de l'archive du dessous. Le chemin ci-dessus reste donc vrai, avec un étage de plus.
+**Et le romfs de Pokémon X ?** L'archive `0x00000003` n'est pas ouverte directement chez Process9. `open_self_ncch_archive` (`0x10d2a4`) fabrique un objet intermédiaire de `0x58` octets (table de méthodes `0x135610`) posé sur une archive de Process9. Sa méthode d'ouverture (`self_ncch_archive_open_file` `0x11ec5c`, case +0xc, puis `self_ncch_archive_open_file_binary` `0x10cd44`, case +0x58) exige un chemin binaire de 12 octets et appelle à son tour la méthode `+0x0C` de l'archive du dessous. Le chemin ci-dessus reste donc vrai, avec un étage de plus.
 
 Cet étage a été lu par le [contrat des fichiers](contrat-fs.md), partie 2, et il fait plus qu'on ne le croyait :
 
-1. **L'archive du dessous est `0x2345678E`**, ouverte par `0x119384` puis `pxi_open_archive` avec un chemin binaire de 8 octets : la poignée de programme que `pm` a donnée à `fs` pour ce jeu, recopiée dans la session par Initialize (à `+0x1C0`). Sans Initialize, pas de poignée, et l'archive est refusée. La constante `0x2345678E` est bien dans le module, à `0x1193b4`, au milieu de `0x119384`. Pour un client, cette archive reste réservée à `fs:LDR` (partie 8) ; `fs` l'utilise pour lui-même.
-2. **Le premier octet du chemin de fichier choisit ce qu'on ouvre** (`0x10cd04`, table de saut décodée à la main) : 0 et 5, un lecteur de romfs ; 2, un petit lecteur (le jeu s'en sert pour l'icône de l'exefs) ; 1 est refusé par `0xD9004676`, 3 et 6 et plus par `0xE0E046BE`, 4 par `0xF9604784`, un code qui arrête le module. Pokémon X envoie 0 (`rom:`), 5 (`rom2:`) et 2.
+1. **L'archive du dessous est `0x2345678E`**, ouverte par `open_archive_2345678e_by_program` (`0x119384`) puis `pxi_open_archive` avec un chemin binaire de 8 octets : la poignée de programme que `pm` a donnée à `fs` pour ce jeu, recopiée dans la session par Initialize (à `+0x1C0`). Sans Initialize, pas de poignée, et l'archive est refusée. La constante `0x2345678E` est bien dans le module, à `0x1193b4`, au milieu de `0x119384`. Pour un client, cette archive reste réservée à `fs:LDR` (partie 8) ; `fs` l'utilise pour lui-même.
+2. **Le premier octet du chemin de fichier choisit ce qu'on ouvre** (`self_ncch_check_file_path_type`, `0x10cd04`, table de saut décodée à la main) : 0 et 5, un lecteur de romfs ; 2, un petit lecteur (le jeu s'en sert pour l'icône de l'exefs) ; 1 est refusé par `0xD9004676`, 3 et 6 et plus par `0xE0E046BE`, 4 par `0xF9604784`, un code qui arrête le module. Pokémon X envoie 0 (`rom:`), 5 (`rom2:`) et 2.
 3. `fs` envoie à Process9 une requête de contrôle sur l'archive, `PxiArchive_Control` avec l'action `0x789D` (en-tête `0x00560102`), les 12 octets du chemin en entrée et 16 en sortie ; il en tire 16 autres octets par une table à lui (`0x119540`), puis ouvre le fichier chez Process9 (`PXIFS_OpenFile`) avec un chemin de `0x1C` octets : les 12 du jeu et ces 16-là.
 4. **Le lecteur de romfs** (objet de `0x1C4` octets, table `0x134f58`) lit à sa création `0x5C` octets à la position 0 et exige la marque `IVFC` (la constante est dans le module à `0x107710` et `0x107890`) ; sinon `0xC8A04554`. Il monte trois étages, un par niveau du romfs, chacun avec son cache, et n'expose que **le dernier niveau** : la position 0 du fichier vu par le jeu est l'en-tête de `0x28` octets de ce niveau. Les empreintes de chaque bloc sont contrôlées dans `fs`, qui a sa propre fonction SHA-256 ; une lecture qui rend `0xD9004586` est refaite une fois.
 
-Process9 ne fait donc que déchiffrer et rendre des blocs bruts. Une lecture du jeu peut donner plusieurs requêtes `PXIFS_ReadFile` (blocs d'empreintes et de données), ou aucune si tout est en cache. La sauvegarde (archive `0x00000004`) suit le même principe : `0x10e03c` rouvre l'archive `0x2345678E`, y ouvre un seul fichier dont le chemin commence par 3, en lecture et écriture, et pose dessus un objet de `0xCDC` octets (table `0x1356a4`) qui tient l'arborescence. Cet objet n'est pas lu.
+Process9 ne fait donc que déchiffrer et rendre des blocs bruts. Une lecture du jeu peut donner plusieurs requêtes `PXIFS_ReadFile` (blocs d'empreintes et de données), ou aucune si tout est en cache. La sauvegarde (archive `0x00000004`) suit le même principe : `open_archive_00000004` (`0x10e03c`) rouvre l'archive `0x2345678E`, y ouvre un seul fichier dont le chemin commence par 3, en lecture et écriture, et pose dessus par `savedata_archive_create` (`0x118ed0`) un objet de `0xCDC` octets (table `0x1356a4`) qui tient l'arborescence : conteneur DISA (`savedata_disa_mount`, `disa_container_mount`), puis le système de fichiers « SAVE » (`savedata_fs_mount`, opérations `savedata_fs_*`).
 
 ## Partie 7 : les canaux vers Process9
 
@@ -372,7 +372,7 @@ Process9 ne fait donc que déchiffrer et rendre des blocs bruts. Une lecture du 
 | `PxiFSR` | `0x143758` | `-16` | à `0x143768`, un seul canal |
 | `PxiFSB` | `0x143760` | `16` | à `0x1437d0`, un seul canal |
 
-**Le choix.** `pxi_acquire_session` (`0x10c574`) prend un canal libre dans la réserve qui correspond à la priorité de la commande, et attend s'il n'y en a pas. Pour les priorités `0` et `-8`, elle essaie d'abord `PxiFS0` et `PxiFS1`, puis `PxiFSB`, sans attendre, et n'attend qu'ensuite sur les deux premiers. Si la priorité de la commande n'est pas celle que le canal a reçue la dernière fois, elle renvoie `PXIFS_SetPriority`. `pxi_release_session` (`0x10c5f0`) remet le canal dans sa réserve par `pool_put` (`0x1251f0`).
+**Le choix.** `pxi_acquire_session` (`0x10c574`) prend un canal libre dans la réserve qui correspond à la priorité de la commande, et attend s'il n'y en a pas. Pour les priorités `0` et `-8`, elle essaie d'abord `PxiFS0` et `PxiFS1`, puis `PxiFSB`, sans attendre, et n'attend qu'ensuite sur les deux premiers. Si la priorité de la commande n'est pas celle que le canal a reçue la dernière fois, elle renvoie `PXIFS_SetPriority`. `pxi_release_session` (`0x10c5f0`) remet le canal dans sa réserve par `msg_queue_send` (`0x1251f0`) ; la prise sans attente est `msg_queue_try_receive` (`0x131dac`), la prise avec attente `msg_queue_receive` (`0x131e38`, par `msg_queue_receive_thunk` `0x100988`).
 
 Il n'y a donc jamais plus de quatre requêtes en cours chez Process9, et une seule de priorité `-16`.
 
@@ -398,9 +398,9 @@ Il n'y a donc jamais plus de quatre requêtes en cours chez Process9, et une seu
 | dossier, `0x134b40` | `+0x00` | `PxiDirectory_destroy` | `0x106114` | `0x00110080` |
 | | `+0x08` | `PxiDirectory_Read` | `0x1060c8` | `0x001000C2` |
 
-La table d'archive a 17 cases et celle de fichier 14 : les autres n'ont pas été lues.
+La table d'archive de PxiArchive a 34 cases (jusqu'à +0x84, dont deux mots nuls à +0x44 et +0x48 dans toutes les tables d'archive) et celle de fichier 14 ; le rôle de chaque case est dans `local/analyse/fs/notes-100.md` (interfaces fichier, archive, dossier).
 
-**Toutes les requêtes.** Chaque requête envoyée à Process9 a sa petite fonction en ARM, qui écrit un en-tête et appelle `svcSendSyncRequest`. Il y en a 83. La Carte des services n'a pas de table pour les canaux `PxiFS` : les noms ci-dessous ne viennent donc pas de 3dbrew. Une fonction porte le nom d'une commande quand la preuve est dans le code (colonne « Nom donné d'après ») : soit sa seule appelante est la fonction d'une commande de `fs:USER`, dont elle reprend le nom, soit elle est appelée par une méthode du tableau précédent ou par `pxi_open_archive`. Les autres gardent leur numéro.
+**Toutes les requêtes.** Chaque requête envoyée à Process9 a sa petite fonction en ARM, qui écrit un en-tête et appelle `svcSendSyncRequest`. Il y en a 83. Une fonction porte le nom d'une commande quand la preuve est dans le code (colonne « Nom donné d'après ») : soit sa seule appelante est la fonction d'une commande de `fs:USER`, dont elle reprend le nom, soit elle est appelée par une méthode du tableau précédent ou par `pxi_open_archive`. Les autres portent le nom de 3dbrew pour leur numéro, recoupé par le gestionnaire de Process9 du même numéro (fiche process9, table de `pxifs_dispatch_command`) ; seule `PXIFS_cmd0056` garde son numéro (« Inconnue » des deux côtés).
 
 | N° | En-tête | Fonction | Adresse | Appelée par | Nom donné d'après |
 | --- | --- | --- | --- | --- | --- |
@@ -413,20 +413,20 @@ La table d'archive a 17 cases et celle de fichier 14 : les autres n'ont pas ét�
 | `0x0007` | `0x00070244` | `PXIFS_RenameDirectory` | `0x12fc00` | `PxiArchive_RenameDirectory` (`0x105820`) | la fonction qui l'appelle |
 | `0x0008` | `0x00080102` | `PXIFS_OpenDirectory` | `0x12f86c` | `PxiArchive_OpenDirectory` (`0x1056a0`) | la fonction qui l'appelle |
 | `0x0009` | `0x00090142` | `PXIFS_ReadFile` | `0x1309cc` | `PxiFile_Read` (`0x105df4`) | la fonction qui l'appelle |
-| `0x000A` | `0x000A00C2` | `PXIFS_cmd000A` | `0x12fd28` | `0x105be0` |  |
+| `0x000A` | `0x000A00C2` | `PXIFS_CalculateFileHashSHA256` | `0x12fd28` | `PxiFile_CalculateHash` (`0x105be0`) | le gestionnaire de Process9 `pxifs_calculate_file_hash_sha256` |
 | `0x000B` | `0x000B0182` | `PXIFS_WriteFile` | `0x130a5c` | `PxiFile_Write` (`0x105918`) | la fonction qui l'appelle |
-| `0x000C` | `0x000C0104` | `PXIFS_cmd000C` | `0x12fe08` | `0x105c16` |  |
+| `0x000C` | `0x000C0104` | `PXIFS_CalcSavegameMAC` | `0x12fe08` | `PxiFile_CalcSavegameMac` (`0x105c16`) | le gestionnaire de Process9 `pxifs_calc_savegame_mac` |
 | `0x000D` | `0x000D0080` | `PXIFS_GetFileSize` | `0x12f6b4` | `PxiFile_GetSize` (`0x105d8c`) | la fonction qui l'appelle |
 | `0x000E` | `0x000E0100` | `PXIFS_SetFileSize` | `0x12f6f0` | `PxiFile_SetSize` (`0x105dbc`) | la fonction qui l'appelle |
 | `0x000F` | `0x000F0080` | `PXIFS_CloseFile` | `0x130a2c` | `PxiFile_destroy` (`0x105ed8`) | la fonction qui l'appelle |
 | `0x0010` | `0x001000C2` | `PXIFS_ReadDirectory` | `0x12f8cc` | `PxiDirectory_Read` (`0x1060c8`) | la fonction qui l'appelle |
 | `0x0011` | `0x00110080` | `PXIFS_CloseDirectory` | `0x12f930` | `PxiDirectory_destroy` (`0x106114`) | la fonction qui l'appelle |
 | `0x0012` | `0x001200C2` | `PXIFS_OpenArchive` | `0x12514c` | `pxi_open_archive` (`0x11e32c`) | la fonction qui l'appelle |
-| `0x0013` | `0x00130102` | `PXIFS_cmd0013` | `0x1308f8` | `0x105fe8` |  |
-| `0x0014` | `0x00140102` | `PXIFS_cmd0014` | `0x12f80c` | `0x10563a` |  |
-| `0x0015` | `0x001500C0` | `PXIFS_cmd0015` | `0x12f960` | `PxiArchive_Control` (`0x105f2c`) |  |
+| `0x0013` | `0x00130102` | `PXIFS_HasFile` | `0x1308f8` | `PxiArchive_HasFile` (`0x105fe8`) | le gestionnaire de Process9 `pxifs_has_file` |
+| `0x0014` | `0x00140102` | `PXIFS_HasDirectory` | `0x12f80c` | `PxiArchive_HasDirectory` (`0x10563a`) | le gestionnaire de Process9 `pxifs_has_directory` |
+| `0x0015` | `0x001500C0` | `PXIFS_CommitSaveData` | `0x12f960` | `PxiArchive_Control` (`0x105f2c`) | 3dbrew ; cas de Process9 vers `archive_control` |
 | `0x0016` | `0x00160080` | `PXIFS_CloseArchive` | `0x12f780` | `PxiArchive_destroy` (`0x10616c`) | la fonction qui l'appelle |
-| `0x0017` | `0x00170080` | `PXIFS_cmd0017` | `0x1300c8` | `0x110fc0` |  |
+| `0x0017` | `0x00170080` | `PXIFS_LockArchive` | `0x1300c8` | `PxiArchive_IsAvailable` (`0x110fc0`) | 3dbrew ; cas de Process9 sans gestionnaire nommé |
 | `0x0018` | `0x00180000` | `PXIFS_GetCardType` | `0x12f680` | `fsuser_GetCardType` (`0x126ab4`) | la commande de `fs:USER` |
 | `0x0019` | `0x00190000` | `PXIFS_GetSdmcArchiveResource` | `0x130480` | `fsuser_GetSdmcArchiveResource` (`0x1297dc`) | la commande de `fs:USER` |
 | `0x001A` | `0x001A0000` | `PXIFS_GetNandArchiveResource` | `0x130440` | `fsuser_GetNandArchiveResource` (`0x1296cc`) | la commande de `fs:USER` |
@@ -454,18 +454,18 @@ La table d'archive a 17 cases et celle de fichier 14 : les autres n'ont pas ét�
 | `0x0030` | `0x003000C2` | `PXIFS_CardNorDirectRead_4xIO` | `0x130388` | `fsuser_CardNorDirectRead_4xIO` (`0x129578`) | la commande de `fs:USER` |
 | `0x0031` | `0x00310082` | `PXIFS_CardNorDirectCpuWriteWithoutVerify` | `0x130884` | `fsuser_CardNorDirectCpuWriteWithoutVerify` (`0x12a718`) | la commande de `fs:USER` |
 | `0x0032` | `0x00320040` | `PXIFS_CardNorDirectSectorEraseWithoutVerify` | `0x1308c8` | `fsuser_CardNorDirectSectorEraseWithoutVerify` (`0x12ab3c`) | la commande de `fs:USER` |
-| `0x0033` | `0x00330080` | `PXIFS_cmd0033` | `0x12f9c0` | `0x10d132` |  |
+| `0x0033` | `0x00330080` | `PXIFS_GetProductInfo` | `0x12f9c0` | `pxi_get_product_info` (`0x10d132`) | le gestionnaire de Process9 `pxifs_get_product_info` |
 | `0x0034` | `0x00340040` | `PXIFS_SetCardSpiBaudRate` | `0x130228` | `fsuser_SetCardSpiBaudRate` (`0x128c48`) | la commande de `fs:USER` |
 | `0x0035` | `0x00350040` | `PXIFS_SetCardSpiBusMode` | `0x12ff70` | `fsuser_SetCardSpiBusMode` (`0x128644`) | la commande de `fs:USER` |
 | `0x0036` | `0x00360040` | `PXIFS_SendInitializeInfoTo9` | `0x130358` | `fsuser_SendInitializeInfoTo9` (`0x129510`) | la commande de `fs:USER` |
-| `0x0037` | `0x00370100` | `PXIFS_cmd0037` | `0x12fec4` | `0x10c6c0` |  |
-| `0x0038` | `0x00380100` | `PXIFS_cmd0038` | `0x12ff00` | `0x10c6e0` |  |
-| `0x0039` | `0x00390102` | `PXIFS_cmd0039` | `0x1302f0` | `0x10c700` |  |
-| `0x003A` | `0x003A0100` | `PXIFS_cmd003A` | `0x1304c0` | `fsuser_TitleContentHasSeed` (`0x127240`), `fsuser_GetSpecialContentIndex` (`0x129840`) |  |
-| `0x003B` | `0x003B00C2` | `PXIFS_cmd003B` | `0x130154` | `fsuser_GetLegacyRomHeader` (`0x128a08`), `fsuser_GetLegacyRomHeader2` (`0x128fd0`) |  |
-| `0x003C` | `0x003C0102` | `PXIFS_cmd003C` | `0x130260` | `fsuser_GetLegacyBannerData` (`0x128f20`), `fsuser_Same` (`0x12a400`) |  |
+| `0x0037` | `0x00370100` | `PXIFS_CreateExtSaveData` | `0x12fec4` | `pxi_create_ext_save_data` (`0x10c6c0`) | le gestionnaire de Process9 `pxifs_create_ext_save_data` |
+| `0x0038` | `0x00380100` | `PXIFS_DeleteExtSaveData` | `0x12ff00` | `pxi_delete_ext_save_data` (`0x10c6e0`) | le gestionnaire de Process9 `pxifs_delete_ext_save_data` |
+| `0x0039` | `0x00390102` | `PXIFS_EnumerateExtSaveData` | `0x1302f0` | `pxi_enumerate_ext_save_data` (`0x10c700`) | le gestionnaire de Process9 `pxifs_enumerate_ext_save_data` |
+| `0x003A` | `0x003A0100` | `PXIFS_GetSpecialContentIndex` | `0x1304c0` | `fsuser_TitleContentHasSeed` (`0x127240`), `fsuser_GetSpecialContentIndex` (`0x129840`) | le gestionnaire de Process9 `pxifs_get_special_content_index` |
+| `0x003B` | `0x003B00C2` | `PXIFS_GetLegacyRomHeader` | `0x130154` | `fsuser_GetLegacyRomHeader` (`0x128a08`), `fsuser_GetLegacyRomHeader2` (`0x128fd0`) | le gestionnaire de Process9 `pxifs_get_legacy_rom_header` |
+| `0x003C` | `0x003C0102` | `PXIFS_GetLegacyBannerData` | `0x130260` | `fsuser_GetLegacyBannerData` (`0x128f20`), `fsuser_GetLegacyBannerData2` (`0x12a400`) | le gestionnaire de Process9 `pxifs_get_legacy_banner_data` |
 | `0x003E` | `0x003E0000` | `PXIFS_DeleteSdmcRoot` | `0x12f998` | `fsuser_DeleteSdmcRoot` (`0x1279d0`) | la commande de `fs:USER` |
-| `0x003F` | `0x003F0040` | `PXIFS_cmd003F` | `0x1305a8` | `0x10c738` |  |
+| `0x003F` | `0x003F0040` | `PXIFS_DeleteAllExtSaveDataOnNand` | `0x1305a8` | `pxi_delete_all_ext_save_data_on_nand` (`0x10c738`) | le gestionnaire de Process9 `pxifs_delete_all_ext_save_data_on_nand` |
 | `0x0040` | `0x00400000` | `PXIFS_InitializeCtrFileSystem` | `0x1305d8` | `fsuser_InitializeCtrFileSystem` (`0x129b74`) | la commande de `fs:USER` |
 | `0x0041` | `0x00410000` | `PXIFS_CreateSeed` | `0x12f46c` | `fsuser_CreateSeed` (`0x1266bc`) | la commande de `fs:USER` |
 | `0x0042` | `0x00420042` | `PXIFS_GetSdmcCtrRootPath` | `0x1301a4` | `fsuser_GetSdmcCtrRootPath` (`0x128ab4`) | la commande de `fs:USER` |
@@ -473,22 +473,22 @@ La table d'archive a 17 cases et celle de fichier 14 : les autres n'ont pas ét�
 | `0x0044` | `0x00440002` | `PXIFS_ExportIntegrityVerificationSeed` | `0x13080c` | `fsuser_ExportIntegrityVerificationSeed` (`0x12a370`) | la commande de `fs:USER` |
 | `0x0045` | `0x00450002` | `PXIFS_ImportIntegrityVerificationSeed` | `0x130848` | `fsuser_ImportIntegrityVerificationSeed` (`0x12a4b0`) | la commande de `fs:USER` |
 | `0x0046` | `0x00460102` | `PXIFS_GetLegacySubBannerData` | `0x1303e0` | `fsuser_GetLegacySubBannerData` (`0x12961c`) | la commande de `fs:USER` |
-| `0x0047` | `0x00470042` | `PXIFS_cmd0047` | `0x124ce4` | `0x10c674`, `0x123ed0` |  |
-| `0x0048` | `0x004800C2` | `PXIFS_cmd0048` | `0x12f7b0` | `PxiArchive_Control` (`0x105f2c`) |  |
-| `0x0049` | `0x00490102` | `PXIFS_cmd0049` | `0x12fba0` | `0x10c624` |  |
-| `0x004A` | `0x004A0040` | `PXIFS_cmd004A` | `0x1301e8` | `0x10c650` |  |
+| `0x0047` | `0x00470042` | `PXIFS_GenerateRandomBytes` | `0x124ce4` | `pxi_generate_random_bytes` (`0x10c674`), `fill_buffer_random_pxi` (`0x123ed0`) | le gestionnaire de Process9 `pxifs_generate_random_bytes` |
+| `0x0048` | `0x004800C2` | `PXIFS_GetFileLastModified` | `0x12f7b0` | `PxiArchive_Control` (`0x105f2c`, action 1, sortie de 8 octets) | 3dbrew ; cas de Process9 vers `archive_control` |
+| `0x0049` | `0x00490102` | `PXIFS_ReadSpecialFile` | `0x12fba0` | `pxi_read_special_file` (`0x10c624`) | le gestionnaire de Process9 `pxifs_read_special_file` |
+| `0x004A` | `0x004A0040` | `PXIFS_GetSpecialFileSize` | `0x1301e8` | `pxi_get_special_file_size` (`0x10c650`) | le gestionnaire de Process9 `pxifs_get_special_file_size` |
 | `0x004B` | `0x004B0000` | `PXIFS_StartDeviceMoveAsSource` | `0x13056c` | `fsuser_StartDeviceMoveAsSource` (`0x129bb8`) | la commande de `fs:USER` |
 | `0x004C` | `0x004C0240` | `PXIFS_StartDeviceMoveAsDestination` | `0x13068c` | `fsuser_StartDeviceMoveAsDestination` (`0x12a09c`) | la commande de `fs:USER` |
-| `0x004D` | `0x004D01C4` | `PXIFS_cmd004D` | `0x12fd78` | `0x105a8c` |  |
-| `0x004E` | `0x004E0204` | `PXIFS_cmd004E` | `0x12ffa8` | `0x105c54` |  |
-| `0x004F` | `0x004F0080` | `PXIFS_cmd004F` | `0x125450` | `0x11e25c` |  |
+| `0x004D` | `0x004D01C4` | `PXIFS_ReadFileSHA256` | `0x12fd78` | `PxiFile_ReadWithHash` (`0x105a8c`) | le gestionnaire de Process9 `pxifs_read_file_sha256` |
+| `0x004E` | `0x004E0204` | `PXIFS_WriteFileSHA256` | `0x12ffa8` | `PxiFile_WriteWithHash` (`0x105c54`) | le gestionnaire de Process9 `pxifs_write_file_sha256` |
+| `0x004F` | `0x004F0080` | `PXIFS_SetCtrCardLatencyParameter` | `0x125450` | `card_latency_parameter_update` (`0x11e25c`) | le gestionnaire de Process9 `pxifs_set_ctr_card_latency_parameter` |
 | `0x0050` | `0x00500040` | `PXIFS_SetPriority` | `0x1254f4` | `0x1004ca` | son usage (interprété) |
 | `0x0051` | `0x00510040` | `PXIFS_SwitchCleanupInvalidSaveData` | `0x1306d4` | `fsuser_SwitchCleanupInvalidSaveData` (`0x12a138`) | la commande de `fs:USER` |
-| `0x0052` | `0x00520042` | `PXIFS_cmd0052` | `0x13051c` | `0x10c698` |  |
+| `0x0052` | `0x00520042` | `PXIFS_EnumerateSystemSaveData` | `0x13051c` | `pxi_enumerate_system_save_data` (`0x10c698`) | le gestionnaire de Process9 `pxifs_enumerate_system_save_data` |
 | `0x0055` | `0x00550082` | `PXIFS_ReadNandReport` | `0x12fa84` | `fsuser_ReadNandReport` (`0x127d7c`) | la commande de `fs:USER` |
 | `0x0056` | `0x00560102` | `PXIFS_cmd0056` | `0x130764` | `PxiArchive_Control` (`0x105f2c`) |  |
 
-Trois requêtes vont à `sm` et non à Process9 : `SRV_RegisterClient` (`0x1242b0`, en-tête `0x00010002`), `SRV_RegisterService` (`0x115904`, `0x00030100`) et `SRV_GetServiceHandle` (`0x1251a8`, `0x00050100`).
+Trois requêtes vont à `sm` et non à Process9 : `SRV_RegisterClient` (`0x1242b0`, en-tête `0x00010002`), `SRV_RegisterService` (`0x115904`, `0x00030100`) et `SRV_GetServiceHandle` (`0x125480`, `0x00050100`, atteinte par le b de `srv_get_service_handle` `0x1251a8`).
 
 ## Partie 8 : les types d'archives
 
@@ -502,25 +502,25 @@ Les deux sont en Thumb et trient par un arbre de comparaisons et des tables de s
 | Identifiant | Nom (de mémoire) | Chemin d'archive exigé | Ouverte par | Adresse |
 | --- | --- | --- | --- | --- |
 | `0x00000003` | le programme lui-même (romfs, exefs) | vide | `open_self_ncch_archive`, si la session est initialisée ; posée sur l'archive `0x2345678E` (partie 6) | `0x10d2a4` |
-| `0x00000004` | sauvegarde du programme | vide | fonction non nommée ; un seul fichier de l'archive `0x2345678E` (partie 6) | `0x10e03c` |
+| `0x00000004` | sauvegarde du programme | vide | `open_archive_00000004` ; un seul fichier de l'archive `0x2345678E` (partie 6) | `0x10e03c` |
 | `0x00000005` | | | accepté au premier tri, inconnu au second (`0xC8804464`) | |
-| `0x00000006` | données étendues | binaire, 12 octets | fonction non nommée | `0x119b08` |
-| `0x00000007` | données étendues partagées | binaire, 12 octets | fonction non nommée | `0x10fd80` |
-| `0x00000008` | sauvegarde système | binaire, 8 octets | fonction non nommée, si le premier octet vaut 0 ; sinon `0xE0C046F8` | `0x119a6c` |
+| `0x00000006` | données étendues | binaire, 12 octets | `open_archive_00000006` (objet de table `0x135830`) | `0x119b08` |
+| `0x00000007` | données étendues partagées | binaire, 12 octets | `open_archive_00000007` | `0x10fd80` |
+| `0x00000008` | sauvegarde système | binaire, 8 octets | `open_archive_00000008`, si le premier octet vaut 0 ; sinon `0xE0C046F8` | `0x119a6c` |
 | `0x00000009` | carte SD | n'importe lequel | `pxi_open_archive`, directement | `0x11e32c` |
-| `0x0000000A` | carte SD, écriture seule | n'importe lequel | fonction non nommée | `0x10c364` |
+| `0x0000000A` | carte SD, écriture seule | n'importe lequel | `open_archive_0000000a` (objet de table `0x134dd8` posé sur l'archive 9) | `0x10c364` |
 | `0x12345678` | données étendues (BOSS) | binaire, 12 octets | la même que `0x00000006` | `0x119b08` |
 | `0x12345679` | mémoire de la cartouche | n'importe lequel | `pxi_open_archive`, directement | `0x11e32c` |
 | `0x1234567D`, `0x1234567E`, `0x1234567F` | NAND | n'importe lequel | `pxi_open_archive`, directement | `0x11e32c` |
 | `0x12345680` | | n'importe lequel | `pxi_open_archive`, directement | `0x11e32c` |
-| `0x12345681` | | binaire, 4 octets | fonction non nommée | `0x10e3c4` |
-| `0x12345682` | | binaire, 12 octets | deux fonctions non nommées | `0x10ddb4`, `0x10c29c` |
-| `0x2345678A` | contenu d'un titre désigné par son numéro | binaire, 16 octets | fonction non nommée | `0x10c758` |
-| `0x2345678E` | | binaire, 8 octets | fonction non nommée ; réservée à `fs:LDR` | `0x10d1b0` |
+| `0x12345681` | | binaire, 4 octets | `open_archive_12345681` puis `open_archive_12345681_impl` (`0x10e420`) | `0x10e3c4` |
+| `0x12345682` | | binaire, 12 octets | `open_archive_12345682` et `archive_12345682_map_open_result` | `0x10ddb4`, `0x10c29c` |
+| `0x2345678A` | contenu d'un titre désigné par son numéro | binaire, 16 octets | `open_archive_2345678a` | `0x10c758` |
+| `0x2345678E` | | binaire, 8 octets | `open_archive_2345678e` ; réservée à `fs:LDR` | `0x10d1b0` |
 | `0x567890AB` à `0x567890AF` | NAND (zones CTR et TWL) | n'importe lequel | `pxi_open_archive`, directement | `0x11e32c` |
-| `0x567890B1` | | vide | fonction non nommée | `0x119960` |
+| `0x567890B1` | | vide | `open_archive_567890b1_b2` | `0x119960` |
 | `0x567890B2` | | binaire, 12 octets | la même | `0x119960` |
-| `0x567890B4` | | binaire, 12 octets | fonction non nommée | `0x10dd34` |
+| `0x567890B4` | | binaire, 12 octets | `open_archive_567890b4` | `0x10dd34` |
 
 - Cela fait 25 identifiants ouverts, plus `0x00000005`. Tout autre identifiant est refusé dès le premier tri.
 - « Directement » veut dire que `fs` ne fabrique rien : `pxi_open_archive` envoie `PXIFS_OpenArchive` (`0x001200C2`) avec l'identifiant et le chemin tels quels, et pose un objet `PxiArchive` sur la poignée rendue. C'est le cas de 11 identifiants, dont la carte SD.
@@ -603,17 +603,17 @@ La session d'un fichier ouvert (`0x28` octets) :
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x123d84` |
 | SendSyncRequest | `0x32` | écrit sur place, à 86 endroits |  |
 | GetThreadId | `0x37` | `svcGetThreadId` | `0x12323c` |
-| Break | `0x3C` | dans `break_process` | `0x11e1a8` |
+| Break | `0x3C` | `svcBreak` (octets `svc 0x3c ; bx lr`, cible du b final de `break_process` `0x11e1a8`) | `0x1252bc` |
 | CreateSession | `0x49` | `svcCreateSession` | `0x11515c` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x123224` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x123de4` |
-| StoreProcessDataCache | `0x53` | dans une fonction non nommée | `0x130c08` |
+| StoreProcessDataCache | `0x53` | dans `hw_hash_dma_feed` | `0x130c08` |
 | FlushProcessDataCache | `0x54` | `svcFlushProcessDataCache` | `0x125f7c` |
 | StartInterProcessDma | `0x55` | `svcStartInterProcessDma` | `0x125fac` |
-| StopDma | `0x56` | dans une fonction non nommée | `0x1263f0` |
+| StopDma | `0x56` | dans `dma_close` | `0x1263f0` |
 | GetDmaState | `0x57` | `svcGetDmaState` | `0x125f84` |
 
-Les trois appels « Dma » servent à copier des données d'un processus à l'autre sans passer par un message : c'est le sens de leur nom, leurs appelantes n'ont pas été lues. Les verrous du module (`lock_enter` à `0x11e2e0`, `lock_leave` à `0x11dce8`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`. `break_process` (`0x11e1a8`) appelle `Break`.
+Les trois appels « Dma » servent au moteur de hachage : `hw_hash_dma_feed` (`0x130c08`) copie les blocs vers `HASH_INFIFO` (`0x1EE01000`) par `dma_start` (svcStartInterProcessDma), attend par `dma_get_state` et ferme par `dma_close` (svcStopDma) ; il est appelé par `hw_sha256_update` (`0x130d00`), qui pilote `HASH_CNT` et `HASH_HASH` (`0x1EC01000`, `0x1EC01040`, registres de 3dbrew). Les verrous du module (`lock_enter` à `0x11e2e0`, `lock_leave` à `0x11dce8`) reposent sur `ArbitrateAddress`, comme dans `sm` et `hid`. `break_process` (`0x11e1a8`) appelle `Break`.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
@@ -637,20 +637,20 @@ Les trois appels « Dma » servent à copier des données d'un processus à l'au
 - Le découpage de la lecture en morceaux dans `PxiFile_Read` et le traitement de l'alignement dans `file_session_read`.
 - Le rôle de `session_close_archive` à la fin d'OpenFileDirectly, et le fait que `pxi_open_archive` réutilise une archive déjà ouverte.
 - L'étage intermédiaire de l'archive `0x00000003`, lu par le contrat des fichiers : le rôle des 16 octets ajoutés au chemin envoyé à Process9 est supposé (le fichier `/SEEDDB` est une piste), les trois étages du lecteur de romfs sont déduits des arguments de `0x107240`, et le contrôle des empreintes dans `fs` repose sur les constantes SHA-256 du module et sur la seconde lecture après `0xD9004586`, pas sur l'appel suivi.
-- La sauvegarde vue comme un seul fichier chez Process9 et une arborescence dans `fs` : déduit de `0x10e03c` et de `0x118ed0`, quelques lignes chacune.
+- La sauvegarde vue comme un seul fichier chez Process9 et une arborescence dans `fs` : lu dans `open_archive_00000004` (`0x10e03c`), `savedata_archive_create` (`0x118ed0`), `disa_container_mount` et `savedata_fs_mount` (marques « DISA » et « SAVE »)
 - Ce que font les commandes de `fs:REG`, déduit de quelques lignes chacune.
 - Le sens des codes d'erreur : `0xE0E046BE` (archive inconnue ou chemin de la mauvaise forme), `0xC8804464` (archive inconnue au second tri), `0xE0C046F8` (pas fait), `0xE0A046DA` (session non initialisée).
 - Les noms de la partie 8, repris de 3dbrew de mémoire.
 
 **Pas lu**
 - Le corps de presque toutes les commandes de `fs:USER` : seules OpenFileDirectly, OpenFile, OpenArchive et Initialize ont été lues ici, et les commandes que Pokémon X envoie dans le contrat des fichiers. Pour sept de celles-ci (GetFormatInfo, FormatSaveData, CreateExtSaveData, DeleteExtSaveData, GetExtDataBlockSize, et les deux SecureValue), seuls les contrôles sont lus, pas le travail fait derrière (`0x10e134`, `0x1150c0`, `0x10f830`, `0x10f2cc`, `0x118532`, `0x10f85c`, `0x11984c`, `0x1198cc`).
-- L'objet « sauvegarde » (`0xCDC` octets, table `0x1356a4`) et ceux des données étendues : les codes d'erreur d'un fichier absent ou déjà présent ne sont donc pas connus.
-- Les fonctions d'ouverture d'archive autres que `pxi_open_archive`, et les classes d'archive que `fs` fabrique lui-même : sauvegardes, données étendues, le fichier `/Quota.dat`, les fichiers `/SEEDDB` et `/TITLETAG` dont les noms sont dans les données.
+- L'objet « sauvegarde » (`0xCDC` octets, table `0x1356a4`) et ceux des données étendues sont nommés méthode par méthode (`savedata_*`, `extdata_*`), mais les codes d'erreur ne sont relevés que pour les opérations de table (`0xC82044B9` existe déjà, `0xC8804470`/`0xC8804471` introuvable, `0xC92044F0` dossier non vide, `0xD8604664`/`0xD8604665` table pleine).
+- Les classes d'archive que `fs` fabrique lui-même sont rattachées à leur ouverture (`open_archive_*`) ; leurs corps internes (tables, caches, arbres d'empreintes) restent en partie sans nom (voir `local/analyse/fs/notes-100.md`).
 - Les règles de `archive_permission_check` : quels droits de l'exheader ouvrent quelle archive.
-- Les deux fonctions qui prennent un canal dans une réserve (`0x131dac` sans attendre, `0x100988` en attendant) : leur rôle est déduit de l'endroit où elles sont appelées.
-- Les 17 autres fonctions d'initialisation des objets globaux, la gestion de la mémoire, les trois appels système de copie entre processus.
-- Les priorités des fils : le code passe des constantes codées (`0x6C8DA519` à la création des fils de service) qui n'ont pas été décodées.
-- 1 665 fonctions restent sans nom.
+- Les deux prises de canal (`msg_queue_try_receive` `0x131dac` sans attendre, `msg_queue_receive_thunk` `0x100988` en attendant) : lues, même code que la file de messages de gsp.
+- Les constructeurs statiques sont nommés (`static_init_*`, 18 cases de `0x135ab8`-`0x135b00`) ; deux bases de titres (`0x1104d4`, `0x11088c`) ne sont pas attribuées (graines ou étiquettes).
+- Les priorités des fils : `decode_thread_priority` (`0x11da3c`) ramène les constantes codées (`0x6C8DA519`…) à 0x20-0x40 ; `priority_to_thread_priority` (`0x1188c4`) fait le chemin inverse.
+- 677 fonctions restent sans nom (dénominateur 2 017), 940 noms proposés restent en confiance moyenne.
 
 ## Comment cette fiche a été faite
 
@@ -658,7 +658,7 @@ Les trois appels « Dma » servent à copier des données d'un processus à l'au
 | --- | --- | --- |
 | Repérer les appels système, nommer leurs enveloppes, trouver les fonctions ARM manquées | `outils/prescan.py`, par le pont REA | 46 secondes par passage, deux passages |
 | Trouver les fonctions Thumb manquées et les donner à Ghidra | un script Python, puis Ghidra sans interface avec deux scripts à lui | 50 secondes par passage |
-| Décompiler les 1 995 fonctions et relever toutes les références | le même passage de Ghidra | compris |
+| Décompiler les 1 996 fonctions et relever toutes les références | le même passage de Ghidra | compris |
 | Suivre les quatre aiguillages, les 83 requêtes et le tri des archives | trois scripts qui exécutent le code dans un émulateur | quelques secondes |
 | Lire le pseudo-code du chemin de la partie 6 et nommer | Claude | le gros du temps |
 | Recouper avec la Carte des services | un script | immédiat |
