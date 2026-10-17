@@ -25,7 +25,7 @@
 0x1011ac	function	svcControlMemory
 0x1011d0	function	strcmp
 0x10128c	function	create_lock_arbiter_once
-0x1012c8	function	unmap_shared_memory
+0x1012c8	function	unmap_shared_memory_or_panic
 0x101334	function	init_heap_region
 0x101374	function	init_runtime
 0x101398	function	init_vm_region_0e000000

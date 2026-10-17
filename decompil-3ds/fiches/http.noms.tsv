@@ -88,7 +88,7 @@
 0x10d2ac	function	svcArbitrateAddress
 0x10d2dc	function	memcpy_unaligned
 0x10d664	function	__aeabi_memmove
-0x10db8c	function	shared_memory_unmap
+0x10db8c	function	unmap_shared_memory
 0x10ddb8	function	heap_alloc_unlocked
 0x10df14	function	light_event_init
 0x10df48	function	svcSleepThread

@@ -15,7 +15,7 @@
 0x100b38	function	strcmp
 0x100bf4	function	create_lock_arbiter_once
 0x100c30	function	create_shared_memory_block
-0x100cc4	function	unmap_shared_memory
+0x100cc4	function	unmap_shared_memory_or_panic
 0x100d30	function	init_runtime
 0x100d68	function	init_vm_region_10000000
 0x100d7c	function	store_thread_local_owner

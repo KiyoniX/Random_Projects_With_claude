@@ -7,7 +7,7 @@
 0x100190	label	destroy_array
 0x100398	function	server_main
 0x1007fc	function	init_program_args
-0x100850	function	srv_init
+0x100850	function	init_timer_thread_and_srv
 0x100890	function	set_heap_size
 0x100a30	function	SRV_RegisterService
 0x100a8c	function	setup_heap
@@ -18,7 +18,7 @@
 0x1011e8	function	strcmp
 0x10132c	function	create_lock_arbiter_once
 0x101368	function	init_heap_region
-0x10159c	function	receive_srv_notification_and_dispatch
+0x10159c	function	handle_srv_notification
 0x101658	function	SRV_RegisterClient
 0x101694	function	SRV_UnregisterService
 0x1017dc	function	subscribe_srv_notifications
@@ -36,7 +36,7 @@
 0x103404	function	svcGetProcessId
 0x1053a4	function	ERRF_Throw
 0x1055ac	function	NWMSOC_cmd0009
-0x1055f8	function	SRV_GetServiceHandle
+0x1055f8	function	get_service_handle_by_name
 0x105738	function	thread_trampoline
 0x10962c	function	lock_arbitrate_wait
 0x1097b4	function	NWMSOC_cmd0005
@@ -80,8 +80,8 @@
 0x11c8fc	function	release_address_range
 0x11c984	function	join_thread
 0x11cb28	function	panic_on_failure
-0x11cba8	function	srv_connect_and_register
-0x11cd18	function	abort_process
+0x11cba8	function	srv_init
+0x11cd18	function	break_process
 0x11cd88	function	strlen
 0x122a60	function	svcAcceptSession
 0x122a78	function	svcDuplicateHandle
@@ -109,8 +109,8 @@
 0x1278c0	function	socu_0015_sockatmark
 0x127974	function	socket_create
 0x129f78	function	stack_get_config_option
-0x12bc48	function	map_memory_block
-0x12bce4	function	unmap_memory_block
+0x12bc48	function	map_shared_memory
+0x12bce4	function	unmap_shared_memory
 0x12bd9c	function	accept_session_on_port
 0x12c1e0	function	NWMSOC_cmd0004
 0x12c23c	function	NWMSOC_cmd000C

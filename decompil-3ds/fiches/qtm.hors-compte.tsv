@@ -1,0 +1,18 @@
+adresse	raison
+0x100050	pas une fonction
+0x100102	pas une fonction
+0x100110	pas une fonction : mot lu par le ldr en 0x1000ec
+0x10020a	pas une fonction
+0x100808	pas une fonction
+0x1008f8	pas une fonction : milieu de fonction
+0x1018a8	pas une fonction : mot 0xC920181A
+0x104120	pas une fonction : milieu de fonction
+0x11926c	pas une fonction
+0x1201b0	pas une fonction : case 0x10 de la table de saut (pc 0x11f81c)
+0x1209ac	pas une fonction
+0x120cc8	pas une fonction : faux Thumb
+0x120d0c	pas une fonction
+0x120de0	pas une fonction
+0x120fb0	pas une fonction
+0x12080c	code mort : aucune référence
+0x1210d4	code mort : aucune référence

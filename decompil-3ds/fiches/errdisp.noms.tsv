@@ -49,7 +49,7 @@
 0x116430	function	file_get_handle
 0x11764c	function	CSND_ExecuteCommands
 0x118020	function	file_close
-0x11c5f8	function	unmap_shared_memory
+0x11c5f8	function	unmap_shared_memory_or_panic
 0x11ca40	function	lock_init
 0x11d568	function	GSPGPU_SetLcdForceBlack
 0x11e6d8	function	lock_enter
