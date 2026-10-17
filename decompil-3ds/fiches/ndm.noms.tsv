@@ -105,10 +105,11 @@
 0x105030	label	network_machine_submit
 0x10505e	label	ipc_make_header
 0x1050da	label	network_machine_post_event
+0x105102	label	destroy_array
 0x105160	label	set_default_daemon_mask
 0x1051e0	function	svcWaitSynchronization1
-0x105208	label	mutex_unlock
-0x105372	label	mutex_lock
+0x105208	label	lock_leave
+0x105372	label	lock_enter
 0x1053e8	function	svcCloseHandle
 0x105484	label	handle_request_and_reply
 0x10558c	function	svcSendSyncRequest

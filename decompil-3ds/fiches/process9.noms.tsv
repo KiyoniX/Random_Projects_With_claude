@@ -187,6 +187,7 @@
 0x8059f10	function	svcCloseHandle
 0x805abc4	label	pxifs_get_file_size
 0x805ad1c	label	archive_manager_open
+0x805b2a8	label	destroy_array
 0x805b468	function	svcGetSystemTick
 0x805b488	label	aes_set_mac
 0x805bbdc	label	ncch_open_exefs_section
@@ -207,11 +208,13 @@
 0x805ff48	function	pxi_publish_notification_to_arm11
 0x8060374	label	title_content_archive_open
 0x80605f4	label	sdmmc_register_address
+0x806064c	function	__aeabi_ldivmod
 0x80609b0	function	svcGetThreadPriority
-0x8060c58	label	mutex_unlock
+0x8060c58	label	lock_leave
+0x8060c84	function	__aeabi_uldivmod
 0x806107c	function	svcWaitSynchronization1
 0x8061240	label	sha256_compute
-0x8061976	label	mutex_lock
+0x8061976	label	lock_enter
 0x80619d4	function	svcCreateMutex
 0x8061b14	label	panic_wrapper
 0x8061be0	label	light_lock_acquire
@@ -219,6 +222,7 @@
 0x8061c06	label	light_lock_release
 0x8061c8c	label	handle_table_lookup
 0x8061dbc	function	memcpy
+0x8061e90	function	__aeabi_uidivmod
 0x806642c	label	ncch_open_exefs_file
 0x806c658	label	title_build_content_path
 0x806f824	label	program_archive_forward_control
@@ -324,6 +328,7 @@
 0x8085780	function	n3ds_keyslot_init
 0x80858e0	function	install_high_blob_and_heap
 0x80859b4	function	svcCreateAddressArbiter
+0x80859cc	function	strcmp
 0x8085b44	function	pxi_worker_thread_entry
 0x8085b70	function	thread_functor_copy
 0x8085b84	function	thread_functor_invoke

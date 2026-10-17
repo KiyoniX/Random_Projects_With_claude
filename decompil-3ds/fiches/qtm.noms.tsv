@@ -31,6 +31,8 @@
 0x1098d8	function	svcDuplicateHandle
 0x10fe08	function	svcCreateEvent
 0x110080	function	__aeabi_idivmod
+0x111af0	function	__aeabi_uidivmod
+0x111b64	label	destroy_array
 0x111b98	function	__aeabi_memmove
 0x1122e8	label	static_guard_acquire
 0x11238c	function	qtm_cmd_0407_SetIrLedStatusOverride
@@ -58,3 +60,4 @@
 0x115740	function	svc_accept_session
 0x115928	function	svc_reply_and_receive
 0x1159b0	function	strlen
+0x11836c	function	thread_dtor

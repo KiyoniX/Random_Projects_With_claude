@@ -1,6 +1,7 @@
 0x100000	function	entry
 0x100024	function	clear_bss
 0x100110	label	run_static_initializers
+0x10013c	label	destroy_array
 0x100160	function	spi_main
 0x100540	function	run_init_array
 0x100574	function	init_program_args
@@ -67,7 +68,7 @@
 0x102324	function	spi_old_write
 0x1023d4	function	spi_nspi_write
 0x102530	function	svcSleepThread
-0x10253c	function	memcpy
+0x10253c	function	memcpy_words
 0x1025b0	function	lock_arbitrate_wait
 0x102694	function	heap_alloc_unlocked
 0x1026f8	function	spi_old_write_read
@@ -77,4 +78,4 @@
 0x102e7c	function	svcCreateMutex
 0x102e94	function	svcDuplicateHandle
 0x10304c	function	reserve_address_range
-0x103368	function	svcCloseHandle
+0x103368	function	thread_dtor

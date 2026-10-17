@@ -437,6 +437,7 @@
 0x109fac	function	svcBreak
 0x109fb4	function	svcGetProcessId
 0x109fcc	function	svcGetSystemTick
+0x10a3ac	function	__aeabi_memmove
 0x10a79c	function	svcArbitrateAddress
 0x10a8e4	function	svcDuplicateHandle
 0x10a8fc	function	svcWaitSynchronization1

@@ -382,7 +382,7 @@ Les deux premiers mots et le troisième ont la forme d'une case : le contexte se
 | SleepThread | `0x0A` | `svcSleepThread` | `0x14001428` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x14000e54` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x14003ed4` |
-| CloseHandle | `0x23` | `svcCloseHandle`, et 70 fois écrit sur place | `0x140023d8` |
+| CloseHandle | `0x23` | `handle_holder_dtor`, et 70 fois écrit sur place | `0x140023d8` |
 | WaitSynchronization1 | `0x24` | sur place | `0x140023a8` |
 | DuplicateHandle | `0x27` | `svcDuplicateHandle` | `0x140021c0` |
 | GetProcessInfo | `0x2B` | `svcGetProcessInfo` | `0x14001084` |

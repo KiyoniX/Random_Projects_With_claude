@@ -1,0 +1,38 @@
+# Noms de nim-safe, la variante du mode sans échec de nim (fiches/safe.md : même code source).
+# Remplie par « python outils/couverture.py apply » avec la règle « jumeau » : une fonction prend le nom
+# de fiches/nim.noms.tsv quand elle a le même code à la même place dans les deux modules. Chaque nom
+# versé est aussi noté dans fiches/noms-propages.tsv. Même format : adresse, function ou label, nom.
+0x100874	label	destroy_array
+0x100cf4	label	static_guard_acquire
+0x1013f0	function	svcWaitSynchronizationN
+0x101724	function	set_heap_size
+0x1024b4	function	svcControlMemory
+0x1025fc	function	init_heap_region
+0x1034e0	function	svcCreateAddressArbiter
+0x1034f8	function	svcCreateThread
+0x103554	function	reserve_address_range
+0x104208	function	svcConnectToPort
+0x104220	function	svcCreateMemoryBlock
+0x10423c	function	svcGetProcessInfo
+0x105130	function	thread_trampoline
+0x105178	function	svcGetProcessId
+0x10bf04	function	svcSleepThread
+0x1276f8	function	__aeabi_idivmod
+0x128dc8	function	svcCreateEvent
+0x12d0e8	function	__aeabi_ldivmod
+0x12d6fc	function	strcpy
+0x12f4c4	function	__aeabi_uldivmod
+0x1349a0	label	memcmp
+0x135194	function	heap_alloc_unlocked
+0x137878	function	__aeabi_memmove
+0x137eac	function	gate_rearm
+0x137f64	function	svcArbitrateAddress
+0x1391d4	function	fill_words
+0x139720	function	strcmp
+0x139c84	function	panic_on_failure
+0x139d5c	function	release_address_range
+0x139f08	function	strlen
+0x13a158	function	__aeabi_uidivmod
+0x13a188	function	heap_alloc
+0x151738	function	svcCreateMutex
+0x151750	function	svcDuplicateHandle

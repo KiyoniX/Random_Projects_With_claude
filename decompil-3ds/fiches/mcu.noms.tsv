@@ -42,7 +42,7 @@
 0x101aa8	function	svcSleepThread
 0x101ab4	function	heap_alloc_unlocked
 0x101cb0	function	svcDuplicateHandle
-0x101e14	function	svcCloseHandle
+0x101e14	function	thread_dtor
 0x101e54	function	I2CMCU_DisableRegisterBits8
 0x101e9c	function	I2CMCU_SetRegisterBits8
 0x101eec	function	mcu_gpu_session_loop
@@ -78,6 +78,7 @@
 0x10321c	function	mcu_SetScreenFlickerTop
 0x103238	function	mcu_WriteCameraLedState
 0x103254	function	svcReplyAndReceive
+0x103274	label	destroy_array
 0x10347c	function	memcpy_words
 0x1034f0	function	gate_wait
 0x1035d0	function	gate_rearm

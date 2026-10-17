@@ -83,7 +83,7 @@
 0x1036e8	function	recursive_lock_enter
 0x103720	function	SRV_GetServiceHandle
 0x103754	function	recursive_lock_init
-0x103770	function	udivmod
+0x103770	function	__aeabi_uidivmod
 0x1037a0	function	panic_on_result
 0x103810	function	strlen
 0x103874	function	break_process
@@ -144,6 +144,7 @@
 0x1060c8	function
 0x106100	function
 0x106114	function
+0x10618c	function	thread_dtor
 0x1061b8	function	on_terminate_notification
 0x1061cc	function
 0x1061ec	function

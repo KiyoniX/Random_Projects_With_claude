@@ -307,7 +307,7 @@ Le jeu de requêtes `ac:u` envoyées par le module est celui que le module `ac` 
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x1093ac` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x109394` |
 
-Ces 26 appels sont tous dans le masque d'appels système de l'exheader (59 autorisés). Les verrous reposent sur `ArbitrateAddress` (`mutex_lock`, `0x105372`, et `mutex_unlock`, `0x105208`).
+Ces 26 appels sont tous dans le masque d'appels système de l'exheader (59 autorisés). Les verrous reposent sur `ArbitrateAddress` (`lock_enter`, `0x105372`, et `lock_leave`, `0x105208`).
 
 ## Partie 9 : ce que Pokémon X envoie
 

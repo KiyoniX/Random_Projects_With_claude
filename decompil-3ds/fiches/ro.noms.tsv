@@ -28,15 +28,17 @@
 0x14000ddc	function	SRV_EnableNotification
 0x14000e18	function	SRV_ReceiveNotification
 0x14000e54	function	svcCreateAddressArbiter
+0x14000e6c	function	__aeabi_uidivmod
 0x1400106c	function	svcConnectToPort
 0x14001084	function	svcGetProcessInfo
 0x140010a4	function	handle_fatal_result
 0x14001230	function	svcGetProcessId
-0x140013b0	function	throw_fatal_error_typed
+0x140013b0	function	errf_report_error
 0x140013e8	function	ERRF_Throw
 0x14001428	function	svcSleepThread
 0x14001518	function	heap_alloc_unlocked
 0x14001584	function	heap_alloc
+0x14001e24	function	__aeabi_memmove
 0x140021c0	function	svcDuplicateHandle
 0x140021d8	function	svcQueryMemory
 0x14002208	function	destroy_static_sessions
@@ -44,7 +46,7 @@
 0x140022a8	function	FS_GetProgramLaunchInfo
 0x140022f0	function
 0x140022f4	function
-0x140023d8	function	svcCloseHandle
+0x140023d8	function	handle_holder_dtor
 0x14002400	function	rsa_verify_sha256
 0x14002458	function	ps_exit
 0x14002484	function	ps_init

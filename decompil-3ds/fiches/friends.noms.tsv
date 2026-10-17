@@ -111,6 +111,7 @@
 0x128e7c	function	strcmp
 0x130498	function	__aeabi_memmove
 0x130524	label	min_u32
+0x130564	label	destroy_array
 0x130588	label	_ZNSs9_C_unlinkEv
 0x130a10	label	_ZNSs9_C_getRepEjj
 0x130c34	label	_ZNSsC1ERKSs
@@ -124,7 +125,9 @@
 0x13269c	label	ipc_make_header
 0x132c08	function	svcWaitSynchronization1
 0x132c10	label	ipc_write_write_buffer_descriptor
+0x1330f4	function	__aeabi_uidivmod
 0x134070	function	svcGetProcessId
+0x134988	function	__aeabi_idivmod
 0x134d06	label	result_is_success
 0x134d10	label	check_local_account_loaded
 0x134f64	label	translate_internal_error

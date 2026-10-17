@@ -56,7 +56,9 @@
 0x119bec	label	path_is_empty
 0x11a60c	function	__ARM_common_switch8
 0x11b38c	function	__aeabi_ldivmod
+0x11bbb4	function	__aeabi_idivmod
 0x11bdf0	function	__aeabi_memmove
+0x11cb46	label	destroy_array
 0x11daa0	function	svcArbitrateAddress
 0x11dc80	function	release_address_range
 0x11dce8	function	lock_leave
@@ -274,7 +276,7 @@
 0x12f058	function	session_control_stub
 0x12f160	function
 0x12f274	function
-0x12f288	function	svcCloseHandle
+0x12f288	function	thread_dtor
 0x12f410	function	PXIFS_CreateFile
 0x12f46c	function	PXIFS_CreateSeed
 0x12f494	function	PXIFS_DeleteFile

@@ -50,6 +50,7 @@
 0x102594	function	__aeabi_memcpy
 0x102adc	label	ipc_check_header
 0x102afc	label	csnd_Shutdown
+0x102bb0	function	__aeabi_uidivmod
 0x102e14	label	ipc_make_header
 0x102eac	function	svcReleaseMutex
 0x103090	label	CDCCSN_cmd0002
@@ -58,7 +59,7 @@
 0x1031ac	label	csnd_hw_channel_start_sample
 0x103320	label	csnd_hw_channel_set_adpcm_state
 0x103414	function	switch8_r3
-0x10342c	function	memcpy
+0x10342c	function	memcpy_words
 0x1034fc	function	svcWaitSynchronization1
 0x1035a8	label	csnd_hw_capture_set_bit15
 0x103854	function	strlen
@@ -71,6 +72,7 @@
 0x1039d0	label	SRV_Subscribe
 0x103a14	label	construct_array
 0x103d28	label	run_static_initializers
+0x103d4c	label	destroy_array
 0x104324	label	csnd_session_thread_main
 0x104378	label	csnd_session_loop
 0x10445c	label	csnd_play_direct

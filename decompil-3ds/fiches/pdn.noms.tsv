@@ -45,7 +45,7 @@
 0x101348	function	heap_alloc
 0x101400	function	ERRF_Throw
 0x101438	function	svcSleepThread
-0x101444	function	memcpy
+0x101444	function	memcpy_words
 0x1014b8	function	lock_arbitrate_wait
 0x10159c	function	heap_alloc_unlocked
 0x101984	function	svcDuplicateHandle

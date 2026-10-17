@@ -20,6 +20,7 @@
 0x11b16c	label	boss_p_cmd_0008_RegisterNewArrivalEvent
 0x11b214	label	boss_p_cmd_0016_ReceiveProperty
 0x11b7e4	label	boss_p_cmd_0014_SendProperty
+0x11e4b0	label	destroy_array
 0x120168	function	__aeabi_memmove
 0x1228ec	function	strcpy
 0x122ada	label	static_guard_acquire

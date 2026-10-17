@@ -13,6 +13,7 @@
 0x1ffb02d4	function	boot_get_boot_info
 0x1ffb02dc	function	boot_memmove
 0x1ffb0438	label	boot_run_static_constructors
+0xfff0000c	label	destroy_array
 0xfff00030	function	kernel_main
 0xfff00648	function	scheduler_init_core
 0xfff00768	function	core1_init_timer_interrupts
@@ -242,6 +243,7 @@
 0xfff13230	function	thread_exit
 0xfff1373c	function	process_check_priority_limit
 0xfff137a8	function	kprocess_allocate_tls_slot
+0xfff13eec	function	__aeabi_uidivmod
 0xfff13fac	function	capability_parse
 0xfff14894	function	slab_heap_init
 0xfff148f8	function	page_heap_init
@@ -287,6 +289,7 @@
 0xfff1c820	function	slab_free
 0xfff1c848	function	kernel_panic
 0xfff1d1b8	function	resource_limit_release
+0xfff1d7e0	function	__aeabi_idivmod
 0xfff1dc10	function	scheduler_lock
 0xfff1dd50	function	scheduler_unlock
 0xfff1de50	function	sync_object_wake_waiters
@@ -302,6 +305,8 @@
 0xfff22dc0	function	ipc_translate_reply
 0xfff238ac	function	ipc_translate_request
 0xfff26078	function	ipc_map_buffer_to_server
+0xfff26b04	function	__aeabi_ldivmod
+0xfff26bc0	function	__aeabi_uldivmod
 0xfff27418	function	ksemaphore_is_signaled
 0xfff27458	function	ksemaphore_acquire
 0xfff27494	function	kautoobject_close

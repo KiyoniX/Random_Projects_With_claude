@@ -30,7 +30,7 @@ Deux choses à savoir avant de lire la suite.
 `main` fait, dans l'ordre :
 
 1. `srv_connect` (`0x100430`) ouvre le port `srv:` ; un résultat négatif donne `throw_fatal_error` (`0x1003BC`).
-2. `is_new_3ds` (`0x100360`) lit une seule fois si la console est une New 3DS, par `ptms_check_new3ds` (`0x100C40`, qui envoie `PTMS_CheckNew3DS` à `ptm:s`). La réponse choisit deux constantes écrites dans un enregistrement global : `0x30000` sur une 3DS ordinaire, `0x50000` sur une New 3DS (interprété : le code réserve ensuite de la mémoire à partir de cette taille ; l'emploi n'est pas suivi plus loin).
+2. `is_new_3ds` (`0x100360`) lit une seule fois si la console est une New 3DS, par `ptm_check_new_3ds_cached` (`0x100C40`, qui envoie `PTMS_CheckNew3DS` à `ptm:s`). La réponse choisit deux constantes écrites dans un enregistrement global : `0x30000` sur une 3DS ordinaire, `0x50000` sur une New 3DS (interprété : le code réserve ensuite de la mémoire à partir de cette taille ; l'emploi n'est pas suivi plus loin).
 3. Trois préparations non lues (`0x1002B4`, `0x1006B4`, `0x100404`), puis `run_module` (`0x100498`), qui fait `module_start` (`0x101430`), `server_run` (`0x100D78`) et, à la sortie, `module_stop` (`0x1015BC`, qui arrête les sockets par `socu_shutdown`, `0x103704`).
 
 `module_start` met en route le réseau du module : `socket_layer_init` (`0x102208`, qui prépare un bloc de mémoire partagée et appelle `socu_init`), puis `server_start` (`0x1017AC`), qui prépare les objets de synchronisation et les listes de travail (trois nombres en entrée, deux plafonnés à `0x20` avec les valeurs par défaut 4 et 8, le troisième à 4 : leur sens n'est pas lu) et initialise `ssl:C` (`ssl_init`, `0x1048F0`).

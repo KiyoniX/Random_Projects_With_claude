@@ -5,6 +5,7 @@
 0x102d44	label	srand
 0x103fac	label	thread_trampoline
 0x1044de	label	break_process
+0x1069fc	label	destroy_array
 0x108048	label	act_a_cmd_0401_Unknown
 0x108058	label	act_a_cmd_0412_UpdateMii
 0x10815c	label	act_a_cmd_0433_Unknown
@@ -114,4 +115,6 @@
 0x125070	function	svcBreak
 0x125140	function	svcArbitrateAddress
 0x125158	function	svcExitThread
+0x1255f4	function	__aeabi_memmove
 0x125990	function	svcDuplicateHandle
+0x1259a8	function	svcMapMemoryBlock

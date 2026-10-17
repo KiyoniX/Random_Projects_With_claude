@@ -38,7 +38,7 @@
 0x101160	function	gate_wait
 0x101294	function	ERRF_Throw
 0x1012d4	function	svcSleepThread
-0x1012e0	function	memcpy
+0x1012e0	function	memcpy_words
 0x101354	function	lock_arbitrate_wait
 0x101438	function	heap_alloc_unlocked
 0x10149c	function	heap_alloc
@@ -49,7 +49,7 @@
 0x1018e4	function	svcReplyAndReceive
 0x101ab8	function	reserve_address_range
 0x101df8	function	create_thread_on_heap_stack
-0x101ea8	function	svcCloseHandle
+0x101ea8	function	thread_dtor
 0x101f28	function	i2c_handle_command
 0x1025ac	function	i2c_session_loop
 0x102680	function	i2c_bus_write_last_byte
@@ -67,6 +67,7 @@
 0x10300c	function	i2c_bus_unlock
 0x103058	function	i2c_bus_lock
 0x1030a4	function	i2c_service_may_access_device
+0x103180	label	destroy_array
 0x1031a4	function	svcArbitrateAddress
 0x1032b0	function	release_address_range
 0x103338	function	lock_enter

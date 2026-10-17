@@ -80,10 +80,10 @@
 0x103764	function	svcCreateThread
 0x103788	function	svcUnbindInterrupt
 0x1037e4	function	reserve_address_range
-0x1039f8	function	throw_error_typed
+0x1039f8	function	errf_report_error
 0x103a38	function	pdn_get_service_handle
 0x103a64	function	PDNG_Control
-0x103ab4	function	ptm_check_new_3ds_once
+0x103ab4	function	ptm_check_new_3ds_cached
 0x103b14	function	cmd_queue_thread_main
 0x103d54	function	gpu_session_close
 0x103e8c	function	gpu_session_open
@@ -111,6 +111,7 @@
 0x105c70	function	qtm_notify_top_lcd_mode_change
 0x105ca4	function	qtm_close
 0x105d3c	function	qtm_open
+0x105e04	label	destroy_array
 0x105f24	function	cmd_queue_set_thread_priority
 0x105fa4	function	rights_grant
 0x106060	function	gpu_reset_core
@@ -172,7 +173,7 @@
 0x108704	function	get_pdc
 0x108710	function	get_gpu_hw
 0x10871c	function	light_event_signal
-0x1087d4	function	mutex_init
+0x1087d4	function	lock_init
 0x1087f0	function	light_event_init
 0x108838	function	create_thread
 0x108928	function	thread_join
@@ -184,9 +185,9 @@
 0x108aa0	function	SRV_Subscribe
 0x108ad8	function	pdc_init
 0x108b38	function	unregister_interrupt_callbacks
-0x108bd4	function	mutex_unlock
+0x108bd4	function	lock_leave
 0x108bf8	function	break_process
-0x108c4c	function	mutex_lock
+0x108c4c	function	lock_enter
 0x108c84	function	fatal_error
 0x108ccc	function	init_runtime_and_srv
 0x108cdc	function	srv_init
@@ -283,6 +284,7 @@
 0x10d930	function
 0x10d9c0	function
 0x10d9f4	function
+0x10da08	function	thread_dtor
 0x10da5c	function
 0x10da8c	function
 0x10da98	function

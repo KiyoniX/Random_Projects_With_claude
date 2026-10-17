@@ -4,6 +4,7 @@
 0x100124	label	srand
 0x100152	label	srand_default
 0x100164	label	run_static_initializers
+0x100190	label	destroy_array
 0x1001c0	function	svcExitProcess
 0x1001c8	function	call_ir_main
 0x1001d8	function	run_init_array
@@ -105,6 +106,7 @@
 0x107be8	function	iru_Shutdown
 0x107cf4	function	__aeabi_idivmod
 0x107ffc	label	random_byte
+0x1080d4	function	__aeabi_uidivmod
 0x108574	function	crc8_build_table
 0x108750	function	cfg_check_cstick_present
 0x1087c8	function	gpioir_attach_interrupt
@@ -200,6 +202,7 @@
 0x10e110	function	iruser_destroy
 0x10e11c	function	ir_send_packet
 0x10e424	function	map_shared_memory
+0x10e678	function	thread_dtor
 0x10eb8c	function	CFG_GetConfigInfoBlk2
 0x10ee68	function	I2CIR_cmd0011
 0x10eec0	function	I2CIR_cmd0012

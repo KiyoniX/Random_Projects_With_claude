@@ -39,7 +39,7 @@
 0x10194c	label	static_guard_acquire
 0x101964	function	mic_hw_start_sampling
 0x1019dc	function	mic_hw_is_sampling
-0x1019f4	function	throw_fatal_error
+0x1019f4	function	errf_report_error
 0x101a2c	function	gate_rearm
 0x101ae4	function	svcArbitrateAddress
 0x101afc	function	svcSetTimer
@@ -90,10 +90,11 @@
 0x102f04	function	lock_arbitrate_wait
 0x102fe8	function	heap_alloc_unlocked
 0x103050	function	abort_process
-0x103230	function	svcBreak
+0x103230	function	get_eh_globals_slot
 0x103428	function	svcDuplicateHandle
 0x10347c	function	reserve_address_range
 0x10362c	function	map_shared_memory
+0x1037a0	function	thread_dtor
 0x1037cc	function	vm_region_alloc
 0x103810	function	mic_handle_command
 0x103b2c	function	mic_GetPower

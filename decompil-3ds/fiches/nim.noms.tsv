@@ -180,6 +180,7 @@
 0x12ffb8	function	svcCreateEvent
 0x1307d0	function	svcWaitSynchronization1
 0x1309c4	function	svcArbitrateAddress
+0x130cc6	label	destroy_array
 0x130ce8	label	register_notification_handler
 0x130d70	function	svc_send_sync_request
 0x130d8c	label	ipc_write_header

@@ -11,7 +11,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Titre | `0004013000001D02`, un titre de la CTRNAND (lu dans l'exheader) |
 | Fichier lu | `local/extrait/hid/exefs/code.elf` |
 | Taille | 38 068 octets de code, 4 836 de données en lecture seule, 2 836 de données, 3 060 de mémoire à zéro |
-| Fonctions | 301, dont 186 nommées dans `hid.noms.tsv` |
+| Fonctions | 303 (321 avec les 18 entrées manquées), dont 186 nommées dans `hid.noms.tsv` |
 | Services offerts | `hid:SPVR`, `hid:USER`, et sur New 3DS `hid:QTM` et `hid:NFC` : un seul aiguillage de 24 commandes pour les quatre |
 | Services appelés | `cdc:HID`, `mcu::HID`, `gpio:HID`, `i2c::HID`, `cfg:s`, `ptm:s`, plus `srv:` et le port `err:f` |
 | Dépendances déclarées | `cfg` (`0004013000001702`) et `ptm` (`0004013000002202`) |
@@ -29,7 +29,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 6. Une fonction vide (`0x100608`).
 7. `hid_main` (`0x100180`, 1 100 octets) : tout le reste. Voir la partie 2.
 
-Le module fait tourner plusieurs fils. Tous passent par `create_thread` (`0x102088`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x107cec`), qui appelle la vraie fonction du fil puis `ExitThread`.
+Le module fait tourner plusieurs fils. Tous passent par `create_thread` (`0x102088`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x107cec`), qui appelle la vraie fonction du fil puis `svcExitThread` (`0x107d30`).
 
 | Fil | Fonction | Adresse | Créé par | Ce qu'il fait |
 | --- | --- | --- | --- | --- |
@@ -113,7 +113,7 @@ La colonne « Service » dit ce que le code vérifie : « SPVR » veut dire que 
 | 20 | `0x00140000` | DisableGyroscopeLow | `hid_DisableGyroscopeLow` | `0x1046c8` | tous | `0x00140040` |
 | 21 | `0x00150000` | GetGyroscopeLowRawToDpsCoefficient | dans l'aiguillage | `0x10355c` | tous | `0x00150080` |
 | 22 | `0x00160000` | GetGyroscopeLowCalibrateParam | `hid_GetGyroscopeLowCalibrateParam` | `0x107258` | tous | `0x00160180` |
-| 23 | `0x00170000` | GetSoundVolume | `MCUHID_GetSoundVolume` | `0x1067f0` | tous | `0x00170080` |
+| 23 | `0x00170000` | GetSoundVolume | `mcu_get_sound_volume` | `0x1067f0` | tous | `0x00170080` |
 | 24 | `0x00180040` | sans nom | dans l'aiguillage | `0x10362c` | NFC | `0x00180040` |
 
 - L'aiguillage ne regarde que le numéro : le reste de l'en-tête n'est jamais vérifié. Un numéro inconnu rend `0xD900182F`.
@@ -229,7 +229,7 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 | | | `0x00090040` | `SRV_Subscribe` | `0x105af8` | S'abonner à quatre notifications |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x10191c` | Lire le numéro de la notification arrivée |
 | `ptm:s` | `0x10cae0` | `0x040A0000` | `PTMSYSM_CheckNew3DS` | `0x10259c` | Savoir si la console est une New 3DS |
-| | | `0x04030042` | `PTMSYSM_NotifySleepPreparationComplete` | `0x108d34` | Dire à `ptm` que `hid` est prêt pour la veille |
+| | | `0x04030042` | `PTMSYSM_NotifySleepPreparationComplete` | `0x108d3c` (enrobage `ptm_notify_sleep_preparation_complete`, `0x108d34`) | Dire à `ptm` que `hid` est prêt pour la veille |
 | `cfg:s` | `0x10caf0` | `0x04010082` | `CFG_GetConfigInfoBlk8` | `0x106720` | Lire les étalonnages |
 | | | `0x04020082` | `CFG_SetConfigInfoBlk4` | `0x10845c` | Écrire un étalonnage |
 | | | `0x04030000` | `CFG_UpdateConfigNANDSavegame` | `0x1084a8` | Enregistrer la configuration |
@@ -241,7 +241,7 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 | | | `0x00070000` | `MCUHID_GetRaw3DSliderPosition` | `0x1069a8` | Lire le curseur 3D |
 | | | `0x000C0000` | `MCUHID_GetMcuHidEventHandle` | `0x1017dc` | Obtenir le signal du microcontrôleur |
 | | | `0x000D0000` | `MCUHID_GetMcuHidEventReason` | `0x106974` | Savoir pourquoi il a sonné |
-| | | `0x000E0000` | `MCUHID_GetSoundVolume` | `0x1067f0` | Répondre à la commande 23 |
+| | | `0x000E0000` | `MCUHID_GetSoundVolume` | `0x1080fc` | Répondre à la commande 23 |
 | | | `0x000F0040` | `MCUHID_EnableAccelerometerInterrupt` | `0x1054a0` | Allumer ou éteindre l'accéléromètre |
 | `gpio:HID` | `0x10c104` | `0x00020080` | `GPIOHID_cmd0002` | `0x102638` | Préparer la broche du gyroscope |
 | | | `0x00040080` | `GPIOHID_cmd0004` | `0x102714` | idem |
@@ -313,7 +313,7 @@ Les compteurs expliquent les commandes 17 à 20 : le capteur n'est allumé qu'au
 | ControlMemory | `0x01` | `svcControlMemory` | `0x1011ac` |
 | ExitProcess | `0x03` | `svcExitProcess` | `0x100178` |
 | CreateThread | `0x08` | `svcCreateThread` | `0x102d2c` |
-| ExitThread | `0x09` | dans `thread_trampoline` | `0x107cec` |
+| `svcExitThread` (`0x107d30`) | `0x09` | dans `thread_trampoline` | `0x107cec` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x107d38` |
 | CreateMutex | `0x13` | `svcCreateMutex` | `0x108860` |
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x101f88` |
@@ -336,7 +336,7 @@ Les compteurs expliquent les commandes 17 à 20 : le capteur n'est allumé qu'au
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x102cf8` |
 | SendSyncRequest | `0x32` | écrit sur place, à 35 endroits | |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x10625c` |
-| Break | `0x3C` | une seule fois, dans `break_process` | `0x105090` |
+| Break | `0x3C` | `svcBreak`, atteint par le `b` de `break_process` (`0x1050dc`) | `0x107ce4` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x1006c0` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x102d6c` |
 
@@ -375,14 +375,14 @@ Les verrous du module (`lock_enter` à `0x105430`, `lock_leave` à `0x10533c`) r
 - Le calcul de l'étalonnage de l'accéléromètre (`0x108130`, `0x108228`).
 - Les fonctions de calcul (`0x104060`, `0x104698`) et la réserve de mémoire (`0x107f7c`, `0x1083b8`, `0x1084e0`, `0x10867c`).
 - Le détail des 22 petites fonctions d'initialisation des objets globaux : seules celles qui touchent aux tables de la partie 7 ont été regardées.
-- 115 fonctions restent sans nom.
+- 113 fonctions de `funcs.tsv` sans nom, plus 18 manquées.
 
 ## Comment cette fiche a été faite
 
 | Étape | Qui | Durée |
 | --- | --- | --- |
 | Repérer les appels système et nommer leurs enveloppes | `outils/prescan.py` | déjà fait |
-| Décompiler les 301 fonctions d'un coup | REA, outil `batch_decompile` | 5 secondes |
+| Décompiler les 303 (321 avec les 18 entrées manquées) fonctions d'un coup | REA, outil `batch_decompile` | 5 secondes |
 | Calculer qui appelle qui, lire la table de l'aiguillage, relever les sauts | des scripts Python sur `code.bin` | immédiat |
 | Lire le pseudo-code et nommer | Claude | le gros du temps |
 | Recharger les noms dans Ghidra | arrêt et relance du pont REA | une à deux minutes, deux fois |

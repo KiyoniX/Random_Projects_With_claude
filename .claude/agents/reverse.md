@@ -11,6 +11,7 @@ Outils : `outils/ghidra_direct.py` et `outils/rea_bridge.py` (Ghidra sous WSL), 
 Règles :
 - Chaque affirmation porte sa preuve : adresse, octets, référence croisée, trace ou sortie d'outil. Sinon elle est marquée « supposé ».
 - Tes notes de travail vont dans `local/analyse/<module>/`. N'écris rien du jeu ni de la console hors de `local/`.
-- Réutilise les scripts existants ; si tu en écris un, il va dans `outils/` et ne duplique pas une fonction déjà présente.
+- Réutilise les scripts existants ; si tu en écris un, il va dans `outils/` et ne duplique pas une fonction déjà présente. Tes scripts jetables vont dans le dossier temporaire de la session, jamais dans `outils/`.
+- Ne lance pas de sous-agents : le nombre d'agents en parallèle est réglé par la session principale.
 
 Rends : ce qui est établi (avec preuves), ce qui reste douteux, et les écarts avec la fiche ou avec 3dbrew.

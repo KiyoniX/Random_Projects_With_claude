@@ -8,7 +8,7 @@
 0x100498	function	run_module
 0x100770	function	svcControlMemory
 0x100ad4	function	init_heap_region
-0x100c40	function	ptms_check_new3ds
+0x100c40	function	ptm_check_new_3ds_cached
 0x100ca0	function	SRV_RegisterClient
 0x100d78	function	server_run
 0x101430	function	module_start
@@ -78,7 +78,9 @@
 0x10c76c	function	socket_set_option
 0x10cfd0	function	light_semaphore_release
 0x10d048	function	__aeabi_uidivmod
+0x10d1e0	label	destroy_array
 0x10d2ac	function	svcArbitrateAddress
+0x10d664	function	__aeabi_memmove
 0x10db8c	function	shared_memory_unmap
 0x10ddb8	function	heap_alloc_unlocked
 0x10df48	function	svcSleepThread
@@ -127,6 +129,7 @@
 0x113d80	function	context_core_set_client_cert_default_impl
 0x113e78	function	context_core_add_default_cert_impl
 0x114264	function	shared_memory_map
+0x114408	function	thread_dtor
 0x114764	function	SSLC_CreateCrlStore
 0x114798	function	SSLC_CreateRootCertChain
 0x1147cc	function	SSLC_AddCrlToCrlStore

@@ -6,6 +6,7 @@
 0x104454	label	break_process
 0x1060b2	label	thread_trampoline
 0x11269c	label	srand
+0x112714	label	destroy_array
 0x113620	function	__aeabi_ldivmod
 0x1136f4	label	nfc_cmd_0022_Unknown
 0x113714	label	nfc_cmd_0021_Unknown
@@ -228,4 +229,6 @@
 0x134080	function	svcUnmapMemoryBlock
 0x134174	function	svcExitThread
 0x1341b8	function	svcWaitSynchronizationN
+0x134654	function	__aeabi_memmove
 0x1349f0	function	svcDuplicateHandle
+0x134a08	function	svcMapMemoryBlock

@@ -48,3 +48,6 @@
 0x1233cc	function	__aeabi_uldivmod
 0x125714	function	thread_trampoline
 0x1258f4	function	reserve_address_range
+0x10013c	label	destroy_array
+0x117890	function	__aeabi_uidivmod
+0x12a2ac	function	thread_dtor

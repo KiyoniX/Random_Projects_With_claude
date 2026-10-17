@@ -106,6 +106,7 @@
 0x1071dc	label	cam_cmd0040
 0x1072e0	label	start_camera_receive
 0x108238	function	svcStoreProcessDataCache
+0x108266	label	destroy_array
 0x108288	label	CAMDEV_cmd000C
 0x108bb0	function	svcReleaseMutex
 0x108e7c	label	get_dma_state

@@ -11,7 +11,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Titre | `0004013000001A02` (lu dans l'exheader) |
 | Fichier lu | `local/extrait/dsp/exefs/code.elf` |
 | Taille | 31 172 octets de code, 956 de données en lecture seule, 608 de données, 16 652 de mémoire à zéro |
-| Fonctions | 276, dont 189 nommées dans `dsp.noms.tsv` |
+| Fonctions | 293 : 280 trouvées par Ghidra et 13 qu'il a manquées ; 192 nommées dans `dsp.noms.tsv` |
 | Service offert | `dsp::DSP` (33 numéros de commande, dont 32 servis ; 4 sessions au plus) |
 | Services appelés | `pdn:d`, `cdc:DSP`, `ptm:s`, `cfg:s`, `ps:ps`, plus `srv:` et le port `err:f` |
 | Fils | le fil principal, un fil pour les interruptions, et un fil par session ouverte, quatre au plus |
@@ -32,8 +32,8 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 **`dsp_main` fait, dans l'ordre :**
 
 1. `srv_init`, puis `ptm_open` (`0x1008bc`) : ouvre `ptm:s`.
-2. Trois gestionnaires de notifications sont inscrits (`notification_handler_register`, `0x104694`) : `0x100`, `0x104` et `0x105`.
-3. `srv_enable_notification` (`0x100924`) demande à `sm` le sémaphore des notifications.
+2. Trois gestionnaires de notifications sont inscrits (`register_notification_handler`, `0x104694`) : `0x100`, `0x104` et `0x105`.
+3. `get_notification_semaphore` (`0x100924`) demande à `sm` le sémaphore des notifications.
 4. `SRV_RegisterService` crée `dsp::DSP` avec 4 sessions au plus. Le nom est pointé par `0x109014`.
 5. `SRV_Subscribe` deux fois : notifications `0x104` et `0x105`.
 6. `dsp_initialize` (`0x100700`) : voir plus bas.
@@ -44,7 +44,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 
 | Ordre | Fonction | Adresse | Ce qu'elle fait |
 | --- | --- | --- | --- |
-| 1 | `mutex_init`, deux fois | `0x104408` | Le verrou d'état (`0x109260`) et le verrou des commandes du codec (`0x10926c`) |
+| 1 | `lock_init`, deux fois | `0x104408` | Le verrou d'état (`0x109260`) et le verrou des commandes du codec (`0x10926c`) |
 | 2 | `dsp_hw_power_init` | `0x101070` | Prépare le verrou des transferts (`0x10cdb8`), puis envoie deux requêtes à `pdn:d` (voir la remarque) |
 | 3 | `interrupt_manager_init` | `0x100e04` | Crée trois signaux, lie l'interruption `0x4A`, lance le fil des interruptions (partie 7) |
 | 4 | `srv_get_service_handle_by_name` | `0x104240` | Ouvre `pdn:d` |
@@ -54,7 +54,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 
 Remarque sur l'étape 2 : les deux requêtes `PDND_Control` partent avant l'étape 4, donc sur une poignée encore nulle, et leur résultat n'est pas regardé. C'est ce que l'assembleur montre (`0x100714` avant `0x100724`) ; je n'en tire pas de conclusion.
 
-**Les fils.** Tous passent par `create_thread` (`0x104424`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x101898`), qui appelle la vraie fonction du fil puis `ExitThread`.
+**Les fils.** Tous passent par `create_thread` (`0x104424`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x101898`), qui appelle la vraie fonction du fil puis tombe dans l'enrobage `svcExitThread` (`0x1018dc`).
 
 | Fil | Fonction | Adresse | Créé par | Priorité | Pile | Ce qu'il fait |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -428,7 +428,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | | `0x00020000` | `SRV_EnableNotification` | `0x100ea4` | Obtenir le sémaphore des notifications |
 | | | `0x00030100` | `SRV_RegisterService` | `0x100a14` | Créer `dsp::DSP` |
 | | | `0x000400C0` | `SRV_UnregisterService` | `0x100a70` | Le retirer à l'arrêt |
-| | | `0x00050100` | `SRV_GetServiceHandle_send` | `0x101268` | Ouvrir les cinq services ci-dessous |
+| | | `0x00050100` | `SRV_GetServiceHandle` | `0x101268` | Ouvrir les cinq services ci-dessous |
 | | | `0x00090040` | `SRV_Subscribe` | `0x1045e0` | S'abonner à `0x104` et `0x105` |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x100ee0` | Lire le numéro de la notification arrivée |
 | `pdn:d` | `0x1090a0` | `0x000100C0` | `PDND_Control` | `0x103ef0` | Trois octets ; voir plus bas |
@@ -534,7 +534,7 @@ Le gestionnaire d'interruptions (`0x109278`) :
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x101108` |
 | ExitProcess | `0x03` | `svcExitProcess` | `0x1048c4` |
 | CreateThread | `0x08` | `svcCreateThread` | `0x1015f4` |
-| ExitThread | `0x09` | dans `thread_trampoline` | `0x101898` |
+| ExitThread | `0x09` | `svcExitThread` | `0x1018dc` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x101b48` |
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x103e78` |
 | SignalEvent | `0x18` | sur place, à quatre endroits : les trois fonctions de la partie 7 et `interrupt_manager_stop` | |
@@ -560,7 +560,7 @@ Le gestionnaire d'interruptions (`0x109278`) :
 
 Les 26 appels sont tous autorisés par l'exheader. `dsp` n'a ni tas ni mémoire partagée : ni `ControlMemory`, ni `CreateMemoryBlock`. Tout ce qu'il partage avec le jeu passe par la mémoire du DSP elle-même.
 
-Les verrous (`mutex_lock` à `0x1043d0`, `mutex_unlock` à `0x1042a0`) et les événements internes (`light_event_wait` à `0x103d6c`, `light_event_signal` à `0x102abc`) reposent sur `ArbitrateAddress`, comme dans les autres modules.
+Les verrous (`lock_enter` à `0x1043d0`, `lock_leave` à `0x1042a0`) et les événements internes (`gate_wait` à `0x103d6c`, `light_event_signal` à `0x102abc`) reposent sur `ArbitrateAddress`, comme dans les autres modules.
 
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
@@ -608,7 +608,7 @@ Les verrous (`mutex_lock` à `0x1043d0`, `mutex_unlock` à `0x1042a0`) et les é
 - Le corps des fonctions de copie (`memcpy`, `memcpy_words`, `memcpy_unaligned`) et de `sha256_transform` : nommées d'après leur début et d'après ce que leurs appelants en font.
 - Le chemin lent des verrous (`0x101b54`) et l'attente sur plus de dix poignées (`0x101d00`, `0x101b14`).
 - Le détail des 25 fonctions d'initialisation des objets globaux : parcourues, pas nommées.
-- 87 fonctions restent sans nom.
+- 88 fonctions de Ghidra restent sans nom, plus les 13 qu'il a manquées.
 
 ## Comment cette fiche a été faite
 

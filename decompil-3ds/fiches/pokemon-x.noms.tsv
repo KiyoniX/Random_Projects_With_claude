@@ -1251,3 +1251,5 @@
 0x16fa34	function	heap_alloc_unlocked
 0x17d890	function	create_thread
 0x3031c6	label	static_guard_acquire
+0x100204	label	destroy_array
+0x1e74e4	function	thread_dtor

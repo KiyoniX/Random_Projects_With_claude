@@ -186,6 +186,7 @@
 0x107df8	label	SRV_GetServiceHandle
 0x108d88	label	break_process
 0x109ea0	label	SRV_PublishToSubscriber
+0x10bb14	label	destroy_array
 0x10bf7c	label	_ZNSs9_C_unlinkEv
 0x10c228	label	_ZNSs9_C_getRepEjj
 0x10c348	label	_ZNSsC1ERKSs

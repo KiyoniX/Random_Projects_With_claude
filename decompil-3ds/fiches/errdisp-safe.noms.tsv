@@ -1,0 +1,53 @@
+# Noms de errdisp-safe, la variante du mode sans échec de errdisp (fiches/safe.md : même code source).
+# Remplie par « python outils/couverture.py apply » avec la règle « jumeau » : une fonction prend le nom
+# de fiches/errdisp.noms.tsv quand elle a le même code à la même place dans les deux modules. Chaque nom
+# versé est aussi noté dans fiches/noms-propages.tsv. Même format : adresse, function ou label, nom.
+0x100000	function	entry
+0x100024	function	clear_bss
+0x10013c	label	destroy_array
+0x100174	function	errdisp_main
+0x100910	function	create_errf_port
+0x100984	function	errdisp_serve
+0x100f90	function	svcAcceptSession
+0x100fa8	function	svcCreatePort
+0x102310	function	errf_session_receive_loop
+0x102470	function	srv_enable_notification
+0x1024a4	function	SRV_RegisterClient
+0x1024e0	function	SRV_ReceiveNotification
+0x103444	function	svcCreateAddressArbiter
+0x10345c	function	svcReplyAndReceive
+0x103798	function	errf_handle_command
+0x1038f4	function	PTMSYSM_ReplySleepQuery
+0x10393c	function	PTMSYSM_NotifySleepPreparationComplete
+0x1039b8	function	SRV_EnableNotification
+0x108024	function	svcGetProcessInfo
+0x108040	function	strcpy
+0x108208	function	process_error_info
+0x1086f8	function	PTMSYSM_CheckNew3DS
+0x114340	function	svcConnectToPort
+0x115c18	function	svcGetProcessId
+0x115c30	function	svcGetSystemTick
+0x115c3c	function	svcSleepThread
+0x11776c	function	heap_alloc_unlocked
+0x1177d0	function	svcCreateEvent
+0x117890	function	__aeabi_uidivmod
+0x1178f4	function	svcArbitrateAddress
+0x117d64	function	fill_words
+0x11d35c	function	__aeabi_ldivmod
+0x11e650	function	release_address_range
+0x11e6b8	function	lock_leave
+0x11e868	function	strlen
+0x11ef78	function	strcmp
+0x11f06c	function	panic_on_failure
+0x11f168	function	svcWaitSynchronizationN
+0x11f18c	function	SRV_Subscribe
+0x11f218	label	construct_array
+0x11f350	function	svcControlMemory
+0x11f374	label	static_guard_acquire
+0x120efc	function	heap_alloc
+0x1233a8	function	svcCreateThread
+0x1233cc	function	__aeabi_uldivmod
+0x125714	function	thread_trampoline
+0x1258f4	function	reserve_address_range
+0x129c6c	function	svcDuplicateHandle
+0x12a2ac	function	thread_dtor

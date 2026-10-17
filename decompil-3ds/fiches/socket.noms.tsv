@@ -1,6 +1,7 @@
 0x100000	function	entry
 0x100024	function	clear_bss
 0x100148	label	srand
+0x100190	label	destroy_array
 0x100234	label	run_init_array_relative
 0x100398	function	server_main
 0x1007c8	function	run_init_array

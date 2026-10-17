@@ -1,7 +1,7 @@
 0x100000	function	entry
 0x100024	function	clear_bss
 0x100048	label	run_static_initializers
-0x100074	label	array_destruct
+0x100074	label	destroy_array
 0x1000ac	function	pxi_main
 0x100770	function	svcAcceptSession
 0x100794	function	strlen
@@ -55,11 +55,11 @@
 0x101ff8	function	pxi_unbind_interrupts
 0x102098	function	wait_handles
 0x1021a8	function	pxi_bind_interrupts
-0x1022dc	function	mutex_init
+0x1022dc	function	lock_init
 0x1022f8	function	thread_join
 0x102330	function	PxiDispatcher_stop
-0x1023c0	function	mutex_unlock
-0x1023e0	function	mutex_lock
+0x1023c0	function	lock_leave
+0x1023e0	function	lock_enter
 0x102418	function	svcWaitSynchronizationN
 0x10243c	function	thread_start
 0x10252c	function	runtime_init_then_srv_init

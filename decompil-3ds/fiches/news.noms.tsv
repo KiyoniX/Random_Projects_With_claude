@@ -21,6 +21,7 @@
 0x10530c	label	register_notification_handler
 0x1054b4	function	strlen
 0x105514	label	news_throw_if_error
+0x10685c	label	destroy_array
 0x107458	label	news_s_cmd_0005_GetTotalNotifications
 0x107468	label	news_s_cmd_0011_SetAutomaticSyncFlag
 0x10747a	label	news_s_cmd_0010_SyncOneArrivedNotification

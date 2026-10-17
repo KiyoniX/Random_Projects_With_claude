@@ -175,6 +175,7 @@
 0x10becc	function	FSUSER_IsSdmcDetected
 0x10bf04	function	FSUSER_IsSdmcWritable
 0x10bf3c	function	FSUSER_GetProgramLaunchInfo
+0x10d008	label	destroy_array
 0x10d8f4	function	job_deliver_parameter
 0x10d9a0	function
 0x10de9c	function	slot_post_notification
@@ -342,6 +343,7 @@
 0x1177b0	function
 0x11784c	function	reserve_address_range
 0x117b54	function
+0x117bd8	function	thread_dtor
 0x117fcc	function	PTMSYSM_IsShutdownByBatteryEmpty
 0x11800c	function	PTMSYSM_ShutdownAsync
 0x118050	function	PTMSYSM_ReplySleepQuery

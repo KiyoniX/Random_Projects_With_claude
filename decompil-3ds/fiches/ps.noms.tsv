@@ -34,10 +34,11 @@
 0x10143c	function	svcDuplicateHandle
 0x1016f0	label	static_guard_acquire
 0x101708	function	__aeabi_memcpy
+0x101790	function	__aeabi_uidivmod
 0x1017e8	function	ps_rng_seed
 0x101838	function	MCUPLS_GetTickCounter
 0x10186c	function	MCUPLS_GetDatetime
-0x101cc0	function	memcpy
+0x101cc0	function	memcpy_words
 0x101d34	function	svcArbitrateAddress
 0x101d84	function	panic_on_failure
 0x101e60	function	svcConnectToPort

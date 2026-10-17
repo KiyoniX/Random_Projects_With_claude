@@ -344,7 +344,7 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 
 **Trois choses à savoir en relisant dans Ghidra.**
 - La fonction à `0x1400384c` est en Thumb, et le nom qu'on lui donne dans le fichier de graines ne prend pas. Elle n'a donc pas de ligne dans `loader.noms.tsv` : à nommer à la main (`run_static_initializers`).
-- `unsigned_divide` commence à `0x14001b40`, mais son corps est ailleurs, de `0x14001440` à `0x14001530` : c'est une seconde entrée dans la routine de division de la bibliothèque.
+- `__aeabi_uidivmod` commence à `0x14001b40`, mais son corps est ailleurs, de `0x14001440` à `0x14001530` : c'est une seconde entrée dans la routine de division de la bibliothèque.
 - `init_runtime_and_srv` (`0x14001984`) ne se termine pas par un retour : elle continue dans `srv_init`, la fonction suivante. Ghidra affiche donc le corps de `srv_init` deux fois. De même `loader_UnregisterProgram` continue dans `FSREG_UnloadProgram`, et `get_program_info` saute dans `PXIPM_GetProgramInfo`.
 
 **Pour reprendre.** `loader.noms.tsv` est le fichier de graines : une adresse, `function`, un nom. Les noms en majuscules (`SRV_`, `FS_`, `FSFILE_`, `FSREG_`, `PXIPM_`) sont les requêtes que `loader` envoie ; ceux en `loader_` sont les commandes qu'il reçoit. Le pseudo-code, l'assembleur et les scripts (dont `verif_lzss.py`, qui rejoue la décompression) sont dans `local/analyse/loader/`, non versionné.

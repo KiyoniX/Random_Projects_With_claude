@@ -270,6 +270,7 @@
 0x111364	function	svcExitThread
 0x1113b8	function	svcArbitrateAddress
 0x1113d0	function	svcGetSystemTick
+0x111848	function	__aeabi_memmove
 0x111be4	function	svcCreateMutex
 0x111bfc	function	svcCreateSessionToPort
 0x111c14	function	svcDuplicateHandle

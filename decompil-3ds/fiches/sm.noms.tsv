@@ -14,6 +14,7 @@
 0x101788	function
 0x10189c	function	process_can_access_service
 0x101c34	function	svcArbitrateAddress
+0x101c4c	function	__aeabi_uidivmod
 0x101efc	function	lock_leave
 0x101f1c	function	svcReleaseSemaphore
 0x101f34	label	memcmp

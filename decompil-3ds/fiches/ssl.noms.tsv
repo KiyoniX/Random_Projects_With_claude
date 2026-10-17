@@ -106,6 +106,7 @@
 0x126df8	label	memcmp
 0x12900c	function	__aeabi_ldivmod
 0x129108	function	strcpy
+0x12939c	label	destroy_array
 0x12b144	function	svcGetThreadId
 0x12b1d4	function	svcSendSyncRequest
 0x12b23c	function	strlen
@@ -129,6 +130,7 @@
 0x141718	function	svcArbitrateAddress
 0x141818	function	svcDuplicateHandle
 0x141830	function	svcGetSystemTick
+0x141838	function	svcMapMemoryBlock
 0x14501c	function	__aeabi_uldivmod
 0x14a840	label	sslc_manager_vtable
 0x14a910	label	sslc_context_vtable

@@ -432,7 +432,7 @@ Les verrous du module (`recursive_lock_enter` à `0x1036e8`, `recursive_lock_lea
 - Le détail de `launch_with_dependencies` quand le lancement d'une dépendance échoue, et ce que devient alors le processus déjà créé.
 - Les 11 fonctions d'initialisation des objets globaux, sauf `static_init_pm_globals` (`0x105c88`), et les 10 fonctions de fermeture qui vont avec (les 8 de `0x105510` à `0x10570c`, puis `0x10618c` et `0x1061cc`).
 - Le démarrage de la bibliothèque C (`0x100494`, `0x100518`, `0x100da8`, `0x100df0`), les deux réserves d'adresses (`0x1010bc`, `0x101124`), les six petites fonctions passées à `create_thread` (`0x1013b4` à `0x1013f0`), le stockage local des fils (`0x101e40`, `0x10245c`, `0x1024a8`, `0x1038c8`, `0x1038dc`).
-- 48 fonctions n'ont pas de nom dans `pm.noms.tsv`. Les fonctions de calcul et de copie nommées (`memcpy`, `memclr`, `strlen`, `strcmp`, `udivmod`) le sont d'après leur forme, sans avoir été relues ligne à ligne.
+- 48 fonctions n'ont pas de nom dans `pm.noms.tsv`. Les fonctions de calcul et de copie nommées (`memcpy`, `memclr`, `strlen`, `strcmp`, `__aeabi_uidivmod`) le sont d'après leur forme, sans avoir été relues ligne à ligne.
 
 ## Comment cette fiche a été faite
 

@@ -20,6 +20,7 @@
 0x10d468	label	cec_access_is_blocked_sys
 0x10d8fc	function	__aeabi_memmove
 0x10de04	label	_ZNSs9_C_unlinkEv
+0x10e01c	label	destroy_array
 0x10e0e0	label	_ZNSsC1EPKcRKSaIcE
 0x10ec80	label	cec_delete
 0x10ed0c	function	strcmp
@@ -27,12 +28,14 @@
 0x10f7d0	label	cec_write_message_hmac
 0x10faec	label	cec_write_raw_file
 0x10fe10	function	svcGetSystemTick
+0x11004c	function	__aeabi_idivmod
 0x110af8	label	cec_read_message
 0x1111d2	label	memcmp
 0x111614	label	cec_open_and_write_msg
 0x111684	label	cec_write_message
 0x111868	function	svcCreateEvent
 0x112064	label	cec_read_raw_file
+0x112430	function	__aeabi_uidivmod
 0x112dac	label	cec_is_busy
 0x112db8	function	__aeabi_ldivmod
 0x112e08	label	cec_get_abbreviated_state

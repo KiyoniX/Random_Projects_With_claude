@@ -1,3 +1,4 @@
+0x800680c	label	destroy_array
 0x8006830	function	kernel9_main
 0x8007080	function	kernel9_move_process9_ncch
 0x80070ac	function	kernel9_create_firm_processes
@@ -42,5 +43,8 @@
 0x8009194	function	svc_invalidate_process_data_cache
 0x800921c	function	svc_break
 0x800a08c	function	svc_kernel_set_state
+0x8011e28	function	__aeabi_uidivmod
+0x8012f6c	function	__aeabi_ldivmod
+0x80140c8	function	__aeabi_uldivmod
 0x801b01c	function	kernel9_entry
 0x801b114	function	kernel9_clear_bss_and_init

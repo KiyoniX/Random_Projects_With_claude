@@ -206,7 +206,7 @@ Chaque requête a sa petite fonction qui écrit un en-tête et appelle `SendSync
 | | | `0x00040000` | `CDCMIC_GetPower` | `0x104004` | lecture de l'alimentation |
 | | | `0x00050042` | `CDCMIC_SetIirFilterMic` | `0x101d30` | filtre du micro (tampon en lecture) |
 | `ptm:s` | `0x10608c` | `0x04030042` | `PTMSYSM_NotifySleepPreparationComplete` | `0x103fb4` | accuser réception de `0x104` et `0x105` (réponse 0, avec le numéro de processus) |
-| `err:f` (port) | `0x10603c` | `0x00010800` | `ERRF_Throw` | `0x102df8` | signaler une erreur fatale (`throw_fatal_error`, `0x1019f4`) |
+| `err:f` (port) | `0x10603c` | `0x00010800` | `ERRF_Throw` | `0x102df8` | signaler une erreur fatale (`errf_report_error`, `0x1019f4`) |
 
 Les noms `CDCMIC_…` sont ceux de ce fichier ; l'exheader appelle le service `cdc:MIC` et les cinq commandes ont le même ordre et les mêmes arguments que `SetGain`, `GetGain`, `SetPower`, `GetPower` et `SetIirFilterMic` de `mic:u`. Les noms des commandes de `srv:` et de `ptm:s` sont ceux de [sm](sm.md) et de [ptm](ptm.md).
 
@@ -235,7 +235,7 @@ Les noms `CDCMIC_…` sont ceux de ce fichier ; l'exheader appelle le service `c
 | ConnectToPort | `0x2D` | `svcConnectToPort` | `0x102db0` |
 | SendSyncRequest | `0x32` | écrit sur place, à 14 endroits | |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x102dc8` |
-| Break | `0x3C` | dans `svcBreak` | `0x103230` |
+| Break | `0x3C` | dans `get_eh_globals_slot` | `0x103230` |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x100944` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x10095c` |
 | BindInterrupt | `0x50` | dans `mic_initialize` | `0x100be8` |

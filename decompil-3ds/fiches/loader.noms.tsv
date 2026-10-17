@@ -57,7 +57,7 @@
 0x14001994	function	srv_init
 0x14001ab8	function	construct_array
 0x14001adc	function	strlen
-0x14001b40	function	unsigned_divide
+0x14001b40	function	__aeabi_uidivmod
 0x14001b70	function	get_program_info
 0x14001be8	function	svcArbitrateAddress
 0x14001c54	function	file_get_handle

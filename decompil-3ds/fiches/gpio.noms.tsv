@@ -36,7 +36,7 @@
 0x100f48	function	light_lock_unlock
 0x100f9c	function	ERRF_Throw
 0x100fd4	function	svcSleepThread
-0x100fe0	function	memcpy
+0x100fe0	function	memcpy_words
 0x101054	function	lock_arbitrate_wait
 0x101138	function	heap_alloc_unlocked
 0x10119c	function	notification_handler_ctor
