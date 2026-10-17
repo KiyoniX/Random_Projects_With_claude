@@ -112,4 +112,10 @@ Défini le 17/10/2026 sur `gpio` et `codec`, les premiers à l'atteindre. Un mod
 3. **chaque nom a une confiance et une preuve d'une ligne** (adresses, constantes, appelants, empreinte) : haute = deux voies indépendantes, moyenne = une seule. Les noms haute entrent dans la fiche ; les moyens restent dans `local/analyse/<module>/noms-proposes.tsv` jusqu'à leur seconde voie ;
 4. **un vérificateur a relu** les propositions avant leur entrée dans la fiche.
 
+**Ce qui est un nom.** Un nom énonce une action ou un rôle que sa preuve établit ; une adresse ou une place ne suffit pas (règle du 17/10, après le lot de Process9) :
+- `<domaine>_internal_<adresse>`, `<classe>_vfNN`, `class_method_<adresse>`, `method_<adresse>` ne sont pas des noms : la fonction reste sans nom et compte comme telle ; le domaine ou la case peut rester en annotation dans `local/` ;
+- une case de table virtuelle n'est nommée que si son rôle est prouvé chez un appelant de l'interface, ou si c'est un destructeur au motif lu ; un bouchon dit ce qu'il fait (`_unsupported`, `_nop`) ;
+- `_wrapper` et `_thunk` sont réservés à un corps qui ne fait que transmettre (arguments, un seul appel, retour), sans suffixes en chaîne ; sinon on nomme d'après l'effet ;
+- `_alt_<adresse>` reste le nom d'un code identique à une fonction déjà nommée.
+
 « 100 % » veut dire « tout est nommé et justifié », pas « tout est sûr » : `outils/couverture.py mesure` affiche le compte des noms de confiance moyenne à côté.

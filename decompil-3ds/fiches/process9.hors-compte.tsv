@@ -1,0 +1,17 @@
+adresse	raison
+0x802c8d4	pas une fonction : mot de données lu par ldr (0x802c874) dans la réserve de littéraux de 0x802c844 ; les octets ne se décodent pas en code (couverture « pointeur seul »)
+0x80317dc	pas une fonction : étiquette du corps de boucle de utf16_find_end (0x80317da) ; seule référence le bne 0x80317e2/0x80317e8 de la boucle
+0x80317de	pas une fonction (fonction de Ghidra) : test de boucle de utf16_find_end ; seule entrée le b 0x80317de de 0x80317da et la boucle elle-même
+0x803aa2a	pas une fonction : étiquette du corps de boucle de strchr (0x803aa28)
+0x803aa30	pas une fonction (fonction de Ghidra) : test de boucle de strchr ; seule entrée le b de 0x803aa28
+0x803b07e	pas une fonction : étiquette du corps de boucle de utf16_strchr (0x803b07c)
+0x803b080	pas une fonction (fonction de Ghidra) : test de boucle de utf16_strchr ; seule entrée le b de 0x803b07c
+0x804cbe0	code mort supposé : variante ARM de context_switch_r1_r2 (stmia r2 / ldmia r3) ; aucun bl, b, adr, littéral ni mot de données ne la désigne (balayage de refs.tsv, des littéraux et des mots du texte et des données)
+0x805fa86	pas une fonction : étiquette du corps de boucle de __aeabi_memcpy_alt_805fa84
+0x805fa8e	pas une fonction (fonction de Ghidra) : test de boucle de __aeabi_memcpy_alt_805fa84 ; seule entrée le b de 0x805fa84
+0x8061110	pas une fonction : étiquette du corps de boucle de memset_bytes_loop (0x806110e)
+0x8061114	pas une fonction (fonction de Ghidra) : test de boucle de memset_bytes_loop ; seule entrée le b de 0x806110e
+0x807fb7e	pas une fonction : étiquette du corps de boucle de bytes_all_spaces (0x807fb7c)
+0x807fb8a	pas une fonction (fonction de Ghidra) : test de boucle de bytes_all_spaces ; seule entrée le b de 0x807fb7c
+0x8084c26	pas une fonction : étiquette du corps de boucle de sorted_insert_shift (0x8084c24)
+0x8084c2a	pas une fonction (fonction de Ghidra) : test de boucle de sorted_insert_shift ; seule entrée le b de 0x8084c24
