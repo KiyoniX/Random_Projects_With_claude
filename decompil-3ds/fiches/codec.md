@@ -178,7 +178,7 @@ Le reste passe par d'autres services : les registres du codec par SPI, l'horloge
 | Adresse | Contenu |
 | --- | --- |
 | `0x108000` | `pdn:i`, `gpio:CDC`, `mcu::CDC`, les six noms `cdc:*` (`0x108018` à `0x108040`), `cfg:s`, `err:f`, les cinq chaînes `ptm:*`, `SPI::CD2`, `SPI::CS2`, `SPI::CS3`, `SPI::NOR`, `SPI::DEF`, `cfg:u` |
-| `0x109000` | octet « en veille » ; `0x109004` à `0x109018` des objets (verrou, `mcu::CDC`) ; `0x10901C` le minuteur de 16 ms ; `0x109020` l'objet du fil casque ; `0x109028` l'événement de réveil |
+| `0x109000` | octet « en veille » ; `0x109004` à `0x109018` des objets (verrou ; la poignée `mcu::CDC` en `0x109014`, passée en `0x100BD0` et `0x100C38`, et sa copie en `0x109018`) ; `0x10901C` le minuteur de 16 ms ; `0x109020` l'objet du fil casque ; `0x109028` l'événement de réveil |
 | `0x109030` | octet « New 3DS » |
 | `0x109038` | la table des six services ; `0x109050` celle des six fonctions de fil |
 | `0x109070` | l'état de la puce : compteur de débounce (+0), casque branché (+1), sortie forcée (+2), (+3) et (+4) deux états sauvegardés par `codec_power_down` ; `0x10907C` le pointeur vers la poignée SPI (`0x10900C`) |

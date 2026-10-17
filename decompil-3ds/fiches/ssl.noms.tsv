@@ -9,7 +9,7 @@
 0x100a98	label	ssl_register_services
 0x100b28	label	ssl_init_socket_library
 0x101170	label	create_thread_impl
-0x101220	label	thread_trampoline
+0x101220	label	report_fatal_error
 0x101590	label	soc_initialize_wrapper
 0x1015e4	label	soc_start_session
 0x1016cc	label	server_receive_loop

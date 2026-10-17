@@ -102,3 +102,14 @@ Les noms de fonctions que les contrats proposent sont versés dans `pokemon-x.no
 Pour la console seule : `sm` (le plus court, il pose le vocabulaire), `hid`, puis `loader` et `pm` ensemble (ils se répondent), puis `fs` et `pxi` (la seconde prolonge la première), `gsp`, et `ns`, `dsp` et `cfg`, les services qu'un jeu appelle dès son démarrage. `ptm` complète `hid` et `ns` sur la veille.
 
 Pour le portage de Pokémon X : l'inventaire d'abord (`pokemon-x-services`, parties 2 et 4 au moins), puis les contrats dans l'ordre du démarrage du jeu : `contrat-petits-services` (`srv:` est le premier guichet ouvert, et `cfg`, `hid`, `ptm` suivent), `contrat-apt`, `contrat-fs`, `contrat-gsp`, `contrat-dsp`. Chaque contrat renvoie à la fiche du module quand il faut le détail d'une fonction.
+
+## Un module à 100 %
+
+Défini le 17/10/2026 sur `gpio` et `codec`, les premiers à l'atteindre. Un module est à 100 % quand :
+
+1. **le dénominateur est juste** : la liste de Ghidra est complétée par tous les points d'entrée réellement atteints (cible d'un `b`, `bl` ou `blx`, y compris au milieu d'une fonction de Ghidra ; mot de données qui pointe dans le code ; case d'une table de constructeurs ou d'une table virtuelle ; veneer ARM vers Thumb et son corps), et purgée de ce qui n'est pas du code, chaque retrait prouvé. Le code que rien n'atteint est listé à part et ne compte pas. Ghidra en manquait 11 dans `gpio` et 16 dans `codec` ;
+2. **chaque fonction a un nom** dans `<module>.noms.tsv`, en anglais, unique dans le binaire, selon les règles de nommage (`svcXxx` pour un appel système nu, le nom de la bibliothèque pour la bibliothèque, `<préfixe>_<Commande>` pour une commande de service), et **le même nom que dans les autres fiches quand le code est le même** ;
+3. **chaque nom a une confiance et une preuve d'une ligne** (adresses, constantes, appelants, empreinte) : haute = deux voies indépendantes, moyenne = une seule. Les noms haute entrent dans la fiche ; les moyens restent dans `local/analyse/<module>/noms-proposes.tsv` jusqu'à leur seconde voie ;
+4. **un vérificateur a relu** les propositions avant leur entrée dans la fiche.
+
+« 100 % » veut dire « tout est nommé et justifié », pas « tout est sûr » : `outils/couverture.py mesure` affiche le compte des noms de confiance moyenne à côté.

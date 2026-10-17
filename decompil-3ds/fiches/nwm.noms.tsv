@@ -142,7 +142,7 @@
 0x12022c	label	uds_decrypt_beacon_data
 0x1204c0	label	uds_get_state
 0x1204d4	label	uds_get_state_object
-0x121560	label	tst_cmd_003D
+0x121560	label	nwm_make_result
 0x121576	label	tst_cmd_0031
 0x1215cc	label	tst_cmd_0011_shared
 0x1215dc	label	soc_cmd_0008_GetMACAddress

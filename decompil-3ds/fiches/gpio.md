@@ -136,7 +136,7 @@ Les bits 0 (`0x1`), 5 (`0x20`) et 18 (`0x40000`) n'ont pas d'interruption : `0xE
 3. Si M a un bit hors de P, ferme E et rend `0xE0E033EA`.
 4. `gpio_mask_to_irq` : numéro d'interruption, ou `0xE0E033FA`.
 5. `svcBindInterrupt(irq, E, N, 0)` ; une erreur du noyau déclenche `throw_fatal_error`.
-6. `gpio_mark_bound` (`0x102824`) : ajoute M au masque `0x104028`. L'indice de la broche (position du bit de M) sert à ranger E dans la table `0x1040B0` (31 poignées) et à lever le même bit dans le mot `0x104000`.
+6. `gpio_mark_bound` (`0x102824`) : ajoute M au masque `0x104028`. L'indice de la broche (position du bit de M) sert à ranger E dans la table `0x1040B0` (32 poignées : `construct_array(0x1040B0, handle_clear, 4, 0x20)`) et à lever le même bit dans le mot `0x104000`.
 
 `gpio_UnbindInterrupt` (`0x102254`) fait l'inverse : vérifie que M est lié (sinon `0xE0E033F0`), appelle `svcUnbindInterrupt` (`0x51`), efface M de `0x104028` et du mot `0x104000`, ferme l'événement rangé et l'événement reçu dans la requête.
 
@@ -152,7 +152,7 @@ Les bits 0 (`0x1`), 5 (`0x20`) et 18 (`0x40000`) n'ont pas d'interruption : `0xE
 | `0x104000` | les interruptions liées, un bit par position de broche |
 | `0x104004` | les sept masques de permission en mémoire |
 | `0x104024` | octet « matériel initialisé » ; `0x104028` le masque des interruptions liées |
-| `0x1040B0` | les poignées d'événement liées, une par position de broche (31) |
+| `0x1040B0` | les poignées d'événement liées, une par position de broche (32) |
 | `0x104084` | octet d'arrêt (notification `0x100`) |
 | `0x104130` | le verrou récursif qui protège les écritures de registres |
 | `0x1047A0` | la table des poignées attendues (sémaphore, sept ports, sessions) |
@@ -176,7 +176,7 @@ Les noms des commandes de `srv:` sont ceux de [sm](sm.md).
 
 | Appel | Numéro | Où |
 | --- | --- | --- |
-| ExitProcess | `0x03` | `entry` |
+| ExitProcess | `0x03` | `svcExitProcess` (`0x101AA0`, atteint par `b` depuis `entry`) |
 | SleepThread | `0x0A` | `svcSleepThread` (`0x100fd4`) |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` (`0x100cec`) |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` (`0x1014a8`) |
@@ -187,7 +187,7 @@ Les noms des commandes de `srv:` sont ceux de [sm](sm.md).
 | ConnectToPort | `0x2D` | `svcConnectToPort` (`0x101894`) |
 | SendSyncRequest | `0x32` | écrit sur place, 6 endroits |
 | GetProcessId | `0x35` | `svcGetProcessId` (`0x100e34`) |
-| Break | `0x3C` | `svcBreak` (`0x101ca0`) |
+| Break | `0x3C` | `svcBreak` (`0x101B0C`, atteint par `b` depuis `break_process` ; `0x101CA0` est `get_eh_globals_slot`, corrigé le 17/10) |
 | AcceptSession | `0x4A` | `svcAcceptSession` (`0x1005d0`) |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` (`0x1005e8`) |
 | BindInterrupt | `0x50` | dans `gpio_BindInterrupt` |
