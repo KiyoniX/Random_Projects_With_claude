@@ -1,0 +1,5 @@
+# Les noms versés dans les fiches par « python outils/couverture.py apply » : propagés d'un binaire à l'autre par
+# empreinte, pas lus. Écrit par apply, une ligne par nom, jamais réécrit. « run » ne compte pas ces noms comme
+# origine de la règle (a) (deux binaires qui s'accordent) : un nom propagé n'est pas un témoin indépendant.
+# origine : la source de la proposition et sa règle (a : binaires d'origine ; b:nom, b:svc : le nom se prouve seul).
+binaire	adresse	nom	origine	date

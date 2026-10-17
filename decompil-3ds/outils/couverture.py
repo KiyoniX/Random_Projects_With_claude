@@ -81,7 +81,8 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
    portent toutes le même nom (au préfixe « <Module>_ » des .cro près), ce nom est proposé pour les copies sans nom.
 
    La confiance suit la règle du carnet, deux voies indépendantes (colonne « règle » de proposals.tsv) :
-    haute    (a) au moins deux binaires d'origine portent ce nom sur ce code (deux fiches qui s'accordent), ou
+    haute    (a) au moins deux binaires d'origine portent ce nom sur ce code (deux fiches qui s'accordent ; un nom
+             qu'apply a propagé, listé dans fiches/noms-propages.tsv, n'est pas un témoin et ne compte pas), ou
              (b) le nom se prouve seul : symbole C++ manglé (_Z...), bibliothèque C (memcpy, strlen...) ou exécution
              du compilateur (__aeabi_*, __cxa_*, __rw_*...), ou svc<Nom> sur une fonction ARM qui n'est que cet appel
              système, du bon numéro (octets relus par name_pass.decode_svc et is_pure_svc_wrapper).
@@ -112,6 +113,8 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
                     (« empreinte:<binaire d'origine> » ou « appel:<binaire d'origine> »), confiance, règle (a, b:nom,
                     b:svc, ou pourquoi pas haute), preuve
     exclusions.tsv  (à la main) binaire, adresse, raison : ce que « apply » ne verse pas, même en confiance haute
+   Et « apply » ajoute chaque nom qu'il verse à fiches/noms-propages.tsv (versionné) : binaire, adresse, nom, origine
+   (source et règle), date.
     collisions.tsv  ce qui a été écarté et pourquoi
     conflicts.tsv   les grappes dont les copies nommées ne s'accordent pas
     report.txt      le compte : grappes, propositions par confiance et par binaire
@@ -147,6 +150,13 @@ RECOMP_OUT = os.path.join(ROOT, 'local', 'recomp', 'jeu')
 OUT = os.path.join(ANALYSE, 'names-croises')
 PROPOSALS = os.path.join(OUT, 'proposals.tsv')
 EXCLUSIONS = os.path.join(OUT, 'exclusions.tsv')
+PROVENANCE = os.path.join(FICHES, 'noms-propages.tsv')
+PROVENANCE_HEADER = [
+    "# Les noms versés dans les fiches par « python outils/couverture.py apply » : propagés d'un binaire à l'autre par",
+    "# empreinte, pas lus. Écrit par apply, une ligne par nom, jamais réécrit. « run » ne compte pas ces noms comme",
+    "# origine de la règle (a) (deux binaires qui s'accordent) : un nom propagé n'est pas un témoin indépendant.",
+    "# origine : la source de la proposition et sa règle (a : binaires d'origine ; b:nom, b:svc : le nom se prouve seul).",
+    'binaire\tadresse\tnom\torigine\tdate']
 NAME_PASS_PROPOSALS = os.path.join(name_pass.OUT, 'proposals.tsv')
 MIN_HIGH = 8
 MIN_LOW = 4
@@ -701,7 +711,8 @@ def grade(binary, address, print_, name, origins, ipc, min_high):
         return 'moyenne', 'moins de %d instructions' % min_high
     rule = 'b:nom' if self_proving(name) else 'a' if len(origins) >= 2 else ''
     if not rule:
-        return 'moyenne', 'une seule origine (%s)' % origins[0]
+        return 'moyenne', ('une seule origine (%s)' % origins[0] if origins else
+                           'aucune origine indépendante (noms propagés, fiches/noms-propages.tsv)')
     if rule == 'a':
         words = name_words(name)
         if SESSION_VERBS & set(words) and SESSION_OBJECTS & set(words):
@@ -724,8 +735,14 @@ CONFIDENCE_RANK = {'basse': 1, 'moyenne': 2, 'haute': 3}
 PROPOSALS_HEADER = ('binaire', 'adresse', 'nom', 'source', 'confiance', 'règle', 'preuve')
 
 
-def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
-    """Rend (propositions, conflits [(empreinte, instructions, [(binaire, adresse, nom)])], compte)."""
+def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=frozenset()):
+    """Rend (propositions, conflits [(empreinte, instructions, [(binaire, adresse, nom)])], compte). propagated : les
+    (binaire, adresse de fiche, nom de fiche) de fiches/noms-propages.tsv, qui ne comptent pas comme origine."""
+
+    def independent(witnesses):
+        """Les binaires d'origine des témoins [(binaire, adresse, nom)], sans les noms qu'apply a propagés."""
+        return sorted({b.name for b, a, n in witnesses if (b.name, a - b.base, b.prefix + n) not in propagated})
+
     modes = {(b.name, a): m for b in binaries for a, _, m in b.functions}
     clusters = collections.defaultdict(list)
     for b in binaries:
@@ -781,7 +798,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
                 origins = sorted({b.name for b, _, _ in good})
                 witnesses = ', '.join('%s@%#x' % (b.name, a - b.base) for b, a, _ in good[:3])
                 for b, a in unnamed:
-                    add(b, a, name, 'empreinte:' + origins[0], origins,
+                    add(b, a, name, 'empreinte:' + origins[0], independent(good),
                         'empreinte %s identique (%d instructions, %s) à %s « %s » ; grappe de %d copies dans %d binaires'
                         % (digest, count, modes[(b.name, a)], witnesses, name, len(members),
                            len({m.name for m, _ in members})))
@@ -805,7 +822,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
             witness = known[0]
             for b, a, t in callees:
                 if b.name_at(t) is None:
-                    add(b, t, name, 'appel:' + origins[0], origins,
+                    add(b, t, name, 'appel:' + origins[0], independent([(kb, kt, kn) for kb, _, kt, kn in known]),
                         'appelée au rang %d par %s@%#x, dont l\'empreinte %s (%d instructions) est celle de %s@%#x, qui '
                         'appelle à ce rang %s@%#x « %s »' % (rank, b.name, a - b.base, digest, count, witness[0].name,
                                                              witness[1] - witness[0].base, witness[0].name,
@@ -842,7 +859,7 @@ def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
             prints[b.name] = fingerprints(b)
     print('%d binaires, %d avec leurs octets, %d fonctions empreintes' % (
         len(binaries), len(prints), sum(len(v) for v in prints.values())), flush=True)
-    proposals, conflicts, stats = propose(binaries, prints, min_high, min_low)
+    proposals, conflicts, stats = propose(binaries, prints, min_high, min_low, read_propagated())
     kept, dropped = reconcile_all(binaries, proposals)
     os.makedirs(out_dir, exist_ok=True)
     name_pass.write_tsv(os.path.join(out_dir, 'proposals.tsv'),
@@ -888,7 +905,23 @@ def read_rows(path):
     return [line.split('\t') for line in lines if line and not line.startswith('#')]
 
 
-def apply(source=PROPOSALS, exclusions=EXCLUSIONS, binaries=None):
+def read_propagated(path=PROVENANCE):
+    """{(binaire, adresse de fiche, nom de fiche)} des noms qu'apply a versés."""
+    return {(r[0], int(r[1], 16), r[2]) for r in read_rows(path) if len(r) > 2 and r[1].startswith('0x')}
+
+
+def record_propagated(rows, path=PROVENANCE):
+    """Ajoute (binaire, adresse, nom, origine) à fiches/noms-propages.tsv, créé avec son en-tête s'il manque."""
+    import datetime
+    new = not os.path.isfile(path)
+    today = datetime.date.today().isoformat()
+    with open(path, 'a', encoding='utf-8') as f:
+        if new:
+            f.write('\n'.join(PROVENANCE_HEADER) + '\n')
+        f.write(''.join('\t'.join(row + (today,)) + '\n' for row in rows))
+
+
+def apply(source=PROPOSALS, exclusions=EXCLUSIONS, binaries=None, provenance=PROVENANCE):
     """Verse les noms de confiance haute d'un fichier de propositions RELU (sans refaire le calcul) dans la fiche de noms
     de chaque binaire, sauf ceux d'exclusions.tsv (binaire, adresse, raison). Les collisions sont revérifiées contre les
     fiches du moment (name_pass.reconcile). Un binaire sans fiche de noms (une variante « -safe ») n'en reçoit pas une."""
@@ -909,7 +942,7 @@ def apply(source=PROPOSALS, exclusions=EXCLUSIONS, binaries=None):
             continue
         p = name_pass.Proposal(address, name, origin, confidence, proof, module=b.name if b.prefix else '',
                                thumb=mode == 'thumb')
-        p.binary = b
+        p.binary, p.rule = b, rule
         proposals.append(p)
     kept, dropped = reconcile_all(binaries, proposals)
     for p, why in dropped:
@@ -926,6 +959,10 @@ def apply(source=PROPOSALS, exclusions=EXCLUSIONS, binaries=None):
             continue
         name_pass.merge_lines(path, items, name_pass.is_sorted(path))
         print('   %-50s +%d' % (os.path.relpath(path, ROOT), len(items)))
+    written = [(p.binary.name, '%#x' % p.address, p.name, '%s ; %s' % (p.source, p.rule))
+               for p in kept if p.binary.names_path in by_path]
+    if written:
+        record_propagated(written, provenance)
     print('versé : %d noms dans %d fichiers' % (sum(len(v) for v in by_path.values()), len(by_path)))
 
 
@@ -1251,9 +1288,28 @@ def test():
                                      ('mod_b', '0x340180', 'medium_name', 'empreinte:mod_a', 'moyenne', '', ''),
                                      ('mod_d', '0x600000', 'nnosMutexLock', 'empreinte:mod_a', 'haute', 'a', '')])
         name_pass.write_tsv(exclusions, [('binaire', 'adresse', 'raison'), ('mod_b', '0x340140', 'relu : faux')])
-        apply(source, exclusions, binaries=[a, b, d])
+        provenance = os.path.join(folder, 'noms-propages.tsv')
+        apply(source, exclusions, binaries=[a, b, d], provenance=provenance)
         check(open(b.names_path, 'rb').read() == b'0x340000\tfunction\tfirst\r\n0x340100\tfunction\tnnosMutexLock\r\n'
               and not os.path.exists(d.names_path), 'apply : graine nommée sur place, exclusion, pas de fiche créée')
+        check(read_propagated(provenance) == {('mod_b', 0x340100, 'nnosMutexLock')}, 'apply : provenance notée')
+        # Le cycle propager -> verser -> relancer : le nom versé dans q2 depuis q1 seul ne fait pas une seconde origine
+        q1, q2, q3 = (fake_binary(n, base, [(0, plain, 'arm', 36)], {0: 'heap_find_block'} if n == 'q1' else {})
+                      for n, base in (('q1', 0x00500000), ('q2', 0x00600000), ('q3', 0x00700000)))
+        qs, qprints = [q1, q2, q3], {}
+        qprints.update({q.name: fingerprints(q) for q in qs})
+        props, _, _ = propose(qs, qprints)
+        check({p.binary.name: p.confidence for p in props} == {'q2': 'moyenne', 'q3': 'moyenne'}, 'une seule origine')
+        q2.names_path = os.path.join(folder, 'q2.noms.tsv')
+        open(q2.names_path, 'w', encoding='utf-8').close()
+        name_pass.write_tsv(source, [PROPOSALS_HEADER] + [(p.binary.name, '%#x' % p.address, p.name, p.source, 'haute',
+                                                           p.rule, '') for p in props if p.binary is q2])
+        apply(source, os.devnull, binaries=qs, provenance=provenance)
+        q2.names = {a: v for a, v in name_pass.read_names(q2.names_path).items() if v[1]}
+        promoted = {p.binary.name: p.confidence for p in propose(qs, qprints)[0]}
+        props, _, _ = propose(qs, qprints, propagated=read_propagated(provenance))
+        check(promoted == {'q3': 'haute'} and [(p.binary.name, p.confidence) for p in props] == [('q3', 'moyenne')],
+              'cycle propager, verser, relancer : le nom propagé ne fait pas une seconde origine')
     # Les noms automatiques seulement sont écartés
     check(usable('init_vm_region_10000000') and not usable('FUN_00100abc') and not usable('thunk_FUN_00100abc')
           and not usable('trou_00100abc') and not usable('memcpy_alt_100abc'), 'noms automatiques écartés, pas les autres')
