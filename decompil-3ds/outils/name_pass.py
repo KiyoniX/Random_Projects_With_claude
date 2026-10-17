@@ -1018,11 +1018,15 @@ def run(only, out_dir=OUT):
 
 def merge_lines(path, additions, keep_sorted):
     """Ajoute des lignes (adresse, genre, nom) à un .noms.tsv sans toucher aux lignes existantes. Une graine (ligne
-    sans nom) à la même adresse reçoit le nom sur place, avec son genre, plutôt qu'une seconde ligne."""
+    sans nom) à la même adresse reçoit le nom sur place, avec son genre, plutôt qu'une seconde ligne. Les fins de ligne
+    du fichier sont gardées (CRLF dans une copie de travail Windows)."""
     existing = []
+    ending = '\n'
     if os.path.isfile(path):
-        with open(path, encoding='utf-8') as f:
-            existing = f.read().split('\n')
+        with open(path, encoding='utf-8', newline='') as f:
+            text = f.read()
+        ending = '\r\n' if '\r\n' in text else '\n'
+        existing = text.replace('\r\n', '\n').split('\n')
         if existing and existing[-1] == '':
             existing.pop()
     seeds = {}
@@ -1049,8 +1053,13 @@ def merge_lines(path, additions, keep_sorted):
             existing.insert(at, line)
     else:
         existing += new
-    with open(path, 'w', encoding='utf-8', newline='\n') as f:
-        f.write('\n'.join(existing) + '\n')
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        f.write(ending.join(existing) + ending)
+
+
+def fiche_line(p):
+    """La ligne de .noms.tsv d'une proposition : (adresse, genre, nom), « label » pour le Thumb (fiches/README.md)."""
+    return p.address, 'label' if p.thumb else 'function', p.name
 
 
 def is_sorted(path):
@@ -1065,13 +1074,13 @@ def is_sorted(path):
 
 
 def apply(kept):
-    main = [(p.address, 'label' if p.thumb else 'function', p.name) for p in kept if not p.module and p.confidence == 'haute']
+    main = [fiche_line(p) for p in kept if not p.module and p.confidence == 'haute']
     if main:
         merge_lines(MAIN_NAMES, main, is_sorted(MAIN_NAMES))
     by_module = collections.defaultdict(list)
     for p in kept:
         if p.module and p.confidence == 'haute':
-            by_module[p.module].append((p.address, 'label' if p.thumb else 'function', p.name))
+            by_module[p.module].append(fiche_line(p))
     for module, items in by_module.items():
         os.makedirs(CRO_FICHES, exist_ok=True)
         path = os.path.join(CRO_FICHES, module + '.noms.tsv')
@@ -1160,6 +1169,10 @@ def test():
             f.write('0x100000\tlabel\t\n')
         merge_lines(path, [(0x100000, 'function', 'd')], True)
         check(open(path, encoding='utf-8').read() == '0x100000\tlabel\td\n', 'graine nommée sur place')
+        with open(path, 'w', encoding='utf-8', newline='') as f:
+            f.write('0x100000\tfunction\ta\r\n')
+        merge_lines(path, [(0x100050, 'function', 'b')], True)
+        check(open(path, 'rb').read() == b'0x100000\tfunction\ta\r\n0x100050\tfunction\tb\r\n', 'fins de ligne CRLF gardées')
     print('%d échec(s)' % len(failures) if failures else 'name_pass : tous les essais passent')
     return failures
 

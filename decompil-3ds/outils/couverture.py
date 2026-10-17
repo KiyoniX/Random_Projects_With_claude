@@ -1,8 +1,10 @@
 """Le compteur de la décompilation à 100 %, et la propagation des noms d'un binaire à l'autre par empreinte.
 
     python couverture.py mesure [--no-write]                       le tableau par binaire ; les totaux vont dans etat.json
+    python couverture.py entrees <binaire>                         les entrées manquées par Ghidra et les tailles qui débordent
     python couverture.py run   [--min N] [--min-moyenne N] [--out DOSSIER]   propositions de noms, ne touche à aucune fiche
-    python couverture.py apply [mêmes options]                     idem, puis verse les noms de confiance haute dans les fiches
+    python couverture.py apply [--from proposals.tsv] [--exclusions exclusions.tsv]   verse les noms de confiance
+                               haute d'un fichier de propositions RELU, sans refaire le calcul
     python couverture.py test
 
 Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés par « apply » et les totaux d'etat.json) :
@@ -16,12 +18,17 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
     fiches/<fiche>.noms.tsv, fiches/cro/<Module>.noms.tsv, fiches/<fiche>*.md
     local/analyse/names/proposals.tsv, local/analyse/names-croises/proposals.tsv   d'où viennent les noms déjà versés
 
-1. Le compteur (« mesure »). Pour chaque binaire, des niveaux du plus faible au plus fort :
-    trouvees        les fonctions que l'analyse connaît (funcs.tsv ; cro_table.c pour les .cro). Ce n'est pas le vrai
-                    total : une fonction que rien ne désigne reste invisible (voir ghidra_direct.py)
-    nommees         les débuts de fonction qui ont un nom dans la fiche de noms du binaire, répartis par origine quand une
-                    passe l'a écrit : la source de name_pass.py (rtti, svc, stdlib...) ou d'ici (empreinte, appel) ;
-                    « fiche » pour le reste, noms posés à la main ou par prescan.py
+1. Le compteur (« mesure »). Pour chaque binaire, le dénominateur puis des niveaux du plus faible au plus fort :
+    trouvees        ghidra + manquees + fiche_seule :
+      ghidra        les fonctions de funcs.tsv (cro_table.c pour les .cro)
+      manquees      les entrées que Ghidra n'a pas en début de fonction, trouvées ici (« entrees », plus bas)
+      fiche_seule   les lignes « function » de la fiche de noms qui ne sont ni l'une ni l'autre
+                    Ce n'est toujours pas le vrai total : une fonction que rien ne désigne reste invisible
+    nommees         les fonctions qui ont un nom dans la fiche de noms du binaire, réparties par origine quand une passe
+                    l'a écrit : la source de name_pass.py (rtti, svc, stdlib...) ou d'ici (empreinte, appel) ; « fiche »
+                    pour le reste (les fiches n'ont pas de colonne de confiance : tout nom versé compte comme « fiche »)
+    proposees_haute, proposees_moyenne   les noms proposés et pas encore versés : local/analyse/<binaire>/noms-proposes.tsv
+                    (adresse, genre, nom, confiance, preuve), puis names-croises/proposals.tsv
     typees          un prototype (paramètres, retour) écrit dans un fichier versionné. Aucun format encore : 0 partout
     citees          l'adresse du début citée dans la fiche du binaire (fiches/<fiche>.md, <fiche>-*.md, ou une fiche
                     commune comme boot9-boot11.md). C'est une approximation de « lue » : une citation ne prouve pas que
@@ -33,6 +40,16 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
    Ghidra) sont listées à part : leurs noms ne comptent pas dans les totaux, faute de liste de fonctions.
    Les totaux vont dans etat.json « fonctions » (identifiees, nommees, citees, recompilees, typees, reimplementees, et
    « binaires », le détail que montre la page), par verifier.ecrire.
+
+   Les entrées manquées (« entrees », find_entries) : toutes les cibles de b, bl et blx, les mots des réserves de
+   littéraux et les mots de l'image qui visent le texte (ARM pair, Thumb impair), qui ne tombent pas sur un début de
+   fonction de Ghidra, y compris au milieu d'une fonction de Ghidra (une taille trop grande avale l'enrobage suivant) ;
+   les veneers ARM vers Thumb (« add ip, pc, #1 ; bx ip ») et leur corps Thumb. Genres : cible de b (appel terminal),
+   cible de bl, veneer, corps de veneer, pointeur de réserve, pointeur seul, « au milieu de » la fonction qui la
+   couvre. Une case d'aiguillage ou un saut qui reste dans sa fonction n'en est pas une. Relevé à la main dans gpio
+   (11) et codec (16, local/analyse/<m>/notes-100.md) : toutes retrouvées. Les entrées trouvées deviennent des
+   fonctions pour l'empreinte et les noms, et coupent les tailles de Ghidra qui débordent (gpio 0x100c10 : 116 octets
+   au lieu de 20, réserve comprise).
 
 2. La propagation (« run »). Les bibliothèques du SDK (nn::os, nn::fs, nn::srv, les enrobages d'appels système, la libc,
    l'exécution d'armcc __aeabi_*) sont liées statiquement dans chaque module et dans le jeu : la même fonction existe à
@@ -59,22 +76,32 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
 
    Masquer les cibles des appels confondrait deux enrobages qui ne diffèrent que par la fonction appelée (dans act,
    le même code appelle svcCloseHandle là où celui de fs appelle lock_leave). La grappe se fait donc sur l'empreinte
-   de la fonction suivie de celle de chacune de ses appelées, dans l'ordre (un niveau : l'appelée de l'appelée n'est
-   pas regardée). Si les copies nommées d'une grappe portent toutes le même nom (au préfixe « <Module>_ » des .cro
-   près), ce nom est proposé pour les copies sans nom :
-    haute    au moins --min instructions (8 par défaut) : va dans les fiches avec « apply »
-    moyenne  de --min-moyenne (4) à --min ; ou un nom qui commence par le nom du binaire d'origine (« fs_... ») et qui
-             décrit peut-être le rôle de la fonction dans ce module plutôt que la fonction elle-même
+   de la fonction suivie de celle de chacune de ses appelées (« bl ») et des fonctions où elle saute en appel terminal
+   (« b »), dans l'ordre (un niveau : l'appelée de l'appelée n'est pas regardée). Si les copies nommées d'une grappe
+   portent toutes le même nom (au préfixe « <Module>_ » des .cro près), ce nom est proposé pour les copies sans nom.
+
+   La confiance suit la règle du carnet, deux voies indépendantes (colonne « règle » de proposals.tsv) :
+    haute    (a) au moins deux binaires d'origine portent ce nom sur ce code (deux fiches qui s'accordent), ou
+             (b) le nom se prouve seul : symbole C++ manglé (_Z...), bibliothèque C (memcpy, strlen...) ou exécution
+             du compilateur (__aeabi_*, __cxa_*, __rw_*...), ou svc<Nom> sur une fonction ARM qui n'est que cet appel
+             système, du bon numéro (octets relus par name_pass.decode_svc et is_pure_svc_wrapper).
+             Et au moins --min instructions (8), sauf pour (b:svc).
+    moyenne  le reste : une seule origine ; moins de --min instructions ; un nom qui contient un mot de service
+             (cfg, ptm, nwm... délimité par « _ » ; pas srv, errf, svc*, ni « ns » en dernier mot) sans que la
+             fonction cite dans sa réserve la chaîne « xxx:yyy » de ce service ; un nom d'ouverture ou de fermeture de
+             session (open, close, exit, init, connect avec un service, srv, session ou handle) ; un nom qui commence
+             par le nom du binaire d'origine. Dans ces cas la fonction identique peut viser un autre service ou une
+             autre session, par un handle global que l'empreinte masque.
     basse    une fonction qui envoie une commande IPC (lecture du tampon de commande « mrc p15, 0, rX, c13, c0, 3 » ou
-             « svc 0x32 », dans son code ou dans une appelée de quatre instructions au plus). Le service visé est le
-             handle lu dans une variable globale, que l'empreinte masque : la commande 8 à un paramètre d'octet de mic
-             (mic_SetGain dans le jeu) a exactement le code d'une commande 8 d'un autre service dans errdisp
-    rien     moins de --min-moyenne instructions : « bx lr » ou « mov r0, #0 ; bx lr » existent partout sous dix noms
+             « svc 0x32 », dans son code ou dans une appelée de quatre instructions au plus) : la commande 8 à un
+             paramètre d'octet de mic (mic_SetGain dans le jeu) a exactement le code d'une commande 8 d'un autre
+             service dans errdisp
+    rien     moins de --min-moyenne instructions (4) : « bx lr » ou « mov r0, #0 ; bx lr » existent partout sous dix noms
    Une grappe dont les copies nommées ne s'accordent pas ne propose rien (conflicts.tsv). Les appelées : dans une
    grappe d'au moins --min instructions, l'appelée au rang k de chaque copie a le même code ; si les appelées
-   nommées s'accordent, le nom est proposé aux autres en confiance moyenne. C'est ce qui nomme les petites
-   fonctions (« svc 0x23 ; bx lr ») que la règle des --min-moyenne instructions écarte seules : leur contexte d'appel
-   est alors celui d'une grande fonction identique.
+   nommées s'accordent, le nom est proposé aux autres, jugé par les mêmes règles sur l'appelée. C'est ce qui nomme les
+   petites fonctions (« svc 0x23 ; bx lr ») que la règle des --min-moyenne instructions écarte seules. Une même
+   proposition arrivée par deux chemins garde la confiance la plus haute.
 
    Les collisions suivent la règle de name_pass.py (dont reconcile est repris tel quel) : dans un binaire, une adresse
    n'a qu'un nom et un nom qu'une adresse. Le jeu (code.bin et ses 133 .cro) forme un seul espace de noms, comme pour
@@ -82,7 +109,9 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
 
    Il écrit dans local/analyse/names-croises/ :
     proposals.tsv   binaire, adresse (dans l'espace de la fiche : position dans le fichier pour un .cro), nom, source
-                    (« empreinte:<binaire d'origine> » ou « appel:<binaire d'origine> »), confiance, preuve
+                    (« empreinte:<binaire d'origine> » ou « appel:<binaire d'origine> »), confiance, règle (a, b:nom,
+                    b:svc, ou pourquoi pas haute), preuve
+    exclusions.tsv  (à la main) binaire, adresse, raison : ce que « apply » ne verse pas, même en confiance haute
     collisions.tsv  ce qui a été écarté et pourquoi
     conflicts.tsv   les grappes dont les copies nommées ne s'accordent pas
     report.txt      le compte : grappes, propositions par confiance et par binaire
@@ -92,6 +121,7 @@ change suffit à les séparer : c'est voulu, la fonction n'est alors pas tout à
 fonction que deux compilateurs ou deux versions du SDK ont produite autrement. Une fonction coupée autrement par Ghidra
 dans deux binaires (un bout de code partagé, une fin manquée) n'y trouve pas sa jumelle.
 """
+import bisect
 import collections
 import hashlib
 import os
@@ -106,18 +136,25 @@ import ghidra_raw
 import name_pass
 import verifier
 
+sys.path.insert(0, os.path.join(ghidra_direct.ROOT, 'recomp'))
+import recomp  # noqa: E402
+
 ROOT = ghidra_direct.ROOT
 ANALYSE = os.path.join(ROOT, 'local', 'analyse')
 FICHES = name_pass.FICHES
 CRO_FICHES = name_pass.CRO_FICHES
 RECOMP_OUT = os.path.join(ROOT, 'local', 'recomp', 'jeu')
 OUT = os.path.join(ANALYSE, 'names-croises')
+PROPOSALS = os.path.join(OUT, 'proposals.tsv')
+EXCLUSIONS = os.path.join(OUT, 'exclusions.tsv')
 NAME_PASS_PROPOSALS = os.path.join(name_pass.OUT, 'proposals.tsv')
 MIN_HIGH = 8
 MIN_LOW = 4
 GAME = 'jeu'                            # l'espace de noms de code.bin (« maj ») et des .cro
 # Des noms qui disent une adresse ou un défaut d'outil, pas une fonction : on ne les recopie pas ailleurs.
-GENERIC_NAME = re.compile(r'^(?:FUN|LAB|SUB|sub|thunk|DAT|switchD|caseD|nullsub)_|_alt_|0x[0-9a-fA-F]+|_[0-9a-fA-F]{6,8}$')
+# Seulement les formes automatiques (Ghidra, trous du recompilateur, doublons « _alt_ » de name_pass) : un vrai nom
+# peut finir par une adresse (init_vm_region_10000000).
+GENERIC_NAME = re.compile(r'^(?:FUN|LAB|thunk|trou)_|_alt_')
 PADDING = {0, 0x46C0, 0xE1A00000}       # demi-mot nul, « mov r8, r8 » Thumb, « mov r0, r0 » ARM
 
 
@@ -139,6 +176,8 @@ class Binary:
         self.base = base
         self.relocated = set(relocated)
         self.starts = {a for a, _, _ in self.functions}
+        self.entries = {}                    # les entrées manquées par Ghidra (add_entries)
+        self.pieces = {}                     # les morceaux d'une fonction de Ghidra en plusieurs morceaux
         self.spans = [(b, b + max(fs, ms)) for b, _, fs, ms, _ in image.segments] if image else []
         self.jump_slots = set()
         self.switch_helpers = {}
@@ -203,7 +242,6 @@ def load_cros(with_image):
     table = read_cro_table()
     images = {}
     if with_image and table:
-        sys.path.insert(0, os.path.join(ROOT, 'recomp'))
         import cro_recomp
         if os.path.isdir(cro_recomp.cl.DEFAULT_ROMFS):
             for index, cro in enumerate(cro_recomp.load_cros()):
@@ -222,14 +260,19 @@ def load_cros(with_image):
     return out
 
 
-def load_all(with_image=True):
+def load_all(with_image=True, cro_images=None, entries=None):
+    """Les binaires analysés puis les .cro. entries (par défaut : with_image) : chercher les entrées manquées par
+    Ghidra de chaque binaire qui a ses octets (add_entries) ; les .cro n'en ont pas, leur liste vient du recompilateur."""
     names = sorted(n for n in os.listdir(ANALYSE) if os.path.isfile(os.path.join(ANALYSE, n, 'gh', 'funcs.tsv'))) \
         if os.path.isdir(ANALYSE) else []
     binaries = []
     for name in names:
         print('lecture de %s...' % name, flush=True)
-        binaries.append(load_system(name, with_image))
-    binaries += load_cros(with_image)
+        binary = load_system(name, with_image)
+        if binary.image is not None and (with_image if entries is None else entries):
+            add_entries(binary)
+        binaries.append(binary)
+    binaries += load_cros(with_image if cro_images is None else cro_images)
     return binaries
 
 
@@ -258,14 +301,20 @@ def literal_token(binary, address, words=1):
     return tuple(out)
 
 
+# L'empreinte d'une fonction, et ce qu'on en garde pour juger un nom : appelées (« bl ») et cibles des « b » dans
+# l'ordre, envoi IPC dans son code, chaînes citées par sa réserve, adresses des mots de sa réserve.
+Print = collections.namedtuple('Print', 'digest count calls ipc strings jumps pool')
+
+
 def is_ipc(token):
     """mrc p15, 0, rX, c13, c0, 3 (le tampon de commande du fil) ou svc 0x32 (SendSyncRequest), ARM ou Thumb."""
     return isinstance(token, int) and (token & 0x0FFF0FFF == 0x0E1D0F70 or token & 0x0FFFFFFF == 0x0F000032
                                        or token == 0xDF32)
 
 
-def arm_token(binary, pos, w, literals, calls, window):
-    """Le mot ARM masqué. Note dans `literals` les mots de réserve lus dans la fonction, dans `calls` les appelées."""
+def arm_token(binary, pos, w, literals, calls, jumps, window):
+    """Le mot ARM masqué. Note dans `literals` les mots de réserve lus dans la fonction, dans `calls` les appelées,
+    dans `jumps` les cibles des « b » (sauts internes, et appels terminaux vers une autre fonction)."""
     def literal(address, words):
         if window[0] <= address < window[1]:
             literals.update(address + 4 * k for k in range(words))
@@ -277,8 +326,7 @@ def arm_token(binary, pos, w, literals, calls, window):
         if cond == 0xF:
             calls.append((pos + 8 + offset + ((w >> 23) & 2)) | 1)
             return w & 0xFE000000
-        if w & 0x01000000:
-            calls.append(pos + 8 + offset)
+        (calls if w & 0x01000000 else jumps).append(pos + 8 + offset)
         return w & 0xFF000000
     if cond == 0xF or rn != 15:
         return w
@@ -297,7 +345,7 @@ def arm_token(binary, pos, w, literals, calls, window):
     return w
 
 
-def thumb_token(binary, pos, code, at, literals, calls, window):
+def thumb_token(binary, pos, code, at, literals, calls, jumps, window):
     """(demi-mot Thumb masqué, octets lus, octets d'instruction comptés)."""
     h = struct.unpack_from('<H', code, at)[0]
     if h >> 11 == 0x1E and at + 4 <= len(code):
@@ -313,9 +361,13 @@ def thumb_token(binary, pos, code, at, literals, calls, window):
                 table = code[at + 4:at + 4 + code[at + 4] + 2]
                 return ('BL', h2 & 0xF800, bytes(table)), 4 + (len(table) + 1 & ~1), 4
             return ('BL', h2 & 0xF800), 4, 4
-    if h >> 12 == 0xD and (h >> 8) & 0xF < 0xE or h >> 11 == 0x14:     # b<cond>, adr
+    if h >> 12 == 0xD and (h >> 8) & 0xF < 0xE:                        # b<cond>
+        jumps.append(pos + 4 + (sext(h & 0xFF, 8) << 1))
+        return h & 0xFF00, 2, 2
+    if h >> 11 == 0x14:                                                 # adr
         return h & 0xFF00, 2, 2
     if h >> 11 == 0x1C:                                                 # b
+        jumps.append(pos + 4 + (sext(h & 0x7FF, 11) << 1))
         return 0xE000, 2, 2
     if h >> 11 == 0x09:                                                 # ldr rX, [pc, #imm]
         address = ((pos + 4) & ~3) + ((h & 0xFF) << 2)
@@ -326,10 +378,10 @@ def thumb_token(binary, pos, code, at, literals, calls, window):
 
 
 def fingerprint(binary, start, mode, size, limit):
-    """(empreinte, nombre d'instructions, appelées dans l'ordre, envoi IPC dans son code) d'une fonction. size :
-    octets d'instructions selon Ghidra, ou None (jusqu'à `limit`, le début de la fonction suivante ou la fin du code)."""
+    """L'empreinte d'une fonction (Print). size : octets d'instructions selon Ghidra, ou None (jusqu'à `limit`, le début
+    de la fonction suivante ou la fin du code)."""
     code = binary.image.read(start, limit - start) or b''
-    tokens, calls, literals = [], [], set()
+    tokens, calls, jumps, literals = [], [], [], set()
     window = (start, start + len(code))
     at = used = 0
     thumb = mode == 'thumb'
@@ -339,11 +391,12 @@ def fingerprint(binary, start, mode, size, limit):
             at += 4
             continue
         if thumb:
-            token, step, counted = thumb_token(binary, pos, code, at, literals, calls, window)
+            token, step, counted = thumb_token(binary, pos, code, at, literals, calls, jumps, window)
         elif pos in binary.jump_slots:
             token, step, counted = ('J',) + literal_token(binary, pos), 4, 0
         else:
-            token, step, counted = arm_token(binary, pos, struct.unpack_from('<I', code, at)[0], literals, calls, window), 4, 4
+            word = struct.unpack_from('<I', code, at)[0]
+            token, step, counted = arm_token(binary, pos, word, literals, calls, jumps, window), 4, 4
         tokens.append(token)
         at += step
         used += counted
@@ -351,20 +404,209 @@ def fingerprint(binary, start, mode, size, limit):
         tokens.pop()
     count = sum(1 for t in tokens if not (isinstance(t, tuple) and t[0] == 'J'))
     digest = hashlib.blake2b(repr((mode, tokens)).encode(), digest_size=12).hexdigest()
-    return digest, count, calls, any(is_ipc(t) for t in tokens)
+    strings = {x[1] for t in tokens if isinstance(t, tuple) for x in t if isinstance(x, tuple) and x[0] == 'S'}
+    return Print(digest, count, calls, any(is_ipc(t) for t in tokens), strings, jumps, sorted(literals))
+
+
+def code_end(binary, address):
+    return next((high for low, high in binary.image.code_ranges if low <= address < high), None)
 
 
 def fingerprints(binary):
-    """{adresse: (empreinte, instructions, appelées, envoi IPC)} pour toutes les fonctions d'un binaire qui a ses octets."""
+    """{adresse: Print} pour toutes les fonctions d'un binaire qui a ses octets. L'étendue s'arrête au début connu
+    suivant, entrées manquées comprises : une taille de Ghidra qui déborde sur une autre fonction est coupée."""
     out = {}
     starts = sorted(binary.starts)
     following = dict(zip(starts, starts[1:]))
     for address, size, mode in binary.functions:
-        end = next((high for low, high in binary.image.code_ranges if low <= address < high), None)
-        if end is None:
-            continue
-        out[address] = fingerprint(binary, address, mode, size, min(end, following.get(address, end)))
+        end = code_end(binary, address)
+        if end is not None:
+            out[address] = fingerprint(binary, address, mode, size, min(end, following.get(address, end)))
     return out
+
+
+# --- Les entrées que Ghidra n'a pas en début de fonction ---
+
+def veneer_body(image, address):
+    """Le corps Thumb d'un veneer ARM vers Thumb (« add ip, pc, #1 ; bx ip », ou « ldr ip, [pc] ; bx ip ; .word »)."""
+    first, second = image.word(address), image.word(address + 4)
+    if second != 0xE12FFF1C:
+        return None
+    if first == 0xE28FC001:
+        return address + 8
+    target = image.word(address + 8) if first == 0xE59FC000 else None
+    return target - 1 if target is not None and target & 1 else None
+
+
+PIECE = 'morceau de '                   # genre d'un bout de fonction de Ghidra en plusieurs morceaux : pas une entrée
+
+
+def opens_frame(image, address, mode):
+    """Le code commence par « push {..., lr} » (recomp.is_arm_prologue ; 0xB5xx en Thumb) : un début de fonction."""
+    if mode == 'thumb':
+        return (image.half(address) or 0) & 0xFF00 == 0xB500
+    return recomp.is_arm_prologue(image.word(address) or 0)
+
+
+def looks_arm(image, address):
+    """Autour de l'adresse, au moins quatre mots sur cinq ont la condition « toujours » (0xE...) : du code ARM. Lu en
+    Thumb, chacun donnerait un « b » suivi d'un demi-mot quelconque."""
+    words = [image.word((address & ~3) + 4 * k) for k in range(-2, 3)]
+    return sum(1 for w in words if w is not None and w >> 28 == 0xE) >= 4
+
+
+def at_boundary(image, address, mode, pools):
+    """Une entrée plausible : un « push » (stmdb sp!, push Thumb), ou juste avant un mot de réserve de littéraux
+    (`pools`), du bourrage (nul, nop) ou une instruction qui ne laisse pas passer le fil (bx lr, pop {..., pc},
+    ldr pc, [sp], #4, b sans condition). Une case d'aiguillage, une donnée lue comme du code, un pointeur vers le
+    milieu d'une boucle n'y sont pas."""
+    if address - 4 in pools:
+        return True
+    # Le code d'avant peut être dans l'autre mode (une fonction Thumb, son bourrage 0xFFFF, puis de l'ARM).
+    half = image.half(address - 2)
+    if half is not None and (half in (0x4770, 0xFFFF) or half >> 8 == 0xBD):
+        return True
+    if mode == 'thumb':
+        return (image.half(address) or 0) >> 9 == 0x5A or half is not None and (half in (0x46C0, 0) or half >> 11 == 0x1C)
+    here, before = image.word(address) or 0, image.word(address - 4)
+    return here >> 16 == 0xE92D or before is not None and (
+        before in (0xE12FFF1E, 0xE49DF004, 0xE1A00000, 0) or before >> 24 == 0xEA or before >> 16 == 0xE8BD and before & 0x8000)
+
+
+def find_entries(binary):
+    """Les entrées manquées : {adresse: (mode, genre, origine)}. Toutes les cibles de b, bl, blx, tous les mots des
+    réserves de littéraux et tous les mots de l'image qui visent le texte (ghidra_direct.find_pointers, comme les
+    graines de Ghidra) et qui ne tombent pas sur un début de fonction de Ghidra, y compris au milieu d'une autre
+    fonction ; les veneers ARM vers Thumb et leur corps. Les entrées trouvées sont lues à leur tour (jusqu'au début
+    connu suivant) : un veneer manqué mène à son corps Thumb, manqué lui aussi.
+    Ce qui n'en est pas : un saut ou un pointeur (case d'un aiguillage, adresse de retour posée à la main) qui reste
+    dans la fonction de Ghidra d'où il part, c'est-à-dire dans sa taille ou avant le début de fonction suivant. Un
+    saut au-delà, mais que la taille de Ghidra couvre, vise un autre morceau d'une fonction que Ghidra a vue en
+    plusieurs morceaux (codec_init_hardware) : il est rendu avec le genre « morceau de ... », lu pour ses sauts, et
+    n'est pas compté, sauf s'il ouvre un cadre de pile (« push {..., lr} ») : c'est alors une fonction que Ghidra a
+    avalée par une taille trop grande (errf_send_fatal_error dans gpio)."""
+    ghidra = sorted((a, s or 0) for a, s, _ in binary.functions)
+    starts = [a for a, _ in ghidra]
+    longest = max([s for _, s in ghidra] + [0])
+    modes = {a: m for a, _, m in binary.functions}
+    found, todo, rejected = {}, [], []
+
+    def covering(address):
+        """Les débuts des fonctions de Ghidra dont la taille couvre l'adresse."""
+        low = bisect.bisect_left(starts, address - longest)
+        high = bisect.bisect_right(starts, address)
+        return [a for a, s in ghidra[low:high] if address < a + s]
+
+    def region(address):
+        """De la fonction de Ghidra qui précède l'adresse jusqu'à la suivante : (début, fin)."""
+        i = bisect.bisect_right(starts, address)
+        return (starts[i - 1] if i else None), (starts[i] if i < len(starts) else None)
+
+    def inside(origin, target):
+        """La cible reste dans la fonction de Ghidra d'où elle part (sa taille, ou jusqu'au début suivant)."""
+        first, end = region(origin)
+        return first is not None and (first in covering(target) or first <= target < (end or target + 1))
+
+    def note(target, mode, kind, origin):
+        if target in binary.starts or target in found or not binary.image.in_code(target) or mode == 'arm' and target & 3:
+            return
+        hosts = covering(target)
+        if any(modes[h] != mode for h in hosts):
+            return                      # du Thumb lu en ARM (ou l'inverse) : un mot de données, pas un pointeur de code
+        if mode == 'arm' and veneer_body(binary.image, target) is not None and not kind.startswith(PIECE):
+            kind = 'veneer'
+        elif not kind.startswith(('cible de bl', 'corps de veneer', PIECE)) and (
+                not at_boundary(binary.image, target, mode, pools) or mode == 'thumb' and looks_arm(binary.image, target)):
+            rejected.append((target, mode, kind, origin))   # rejugé quand d'autres réserves seront connues
+            return                      # un saut ou un pointeur seul : il faut qu'il tombe à une frontière de code
+        within = [a for a in hosts if not kind.startswith(PIECE)]
+        found[target] = (mode, kind + (', au milieu de %#x' % within[0] if within else ''), origin)
+        todo.append((target, None, mode))
+
+    first = fingerprints(binary)        # le premier tour, gardé : il donne aussi les mots de réserve
+    pools = {word for pr in first.values() for word in pr.pool}
+    for start, _, mode in binary.functions:
+        body = veneer_body(binary.image, start) if mode == 'arm' else None
+        if body is not None:
+            note(body, 'thumb', 'corps de veneer', '%#x' % start)
+    seeds, candidates = ghidra_direct.find_pointers(binary.image)
+    for target, mode, origin, _ in [(t, m, 'push Thumb', '') for t, m in seeds] + candidates:
+        word = int(origin.split()[-1], 16) if origin.startswith('pointeur à ') else None
+        if word is None or not inside(word, target):
+            note(target, mode, 'pointeur seul', origin)
+    work = list(binary.functions)
+    while work:
+        known = sorted(set(binary.starts) | set(found))
+        following = dict(zip(known, known[1:]))
+        for start, size, mode in work:
+            end = code_end(binary, start)
+            if end is None:
+                continue
+            limit = min(end, following.get(start, end))
+            pr = first.pop(start, None) or fingerprint(binary, start, mode, size, limit)
+            pools.update(pr.pool)
+            for target in pr.calls:
+                note(target & ~1, 'thumb' if target & 1 else 'arm', 'cible de bl', '%#x' % start)
+            # Les fonctions de Ghidra d'où part ce code : elle-même, celle qui la couvre (entrée au milieu), ou celle
+            # dont c'est un morceau. Un saut qui reste chez elles est interne, sauf vers un « push {..., lr} ».
+            hosts = set(covering(start)) | ({start} if start not in found else set())
+            if start in found and found[start][1].startswith(PIECE):
+                hosts.add(int(found[start][1][len(PIECE):], 16))
+            for target in pr.jumps:
+                if start <= target < limit:
+                    continue
+                covered = [h for h in hosts if h in covering(target)]
+                near = any(region(h)[0] == h and h <= target < (region(h)[1] or target + 1) for h in hosts)
+                if (covered or near) and opens_frame(binary.image, target, mode):
+                    note(target, mode, 'cible de b (appel terminal)', '%#x' % start)
+                elif covered and not near:
+                    note(target, mode, PIECE + '%#x' % covered[0], '%#x' % start)
+                elif not covered and not near:
+                    note(target, mode, 'cible de b (appel terminal)', '%#x' % start)
+            for word in pr.pool:
+                value = binary.image.word(word)
+                if value is not None and not inside(word, value & ~1):
+                    note(value & ~1, 'thumb' if value & 1 else 'arm', 'pointeur de réserve', 'réserve à %#x' % word)
+            body = veneer_body(binary.image, start) if start in found and mode == 'arm' else None
+            if body is not None:
+                note(body, 'thumb', 'corps de veneer', '%#x' % start)
+        retry, rejected[:] = list(rejected), []
+        for item in retry:
+            note(*item)
+        work, todo[:] = list(todo), []
+    return found
+
+
+def overruns(binary, entries):
+    """Les fonctions de Ghidra dont la taille déborde sur l'entrée suivante : [(début, taille de Ghidra, taille coupée)]."""
+    known = sorted(set(binary.starts) | set(entries))
+    following = dict(zip(known, known[1:]))
+    return [(a, s, following[a] - a) for a, s, _ in binary.functions
+            if s and a in following and a + s > following[a] and a not in entries]
+
+
+def add_entries(binary):
+    """Trouve les entrées manquées et les ajoute aux fonctions du binaire (taille inconnue) : elles reçoivent une
+    empreinte, des noms, et coupent les tailles de Ghidra qui débordent. Les morceaux n'en sont pas."""
+    found = find_entries(binary)
+    binary.pieces = {a: v for a, v in found.items() if v[1].startswith(PIECE)}
+    binary.entries = {a: v for a, v in found.items() if a not in binary.pieces}
+    binary.functions = sorted(binary.functions + [(a, None, m) for a, (m, _, _) in binary.entries.items()])
+    binary.starts |= set(binary.entries)
+    return binary.entries
+
+
+def print_entries(binary):
+    entries = binary.entries
+    print('%s : %d fonctions de Ghidra, %d entrées manquées' % (binary.name, len(binary.functions) - len(entries),
+                                                                 len(entries)))
+    for address, (mode, kind, origin) in sorted(entries.items()) + sorted(binary.pieces.items()):
+        print('   %#10x  %-5s %-55s depuis %-22s %s' % (address - binary.base, mode, kind, origin,
+                                                        binary.name_at(address) or ''))
+    cut = overruns(binary, entries)
+    if cut:
+        print('Tailles de Ghidra qui débordent sur une entrée (coupées pour l\'empreinte) :')
+        print('\n'.join('   %#10x  %d octets -> %d' % (a - binary.base, s, c) for a, s, c in cut))
 
 
 # --- Les grappes et les propositions ---
@@ -373,11 +615,113 @@ def usable(name):
     return name is not None and not GENERIC_NAME.search(name)
 
 
-def make_proposal(binary, address, name, source, confidence, proof, mode):
+def make_proposal(binary, address, name, source, confidence, proof, mode, rule=''):
     p = name_pass.Proposal(address - binary.base, binary.prefix + name, source, confidence, proof,
                            module=binary.name if binary.prefix else '', thumb=mode == 'thumb')
     p.binary = binary
+    p.rule = rule
     return p
+
+
+# --- Le jugement d'un nom : « deux voies indépendantes » ou un nom qui se prouve seul ---
+
+# Un nom de la bibliothèque C ou de l'exécution du compilateur : la fonction est la même partout où le code l'est.
+RUNTIME_NAME = re.compile(r'^(?:_Z|__aeabi_|__cxa_|__cxx|__rw_|__ARM_|__rt_|__gnu_)')
+LIBC_NAMES = set('memcpy memmove memset memcmp memchr strlen strnlen strcpy strncpy strcat strncat strcmp strncmp strchr '
+                 'strrchr strstr strspn strcspn strpbrk strtok strtol strtoul strtoll strtoull strtod atoi atol wcslen '
+                 'wcscpy wcscmp wcsncmp wcsncpy sprintf snprintf vsprintf vsnprintf printf abs labs qsort bsearch rand srand '
+                 'malloc free calloc realloc tolower toupper setjmp longjmp sqrt sqrtf sin sinf cos cosf tan tanf atan atanf '
+                 'atan2 atan2f exp expf log logf pow powf floor floorf ceil ceilf fmod fmodf'.split())
+# Les mots de nom qui désignent un service : le code identique peut viser un autre service (handle global masqué).
+SERVICE_WORDS = set('ac acu aci act am apt boss cam cdc cecd cfg csnd dlp dsp frd fs gsp gx hid http i2c ir ldr mcu mic mp '
+                    'mvd ndm news nfc nim nwm ns pdn pm ps ptm pxi qtm soc socket ssl tst uds y2r'.split())
+# Ouvrir, fermer, initialiser une session : quelle session, le code ne le dit pas.
+SESSION_VERBS = {'open', 'close', 'exit', 'init', 'connect'}
+SESSION_OBJECTS = SERVICE_WORDS | {'srv', 'session', 'sessions', 'handle', 'handles'}
+
+
+def name_words(name):
+    """Les mots d'un nom : coupés aux « _ », puis aux majuscules (CloseSession), en minuscules."""
+    out = []
+    for part in name.split('_'):
+        out += [w.lower() for w in re.findall(r'[A-Z]+(?![a-z])|[A-Z]?[a-z0-9]+', part)] if part[:1].isupper() else [part.lower()]
+    return [w for w in out if w]
+
+
+def self_proving(name):
+    return bool(RUNTIME_NAME.match(name)) or name in LIBC_NAMES
+
+
+def service_words(name):
+    """Les mots de service d'un nom, délimités par « _ » (srv_, errf_ et svc* n'en sont pas ; « ns » en dernier mot non plus)."""
+    if name.startswith('svc'):
+        return set()
+    parts = [p.lower() for p in name.split('_') if p]
+    if parts and parts[-1] == 'ns':
+        parts.pop()
+    return {p for p in parts if p in SERVICE_WORDS}
+
+
+def cites_service(strings, word):
+    """Une chaîne « xxx:yyy » de la réserve qui nomme ce service (« cfg:s » pour cfg, « nwm::UDS » pour uds, « ac:u » pour acu)."""
+    for text in strings:
+        parts = [p for p in re.split(rb':+', text.rstrip(b'\0').lower()) if p]
+        if len(parts) > 1 and (word.encode() in parts or word.encode() == b''.join(parts)):
+            return True
+    return False
+
+
+SVC_NAMES = {}
+
+
+def is_pure_svc(binary, address, name):
+    """svc<Nom> sur une fonction ARM qui n'est que cet appel système, du bon numéro : name_pass.decode_svc et
+    is_pure_svc_wrapper sur ses octets, la table des numéros de la Carte des services (name_pass.svc_names)."""
+    m = re.match(r'svc([A-Z]\w*)$', name)
+    size = next((s for a, s, _ in binary.functions if a == address), None)
+    if not m or not size or binary.image is None:
+        return False
+    if not SVC_NAMES:
+        SVC_NAMES.update(name_pass.svc_names())
+    mode = next(md for a, _, md in binary.functions if a == address)
+    game = types.SimpleNamespace(code=binary.image.read(address, size) or b'', funcs={name_pass.BASE: (size, mode, '')})
+    numbers, _ = name_pass.decode_svc(game, name_pass.BASE)
+    return len(numbers) == 1 and SVC_NAMES.get(numbers[0]) == m.group(1) and name_pass.is_pure_svc_wrapper(game, name_pass.BASE)
+
+
+def grade(binary, address, print_, name, origins, ipc, min_high):
+    """(confiance, règle ou raison du plafond) d'un nom pour une fonction sans nom. Haute seulement par deux voies :
+    (a) au moins deux binaires d'origine portent ce nom sur ce code, ou (b) le nom se prouve seul (symbole C++ manglé,
+    bibliothèque C ou exécution du compilateur, enrobage svc vérifié sur les octets)."""
+    if is_pure_svc(binary, address, name):
+        return 'haute', 'b:svc'
+    if ipc:
+        return 'basse', 'envoi IPC : le service dépend d\'un handle masqué'
+    if print_.count < min_high:
+        return 'moyenne', 'moins de %d instructions' % min_high
+    rule = 'b:nom' if self_proving(name) else 'a' if len(origins) >= 2 else ''
+    if not rule:
+        return 'moyenne', 'une seule origine (%s)' % origins[0]
+    if rule == 'a':
+        words = name_words(name)
+        if SESSION_VERBS & set(words) and SESSION_OBJECTS & set(words):
+            return 'moyenne', 'ouverture ou fermeture de session : laquelle, le code ne le dit pas'
+        missing = sorted(w for w in service_words(name) if not cites_service(print_.strings, w))
+        if missing:
+            return 'moyenne', 'service %s : aucune chaîne « %s:… » dans la fonction' % ('/'.join(missing), missing[0])
+        if any(name.startswith(o + '_') for o in origins if o != binary.name):
+            return 'moyenne', 'nom propre au binaire d\'origine'
+    return 'haute', rule if rule != 'a' else 'a (%s)' % ', '.join(origins[:4])
+
+
+def rule_kind(rule):
+    """La règle sans ses détails, pour le compte : « a », « b:svc », « service », « une seule origine »..."""
+    head = rule.split(' (')[0].split(' :')[0]
+    return 'service' if head.startswith('service ') else re.sub(r'\d+', 'N', head)
+
+
+CONFIDENCE_RANK = {'basse': 1, 'moyenne': 2, 'haute': 3}
+PROPOSALS_HEADER = ('binaire', 'adresse', 'nom', 'source', 'confiance', 'règle', 'preuve')
 
 
 def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
@@ -386,25 +730,34 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
     clusters = collections.defaultdict(list)
     for b in binaries:
         own = prints.get(b.name, {})
-        for address, (digest, _, calls, _) in own.items():
-            # La clé de grappe ajoute l'empreinte de chaque appelée, dans l'ordre : deux enrobages qui ne diffèrent que
-            # par la fonction appelée (svcCloseHandle ou lock_leave) ne se confondent pas.
-            callees = tuple(own[t & ~1][0] if t & ~1 in own else '?' for t in calls)
-            key = digest if not callees else hashlib.blake2b(repr((digest, callees)).encode(), digest_size=12).hexdigest()
+        for address, pr in own.items():
+            # La clé de grappe ajoute l'empreinte de chaque appelée (« bl ») puis de chaque fonction visée par un « b »
+            # (appel terminal), dans l'ordre : deux enrobages qui ne diffèrent que par la fonction appelée
+            # (svcCloseHandle ou lock_leave) ne se confondent pas.
+            callees = tuple(own[t & ~1].digest if t & ~1 in own else '?' for t in pr.calls)
+            tails = tuple(own[t].digest for t in pr.jumps if t in own and t != address)
+            key = pr.digest if not callees + tails else \
+                hashlib.blake2b(repr((pr.digest, callees, tails)).encode(), digest_size=12).hexdigest()
             clusters[key].append((b, address))
-    proposals, conflicts, stats, seen = [], [], collections.Counter(), set()
+    proposals, conflicts, stats, seen = [], [], collections.Counter(), {}
 
     def sends_ipc(b, a):
         """Un envoi IPC dans la fonction ou dans une appelée de quatre instructions au plus (lecture du tampon de
         commande, enrobage de SendSyncRequest) : le service visé dépend d'un handle global, masqué dans l'empreinte."""
         own = prints[b.name]
-        return own[a][3] or any(t & ~1 in own and own[t & ~1][3] and own[t & ~1][1] <= 4 for t in own[a][2])
+        return own[a].ipc or any(t & ~1 in own and own[t & ~1].ipc and own[t & ~1].count <= 4 for t in own[a].calls)
 
-    def add(binary, address, name, source, confidence, proof):
+    def add(binary, address, name, source, origins, proof):
+        """Une proposition, jugée ; la même (binaire, adresse, nom) venue par deux chemins garde la confiance la plus haute."""
+        confidence, rule = grade(binary, address, prints[binary.name][address], name, origins, sends_ipc(binary, address),
+                                 min_high)
+        p = make_proposal(binary, address, name, source, confidence, proof, modes[(binary.name, address)], rule)
         key = (binary.name, address, name)
         if key not in seen:
-            seen.add(key)
-            proposals.append(make_proposal(binary, address, name, source, confidence, proof, modes[(binary.name, address)]))
+            seen[key] = len(proposals)
+            proposals.append(p)
+        elif CONFIDENCE_RANK[confidence] > CONFIDENCE_RANK[proposals[seen[key]].confidence]:
+            proposals[seen[key]] = p
 
     for digest, members in clusters.items():
         if len(members) < 2:
@@ -412,7 +765,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
         stats['grappes'] += 1
         if len({b.name for b, _ in members}) > 1:
             stats['grappes sur plusieurs binaires'] += 1
-        count = prints[members[0][0].name][members[0][1]][1]
+        count = prints[members[0][0].name][members[0][1]].count
         named = [(b, a, b.name_at(a)) for b, a in members if b.name_at(a) is not None]
         unnamed = [(b, a) for b, a in members if b.name_at(a) is None]
         good = [(b, a, n) for b, a, n in named if usable(n)]
@@ -427,19 +780,16 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
                 name = names[0]
                 origins = sorted({b.name for b, _, _ in good})
                 witnesses = ', '.join('%s@%#x' % (b.name, a - b.base) for b, a, _ in good[:3])
-                ipc = sends_ipc(*members[0])
                 for b, a in unnamed:
-                    local = any(name.startswith(o + '_') for o in origins if o != b.name)
-                    confidence = 'basse' if ipc else 'haute' if count >= min_high and not local else 'moyenne'
-                    add(b, a, name, 'empreinte:' + origins[0], confidence,
-                        'empreinte %s identique (%d instructions, %s) à %s « %s » ; grappe de %d copies dans %d binaires%s%s'
+                    add(b, a, name, 'empreinte:' + origins[0], origins,
+                        'empreinte %s identique (%d instructions, %s) à %s « %s » ; grappe de %d copies dans %d binaires'
                         % (digest, count, modes[(b.name, a)], witnesses, name, len(members),
-                           len({m.name for m, _ in members}), ' ; nom propre au binaire d\'origine' if local else '',
-                           ' ; envoi IPC : le service dépend d\'un handle masqué' if ipc else ''))
+                           len({m.name for m, _ in members})))
         if count < min_high:
             continue
-        # Un niveau plus loin : les appelées au même rang dans des copies identiques.
-        calls = [(b, a, prints[b.name][a][2]) for b, a in members]
+        # Un niveau plus loin : les appelées au même rang dans des copies identiques (leur code est le même : il est
+        # dans la clé de grappe).
+        calls = [(b, a, prints[b.name][a].calls) for b, a in members]
         for rank in range(len(calls[0][2])):
             callees = []
             for b, a, targets in calls:
@@ -455,7 +805,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW):
             witness = known[0]
             for b, a, t in callees:
                 if b.name_at(t) is None:
-                    add(b, t, name, 'appel:' + origins[0], 'moyenne',
+                    add(b, t, name, 'appel:' + origins[0], origins,
                         'appelée au rang %d par %s@%#x, dont l\'empreinte %s (%d instructions) est celle de %s@%#x, qui '
                         'appelle à ce rang %s@%#x « %s »' % (rank, b.name, a - b.base, digest, count, witness[0].name,
                                                              witness[1] - witness[0].base, witness[0].name,
@@ -496,8 +846,8 @@ def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
     kept, dropped = reconcile_all(binaries, proposals)
     os.makedirs(out_dir, exist_ok=True)
     name_pass.write_tsv(os.path.join(out_dir, 'proposals.tsv'),
-                        [('binaire', 'adresse', 'nom', 'source', 'confiance', 'preuve')] +
-                        [(p.binary.name, '%#x' % p.address, p.name, p.source, p.confidence, p.proof) for p in kept])
+                        [PROPOSALS_HEADER] +
+                        [(p.binary.name, '%#x' % p.address, p.name, p.source, p.confidence, p.rule, p.proof) for p in kept])
     name_pass.write_tsv(os.path.join(out_dir, 'collisions.tsv'),
                         [('binaire', 'adresse', 'nom proposé', 'source', 'raison')] +
                         [(p.binary.name, '%#x' % p.address, p.name, p.source, why) for p, why in dropped])
@@ -512,6 +862,9 @@ def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
     lines += ['', 'Retenues (sans collision), par confiance et par source :']
     table = collections.Counter((p.confidence, p.source.split(':')[0]) for p in kept)
     lines += ['   %-8s %-10s %6d' % (c, s, n) for (c, s), n in sorted(table.items())]
+    lines += ['', 'Pourquoi haute (a : deux binaires d\'origine ; b : nom qui se prouve seul) ou pourquoi pas :']
+    rules = collections.Counter((p.confidence, rule_kind(p.rule)) for p in kept)
+    lines += ['   %-8s %-70s %6d' % (c, r, n) for (c, r), n in sorted(rules.items())]
     lines += ['', 'Retenues par binaire visé (haute / toutes) :']
     per = collections.Counter(p.binary.group if p.binary.prefix else p.binary.name for p in kept)
     high = collections.Counter(p.binary.group if p.binary.prefix else p.binary.name for p in kept if p.confidence == 'haute')
@@ -527,13 +880,45 @@ def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
     return kept
 
 
-def apply(kept):
-    """Verse les noms de confiance haute dans la fiche de noms de chaque binaire (name_pass.merge_lines). Un binaire
-    sans fiche de noms (une variante « -safe ») n'en reçoit pas une : ses noms restent dans proposals.tsv."""
+def read_rows(path):
+    """Les lignes d'un .tsv à en-tête, sans l'en-tête ni les lignes vides ou commentées."""
+    if not os.path.isfile(path):
+        return []
+    lines = [line.rstrip('\r\n') for line in open(path, encoding='utf-8')][1:]
+    return [line.split('\t') for line in lines if line and not line.startswith('#')]
+
+
+def apply(source=PROPOSALS, exclusions=EXCLUSIONS, binaries=None):
+    """Verse les noms de confiance haute d'un fichier de propositions RELU (sans refaire le calcul) dans la fiche de noms
+    de chaque binaire, sauf ceux d'exclusions.tsv (binaire, adresse, raison). Les collisions sont revérifiées contre les
+    fiches du moment (name_pass.reconcile). Un binaire sans fiche de noms (une variante « -safe ») n'en reçoit pas une."""
+    binaries = binaries or load_all(cro_images=False)
+    by_name = {b.name: b for b in binaries}
+    excluded = {(r[0], int(r[1], 16)) for r in read_rows(exclusions)}
+    proposals, skipped = [], collections.Counter()
+    for binary, address, name, origin, confidence, rule, proof in (r[:7] for r in read_rows(source)):
+        b, address = by_name.get(binary), int(address, 16)
+        if confidence != 'haute':
+            continue
+        if (binary, address) in excluded:
+            skipped['exclue (%s)' % os.path.basename(exclusions)] += 1
+            continue
+        mode = next((m for a, _, m in b.functions if a == b.base + address), None) if b else None
+        if mode is None:
+            skipped['binaire inconnu ou adresse qui n\'est plus un début de fonction'] += 1
+            continue
+        p = name_pass.Proposal(address, name, origin, confidence, proof, module=b.name if b.prefix else '',
+                               thumb=mode == 'thumb')
+        p.binary = b
+        proposals.append(p)
+    kept, dropped = reconcile_all(binaries, proposals)
+    for p, why in dropped:
+        skipped['collision : ' + re.sub(r'«.*?»|\S*0x[0-9a-f]+', '…', why)] += 1
     by_path = collections.defaultdict(list)
     for p in kept:
-        if p.confidence == 'haute':
-            by_path[p.binary.names_path].append((p.address, 'label' if p.thumb else 'function', p.name))
+        by_path[p.binary.names_path].append(name_pass.fiche_line(p))
+    for why, n in sorted(skipped.items()):
+        print('   écartées, %s : %d' % (why, n))
     for path, items in sorted(by_path.items()):
         if not os.path.isfile(path):
             print('   %-50s pas de fiche de noms : %d noms laissés en proposition' % (os.path.relpath(path, ROOT), len(items)))
@@ -554,7 +939,7 @@ def read_sources():
             label, name, source = line.rstrip('\n').split('\t')[:3]
             module, _, address = label.rpartition('+')
             out[(module or 'maj', int(address, 16), name)] = source.split('-')[0]
-    path = os.path.join(OUT, 'proposals.tsv')
+    path = PROPOSALS
     if os.path.isfile(path):
         for line in list(open(path, encoding='utf-8'))[1:]:
             binary, address, name, source = line.rstrip('\n').split('\t')[:4]
@@ -578,17 +963,37 @@ def read_recompiled(path=os.path.join(RECOMP_OUT, 'table.c')):
     return {int(h, 16) & ~1 for h in re.findall(r'\{ 0x([0-9a-f]{8})u, f_', open(path, encoding='utf-8').read())}
 
 
-def measure_binary(binary, sources, cited, recompiled):
-    """Une ligne du compteur. Les adresses sont celles de la fiche."""
+def read_proposed(binary):
+    """{adresse de fiche: confiance} des noms proposés et pas encore versés : local/analyse/<binaire>/noms-proposes.tsv
+    (adresse, genre, nom, confiance, preuve), puis les propositions d'ici (names-croises/proposals.tsv)."""
+    out = {}
+    for row in read_rows(os.path.join(ANALYSE, binary.name, 'noms-proposes.tsv')):
+        if len(row) > 3 and row[0].startswith('0x') and row[2]:
+            out.setdefault(int(row[0], 16), row[3])
+    for row in read_rows(PROPOSALS):
+        if row[0] == binary.name:
+            out.setdefault(int(row[1], 16), row[4])
+    return out
+
+
+def measure_binary(binary, sources, cited, recompiled, proposed=None):
+    """Une ligne du compteur. Les adresses sont celles de la fiche. Le dénominateur : fonctions de Ghidra, entrées
+    manquées trouvées (add_entries), et lignes « function » de la fiche de noms qui ne sont ni l'une ni l'autre."""
     starts = {a - binary.base for a in binary.starts}
-    named = {a for a in starts if a in binary.names}
+    declared = {a for a, (kind, _) in name_pass.read_names(binary.names_path).items() if kind == 'function'} - starts
+    total = starts | declared
+    named = {a for a in total if a in binary.names}
     origin = collections.Counter(sources.get((binary.name, a, binary.names[a][1]), 'fiche') for a in named)
-    return {'nom': binary.name, 'trouvees': len(starts), 'nommees': len(named), 'typees': 0,
+    waiting = collections.Counter(c for a, c in (proposed or {}).items() if a in total and a not in named)
+    return {'nom': binary.name, 'ghidra': len(starts) - len(binary.entries), 'manquees': len(binary.entries),
+            'fiche_seule': len(declared), 'trouvees': len(total), 'nommees': len(named),
+            'proposees_haute': waiting['haute'], 'proposees_moyenne': waiting['moyenne'], 'typees': 0,
             'citees': len(starts & cited), 'recompilees': len(starts & recompiled), 'reimplementees': 0,
             'origines': dict(sorted(origin.items()))}
 
 
-LEVELS = ('trouvees', 'nommees', 'typees', 'citees', 'recompilees', 'reimplementees')
+LEVELS = ('ghidra', 'manquees', 'fiche_seule', 'trouvees', 'nommees', 'proposees_haute', 'proposees_moyenne', 'typees',
+          'citees', 'recompilees', 'reimplementees')
 
 
 def measure(binaries):
@@ -609,7 +1014,7 @@ def measure(binaries):
             cro['origines'].update(row['origines'])
         else:
             rows.append(measure_binary(b, sources, cited_addresses(fiche_stem(b.names_path)),
-                                       recompiled if b.name == 'maj' else set()))
+                                       recompiled if b.name == 'maj' else set(), read_proposed(b)))
     if cro:
         cro['origines'] = dict(sorted(cro['origines'].items()))
         del cro['modules']
@@ -625,15 +1030,19 @@ def measure(binaries):
 
 
 def print_measure(rows, waiting):
-    head = '%-22s %8s %8s %6s %7s %8s %8s %8s   %s' % ('binaire', 'trouvées', 'nommées', '%', 'typées', 'citées',
-                                                    'recomp.', 'réimpl.', 'origine des noms')
+    head = '%-20s %7s %7s %6s %8s %8s %6s %7s %7s %7s %7s   %s' % (
+        'binaire', 'Ghidra', 'manq.', 'fiche', 'trouvées', 'nommées', '%', 'p.haute', 'p.moy.', 'citées', 'recomp.',
+        'origine des noms (typées et réimplémentées : 0 partout)')
     print(head)
     print('-' * len(head))
     for r in rows + [total_row(rows)]:
         share = 100 * r['nommees'] / r['trouvees'] if r['trouvees'] else 0
-        print('%-22s %8d %8d %5.1f%% %7d %8d %8d %8d   %s' % (
-            r['nom'], r['trouvees'], r['nommees'], share, r['typees'], r['citees'], r['recompilees'],
-            r['reimplementees'], ', '.join('%s %d' % kv for kv in r.get('origines', {}).items())))
+        print('%-20s %7d %7d %6d %8d %8d %5.1f%% %7d %7d %7d %7d   %s' % (
+            r['nom'], r['ghidra'], r['manquees'], r['fiche_seule'], r['trouvees'], r['nommees'], share,
+            r['proposees_haute'], r['proposees_moyenne'], r['citees'], r['recompilees'],
+            ', '.join('%s %d' % kv for kv in r.get('origines', {}).items())))
+    print('\nGhidra : funcs.tsv ; manq. : entrées manquées par Ghidra (couverture.py entrees <binaire>) ; fiche : lignes '
+          '« function » de la fiche de noms hors des deux ; p.haute, p.moy. : noms proposés pas encore versés')
     if waiting:
         print('\nFiches de noms sans analyse dans local/analyse/<binaire>/gh (non comptées) :')
         print('   ' + ', '.join('%s (%d noms)' % (w['nom'], w['nommees']) for w in waiting))
@@ -742,8 +1151,8 @@ def test():
     proposals, conflicts, stats = propose([a, b], {'mod_a': pa, 'mod_b': pb})
     found = {(p.binary.name, p.address): p for p in proposals}
     check(found.get(('mod_b', b_base + 0x100)) is not None and found[('mod_b', b_base + 0x100)].name == 'nnosMutexLock'
-          and found[('mod_b', b_base + 0x100)].confidence == 'haute'
-          and found[('mod_b', b_base + 0x100)].source == 'empreinte:mod_a', 'nom ARM propagé, confiance haute')
+          and found[('mod_b', b_base + 0x100)].confidence == 'moyenne'
+          and found[('mod_b', b_base + 0x100)].source == 'empreinte:mod_a', 'nom ARM propagé, une seule origine : moyenne')
     check(found.get(('mod_b', b_base + 0x200)) is not None and found[('mod_b', b_base + 0x200)].thumb, 'nom Thumb propagé')
     check(('mod_b', b_base + 0x300) not in found, 'un « bx lr » ne propage pas son nom')
     check(('mod_b', b_base + 0x140) not in found, 'une autre constante : pas de nom')
@@ -773,6 +1182,44 @@ def test():
     g = fake_binary('mod_g', 0x00600000, [ipc_function(0x00600000, 0x40)], {})
     proposals_ipc, _, _ = propose([f, g], {'mod_f': fingerprints(f), 'mod_g': fingerprints(g)})
     check([(p.address, p.confidence) for p in proposals_ipc] == [(0x00600040, 'basse')], 'envoi IPC : confiance basse')
+    # Les deux voies. Une fonction de neuf instructions (sans appel) dans trois binaires, nommée dans deux d'entre eux.
+    plain = [0xE2800001] * 8 + [0xE12FFF1E]
+
+    def graded(name, names_in=('r1', 'r2'), literal_text=None):
+        """La confiance et la règle de `name` pour la copie sans nom de r3 ; r1 et r2 la nomment si cités."""
+        made = []
+        for k, label in enumerate(('r1', 'r2', 'r3')):
+            base = 0x00500000 + k * 0x100000
+            words = arm_function(base, base + 0x200, base + 0x300) if literal_text else plain
+            r = fake_binary(label, base, [(0, words, 'arm', 36)] +
+                            ([(0x200, one[1], 'arm', 8)] if literal_text else []),
+                            {0: name} if label in names_in else {})
+            if literal_text:
+                r.image.data = r.image.data[:0x300] + literal_text + r.image.data[0x300 + len(literal_text):]
+            made.append(r)
+        props, _, _ = propose(made, {r.name: fingerprints(r) for r in made})
+        return [(p.confidence, p.rule.split(' ')[0]) for p in props if p.binary.name == 'r3' and p.address == 0x00700000]
+    check(graded('heap_find_block') == [('haute', 'a')], 'deux binaires d\'origine : haute (a)')
+    check(graded('heap_find_block', names_in=('r1',)) == [('moyenne', 'une')], 'une seule origine : moyenne')
+    check(graded('memcpy', names_in=('r1',)) == [('haute', 'b:nom')], 'bibliothèque C, une origine : haute (b)')
+    check(graded('_ZN2nn2os5Mutex4LockEv', names_in=('r1',)) == [('haute', 'b:nom')], 'symbole manglé : haute (b)')
+    check(graded('cfg_read_block') == [('moyenne', 'service')], 'mot de service sans sa chaîne : moyenne')
+    check(graded('cfg_read_block', literal_text=b'cfg:s\0') == [('haute', 'a')], 'mot de service avec « cfg:s » : haute')
+    check(graded('srv_init_session_handles') == [('moyenne', 'ouverture')], 'ouverture de session : moyenne')
+    check(graded('copy_ns') == [('haute', 'a')], '« ns » en dernier mot n\'est pas un service')
+    # svc<Nom> : haute seulement si la fonction n'est que cet appel système, du bon numéro
+    SVC_NAMES.update({0x23: 'CloseHandle'})
+    svc = fake_binary('svc', 0x00500000, [(0, [0xEF000023, 0xE12FFF1E], 'arm', 8), (0x10, [0xEF000024, 0xE12FFF1E], 'arm', 8)], {})
+    check(is_pure_svc(svc, 0x00500000, 'svcCloseHandle') and not is_pure_svc(svc, 0x00500010, 'svcCloseHandle'),
+          'svc<Nom> vérifié sur les octets')
+    # Une même proposition par deux chemins garde la plus haute : appelée nommée par une seule origine (moyenne),
+    # et même code nommé dans deux binaires (haute)
+    h1, h2, h3 = (fake_binary(n, base, [(0x40, arm_function(base + 0x40, base + 0x200, base + 0x300, step=st), 'arm', 36),
+                                        (0x200, plain, 'arm', 36)], {0x200: 'heap_find_block'} if n != 'h3' else {})
+                  for n, base, st in (('h1', 0x00500000, 1), ('h2', 0x00600000, 2), ('h3', 0x00700000, 1)))
+    props, _, _ = propose([h1, h2, h3], {h.name: fingerprints(h) for h in (h1, h2, h3)})
+    check([(p.confidence, p.source) for p in props if p.binary.name == 'h3' and p.address == 0x00700200]
+          == [('haute', 'empreinte:h1')], 'deux chemins : la confiance la plus haute est gardée')
     # Collisions : le nom est déjà pris ailleurs dans le binaire visé, l'adresse est déjà nommée
     b.names = {b_base + 0x10: ('function', 'nnosMutexLock')}
     kept, dropped = reconcile_all([a, b], proposals)
@@ -789,17 +1236,63 @@ def test():
     check(sorted((p.module, p.address, p.name) for p in proposals) == [('DllX', 0x180, 'DllX_nnosMutexLock'),
                                                                     ('DllX', 0x200, 'DllX_inner_callee')],
           '.cro : position et préfixe du module')
-    # « apply » : la graine sans nom reçoit le nom sur place ; un binaire sans fiche de noms n'en reçoit pas une
+    # « apply » depuis un fichier relu : la graine sans nom reçoit le nom sur place (fins de ligne CRLF gardées), une
+    # ligne d'exclusions.tsv n'est pas versée, une moyenne non plus, un binaire sans fiche de noms n'en reçoit pas une
     import tempfile
     with tempfile.TemporaryDirectory() as folder:
-        b.names_path = os.path.join(folder, 'mod_b.noms.tsv')
-        with open(b.names_path, 'w', encoding='utf-8', newline='\n') as f:
-            f.write('0x340000\tfunction\tfirst\n0x340100\tfunction\t\n')
+        b.names, b.names_path = {}, os.path.join(folder, 'mod_b.noms.tsv')
+        with open(b.names_path, 'w', encoding='utf-8', newline='') as f:
+            f.write('0x340000\tfunction\tfirst\r\n0x340100\tfunction\t\r\n')
         d.names_path = os.path.join(folder, 'absent.noms.tsv')
-        apply([make_proposal(b, b_base + 0x100, 'nnosMutexLock', 'empreinte:mod_a', 'haute', '', 'arm'),
-               make_proposal(d, 0x00600000, 'nnosMutexLock', 'empreinte:mod_a', 'haute', '', 'arm')])
-        check(open(b.names_path, encoding='utf-8').read() == '0x340000\tfunction\tfirst\n0x340100\tfunction\tnnosMutexLock\n'
-              and not os.path.exists(d.names_path), 'apply : graine nommée sur place, pas de fiche créée')
+        source, exclusions = os.path.join(folder, 'proposals.tsv'), os.path.join(folder, 'exclusions.tsv')
+        name_pass.write_tsv(source, [PROPOSALS_HEADER,
+                                     ('mod_b', '0x340100', 'nnosMutexLock', 'empreinte:mod_a', 'haute', 'a', ''),
+                                     ('mod_b', '0x340140', 'excluded_name', 'empreinte:mod_a', 'haute', 'a', ''),
+                                     ('mod_b', '0x340180', 'medium_name', 'empreinte:mod_a', 'moyenne', '', ''),
+                                     ('mod_d', '0x600000', 'nnosMutexLock', 'empreinte:mod_a', 'haute', 'a', '')])
+        name_pass.write_tsv(exclusions, [('binaire', 'adresse', 'raison'), ('mod_b', '0x340140', 'relu : faux')])
+        apply(source, exclusions, binaries=[a, b, d])
+        check(open(b.names_path, 'rb').read() == b'0x340000\tfunction\tfirst\r\n0x340100\tfunction\tnnosMutexLock\r\n'
+              and not os.path.exists(d.names_path), 'apply : graine nommée sur place, exclusion, pas de fiche créée')
+    # Les noms automatiques seulement sont écartés
+    check(usable('init_vm_region_10000000') and not usable('FUN_00100abc') and not usable('thunk_FUN_00100abc')
+          and not usable('trou_00100abc') and not usable('memcpy_alt_100abc'), 'noms automatiques écartés, pas les autres')
+    # Les entrées manquées. A (0x000) : push ; bl V ; ldr r0, =H ; b X. V (0x100) : veneer, corps Thumb en 0x108.
+    # X (0x200) : cible du b. H (0x300) : commence par un bl (find_pointers l'écarte), visé par la réserve de A.
+    # C (0x040) : b M, où M (0x1c0) est dans la taille trop grande de B (0x180, 0x60 octets).
+    # D (0x220) : un pointeur vers sa propre case (0x230), pas une entrée. E (0x260) : b vers 0x2a4, au milieu d'une
+    # suite d'instructions sans frontière (ni push, ni retour, ni réserve juste avant) : refusé.
+    base = 0x00100000
+    ent = fake_binary('ent', base, [
+        (0x000, [0xE92D4010, 0xEB00003D, 0xE59F0000, 0xEA00007B, base + 0x300], 'arm', 16),
+        (0x040, [0xE92D4010, 0xEA00005D], 'arm', 8),
+        (0x180, [0xE3A00001, 0xE12FFF1E], 'arm', 0x60),
+        (0x220, [0xE3A00000, 0xE12FFF1E, base + 0x230, 0, 0xE3A00003, 0xE12FFF1E], 'arm', 0x18),
+        (0x260, [0xE92D4010, 0xEA00000E], 'arm', 8)], {})
+    for at, words in ((0x100, [0xE28FC001, 0xE12FFF1C, 0x00004770]), (0x200, [0xE3A00000, 0xE12FFF1E]),
+                      (0x300, [0xEBFFFF3E, 0xE12FFF1E]), (0x1C0, [0xE3A00002, 0xE12FFF1E]),
+                      (0x2A0, [0xE3A00005, 0xE3A00006, 0xE12FFF1E])):
+        ent.image.data = ent.image.data[:at] + struct.pack('<%dI' % len(words), *words) + ent.image.data[at + 4 * len(words):]
+    found = add_entries(ent)
+    kinds = {a - base: (m, k) for a, (m, k, _) in found.items()}
+    check(kinds == {0x100: ('arm', 'veneer'), 0x108: ('thumb', 'corps de veneer'),
+                    0x200: ('arm', 'cible de b (appel terminal)'), 0x300: ('arm', 'pointeur de réserve'),
+                    0x1C0: ('arm', 'cible de b (appel terminal), au milieu de 0x100180')}, 'entrées manquées : %r' % kinds)
+    check(overruns(ent, found) == [(base + 0x180, 0x60, 0x40)], 'taille de Ghidra qui déborde, coupée à l\'entrée')
+    check(fingerprints(ent)[base + 0x180].count == 2, 'empreinte coupée à l\'entrée suivante')
+    row = measure_binary(ent, {}, set(), set())
+    check((row['ghidra'], row['manquees'], row['trouvees']) == (5, 5, 10), 'dénominateur avec les entrées : %r' % row)
+    # Sur les vrais binaires s'ils sont là : les entrées relevées à la main dans gpio et codec (notes-100.md)
+    by_hand = {'gpio': [0x100134, 0x100160, 0x100168, 0x100db0, 0x100e30, 0x100f48, 0x1011e8, 0x101580, 0x10169c,
+                        0x101aa0, 0x101b0c],
+               'codec': [0x100168, 0x100170, 0x1010a4, 0x10165c, 0x1016a0, 0x101828, 0x102318, 0x1022f4, 0x102514,
+                         0x102f3c, 0x10343c, 0x103800, 0x103808, 0x103ec4, 0x103ee4, 0x103f70]}
+    for module, expected in by_hand.items():
+        if os.path.isfile(os.path.join(ANALYSE, module, 'gh', 'funcs.tsv')):
+            real = load_system(module, True)
+            if real.image is not None:
+                missing = sorted(set(expected) - set(add_entries(real)))
+                check(not missing, '%s : entrées relevées à la main retrouvées (manquent %s)' % (module, [hex(a) for a in missing]))
     # Le compteur
     a.names[a_base + 0x999] = ('function', 'not_a_start')
     row = measure_binary(a, {('mod_a', a_base + 0x40, 'nnosMutexLock'): 'rtti'}, {a_base + 0x80}, {a_base + 0x40})
@@ -811,32 +1304,36 @@ def test():
 
 def main():
     args = sys.argv[1:]
-    if not args or args[0] not in ('mesure', 'run', 'apply', 'test'):
+    if not args or args[0] not in ('mesure', 'entrees', 'run', 'apply', 'test'):
         sys.exit(__doc__)
     if args[0] == 'test':
         sys.exit(1 if test() else 0)
+    if args[0] == 'entrees':
+        if len(args) != 2 or not os.path.isfile(os.path.join(ANALYSE, args[1], 'gh', 'funcs.tsv')):
+            sys.exit('python couverture.py entrees <binaire> : un dossier de local/analyse/ qui a gh/funcs.tsv')
+        binary = load_system(args[1], True)
+        if binary.image is None:
+            sys.exit('%s : pas d\'octets (local/extrait/%s ou la cible de raw_targets.toml)' % (args[1], args[1]))
+        add_entries(binary)
+        print_entries(binary)
+        return
     if args[0] == 'mesure':
-        rows, waiting = measure(load_all(with_image=False))
+        rows, waiting = measure(load_all(cro_images=False))
         print_measure(rows, waiting)
         if '--no-write' not in args:
             write_etat(rows, waiting)
         return
-    min_high, min_low, out = MIN_HIGH, MIN_LOW, OUT
+    options = {'--min': MIN_HIGH, '--min-moyenne': MIN_LOW, '--out': OUT, '--from': PROPOSALS, '--exclusions': EXCLUSIONS}
     i = 1
     while i < len(args):
-        if args[i] in ('--min', '--min-moyenne', '--out') and i + 1 < len(args):
-            if args[i] == '--min':
-                min_high = int(args[i + 1])
-            elif args[i] == '--min-moyenne':
-                min_low = int(args[i + 1])
-            else:
-                out = args[i + 1]
-            i += 2
-        else:
+        if args[i] not in options or i + 1 >= len(args):
             sys.exit('option inconnue : %s' % args[i])
-    kept = run(min_high, min_low, out)
+        options[args[i]] = type(options[args[i]])(args[i + 1])
+        i += 2
     if args[0] == 'apply':
-        apply(kept)
+        apply(options['--from'], options['--exclusions'])
+    else:
+        run(options['--min'], options['--min-moyenne'], options['--out'])
 
 
 if __name__ == '__main__':
