@@ -1,0 +1,16 @@
+adresse	raison
+0x100040	PAS UNE FONCTION : réserve de clear_bss (0x100024), mots 0x001210d8 et 0x0015e9cc = les bornes de la mémoire à zéro ; le seul « pointeur » est le mot 0x11d6f4 = 0x00100040 de la réserve de mp_u_dispat
+0x10008a	CODE MORT : Thumb (tampon, taille) : 0 si taille > 0x80, tampon nul ou pris, sinon octet 0 à 1 et rend tampon+8 ; aucune référence (xref.py : ni branchement ni mot) ; empreinte égale (13 instr.) à cfg
+0x1000a4	CODE MORT : Thumb (tampon, p) : si p == tampon+8, octet 0 à 0 ; aucune référence (xref.py) ; empreinte égale (11 instr.) à cfg, codec, csnd (proposés)
+0x100176	CODE MORT : Thumb, movs r0,#1 ; b srand (0x100148) ; aucune référence (xref.py) ; empreinte égale (2 instr.) à ir@0x100152 srand_default (fiche relue)
+0x103598	CODE MORT : copie arrière par mots si les zones se chevauchent, sinon b memcpy_words ; aucune référence (xref.py) ; empreinte égale (32 instr.) à errdisp, ns, socket memmove_words (proposés ; ns@0x10b
+0x11005c	CODE MORT hors liste : entrée signée de la division (orrs r3,r0,r1 ; bmi 0x11019c …) juste avant le corps commun ; ni branchement ni mot ne vise 0x11005c (xref.py) ; même montage qu'errdisp@0x116474 e
+0x110090	PAS UNE FONCTION : rang de la boucle de division où saute __aeabi_uidivmod (0x11032c) ; même montage que les morceaux de la division d'errdisp et de ns
+0x1100b4	PAS UNE FONCTION : instruction de la boucle de division (lsrhs r1,r1,#8) où revient 0x1100e8 (bhs) ; morceau de la division
+0x1100b8	PAS UNE FONCTION : rang 15 de la boucle de division (cible du blo de __aeabi_uidivmod 0x110328)
+0x1100e8	PAS UNE FONCTION : rang 11 de la boucle de division (cible des blo de __aeabi_uidivmod 0x110320 et de 0x110090)
+0x11011c	PAS UNE FONCTION : rang 7 de la boucle de division (cible du blo de __aeabi_uidivmod 0x110318)
+0x110140	PAS UNE FONCTION : rang 4 de la boucle de division (cible du blo de __aeabi_uidivmod 0x110310)
+0x110164	PAS UNE FONCTION : rang 1 et fin de la boucle de division (cible du blo de __aeabi_uidivmod 0x110308)
+0x110180	PAS UNE FONCTION : branche « quotient 0 ou 1 » de la division signée (cible du blo de 0x110068, dans le code mort 0x11005c) ; même montage qu'errdisp@0x116598
+0x110278	PAS UNE FONCTION : branche du diviseur nul de la division (cible du rsbs/bhs de 0x110090, appelle __aeabi_ldiv0) ; même montage qu'errdisp@0x116690

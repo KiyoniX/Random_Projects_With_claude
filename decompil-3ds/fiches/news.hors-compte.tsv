@@ -1,0 +1,10 @@
+adresse	raison
+0x1016f4	PAS UNE FONCTION : réserve de init_heap_head (0x1016b8, qui finit par pop {r4,r5,r6,pc} en 0x1016f2) : mots 0x0010b410 (l'octet « liste initialisée ») et 0x0012f108 (la liste globale des tas), que ini
+0x101ea2	CODE MORT : Thumb (tampon, taille) : 0 si taille > 0x80, tampon nul ou déjà pris, sinon octet 0 à 1 et rend tampon+8 ; aucune référence (branchements, mots, tables : allrefs.py) ; empreinte égale (13 
+0x101ebc	CODE MORT : Thumb (tampon, p) : si p == tampon+8, octet 0 à 0 ; aucune référence (allrefs.py) ; empreinte égale (11 instr.) à __ARM_exceptions_buffer_free de cfg, csnd, errdisp (proposés)
+0x1039d0	PAS UNE FONCTION : rang 7 de la boucle de division, au milieu de __aeabi_idivmod (0x1039a4) ; les seuls « appels » sont les blo de __aeabi_uidivmod (0x103998) et de __aeabi_idivmod lui-même (0x1039c4)
+0x104a80	PAS UNE FONCTION : réserve de news_storage_get (0x104a54, pop {r4,pc} en 0x104a7e) : mots 0x10b4fc (garde), 0x1320b0 (l'objet), 0x100000, 0x1036e7 (news_storage_dtor) ; aucune référence de branchement
+0x105394	PAS UNE FONCTION : réserve de get_ndm_event_source (0x105368, pop {r4,pc} en 0x105392) : mots 0x10b4f4 (garde), 0x10b4f8 (l'objet), 0x100000, 0x100d45 (ndm_event_source_dtor) ; aucune référence de bra
+0x1053d0	PAS UNE FONCTION : réserve de get_nim_event_source (0x1053a4) : mots 0x10b4d8, 0x10b4dc, 0x100000, 0x100cbd (nim_event_source_dtor) ; aucune référence de branchement
+0x10540c	PAS UNE FONCTION : réserve de get_friend_event_source (0x1053e0) : mots 0x10b4d0, 0x10b4d4, 0x100000, 0x100c31 (friend_event_source_dtor) ; aucune référence de branchement
+0x109500	CODE MORT hors liste : bx lr seul, entre svcGetSystemTick (0x1094f8) et __aeabi_idiv0 (0x109504) ; ni branchement ni mot ne le vise (xref.py) ; Ghidra ne l'a pas

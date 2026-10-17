@@ -123,7 +123,7 @@
 0x107aec	function	iru_WaitRecvTransfer
 0x107be8	function	iru_Shutdown
 0x107cf4	function	__aeabi_idivmod
-0x107ffc	label	random_byte
+0x107ffc	label	rand
 0x1080d4	function	__aeabi_uidivmod
 0x108574	function	crc8_build_table
 0x1085c4	function	__aeabi_memcpy
