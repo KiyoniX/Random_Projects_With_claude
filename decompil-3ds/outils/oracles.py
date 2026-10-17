@@ -12,6 +12,11 @@ spécification C ou AEABI : les entrées ne dépendent pas du code essayé. Verd
     NON TESTABLE  pas d'octets, ou la routine fait ce que l'essai ne fournit pas : appel système,
                   écriture dans les variables du programme (le code est en lecture et exécution seules)
 
+Les accès non alignés sont des plantages comme sur la console (name_pass.Prober : ldm, stm, ldrd... sur l'ARM11 ; tout
+accès de 2 ou 4 octets sur l'ARM9, cibles « v5t » de raw_targets.toml) : une copie par mots alignés n'est pas un
+__aeabi_memcpy, qui accepte toute adresse (les cas de memcpy, __aeabi_memcpy, memclr_bytes ont des adresses
+quelconques, ceux de memcpy_words et memclr des adresses alignées sur 4).
+
 Le banc d'essai et les familles de cas sont ceux de la passe « stdlib » de name_pass.py (Prober, build_specs) : ici on
 part du nom écrit dans la fiche et on vérifie qu'il est juste, là-bas on part d'une fonction sans nom. Les binaires
 viennent des chargeurs de couverture.py (modules, cibles brutes de raw_targets.toml). Un outil à part, pas une
@@ -40,6 +45,7 @@ import sys
 
 import couverture
 import ghidra_direct
+import ghidra_raw
 import name_pass
 from name_pass import DATA_BASE, STACK_BASE, STACK_SIZE, SENTINEL, DATA_SIZE, Spec, crash, make_canvas, memory_diff
 
@@ -206,14 +212,14 @@ def chunks(image):
 RESERVED = [(DATA_BASE, DATA_BASE + DATA_SIZE), (STACK_BASE, STACK_BASE + STACK_SIZE), (SENTINEL, SENTINEL + 0x1000)]
 
 
-def make_prober(image):
-    """Le Prober d'une image, ou le texte qui dit pourquoi on ne peut pas."""
+def make_prober(image, arm9=False):
+    """Le Prober d'une image, ou le texte qui dit pourquoi on ne peut pas. arm9 : les accès non alignés de l'ARM9."""
     parts = chunks(image)
     for base, data in parts:
         for low, high in RESERVED:
             if base < high and low < base + len(data):
                 return None, 'le binaire occupe la zone d\'essai %#x-%#x' % (low, high)
-    return name_pass.Prober(parts), ''
+    return name_pass.Prober(parts, arm9=arm9), ''
 
 
 def oracle_name(name):
@@ -229,7 +235,8 @@ def check_binary(binary, oracles, only=None):
     rows = []
     if binary.image is None:
         return [(binary.name, a, name, 'NON TESTABLE', 'pas d\'octets dans local/extrait') for a, name in wanted]
-    prober, why = make_prober(binary.image)
+    target = getattr(binary, 'target', None) or {}
+    prober, why = make_prober(binary.image, target.get('language') == ghidra_raw.LANGUAGES['v5t'])
     if prober is None:
         return [(binary.name, a, name, 'NON TESTABLE', why) for a, name in wanted]
     modes = {a: m for a, _, m in binary.functions}
@@ -319,6 +326,12 @@ def write(rows, folder=OUT):
 THUMB_STRLEN = [0x2100, 0x5C42, 0x2A00, 0xD001, 0x3101, 0xE7FA, 0x0008, 0x4770]
 ARM_STRLEN_OFF_BY_ONE = name_pass.ARM_STRLEN[:5] + [0xE2810001, 0xE12FFF1E]        # add r0, r1, #1 : un de trop
 ARM_SVC = [0xEF000032, 0xE12FFF1E]
+# Copie par mots (ldmia/stmia) puis octet par octet : juste si dst et src sont alignés, rend dst+n
+ARM_MEMCPY_WORDS = [0xE3520004, 0xBA000003, 0xE8B10008, 0xE8A00008, 0xE2422004, 0xEAFFFFF9, 0xE2522001, 0xA4D13001,
+                    0xA4C03001, 0xCAFFFFFB, 0xE12FFF1E]
+# Mise à zéro par mots (stmia) puis octet par octet : juste si dst est aligné
+ARM_MEMCLR_WORDS = [0xE3A02000, 0xE3510004, 0xBA000002, 0xE8A00004, 0xE2411004, 0xEAFFFFFA, 0xE2511001, 0xA4C02001,
+                    0xCAFFFFFC, 0xE12FFF1E]
 
 
 def fake_binary(placed):
@@ -359,7 +372,11 @@ def test():
                           (0x080, 'strlen', 'arm', ARM_STRLEN_OFF_BY_ONE),
                           (0x0c0, '__aeabi_memcpy', 'arm', name_pass.ARM_MEMCPY),
                           (0x100, 'strcmp', 'arm', ARM_SVC),
-                          (0x140, 'not_an_oracle', 'arm', ARM_SVC)])
+                          (0x140, 'not_an_oracle', 'arm', ARM_SVC),
+                          (0x180, 'memcpy_words', 'arm', ARM_MEMCPY_WORDS),
+                          (0x1c0, '__aeabi_memcpy', 'arm', ARM_MEMCPY_WORDS),
+                          (0x200, 'memclr', 'arm', ARM_MEMCLR_WORDS),
+                          (0x240, 'memclr_bytes', 'arm', ARM_MEMCLR_WORDS)])
     verdicts = {a: (v, d) for _, a, _, v, d in check_binary(binary, oracles)}
     check(verdicts.get(0x100000, ('',))[0] == 'OK', 'strlen ARM fabriqué : OK')
     check(verdicts.get(0x100040, ('',))[0] == 'OK', 'strlen Thumb fabriqué (nom _alt_) : OK')
@@ -368,6 +385,12 @@ def test():
           'une copie qui rend dst, nommée __aeabi_memcpy (qui rend dst+n) : FAUX')
     check(verdicts.get(0x100100, ('',))[0] == 'NON TESTABLE', 'appel système : NON TESTABLE')
     check(0x100140 not in verdicts, 'nom sans oracle : ignoré')
+    check(verdicts.get(0x100180, ('',))[0] == 'OK', 'copie par ldm/stm nommée memcpy_words : OK')
+    check(verdicts.get(0x1001c0, ('',))[0] == 'FAUX' and 'non aligné' in verdicts[0x1001c0][1],
+          'copie par ldm/stm nommée __aeabi_memcpy : FAUX (accès non aligné) %r' % (verdicts.get(0x1001c0),))
+    check(verdicts.get(0x100200, ('',))[0] == 'OK', 'mise à zéro par stm nommée memclr : OK')
+    check(verdicts.get(0x100240, ('',))[0] == 'FAUX' and 'non aligné' in verdicts[0x100240][1],
+          'mise à zéro par stm nommée memclr_bytes : FAUX (accès non aligné) %r' % (verdicts.get(0x100240),))
     # Le vrai code, s'il est là : quelques routines de pm et de sm, déjà exécutées à la main lors de leur relecture.
     if all(os.path.isfile(os.path.join(couverture.ANALYSE, m, 'gh', 'funcs.tsv')) and
            os.path.isfile(os.path.join(couverture.ROOT, 'local', 'extrait', m, 'exefs', 'code.bin')) for m in ('pm', 'sm')):

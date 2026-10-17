@@ -44,7 +44,8 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
    Les entrées manquées (« entrees », find_entries) : toutes les cibles de b, bl et blx, les mots des réserves de
    littéraux et les mots de l'image qui visent le texte (ARM pair, Thumb impair), qui ne tombent pas sur un début de
    fonction de Ghidra, y compris au milieu d'une fonction de Ghidra (une taille trop grande avale l'enrobage suivant) ;
-   les veneers ARM vers Thumb (« add ip, pc, #1 ; bx ip ») et leur corps Thumb. Genres : cible de b (appel terminal),
+   les veneers ARM vers Thumb (« add ip, pc, #1 ; bx ip ») et leur corps Thumb, même quand le veneer visé par un b
+   ou un bl est dans la taille d'une fonction Thumb de Ghidra (ro 0x14000110). Genres : cible de b (appel terminal),
    cible de bl, veneer, corps de veneer, pointeur de réserve, pointeur seul, « au milieu de » la fonction qui la
    couvre. Une case d'aiguillage ou un saut qui reste dans sa fonction n'en est pas une. Relevé à la main dans gpio
    (11) et codec (16, local/analyse/<m>/notes-100.md) : toutes retrouvées. Les entrées trouvées deviennent des
@@ -92,6 +93,9 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
              (jumeau) une fonction d'une variante « -safe » qui a l'empreinte d'une fonction nommée du module normal
              ET la même place dans les deux suites de fonctions alignées par adresse (même code source, même
              fonction : fiches/safe.md) ; sauf les adresses refusées par la relecture (exclusions*.tsv).
+             Un témoin (la copie nommée qui donne son nom, pour (a), le jumeau et les appelées) a au moins deux
+             instructions, et sa grappe ne porte qu'un nom dans les fiches : un « mov r0, r0 » seul a une empreinte
+             vide, et le constructeur statique « range 0 dans une globale » est à 77 adresses sous autant de noms.
     moyenne  le reste : une seule origine ; moins de --min instructions ; un nom qui contient un mot de service
              (cfg, ptm, nwm... délimité par « _ » ; pas srv, errf, svc*, ni « ns » en dernier mot) sans que la
              fonction cite dans sa réserve la chaîne « xxx:yyy » de ce service ; un nom d'ouverture ou de fermeture de
@@ -170,6 +174,8 @@ PROVENANCE_HEADER = [
 NAME_PASS_PROPOSALS = os.path.join(name_pass.OUT, 'proposals.tsv')
 MIN_HIGH = 8
 MIN_LOW = 4
+MIN_WITNESS = 2                         # un témoin d'au moins deux instructions : un « mov r0, r0 » seul qui tombe dans la
+                                        # fonction suivante a une empreinte vide, la même partout
 GAME = 'jeu'                            # l'espace de noms de code.bin (« maj ») et des .cro
 SAFE = '-safe'                          # la variante du mode sans échec d'un module (fiches/safe.md)
 # Des noms qui disent une adresse ou un défaut d'outil, pas une fonction : on ne les recopie pas ailleurs.
@@ -543,7 +549,11 @@ def find_entries(binary):
         if target in binary.starts or target in found or not binary.image.in_code(target) or mode == 'arm' and target & 3:
             return
         hosts = covering(target)
-        if any(modes[h] != mode for h in hosts):
+        # Un veneer ARM visé par un b ou un bl peut être dans la taille d'une fonction Thumb de Ghidra, qui avale sa
+        # réserve et le veneer qui suit (ro 0x14000110, après FUN_140000c0, visé par le b de 0x14002218).
+        veneer = mode == 'arm' and kind.startswith(('cible de b', 'appel hors fonction')) \
+            and veneer_body(binary.image, target) is not None
+        if any(modes[h] != mode for h in hosts) and not veneer:
             return                      # du Thumb lu en ARM (ou l'inverse) : un mot de données, pas un pointeur de code
         if mode == 'arm' and veneer_body(binary.image, target) is not None and not kind.startswith(PIECE):
             kind = 'veneer'
@@ -822,11 +832,14 @@ def family(name):
     return name[:-len(SAFE)] if name.endswith(SAFE) else name
 
 
-def twins(binaries, prints, excluded=frozenset()):
+def twins(binaries, prints, excluded=frozenset(), disputed=frozenset()):
     """La règle « jumeau » : [(variante, adresse, nom, module, adresse dans le module)]. Les fonctions du module et de
     sa variante « -safe », chacune dans l'ordre des adresses, sont alignées sur leurs empreintes (la plus longue suite
     commune, difflib) ; une fonction sans nom de la variante qui a l'empreinte d'une fonction nommée du module ET la
-    même place dans l'alignement en prend le nom. Pas si l'une des deux adresses est refusée par la relecture."""
+    même place dans l'alignement en prend le nom. Pas si l'une des deux adresses est refusée par la relecture, ni si la
+    fonction du module n'est pas un témoin : moins de MIN_WITNESS instructions, ou une grappe qui porte plusieurs noms
+    dans les fiches (`disputed` : le constructeur statique « range 0 dans une globale » de quatre instructions est à
+    77 adresses sous autant de noms)."""
     by_name = {b.name: b for b in binaries}
     out = []
     for safe in binaries:
@@ -843,7 +856,8 @@ def twins(binaries, prints, excluded=frozenset()):
         for i, j, size in matcher.get_matching_blocks():
             for k in range(size):
                 here, there = left[i + k], right[j + k]
-                if left_digests[i + k] not in once:
+                if left_digests[i + k] not in once or prints[normal.name][here].count < MIN_WITNESS \
+                        or (normal.name, here) in disputed:
                     continue
                 name = normal.name_at(here)
                 refused = (normal.name, here - normal.base) in excluded or (safe.name, there - safe.base) in excluded
@@ -876,7 +890,8 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
                 hashlib.blake2b(repr((pr.digest, callees, tails)).encode(), digest_size=12).hexdigest()
             clusters[key].append((b, address))
     proposals, conflicts, stats, seen = [], [], collections.Counter(), {}
-    # Les fonctions dont la grappe porte deux noms : la voie des appelées ne les nomme pas.
+    # Les fonctions dont la grappe porte deux noms : la voie des appelées ne les nomme pas, et elles ne sont pas des
+    # témoins pour les jumeaux.
     disputed = set()
     for members in clusters.values():
         if len({b.name_at(a) for b, a in members if usable(b.name_at(a))}) > 1:
@@ -916,7 +931,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
             if len(names) > 1:
                 conflicts.append((digest, count, named))
                 stats['grappes en désaccord'] += 1
-            elif count < min_low:
+            elif count < max(min_low, MIN_WITNESS):
                 stats['grappes trop petites (copies sans nom)'] += len(unnamed)
             else:
                 name = names[0]
@@ -938,7 +953,8 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
                 target = targets[rank] & ~1
                 if target in b.starts and (b.name, target) not in disputed:
                     callees.append((b, a, target))
-            known = [(b, a, t, b.name_at(t)) for b, a, t in callees if usable(b.name_at(t))]
+            known = [(b, a, t, b.name_at(t)) for b, a, t in callees if usable(b.name_at(t))
+                     and t in prints[b.name] and prints[b.name][t].count >= MIN_WITNESS]
             names = {n for _, _, _, n in known}
             if len(names) != 1:
                 continue
@@ -952,7 +968,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
                         'appelle à ce rang %s@%#x « %s »' % (rank, b.name, a - b.base, digest, count, witness[0].name,
                                                              witness[1] - witness[0].base, witness[0].name,
                                                              witness[2] - witness[0].base, name))
-    for safe, there, name, normal, here in twins(binaries, prints, excluded):
+    for safe, there, name, normal, here in twins(binaries, prints, excluded, disputed):
         add(safe, there, name, 'jumeau:' + normal.name, [normal.name],
             'jumeau : empreinte %s identique (%d instructions) à %s@%#x « %s », à la même place dans l\'alignement des '
             'fonctions de %s et %s' % (prints[safe.name][there].digest, prints[safe.name][there].count, normal.name,
@@ -1444,6 +1460,22 @@ def test():
     dp = fake_binary('dp', 0x00500000, [(0x00, codes[0], 'arm', 8), (0x10, codes[0], 'arm', 8)], {0x00: 'a_fn', 0x10: 'b_fn'})
     dps = fake_binary('dp-safe', 0x00600000, [(0x00, codes[0], 'arm', 8)], {})
     check(not twins([dp, dps], {d.name: fingerprints(d) for d in (dp, dps)}), 'jumeau : code en double, place ambiguë')
+    # Pas de témoin d'une seule instruction (« mov r0, r0 » qui tombe dans la suite : empreinte vide), ni d'une grappe
+    # qui porte deux noms (le constructeur statique ctor_a ici, ctor_b ailleurs), ni pour un jumeau ni pour une appelée
+    ctor = [0xE59F0008, 0xE3A01000, 0xE5801000, 0xE12FFF1E]           # ldr r0, =globale ; mov r1, #0 ; str r1, [r0]
+    tz, tzs, oth = (fake_binary(n, base, [(0x00, codes[0], 'arm', 8), (0x10, [0xE1A00000], 'arm', 4),
+                                          (0x20, ctor + [base + 0x3F0], 'arm', 16)],
+                                {0x00: 'first_fn', 0x10: 'falls_through', 0x20: 'ctor_a'} if n == 'tz' else
+                                {0x20: 'ctor_b'} if n == 'oth' else {})
+                    for n, base in (('tz', 0x00500000), ('tz-safe', 0x00600000), ('oth', 0x00700000)))
+    props, _, _ = propose([tz, tzs, oth], {t.name: fingerprints(t) for t in (tz, tzs, oth)})
+    check([(p.address, p.name) for p in props if p.source.startswith('jumeau')] == [(0x00600000, 'first_fn')],
+          'jumeau : pas de témoin vide ni de grappe à deux noms')
+    e1, e2, e3 = (fake_binary(n, base, [(0x40, arm_function(base + 0x40, base + 0x200, base + 0x300), 'arm', 36),
+                                        (0x200, [0xE1A00000], 'arm', 4)], {0x200: 'empty_callee'} if n != 'e3' else {})
+                  for n, base in (('e1', 0x00500000), ('e2', 0x00600000), ('e3', 0x00700000)))
+    props, _, _ = propose([e1, e2, e3], {e.name: fingerprints(e) for e in (e1, e2, e3)})
+    check(not [p for p in props if p.source.startswith('appel')], 'appelée à l\'empreinte vide : pas un témoin')
     # Collisions : le nom est déjà pris ailleurs dans le binaire visé, l'adresse est déjà nommée
     b.names = {b_base + 0x10: ('function', 'nnosMutexLock')}
     kept, dropped = reconcile_all([a, b], proposals)
@@ -1548,6 +1580,14 @@ def test():
     check(kept.get(base + 0x3A0, ('', ''))[1] == 'cible de b hors fonction', 'b lu dans le code hors fonction')
     check(twin_grade(raw, base, 'memcpy')[0] == 'moyenne' and twin_grade(raw, base, 'heap_find_block') == ('haute', 'jumeau'),
           'jumeau : la famille de memcpy reste moyenne')
+    # Un veneer ARM visé par un b, dans la taille (0x18) d'une fonction Thumb de Ghidra : trouvé avec son corps
+    vt = fake_binary('vt', base, [(0x000, [0x4770], 'thumb', 0x18), (0x100, [0xEAFFFFC2], 'arm', 4)], {})
+    # Lu en Thumb par sa fonction hôte, le veneer donne des « b » vers 0x278 et 0x534 : du code ARM là, rejeté
+    vt.image.data = (vt.image.data[:0x10] + struct.pack('<3I', 0xE28FC001, 0xE12FFF1C, 0x4770) + vt.image.data[0x1C:0x200]
+                     + struct.pack('<I', 0xE3A00000) * 0x80)
+    kinds = {a - base: (m, k) for a, (m, k, _) in find_entries(vt).items()}
+    check(kinds == {0x10: ('arm', 'veneer, au milieu de 0x100000'), 0x18: ('thumb', 'corps de veneer')},
+          'veneer dans une fonction Thumb : %r' % kinds)
     # Sur les vrais binaires s'ils sont là : les entrées relevées à la main dans gpio et codec (notes-100.md), et les
     # main_thread_terminate_handler de dsp et hid (un « bl abort » seul, juste après la réserve qui le désigne)
     by_hand = {'gpio': [0x100134, 0x100160, 0x100168, 0x100db0, 0x100e30, 0x100f48, 0x1011e8, 0x101580, 0x10169c,
@@ -1555,6 +1595,8 @@ def test():
                'codec': [0x100168, 0x100170, 0x1010a4, 0x10165c, 0x1016a0, 0x101828, 0x102318, 0x1022f4, 0x102514,
                          0x102f3c, 0x10343c, 0x103800, 0x103808, 0x103ec4, 0x103ee4, 0x103f70],
                'dsp': [0x1016e0], 'hid': [0x102fc4],
+               # ro : le veneer de destroy_array dans la taille de FUN_140000c0 (Thumb), visé par le b de 0x14002218
+               'ro': [0x14000110, 0x14000118],
                # kernel11 (notes-100.md) : relais des vecteurs, veneer de destroy_array, code de lancement d'un FIRM
                # atteint par son alias physique. Pas la table des vecteurs (seul le processeur y va) ni les deux bouts
                # qui ne s'exécutent qu'une fois recopiés (0xffff09ac, 0xffff0a00).

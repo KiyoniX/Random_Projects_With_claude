@@ -940,7 +940,7 @@
 0x123580	function	svcWaitSynchronizationN
 0x132d58	function	__aeabi_ldivmod
 0x145234	function	svcCreateEvent
-0x145258	function	__aeabi_memcpy_alt_145258
+0x145258	function	memcpy_words
 0x15eb50	function	svcArbitrateAddress
 0x15eb68	function	svcBreak
 0x15eb84	function	svcGetSystemTick
@@ -957,7 +957,7 @@
 0x1835a0	function	__aeabi_memmove_alt_1835a0
 0x185094	function	_ZN2nn3nex3KeyD1Ev
 0x1854f4	function	_ZN2nn3nex6StringD1Ev
-0x1941fc	function	__aeabi_memmove_alt_1941fc
+0x1941fc	function	memmove_words
 0x19a7b4	function	svcCreateTimer
 0x19a7cc	function	svcDuplicateHandle
 0x19a7e4	function	svcGetHandleInfo
@@ -1156,7 +1156,7 @@
 0x300bb4	function	memcpy
 0x300d28	function	__aeabi_memcpy
 0x3011d0	function	__aeabi_memmove
-0x30182c	function	__aeabi_memclr
+0x30182c	function	memclr
 0x30228c	function	strcmp
 0x30eaf0	function	_ZN2nw3lyt4PaneD0Ev
 0x30eb04	function	_ZN2nw3lyt4PaneD1Ev

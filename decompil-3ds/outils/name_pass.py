@@ -383,9 +383,15 @@ def import_unicorn():
 class Prober:
     """Exécute une fonction sur des entrées fabriquées. Le code est en lecture et exécution seules : la moindre écriture
     dans le programme, la moindre lecture hors de lui ou de la zone d'essai, fait refuser la fonction.
-    chunks : [(adresse, octets)], les morceaux du programme (un seul pour code.bin, un par segment d'un ELF)."""
+    chunks : [(adresse, octets)], les morceaux du programme (un seul pour code.bin, un par segment d'un ELF).
+    Les accès non alignés à la zone d'essai, qu'unicorn fait sans faute, sont des plantages comme sur la console.
+    L'ARM11 tourne avec SCTLR.U = 1 et A = 0 (kernel11.elf, position 0x33000 : « orr r0, r0, r1 » du littéral 0xC03805
+    lu à 0x332b8, puis « mcr p15, 0, r0, c1, c0, 0 ») : ldr, str, ldrh, strh non alignés passent, mais ldm, stm, push,
+    pop, ldrd, strd, swp, ldrex, vldm, vstr fautent sur une adresse qui n'est pas multiple de 4. arm9 : l'ARM946E-S
+    (ARMv5, SCTLR 0x4307D, kernel9.bin position 0x14b5c) ne faute jamais mais tourne le mot lu ou ignore les bits bas :
+    tout accès de 2 ou 4 octets non aligné y donne autre chose qu'unicorn."""
 
-    def __init__(self, chunks, limit=60000):
+    def __init__(self, chunks, limit=60000, arm9=False):
         self.u, self.a = import_unicorn()
         u, a = self.u, self.a
         self.uc = u.Uc(u.UC_ARCH_ARM, u.UC_MODE_ARM)
@@ -415,6 +421,9 @@ class Prober:
         self.why, self.blocked = '', False
         self.uc.hook_add(u.UC_HOOK_MEM_INVALID, self._on_memory)
         self.uc.hook_add(u.UC_HOOK_INTR, self._on_interrupt)
+        self.arm9 = arm9
+        self.uc.hook_add(u.UC_HOOK_MEM_READ | u.UC_HOOK_MEM_WRITE, self._on_access, begin=DATA_BASE,
+                         end=DATA_BASE + DATA_SIZE - 1)
 
     def _on_memory(self, uc, access, address, size, value, data):
         u = self.u
@@ -423,6 +432,22 @@ class Prober:
         self.why = '%s à %#x (pc=%#x)' % (kind.get(access, 'accès refusé'), address, uc.reg_read(self.a.UC_ARM_REG_PC))
         self.blocked = access == u.UC_MEM_WRITE_PROT
         return False
+
+    def _on_access(self, uc, access, address, size, value, data):
+        if not address & (min(size, 4) - 1) or not (self.arm9 or self._needs_word_alignment(uc)):
+            return
+        self.why = 'accès non aligné de %d octets à %#x (pc=%#x)' % (size, address, uc.reg_read(self.a.UC_ARM_REG_PC))
+        uc.emu_stop()
+
+    def _needs_word_alignment(self, uc):
+        """L'instruction en cours est de celles qui fautent sur l'ARM11 à une adresse non multiple de 4."""
+        pc = uc.reg_read(self.a.UC_ARM_REG_PC)
+        if uc.reg_read(self.a.UC_ARM_REG_CPSR) & 0x20:
+            h = struct.unpack('<H', uc.mem_read(pc, 2))[0]
+            return h >> 12 == 0xC or h & 0xF600 == 0xB400                  # ldmia, stmia ; push, pop
+        w = struct.unpack('<I', uc.mem_read(pc, 4))[0]
+        # ldm, stm, rfe, srs ; ldc, stc, vldr, vldm ; ldrd, strd ; swp, ldrex, strex
+        return (w >> 25) & 7 in (4, 6) or w & 0x0E1000D0 == 0x000000D0 or w & 0x0F0000F0 == 0x01000090
 
     def _on_interrupt(self, uc, number, data):
         self.why = 'exception %d (2 : svc) à pc=%#x' % (number, uc.reg_read(self.a.UC_ARM_REG_PC))
@@ -1238,6 +1263,13 @@ def test():
     broken = bytearray(blob)
     struct.pack_into('<I', broken, 0x14, 0xE2522002)        # subs r2,r2,#2 : copie trop ou trop peu
     check(recognise(Prober([(base, bytes(broken))]), base, False, specs) is None, 'memcpy cassée refusée')
+    # Les accès non alignés : ldr passe sur l'ARM11, pas sur l'ARM9 ; ldm échoue sur les deux ; un octet passe partout
+    put(0x380, [0xE5900000, 0xE12FFF1E, 0xE8900001, 0xE12FFF1E, 0xE5D00000, 0xE12FFF1E])   # ldr ; ldm ; ldrb
+    arm11, arm9 = Prober([(base, bytes(blob))]), Prober([(base, bytes(blob))], arm9=True)
+    calls = [(p.call(base + at, False, [DATA_BASE + 0x101, 0, 0, 0]) is not None) for p in (arm11, arm9)
+             for at in (0x380, 0x388, 0x390)]
+    check(calls == [True, False, True, False, False, True], 'accès non alignés : %r' % calls)
+    check(arm11.call(base + 0x388, False, [DATA_BASE + 0x100, 0, 0, 0]) is not None, 'ldm aligné : passe')
     # Fabrication d'un décodage d'appel système
     game = Game.__new__(Game)
     game.code = struct.pack('<IIII', 0xEF000013, 0xE12FFF1E, 0xEF000032, 0xE12FFF1E)
