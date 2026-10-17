@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002E02`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `socket`, priorité 59 (`0x3B`, dernier octet des attributs du noyau) |
 | Fichier lu | `local/extrait/socket/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x31088` octets de code (50 pages), `0x4C8` de données en lecture seule, `0x3A0` de données, `0x9A30` de mémoire à zéro, pile de `0x1000` |
-| Fonctions | 829 pour Ghidra, dont 22 en Thumb et 807 en ARM ; 126 nommées dans `socket.noms.tsv` |
+| Fonctions | 829 pour Ghidra, dont 22 en Thumb et 807 en ARM, plus 46 entrées manquées, moins 1 de code mort (`0x100176`) : 874 ; 157 nommées dans `socket.noms.tsv` (propagés compris), 869 avec `local/analyse/socket/noms-proposes.tsv` |
 | Services offerts | `soc:U` (35 commandes, 18 sessions au plus) et `soc:P` (9 commandes, 3 sessions au plus) |
 | Services appelés | lus dans l'exheader : `nwm::SOC` et `ptm:s` ; lus dans le code : les mêmes, plus `srv:` et `err:f` (les deux ports) |
 | Dépendances | le Wi-Fi : le module `nwm` (`…2D02`) ; la liste des titres système de 3dbrew |
@@ -27,8 +27,8 @@ Les chaînes `soc:U` (`0x132000`), `soc:P` (`0x132006`), `nwm::SOC` (`0x13208c`)
 2. `init_program_args` (`0x1007fc`) : remplit deux champs de l'en-tête des arguments (interprété, même rôle que dans `ndm`).
 3. `0x11cc6c` : un petit appel (`0x1013c8`, pas lu) avant l'initialisation d'un verrou.
 4. `setup_heap` (`0x100a8c`) : `set_heap_size` (`0x100890`) demande `0x41000` octets de tas par `svcControlMemory` (opération 3, lecture et écriture, à partir de `0x08000000`), puis monte l'allocateur du module.
-5. `run_init_array_relative` (`0x100234`, Thumb) : la table de distances relatives des constructeurs globaux ; puis `run_init_array` (`0x1007c8`) : la table de pointeurs.
-6. `srv_init` (`0x100850`) : prépare un verrou puis se déclare à `sm` par `srv_connect_and_register` (`0x11cc7c`, qui envoie `SRV_RegisterClient`) ; une erreur est signalée à `0x11cda0`.
+5. `run_static_initializers` (`0x100234`, Thumb) : la table de distances relatives des 29 constructeurs globaux (`0x132454` à `0x1324C8`) ; puis `run_init_array` (`0x1007c8`) : la table de pointeurs.
+6. `init_timer_thread_and_srv` (`0x100850`) : démarre le fil des minuteries (`timer_service_start`) puis se déclare à `sm` par `srv_init` (`0x11cc7c`, qui envoie `SRV_RegisterClient`) ; une erreur est signalée par `fatal_if_failed_unless_minor` (`0x11cda0`).
 7. `server_main` (`0x100398`), qui ne revient qu'à l'arrêt.
 
 `server_main` fait ceci, dans l'ordre (lu dans le pseudo-code) :
@@ -43,7 +43,7 @@ Les chaînes `soc:U` (`0x132000`), `soc:P` (`0x132006`), `nwm::SOC` (`0x13208c`)
 
 La boucle de serveur est celle de la bibliothèque du système, avec un fil par session.
 
-**Le fil principal.** `server_loop` (`0x100b9c`) attend par `WaitSynchronizationN` (`0x11cad8`, aide qui rend l'indice de la poignée réveillée) sur : le port d'écoute de chaque serveur, puis deux poignées supplémentaires. Selon l'indice, il appelle la méthode 0 du serveur (`socu_session_accept` ou `socp_session_accept`), ou, pour la poignée de rang N (le sémaphore des notifications de `srv:`), `receive_srv_notification_and_dispatch` (`0x1015f0`, qui envoie `SRV_ReceiveNotification`), ou, pour celle de rang N + 1, un gestionnaire d'événement (`0x1018fc`, qui envoie `PTMS_NotifySleepPreparationComplete` à `ptm:s` et une commande `0x000D0002` à `nwm::SOC` : interprété, c'est le chemin de la mise en veille). Au départ il s'abonne à trois notifications de `srv:` (`subscribe_srv_notifications`, `0x101830`, trois `SRV_Subscribe`, `0x11c3f4`). Les numéros abonnés ne sont pas lus.
+**Le fil principal.** `server_loop` (`0x100b9c`) attend par `WaitSynchronizationN` (`wait_on_handle_pointers`, `0x11cad8`, qui rend l'indice de la poignée réveillée) sur : le port d'écoute de chaque serveur, puis deux poignées supplémentaires. Selon l'indice, il appelle la méthode 0 du serveur (`socu_session_accept` ou `socp_session_accept`), ou, pour la poignée de rang N (le sémaphore des notifications de `srv:`), `handle_srv_notification` (`0x1015f0`, qui envoie `SRV_ReceiveNotification`), ou, pour celle de rang N + 1, un gestionnaire d'événement (`0x1018fc`, qui envoie `PTMS_NotifySleepPreparationComplete` à `ptm:s` et une commande `0x000D0002` à `nwm::SOC` : interprété, c'est le chemin de la mise en veille). Au départ il s'abonne à trois notifications de `srv:` (`subscribe_srv_notifications`, `0x101830`, trois `SRV_Subscribe`, `0x11c3f4`). Les numéros abonnés ne sont pas lus.
 
 **L'acceptation.** `socu_session_accept` (`0x130164`) prend un objet de session libre dans la liste, accepte la session (`accept_session_on_port`, `0x12be74`, qui attend le port puis appelle `svcAcceptSession`, `0x122b34`) et crée un fil de session avec `0x11c730` dont le point d'entrée est `socu_session_thread` (`0x130408`). Pour `soc:P` c'est `socp_session_accept` (`0x12fde8`) et `socp_session_thread` (`0x13006c`). Le fil est donc attaché à une seule session pour toute sa vie, ce qui permet à une commande de bloquer (un `recvfrom` sans donnée, un `poll` avec attente) sans gêner les autres sessions.
 
@@ -158,7 +158,7 @@ C'est la commande 1. La requête est `0x00010044` : un mot ordinaire (la taille 
 1. **L'aiguillage.** Il vérifie l'en-tête entier, le descripteur `0x20` au mot 2 et le descripteur `0x0` au mot 4, puis appelle `socu_0001_InitializeSockets` (`0x12f264`) avec le contexte de session, le numéro de processus (mot 3), la poignée (mot 5) et la taille (mot 1).
 2. **Une seule fois par session.** Si le contexte de la session a déjà un processus (`+0x2038` non nul), la poignée reçue est fermée et le résultat est `0xC8A07004`.
 3. **L'enregistrement.** `client_register` (`0x12e5c4`) prend le verrou de la table des clients (une table de 16 listes, indexée par le numéro de processus modulo 16, dont le nombre d'entrées est à `+0x4C`). Si le processus est déjà dans la table : `0xC8A0700B` (« numéro déjà utilisé »). Si la table compte 32 clients ou plus : `0xD860700A` (« table pleine »). Ces deux codes sont les deux erreurs que 3dbrew donne pour InitializeSockets. Sinon un enregistrement de client de `0x94` octets est fabriqué et inscrit.
-4. **La mémoire partagée.** `client_setup_memory` (`0x12e818`) range le numéro de processus dans l'enregistrement (`+0x10`) puis : si la poignée et la taille sont toutes deux nulles, le client n'a pas de bloc ; sinon il faut que la taille soit au moins `0x10000` et un multiple de la page, et le module projette le bloc par `map_memory_block` (`0x12bd20`, `svcMapMemoryBlock`, droits de lecture et d'écriture). Il le découpe alors (interprété) en morceaux de `0x40` octets chaînés dans une réserve et en paquets par puissances de deux pour la pile ; une taille qui ne va pas rend `0xD8E073EC` (« argument invalide »). L'enregistrement prend aussi la limite de sockets du client : 16 (`+0x18 = 0x10`, compteur d'ouvertures à `+0x14`).
+4. **La mémoire partagée.** `client_setup_memory` (`0x12e818`) range le numéro de processus dans l'enregistrement (`+0x10`) puis : si la poignée et la taille sont toutes deux nulles, le client n'a pas de bloc ; sinon il faut que la taille soit au moins `0x10000` et un multiple de la page, et le module projette le bloc par `map_shared_memory` (`0x12bd20`, `svcMapMemoryBlock`, droits de lecture et d'écriture). Il le découpe alors (interprété) en morceaux de `0x40` octets chaînés dans une réserve et en paquets par puissances de deux pour la pile ; une taille qui ne va pas rend `0xD8E073EC` (« argument invalide »). L'enregistrement prend aussi la limite de sockets du client : 16 (`+0x18 = 0x10`, compteur d'ouvertures à `+0x14`).
 5. **Le retour.** Le contexte de session garde le numéro de processus et le drapeau « initialisée » (`+0x203C = 1`). Le résultat 0 est écrit dans la réponse `0x00010040`.
 
 Le contrôle commun des autres commandes, `client_check_socket_owner` (`0x113010`, avec le numéro de processus que le noyau a écrit) :
@@ -255,7 +255,7 @@ Chaque requête a sa petite fonction (un seul `svcSendSyncRequest`, `0x32`, dans
 | | `0x00020000` | `SRV_EnableNotification` | `0x103354` | obtenir le sémaphore des notifications |
 | | `0x00030100` | `SRV_RegisterService` | `0x100a30` | créer `soc:U` et `soc:P` |
 | | `0x000400C0` | `SRV_UnregisterService` | `0x1016e8` | les retirer à l'arrêt |
-| | `0x00050100` | `SRV_GetServiceHandle` | `0x1056d0` | ouvrir `nwm::SOC` |
+| | `0x00050100` | `SRV_GetServiceHandle` | `0x10571c` | ouvrir `nwm::SOC` (par `get_service_handle_by_name`, `0x1056d0`) |
 | | `0x00090040` | `SRV_Subscribe` | `0x11c3f4` | s'abonner à trois notifications |
 | | `0x000B0000` | `SRV_ReceiveNotification` | `0x101e24` | lire le numéro de la notification |
 | `err:f` | `0x00010800` | `ERRF_Throw` | `0x10547c` | erreur fatale (`0x115568` l'appelle) |
@@ -286,8 +286,8 @@ Les quatre commandes `0x00040082`, `0x000A0040`, `0x000B0040` et `0x000C0040` so
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x109a64` |
 | SignalEvent, ClearEvent | `0x18`, `0x19` | dans `0x113bf0`, `0x11a30c`... | |
 | CreateTimer, SetTimer, CancelTimer | `0x1A`, `0x1B`, `0x1C` | `svcCreateTimer` (`0x101b0c`), `svcSetTimer` (`0x11a484`), dans `0x11c25c` | |
-| MapMemoryBlock | `0x1F` | dans `map_memory_block` | `0x12bd84` |
-| UnmapMemoryBlock | `0x20` | dans `unmap_memory_block` | `0x12bdf4` |
+| MapMemoryBlock | `0x1F` | dans `map_shared_memory` et `shared_buffer_map` | `0x12bd84`, `0x105404` |
+| UnmapMemoryBlock | `0x20` | dans `unmap_shared_memory` et `unmap_shared_memory_or_panic` | `0x12bdf4`, `0x12bcb8` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x101af4` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x116ac4` |
 | CloseHandle | `0x23` | (40 sites) | |

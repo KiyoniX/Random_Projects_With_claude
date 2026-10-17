@@ -324,7 +324,7 @@ Les compteurs expliquent les commandes 17 à 20 : le capteur n'est allumé qu'au
 | CancelTimer | `0x1C` | trois fois dans `stop_sampling` | `0x105114` |
 | CreateMemoryBlock | `0x1E` | `svcCreateMemoryBlock` | `0x102d10` |
 | MapMemoryBlock | `0x1F` | dans `map_shared_memory` | `0x102e94` |
-| UnmapMemoryBlock | `0x20` | dans `unmap_shared_memory` | `0x1012c8` |
+| UnmapMemoryBlock | `0x20` | dans `unmap_shared_memory_or_panic` | `0x1012c8` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x101f70` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x103fa4` |
 | CloseHandle | `0x23` | écrit sur place, à 38 endroits | |

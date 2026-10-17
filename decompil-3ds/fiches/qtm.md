@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013020004202`, un titre de la CTRNAND (New 3DS seulement) ; nom interne `qtm`, priorité 17 (`0x11`), la plus haute du groupe |
 | Fichier lu | `local/extrait/qtm/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x24B78` octets de code (`0x25` pages), `0x85E48` de données en lecture seule (`0x86` pages), `0x8` de données (1 page), `0x30` de mémoire à zéro, pile de `0x1000` |
-| Fonctions | 647 pour Ghidra, dont 18 en Thumb et 629 en ARM ; 36 nommées dans `qtm.noms.tsv`, aucun nom sans fonction |
+| Fonctions | 647 pour Ghidra (18 en Thumb, 629 en ARM), plus 39 entrées manquées et 31 constructeurs statiques que l'outil ne voit pas (table de distances en mémoire QTM, `0x1EB6338C`), moins 15 qui ne sont pas des débuts de fonction et 2 de code mort : 700 ; 71 nommées dans `qtm.noms.tsv`, 681 avec `local/analyse/qtm/noms-proposes.tsv` |
 | Services offerts | `qtm:c`, `qtm:sp`, `qtm:s`, `qtm:u`, **3 sessions chacun** (noms à `0x1AA8A4`, `0x1AA8AA`, `0x1AA8B1`, `0x1AA8B7`) |
 | Services appelés | lus dans l'exheader : `cam:q`, `cfg:s`, `gpio:QTM`, `hid:QTM`, `i2c::QTM`, `ptm:s`. Dans le code, des chaînes pour `cfg:s` (`0x1AA8BD`), `hid:QTM`, `hid:NFC`, `hid:USER`, `hid:SPVR` (la famille `hid` de la bibliothèque) et `cfg:u` ; `cam:q`, `gpio:QTM` et `i2c::QTM` sont dans la zone `0x125064` |
 | Droits du noyau (exheader) | pas d'interruption ; deux plages d'adresses matérielles à `0x1EA00000` et `0x1EB80000` (décodage de l'exheader par `capdec.py`) |
@@ -21,14 +21,14 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 
 `qtm_main` (`0x100214`) :
 
-1. Prépare le tas (`0x115A68`) puis une première structure (`0x1014F0`).
-2. **Enregistre les quatre services** : une boucle de quatre tours lit le nom (`0x1159B0`) et appelle `0x101524` (en-tête de commande 3, quatre mots : le nom, sa longueur, le nombre de sessions, ici 3). Les noms viennent d'une table dont les adresses sont codées en position relative (le module est compilé en code indépendant de la position : les mots de la réserve de littéraux sont des écarts, pas des adresses, ce qui gêne le pseudo-code).
-3. Prépare les composants : `0x101234`, `0x10094C`, `0x100C28`, `0x100C60` (étalonnage, caméra, barrière ; non lus).
-4. **Un fil par service.** Quatre fonctions de boucle, une par service, appellent chacune `ReplyAndReceive` (`svc_reply_and_receive`, `0x115928`) sur une session et l'aiguillage du service : `0x102004` -> `0x103464` (`qtm:u`), `0x1020C0` -> `0x1035C4` (`qtm:s`), `0x10216C` -> `0x103918` (`qtm:c`), `0x102218` -> `0x1039F8` (`qtm:sp`). Les ports sont servis par `AcceptSession` (`svc_accept_session`, `0x115740`).
+1. Se connecte à `srv:` (`srv_init`, `0x115A68`) puis prend le sémaphore des notifications (`get_notification_semaphore`, `0x1014F0`).
+2. **Enregistre les quatre services** : une boucle de quatre tours lit le nom (`strlen`, `0x1159B0`) et appelle `SRV_RegisterService` (`0x101524`, en-tête de commande 3, quatre mots : le nom, sa longueur, le nombre de sessions, ici 3). Les littéraux sont des adresses absolues de la mémoire QTM (`0x1EADD800` et au-delà) : l'image des données est recopiée du fichier vers cette mémoire au démarrage par `copy_qtm_ram_image` (`0x1007A8`) ; le code n'est pas indépendant de la position.
+3. Prépare les composants : `qtm_open_services` (`0x101234`), `notification_state_init` (`0x10094C`), `subscribe_srv_notifications` (`0x100C28`), `qtm_initialize` (`0x100C60`).
+4. **Un fil par session.** Quatre fonctions de boucle, une par service, appellent chacune `svcReplyAndReceive` (`0x115928`) sur une session et l'aiguillage du service : `0x102004` -> `0x103464` (`qtm:u`), `0x1020C0` -> `0x1035C4` (`qtm:s`), `0x10216C` -> `0x103918` (`qtm:c`), `0x102218` -> `0x1039F8` (`qtm:sp`) ; chaque session acceptée (`svcAcceptSession`, `0x115740`) prend l'une des trois places de fil (`session_thread_slot_acquire`) et tourne dans `qtm_u_session_thread`, `qtm_s_session_thread`, `qtm_c_session_thread` ou `qtm_sp_session_thread`.
 
 L'appariement boucle - service vient des nombres de commandes (6, 16, 5 et 20), qui sont exactement ceux de la Carte pour `qtm:u`, `qtm:s`, `qtm:c` et `qtm:sp` ; l'ordre des noms dans la table (`c`, `sp`, `s`, `u`) ne suffit pas à le dire.
 
-Appels système trouvés : 0x13 CreateMutex, 0x17 CreateEvent, 0x18 SignalEvent, 0x1F MapMemoryBlock, 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x25 WaitSynchronizationN, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest, 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive. Pas de `BindInterrupt` : le module n'a pas d'interruption, il attend sans doute les événements de `cam:q`, `hid:QTM` et `gpio:QTM` (interprété). Les noms viennent de `fiches/kernel11.md`.
+Appels système trouvés : 0x01 ControlMemory, 0x02 QueryMemory, 0x03 ExitProcess, 0x08 CreateThread, 0x09 ExitThread, 0x0A SleepThread, 0x13 CreateMutex, 0x17 CreateEvent, 0x18 SignalEvent, 0x1F MapMemoryBlock, 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x25 WaitSynchronizationN, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest, 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive. Pas de `BindInterrupt` : le module n'a pas d'interruption, il attend sans doute les événements de `cam:q`, `hid:QTM` et `gpio:QTM` (interprété). Les noms viennent de `fiches/kernel11.md`.
 
 ## Partie 2 : les quatre aiguillages
 
@@ -124,12 +124,12 @@ Notes :
 
 ## Partie 4 : une opération pas à pas, GetRawTrackingDataEx
 
-`qtm:u` commande 1 (3dbrew : `0x00010080`, réponse `0x00010340` : treize mots ordinaires, soit le résultat et une structure de 12 mots, 48 octets, de suivi). Lu dans le pseudo-code de `qtm_u_cmd_0001_GetRawTrackingDataEx` (`0x113A38`), les rôles sont interprétés.
+`qtm:u` commande 1 (3dbrew : `0x00010080`, réponse `0x00010340` : treize mots ordinaires, soit le résultat et une structure de 12 mots, 48 octets, de suivi). Lu dans le pseudo-code de `qtm_cmd_0001_GetRawTrackingDataEx` (`0x113A38`), les rôles sont interprétés.
 
 1. L'aiguillage `0x103464` lit le numéro 1 et appelle le gestionnaire avec un tampon de sortie de 12 mots et le mot du paramètre.
 2. Le gestionnaire teste deux indicateurs de l'état : octet à `+0xC` de la structure d'état (« le suivi est démarré ») et octet à `+7` d'une seconde structure (« une application a le droit de lire »). Si l'un est nul, il rend un code d'erreur sans toucher au tampon.
-3. Il demande à `0x114574` s'il y a un résultat de suivi plus récent. Si oui, il copie les 12 mots du dernier résultat (de `+0x10` à `+0x3C` de la structure de résultats) dans le tampon de sortie et rend 0.
-4. Sinon il rafraîchit le résultat (`0x115284`), puis copie le résultat qui était en place.
+3. Il demande à `camera_status_flag0_get` (`0x114574`) si l'indicateur 0 d'état de la caméra est posé. Si oui, il copie 12 mots par défaut dans le tampon de sortie et rend `0xC8A18008`.
+4. Sinon il prend le verrou `0x1EB6374C` (`lock_enter`, `0x115284`), recopie le bloc publié par `tracker_process_frame` et convertit les yeux en pixels par la méthode +0x14 de l'objet de suivi du visage (`face_tracker_eyes_to_pixels`, `0x10B3C0`).
 5. L'aiguillage répond `0x00010340`.
 
 ## Partie 5 : tables en mémoire
@@ -141,7 +141,7 @@ Notes :
 | `0x1AA912` à `0x1AA9BD` | les noms `sdm_*.sdm` une seconde fois, sans suffixe : la liste utilisée à l'exécution (interprété) |
 | `0x1AA8BD` à `0x1AA9D6` | liste de noms de services de la bibliothèque (`cfg:s`, `err:f`, `hid:*`, `ptm:*`, `cfg:u`) |
 | `0x125064` | les noms `cam:q`, `gpio:QTM`, `i2c::QTM` |
-| `0x125000` à `0x1AAE48` | la zone de données en lecture seule (`0x85E48` octets), où se trouvent les modèles : non lue |
+| `0x12503C` à `0x1AAE48` | l'image initiale des données de la mémoire QTM (`0x85E0C` octets), recopiée à `0x1EADD800` par `copy_qtm_ram_image` : vtables (`0x1AA618`…), table des constructeurs statiques (`0x1AABC8`), archive ZIP des modèles `.lbp` / `.sdm` (`0x12628C`–`0x1AA565`) ; les `0x3C` premiers octets de la zone en lecture seule (`0x125000`–`0x12503B`, tables I2C de la barrière lues en place à `0x125000`, `0x125002`, `0x125004`, `0x125020`) ne sont pas recopiés |
 
 Le fichier `data-00010702` de la NAND (`qtm_black_list`, `key.bin`, `value.bin`, `ctr_backup_black_list`) est la liste des applications pour lesquelles le suivi est interdit (`IsCurrentAppBlacklisted`, `qtm:u` 6) : sa lecture par `qtm` n'est pas suivie.
 
@@ -159,10 +159,10 @@ Rien : le jeu n'ouvre aucun service de `qtm`. Pour le portage PC, `qtm` n'a rien
 **Interprété** :
 - L'appariement de chaque boucle et de chaque aiguillage à son service (par le nombre de commandes).
 - Les noms des gestionnaires (de la Carte), les rôles des indicateurs de l'état dans GetRawTrackingDataEx, le sens de « lbp » et « sdm ».
-- Que le module n'a qu'un fil de service par service.
+- Que chaque session acceptée a son fil, pris parmi trois places partagées par les quatre services (`session_thread_slot_acquire`).
 
 **Pas lu** :
-- Le suivi lui-même : l'acquisition d'une image par `cam:q`, l'exécution des modèles, le calcul de la position, la boucle de la barrière de parallaxe, la commande de la diode infrarouge (par `i2c::QTM` et `gpio:QTM`).
+- Le suivi lui-même est nommé dans `local/analyse/qtm/noms-proposes.tsv` (capture `cam:q`, cascade LBP, pyramide, formes 2D/3D, régression SDM, barrière, diode infrarouge) ; restent sans rôle 18 étapes internes du suivi et de la régression (voir `local/analyse/qtm/notes-100.md`).
 - L'étalonnage (`qtm:c`, `SetCalibrationData`) et sa lecture dans `cfg:s`.
 - Le code qui lit la liste noire.
-- Les trois fonctions de préparation (`0x101234`, `0x10094C`, `0x100C28`, `0x100C60`).
+- Les quatre fonctions de préparation sont nommées : `qtm_open_services` (`0x101234`), `notification_state_init` (`0x10094C`), `subscribe_srv_notifications` (`0x100C28`), `qtm_initialize` (`0x100C60`).

@@ -546,7 +546,7 @@ La file de commandes (`0x110cd0`) :
 | ClearEvent | `0x19` | six fois dans `interrupt_thread_main`, une dans `gx_process_command_list` | |
 | CreateMemoryBlock | `0x1E` | `svcCreateMemoryBlock` | `0x1023d0` |
 | MapMemoryBlock | `0x1F` | dans `map_shared_memory` | `0x102434` |
-| UnmapMemoryBlock | `0x20` | dans `unmap_shared_memory` | `0x100ce0` |
+| UnmapMemoryBlock | `0x20` | dans `unmap_shared_memory_or_panic` | `0x100ce0` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x1023b8` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x107c7c` |
 | CloseHandle | `0x23` | écrit sur place à 53 endroits, plus l'enrobage `svcCloseHandle` (pdn_close, gspgpu_RequestDma, gspgpu_SetCommandList) | `0x106fa0` |
