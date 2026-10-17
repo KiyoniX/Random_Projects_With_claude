@@ -1,6 +1,8 @@
 0x100000	function	entry
 0x100024	function	clear_bss
 0x100048	function
+0x100128	label	run_static_initializers
+0x100154	label	destroy_array
 0x100178	function	svcExitProcess
 0x100180	function	hid_main
 0x100690	function	setup_heap
@@ -18,12 +20,17 @@
 0x100fd0	function	SRV_RegisterService
 0x10102c	function	SRV_UnregisterService
 0x101080	function	srv_exit
+0x10111c	function	_get_lc_ctype
+0x101164	function	_get_lc_numeric
 0x1011ac	function	svcControlMemory
 0x1011d0	function	strcmp
-0x10128c	function	create_lock_arbiter
+0x10128c	function	create_lock_arbiter_once
 0x1012c8	function	unmap_shared_memory
 0x101334	function	init_heap_region
 0x101374	function	init_runtime
+0x101398	function	init_vm_region_0e000000
+0x1013ac	function	init_vm_region_10000000
+0x1013c0	function	store_thread_local_owner
 0x1013d4	function	session_thread_main
 0x1014ec	function	init_shared_memory
 0x1017dc	function	MCUHID_GetMcuHidEventHandle
@@ -44,7 +51,7 @@
 0x101d3c	function	init_button_state
 0x101e08	function	gyroscope_init
 0x101f44	function	gyroscope_shutdown
-0x101f60	function
+0x101f60	function	thread_functor_copy
 0x101f70	function	svcCreateAddressArbiter
 0x101f88	function	svcCreateEvent
 0x101fa0	function	create_shared_memory_block
@@ -63,15 +70,15 @@
 0x102714	function	GPIOHID_cmd0004
 0x10274c	function	GPIOHID_cmd0006
 0x102784	function	CDCHID_Finalize
-0x1027ac	function
-0x1027b8	function
-0x1027d4	function
-0x1027e8	function
-0x10280c	function
-0x102820	function
-0x102cd8	function
-0x102ce8	function
-0x102cf4	function
+0x1027ac	function	handle_clear
+0x1027b8	function	pad_entry_ctor
+0x1027d4	function	touch_entry_ctor
+0x1027e8	function	debug_pad_entry_ctor
+0x10280c	function	gyroscope_entry_ctor
+0x102820	function	accelerometer_entry_ctor
+0x102cd8	function	thread_functor_copy_alt_102cd8
+0x102ce8	function	thread_functor_invoke
+0x102cf4	function	thread_functor_destroy
 0x102cf8	function	svcConnectToPort
 0x102d10	function	svcCreateMemoryBlock
 0x102d2c	function	svcCreateThread
@@ -79,12 +86,14 @@
 0x102d6c	function	svcReplyAndReceive
 0x102d84	function	wait_any_handle
 0x102e94	function	map_shared_memory
+0x102f18	function	clear_thread_local_storage
 0x102fc4	function
 0x102fc8	function	hid_handle_command
 0x1036e8	function	update_debug_pad
 0x1037d0	function	update_pad_and_touch
 0x103b64	function	rearm_heartbeat_timer
 0x103bb0	function	update_gyroscope
+0x103e34	function	atexit_stub
 0x103e38	function	set_touch_calibration
 0x103fa4	function	svcArbitrateAddress
 0x103fbc	function	I2CHID_WriteRegister8
@@ -97,7 +106,8 @@
 0x104618	function	reset_gyroscope_section
 0x104630	function	reset_accelerometer_section
 0x104648	function	reset_touch_section
-0x104660	function	throw_fatal_error_typed
+0x104660	function	errf_report_error
+0x104698	function	__aeabi_uidivmod
 0x1046c8	function	hid_DisableGyroscopeLow
 0x104780	function	hid_DisableAccelerometer
 0x1048c8	function	I2CHID_EnableRegisterBits8
@@ -110,18 +120,20 @@
 0x104d0c	function	cfg_close
 0x104d88	function	cfg_open
 0x104e3c	function	i2c_close
+0x104e44	function	svcCloseHandle
 0x104e4c	function	gyroscope_power_up
 0x104eb0	function	svcSetTimer
 0x104ec8	function	CDCHID_Initialize
 0x104ef0	function	reset_section_header
 0x104f5c	function	gyroscope_power_down
+0x10508c	function	abort
 0x105090	function	break_process
 0x1050e4	function	copy_service_name
 0x105114	function	stop_sampling
 0x1052d4	function	release_address_range
 0x10533c	function	lock_leave
 0x10535c	function	create_thread_on_heap_stack
-0x1053f8	function	thread_join
+0x1053f8	function	join_thread
 0x105430	function	lock_enter
 0x105468	function	MCUHID_cmd0001
 0x1054a0	function	MCUHID_EnableAccelerometerInterrupt
@@ -146,13 +158,16 @@
 0x105db8	function	update_accelerometer
 0x105f20	function	I2CHID_ReadRegisterBuffer
 0x10625c	function	svcGetProcessId
+0x106274	function	gate_close
+0x1062a8	function	gate_wait
+0x106388	function	light_lock_unlock
 0x1063dc	function	reserve_address_range
 0x1065e0	function	service_close
 0x106624	function	service_open
 0x106720	function	CFG_GetConfigInfoBlk8
 0x106770	function	ERRF_Throw
 0x1067a8	function	hid_GetIPCHandles
-0x1067f0	function	MCUHID_GetSoundVolume
+0x1067f0	function	mcu_get_sound_volume
 0x106800	function	hid_EnableGyroscopeLow
 0x106908	function	hid_EnableAccelerometer
 0x10693c	function	MCUHID_cmd0006
@@ -183,24 +198,33 @@
 0x1079dc	function	hid_cmd0004
 0x1079ec	function	apply_accelerometer_calibration
 0x107a24	function	read_buttons
+0x107ce4	function	svcBreak
 0x107cec	function	thread_trampoline
+0x107d30	function	svcExitThread
 0x107d38	function	svcSleepThread
-0x107e98	function	lock_wait
+0x107e18	function	memcpy_words
+0x107e98	function	lock_arbitrate_wait
 0x107f7c	function	heap_alloc_unlocked
 0x107fe0	function	find_session_events
 0x108090	function	I2CHID_ReadRegisterBuffer8
+0x1080fc	function	MCUHID_GetSoundVolume
 0x108354	function	heap_alloc
 0x10845c	function	CFG_SetConfigInfoBlk4
 0x1084a8	function	CFG_UpdateConfigNANDSavegame
+0x1084e0	function	heap_find_block
+0x10867c	function	heap_split_block
 0x108860	function	svcCreateMutex
 0x108878	function	svcDuplicateHandle
 0x108890	function
-0x1088a0	function
+0x1088a0	function	session_slots_dtor
 0x1088bc	function
+0x1088c0	function	shared_memory_dtor
 0x1088ec	function
+0x108bd0	function	thread_dtor
 0x108c50	function	session_slot_construct
 0x108c98	function	session_slot_destroy
-0x108d34	function	PTMSYSM_NotifySleepPreparationComplete
+0x108d34	function	ptm_notify_sleep_preparation_complete
+0x108d3c	function	PTMSYSM_NotifySleepPreparationComplete
 0x108d7c	function	on_terminate_notification
 0x108d88	function
 0x108d9c	function
@@ -208,17 +232,17 @@
 0x108e30	function
 0x108e34	function
 0x108e38	function
-0x108e3c	function
-0x108e8c	function
-0x108f6c	function
-0x108f80	function
-0x108fe0	function
+0x108e3c	function	static_init_errf_port
+0x108e8c	function	static_init_notification_handlers
+0x108f6c	function	static_init_gpio_handle
+0x108f80	function	static_init_main_thread_handle
+0x108fe0	function	static_init_cfg_handle
 0x108ff4	function	static_init_hid_globals
 0x1091e0	function
-0x109214	function
+0x109214	function	static_init_ptm_handle_copy
 0x109228	function
 0x109284	function
-0x109298	function
+0x109298	function	static_init_cfg_handle_copy
 0x1092ac	function
 0x1092b0	function
 0x1092b4	function
@@ -227,8 +251,8 @@
 0x109314	function
 0x10934c	function
 0x109384	function
-0x109398	function
+0x109398	function	static_init_ptm_handle
 0x1093ac	function
 0x1093c0	function
-0x1093d4	function
+0x1093d4	function	static_init_accelerometer_calibration
 0x109468	function
