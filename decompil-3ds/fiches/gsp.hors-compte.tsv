@@ -1,0 +1,12 @@
+adresse	raison
+0x100040	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x106624	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x106648	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x10664c	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x10667c	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x1066b0	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x1066d4	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x1066f8	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x106714	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x10680c	pas une fonction : donnée ou morceau d'une autre fonction (relecture du 17/10)
+0x1065f0	code mort : __aeabi_idivmod, rien ne l'appelle ni ne le désigne ; __aeabi_uidivmod saute dans son corps

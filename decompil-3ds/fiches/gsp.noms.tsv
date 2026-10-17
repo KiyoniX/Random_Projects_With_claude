@@ -2,6 +2,8 @@
 0x100024	function	clear_bss
 0x100048	function
 0x100070	label	static_guard_acquire
+0x10013c	label	run_static_initializers
+0x100160	function	svcExitProcess
 0x100168	function	gsp_main
 0x100274	function	setup_heap
 0x100314	function	get_notification_semaphore
@@ -10,11 +12,17 @@
 0x100468	function	gsp_initialize
 0x10052c	function	subscribe_notifications
 0x100588	function	gsp_service_loop
+0x100a88	function	_get_lc_ctype
+0x100ad0	function	_get_lc_numeric
 0x100b18	function	svcAcceptSession
 0x100b30	function	svcControlMemory
 0x100b54	function	strcmp
+0x100c10	function	create_lock_arbiter_once
 0x100c4c	function	create_shared_memory_block
-0x100ce0	function	destroy_shared_memory_block
+0x100ce0	function	unmap_shared_memory
+0x100d4c	function	init_runtime
+0x100dd8	function	init_vm_region_10000000
+0x100dec	function	store_thread_local_owner
 0x100e00	function	SRV_RegisterClient
 0x100e3c	function	SRV_RegisterService
 0x100e98	function	SRV_UnregisterService
@@ -42,6 +50,7 @@
 0x1023ec	function	svcQueryMemory
 0x10241c	function	svcReplyAndReceive
 0x102434	function	map_shared_memory
+0x1024b8	function	release_address_range
 0x102520	function	is_new_3ds
 0x1025c0	function	SRV_ReceiveNotification
 0x1025fc	function	prepare_sleep
@@ -71,16 +80,18 @@
 0x103424	function	gsplcd_SetBrightness
 0x1034c4	function	gsplcd_EnableABL
 0x103540	function	gsplcd_SetRSLut
-0x103650	function
-0x103660	function
-0x10366c	function
+0x103650	function	thread_functor_copy
+0x103660	function	thread_functor_invoke
+0x10366c	function	thread_functor_destroy
 0x103670	function	msg_queue_init
 0x10373c	function	svcBindInterrupt
 0x10374c	function	svcConnectToPort
 0x103764	function	svcCreateThread
 0x103788	function	svcUnbindInterrupt
+0x103798	function	clear_thread_local_storage
 0x1037e4	function	reserve_address_range
 0x1039f8	function	errf_report_error
+0x103a30	function	pdn_close
 0x103a38	function	pdn_get_service_handle
 0x103a64	function	PDNG_Control
 0x103ab4	function	ptm_check_new_3ds_cached
@@ -88,7 +99,7 @@
 0x103d54	function	gpu_session_close
 0x103e8c	function	gpu_session_open
 0x103f14	function	gspgpu_handle_command
-0x10471c	function
+0x10471c	function	handle_clear
 0x104728	function	vram_save_reset
 0x104758	function	vram_save_store_all
 0x104800	function	interrupt_thread_main
@@ -98,9 +109,11 @@
 0x1055c0	function	msg_queue_try_send
 0x1056a4	function	atomic_increment
 0x1057ac	function	thread_trampoline
+0x1057f0	function	svcExitThread
 0x1057f8	function	svcGetProcessId
 0x105810	function	svcGetThreadId
 0x105828	function	__aeabi_ldivmod
+0x105890	function	light_lock_unlock
 0x1058e4	function	wait_on_handle_pointers
 0x105afc	function	ERRF_Throw
 0x105b34	function	MCUGPU_GetMcuFwVerHigh
@@ -111,6 +124,7 @@
 0x105c70	function	qtm_notify_top_lcd_mode_change
 0x105ca4	function	qtm_close
 0x105d3c	function	qtm_open
+0x105df8	function	atexit_stub
 0x105e04	label	destroy_array
 0x105f24	function	cmd_queue_set_thread_priority
 0x105fa4	function	rights_grant
@@ -121,12 +135,13 @@
 0x106528	function	decode_thread_priority
 0x106564	function	n3ds_extra_vaddr_to_paddr
 0x106594	function	linear_vaddr_to_paddr
+0x1065f0	function	__aeabi_idivmod
 0x10681c	function	I2CLCD_ReadRegisterBuffer8
 0x106888	function	I2CLCD_WriteRegister8
 0x1069c0	function	qtm_notify_top_lcd_power_on
 0x1069f4	function	throw_error
 0x106b50	function	mcugpu_open
-0x106c18	function	busy_wait
+0x106c18	function	delay_loop
 0x106c28	function	perf_log_record
 0x106d94	function	display_take_framebuffer_info
 0x106de8	function	tls_slot_set
@@ -134,9 +149,12 @@
 0x106e04	function	cmd_queue_clear_owner
 0x106e2c	function	cmd_queue_peek_status
 0x106f38	function	srv_get_service_handle_by_name
-0x106f64	function	SRV_GetServiceHandle
+0x106f64	function	srv_get_service_handle
+0x106f98	function	i2c_close
+0x106fa0	function	svcCloseHandle
 0x1070c4	function	__aeabi_uidivmod
 0x1070f4	function	gsplcd_SetBrightnessRaw
+0x1074cc	function	memcpy_words
 0x107540	function	write_hw_regs
 0x1075a4	function	dma_release
 0x1075c0	function	wait_handle_forever
@@ -156,7 +174,7 @@
 0x107c7c	function	svcArbitrateAddress
 0x107c94	function	lcd_update_force_black
 0x107ce4	function	pdn_gpu_control
-0x107e48	function	light_event_wait
+0x107e48	function	gate_wait
 0x107f10	function	svcCreateEvent
 0x107f28	function	get_interrupt_manager
 0x107f34	function	lcd_apply_config
@@ -174,18 +192,21 @@
 0x108710	function	get_gpu_hw
 0x10871c	function	light_event_signal
 0x1087d4	function	lock_init
-0x1087f0	function	light_event_init
+0x1087f0	function	gate_close
+0x108824	function	copy_service_name
 0x108838	function	create_thread
-0x108928	function	thread_join
-0x108960	function	panic_on_error
+0x108928	function	join_thread
+0x108960	function	panic_on_failure
 0x1089d0	function	svcWaitSynchronizationN
 0x1089f4	function	get_sleep_state
 0x108a00	function	srv_is_initialized
 0x108a1c	function	strlen
+0x108a7c	label	construct_array
 0x108aa0	function	SRV_Subscribe
 0x108ad8	function	pdc_init
 0x108b38	function	unregister_interrupt_callbacks
 0x108bd4	function	lock_leave
+0x108bf4	function	abort
 0x108bf8	function	break_process
 0x108c4c	function	lock_enter
 0x108c84	function	fatal_error
@@ -222,11 +243,13 @@
 0x1098c8	function	cfg_load_lcd_settings
 0x109b84	function	write_hw_reg_repeat
 0x10aa70	function	msg_queue_receive
+0x10ab64	function	svcBreak
 0x10ab6c	function	svcGetProcessInfo
 0x10ab88	function	svcSleepThread
 0x10ab94	function	__aeabi_uldivmod
 0x10ae84	function	svcStopDma
 0x10aeac	function	start_inter_process_dma
+0x10af2c	function	lock_arbitrate_wait
 0x10b19c	function	heap_alloc_unlocked
 0x10b200	function	MCUGPU_GetMcuGpuEventHandle
 0x10b234	function	MCUGPU_GetGpuLcdInterfaceState
@@ -234,11 +257,12 @@
 0x10b2a8	function	MCUGPU_GetLcdPowerState
 0x10b2e8	function	MCUGPU_SetGpuLcdInterfaceState
 0x10b320	function	mcu_get_service_handle
-0x10b34c	function	QTMSP_GetCameraLuminance
+0x10b34c	function	qtm_get_camera_luminance
 0x10b380	function	QTMSP_NotifyTopLcdModeChange
 0x10b3bc	function	QTMSP_NotifyTopLcdPowerOn
 0x10b3f0	function	qtm_is_expander_in_use
 0x10b424	function	qtm_notify_top_lcd_power_off
+0x10b458	function	SRV_GetServiceHandle
 0x10b4b4	function	cmd_queue_is_idle
 0x10b504	function	rights_acquire
 0x10b728	function	gspgpu_ReleaseRight
@@ -261,24 +285,29 @@
 0x10c360	function	gx_display_transfer
 0x10c5b4	function	pdc_set_framebuffer
 0x10c754	function	pdc_set_top_screen_mode
+0x10cbf8	function	log10f
 0x10cdcc	function	heap_alloc
 0x10ce30	function	svcStartInterProcessDma
 0x10cf30	function	mutex_try_lock
-0x10cfb8	function	cfg_get_service_handle
+0x10cf74	function	service_close
+0x10cfb8	function	service_open
 0x10d0b4	function	CFG_GetSystemModel
 0x10d0f4	function	CFG_GetConfigInfoBlk8
+0x10d144	function	heap_find_block
 0x10d2cc	function	QTMSP_IsExpanderInUse
 0x10d30c	function	QTMSP_NotifyTopLcdPowerOff
+0x10d340	function	QTMSP_GetCameraLuminance
 0x10d380	function	dma_semaphore_acquire
 0x10d434	function	dma_semaphore_release
 0x10d444	function	p3d_submit_command_list
 0x10d4a8	function	svcSignalEvent
 0x10d4c8	function	gpu_hw_reset
+0x10d5a8	function	heap_split_block
 0x10d78c	function	cmd_queue_set_owner
 0x10d7b4	function	display_set_owner
 0x10d824	function	set_axi_qos
 0x10d86c	function	svcDuplicateHandle
-0x10d884	function
+0x10d884	function	session_threads_dtor
 0x10d8a0	function
 0x10d8a4	function
 0x10d930	function
@@ -292,24 +321,25 @@
 0x10dab0	function
 0x10db04	function
 0x10db10	function
+0x10db48	function	shared_memory_dtor
 0x10db78	function
 0x10dba8	function
 0x10dcac	function
-0x10dcb0	function
-0x10dd00	function
+0x10dcb0	function	static_init_errf_port
+0x10dd00	function	static_init_pdn_handle
 0x10dd14	function
-0x10dd70	function
-0x10ddd0	function
+0x10dd70	function	static_init_main_thread_handle
+0x10ddd0	function	static_init_cfg_handle
 0x10dde4	function
-0x10de18	function
-0x10de2c	function
-0x10de40	function
+0x10de18	function	static_init_ptm_handle_copy
+0x10de2c	function	static_init_qtm_handle_copy
+0x10de40	function	static_init_qtm_request_handle
 0x10de54	function
 0x10deb0	function
-0x10dec4	function
+0x10dec4	function	static_init_cfg_handle_copy
 0x10ded8	function
 0x10dedc	function
-0x10dee0	function
+0x10dee0	function	static_init_i2c_lcd_handle
 0x10def4	function
 0x10df2c	function
 0x10df40	function
@@ -317,7 +347,7 @@
 0x10dfa0	function
 0x10dfd8	function
 0x10e010	function
-0x10e024	function
-0x10e038	function
+0x10e024	function	static_init_ptm_handle
+0x10e038	function	static_init_qtm_handle
 0x10e2cc	function
 0x10e2e0	function
