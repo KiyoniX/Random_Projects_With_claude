@@ -11,9 +11,9 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000003502`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `news`, priorité 60 (`0x3C`) |
 | Fichier lu | `local/extrait/news/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x9568` octets de code (`0xA` pages), `0xBE8` de données en lecture seule (1 page), `0x500` de données (1 page), `0x26DB0` de mémoire à zéro, pile de `0x2000` |
-| Fonctions | 719 pour Ghidra, dont 666 en Thumb et 53 en ARM ; 33 nommées dans `news.noms.tsv`, aucun nom sans fonction |
+| Fonctions | 719 pour Ghidra (666 en Thumb, 53 en ARM), plus 15 entrées manquées et 3 trouvées à la main, moins 6 qui ne sont pas des fonctions et 2 codes morts : 729 ; 77 nommées dans `news.noms.tsv`, 725 avec `local/analyse/news/noms-proposes.tsv` |
 | Services offerts | `news:u` (1 session) et `news:s` (2 sessions) : la table des noms est à `0x10A4F4` |
-| Services appelés | lus dans l'exheader : `boss:P`, `cecd:s`, `frd:u`, `fs:USER`, `ndm:u`, `nim:u`, `ptm:sysm`. Dans le code, des chaînes de nom pour `boss:P` (`0x102CFC`), `cecd:s` (`0x102764`), `ndm:u` (`0x104E04`), `nim:u` (`0x101304`), `fs:USER` (`0x1058A0`) ; `ptm:sysm` est dans la liste de noms `0x10A560` ; `frd:u` n'est écrit nulle part (le droit est déclaré, comme pour `cecd`) |
+| Services appelés | lus dans l'exheader : `boss:P`, `cecd:s`, `frd:u`, `fs:USER`, `ndm:u`, `nim:u`, `ptm:sysm`. Dans le code, des chaînes de nom pour `boss:P` (`0x102CFC`), `cecd:s` (`0x102764`), `ndm:u` (`0x104E04`), `nim:u` (`0x101304`), `fs:USER` (`0x1058A0`), `frd:u` (`0x101BF4`) et `frd:a` (`0x101CDC`, essayé en premier) ; `ptm:sysm` est pris dans la liste de noms `0x10A554` (+0xC). Tous sont ouverts (voir partie 1) |
 | Appelants connus | `news:u` : l'applet `maj` (exheader) ; `news:s` : `menu` (le menu HOME) et `newslist` (exheaders). Pokémon X n'ouvre aucun des deux |
 | Fichiers | `data:` puis `news.db` (la base), `news%03d.txt` (le message, UTF-16), `news%03d.mpo` (l'image) : chaînes UTF-16 à `0x10A9B2`, `0x10A9DC` et `0x10A9C2`, format `%s/%ls` à `0x10A9A4` |
 
@@ -21,16 +21,16 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 
 `news_main` (`0x10014C`, 820 octets) est un seul fil de service :
 
-1. Enregistre les deux services auprès de `sm` (`news_srv_register_service`, `0x10072C`, en-tête de commande 3) : la table `0x10A4F4` donne pour chacun son nom et le nombre de sessions (`news:u` 1, `news:s` 2).
-2. Prépare cinq objets globaux (initialisations gardées par des indicateurs de première utilisation, `0x105458` et ses voisines) et s'abonne à quatre notifications de `sm` (numéros `0x100`, `0x104`, `0x106`, `0x107` passés à `0x10530C` ; leur sens n'est pas relu).
-3. **Boucle** sur `ReplyAndReceive` (`svc_reply_and_receive`, `0x108DF8`) avec dix poignées au plus : six poignées d'événements et de notifications (rangs 0 à 5), les deux ports (rangs 6 et 7), puis les sessions ouvertes (rangs 8 et 9 : **deux sessions ouvertes au plus à la fois**, tous services confondus). Rang 6 ou 7 : `AcceptSession` (`svc_accept_session`, `0x108DE0`), la session est rangée avec le numéro de son service. Rang de 8 ou plus : une commande ; le module appelle `handler_table[service](session)` avec la table de deux adresses de `0x10A4D4` (`news_u_dispatch_command` `0x1078C8`, `news_s_dispatch_command` `0x1079D0`). Quand `ReplyAndReceive` rend `0xC920181A` (constante lue à `0x1004BC`, session fermée), la session est retirée (`news_close_session`, `0x1009AC`). Rangs 1 à 5 : un événement, traité par cinq paires de fonctions (`0x100830`, `0x100C54` et leurs voisines) que je n'ai pas lues.
+1. Enregistre les deux services auprès de `sm` (`SRV_RegisterService`, `0x10072C`, en-tête `0x00030100`) : la table `0x10A4F4` donne pour chacun son nom et le nombre de sessions (`news:u` 1, `news:s` 2).
+2. Prépare cinq sources d'événements (singletons sous garde : boss `0x105458`, cecd `0x10541C`, frd `0x1053E0`, nim `0x1053A4`, ndm `0x105368`) et s'abonne à quatre notifications (`register_notification_handler`, `0x10530C`) : `0x100` arrêt (`on_terminate_notification`), `0x104` veille (`on_sleep_notification`, réponse 0), `0x106` réveil complet (`on_wakeup_notification`), `0x107` réveil partiel (`on_half_awake_notification`, réponse 2) ; sens d'après `ptm.md`.
+3. **Boucle** sur `ReplyAndReceive` (`svcReplyAndReceive`, `0x108DF8`) avec dix poignées au plus : six poignées d'événements et de notifications (rangs 0 à 5), les deux ports (rangs 6 et 7), puis les sessions ouvertes (rangs 8 et 9 : **deux sessions ouvertes au plus à la fois**, tous services confondus). Rang 6 ou 7 : `AcceptSession` (`svcAcceptSession`, `0x108DE0`), la session est rangée avec le numéro de son service. Rang de 8 ou plus : une commande ; le module appelle `handler_table[service](session)` avec la table de deux adresses de `0x10A4D4` (`news_u_dispatch_command` `0x1078C8`, `news_s_dispatch_command` `0x1079D0`). Quand `ReplyAndReceive` rend `0xC920181A` (constante lue à `0x1004BC`, session fermée), la session est retirée (`news_close_session`, `0x1009AC`). Rangs 1 à 5 : l'événement d'une source, traité par son action : nouvelle arrivée boss (`on_boss_new_arrival` `0x1051A6`), informations cecd (`on_cecd_info_event` `0x105198`), notification frd (`on_friend_event` `0x105154`), événement nim (`on_nim_background_event` `0x100C54`), événement passé à ndm (`poll_event_sources` `0x100830`, qui interroge les quatre autres).
 4. À l'arrêt (indicateur à `0x10B498` levé, plus aucune session ouverte) : ferme les services et rend la main.
 
-Appels système trouvés : 0x17 CreateEvent, 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest (`0x105048`), 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive. Les noms viennent de `fiches/kernel11.md`.
+Appels système trouvés : 0x01 ControlMemory, 0x02 QueryMemory, 0x03 ExitProcess, 0x0A SleepThread, 0x17 CreateEvent, 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest (`svcSendSyncRequest`, `0x105048`), 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive. Les noms viennent de `fiches/kernel11.md`.
 
 ## Partie 2 : les deux aiguillages
 
-Chaque aiguillage lit le numéro de commande dans les 16 bits du haut de l'en-tête (`bitfield_extract`, `0x1038E8`), saute à un cas par une table de `switch` (Ghidra ne la reconstruit pas ; `emulate_dispatch.py` l'exécute) et vérifie l'en-tête et les descripteurs (`ipc_check_header`, `0x1038A0`). Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F`, comme les autres modules.
+Chaque aiguillage lit le numéro de commande dans les 16 bits du haut de l'en-tête (`extract_bits`, `0x1038E8`), saute à un cas par une table de `switch` (Ghidra ne la reconstruit pas ; `emulate_dispatch.py` l'exécute) et vérifie l'en-tête et les descripteurs (`ipc_check_header`, `0x1038A0`). Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F`, comme les autres modules.
 
 Les deux tables ont été exécutées par `emulate_dispatch.py news 0x1078c8=news:u 0x1079d0=news:s` :
 
@@ -79,7 +79,7 @@ Notes :
 
 - **`news:s` 0x2 et 0x3 sont des commandes vides.** Le code les accepte (numéro seul), sans lire de paramètre ni appeler de fonction : le cas répond directement succès (résultat 0, réponses `0x00020040` et `0x00030040`). La Carte les avait déjà, en en-têtes incomplets avec la note de 3dbrew « Stubbed, only returns 0 » : le code confirme 3dbrew. (Corrigé le 17/10 : la première version de cette fiche les disait absentes de la Carte.)
 - `news:u` AddNotification a un en-tête différent de celui de `news:s` : `0x000100C8` contre `0x000100C6`. D'après l'émulation, la version pour les jeux contient un descripteur de numéro de processus (rempli par le noyau) : le service des jeux **prend l'identité de l'appelant par son numéro de processus**, celui du menu la reçoit dans la requête.
-- Les gestionnaires sont de fines enveloppes : chacun prend l'objet global de la base (`0x105298`, un singleton) et appelle une méthode. `SetInfoLEDPattern` (0xE) ne touche pas à la base : elle appelle la fonction qui envoie la commande à `ptm:sysm` (`0x104E48`, qui sert aussi à la fin d'AddNotification avec le motif 2).
+- Les gestionnaires sont de fines enveloppes : chacun prend l'objet global de la base (`0x105298`, un singleton) et appelle une méthode. `SetInfoLEDPattern` (0xE) ne touche pas à la base : elle appelle `info_led_set_pattern` (`0x104E48`) : motif de 100 octets pris dans la table `0x10A0C8` (pair en veille, impair sinon) et envoyé par `PTMSYSM_SetInfoLEDPattern` (`0x102070`) ; la même fonction sert à la fin d'AddNotification avec le motif 2.
 
 ## Partie 4 : une opération pas à pas, AddNotification
 
@@ -87,9 +87,9 @@ Un jeu ajoute une notification par `news:u` (commande 1, `0x000100C8`). Lu dans 
 
 1. `news_u_dispatch_command` (`0x1078C8`) vérifie l'en-tête en entier et les descripteurs (le numéro de processus, puis les tampons en lecture : l'en-tête de notification, le message, l'image), appelle le gestionnaire et répond `0x00010046`.
 2. Le gestionnaire s'assure que le singleton de la base est initialisé (garde de première utilisation) puis appelle `0x107688`.
-3. `0x107688` copie les `0x70` octets de l'en-tête dans un tampon local (`0x104504`, `0x104FB8`), **résout le numéro de processus en identifiant de titre** (`0x1068B2`), range celui-ci dans l'en-tête, lit une seconde valeur (`0x10716C`, interprété comme l'heure) et la range.
-4. Elle écrit la notification dans la base par la méthode `0x104520` (taille `0x70` pour l'en-tête, et les tailles des tampons du message et de l'image ; ce qu'elle fait de `news.db`, `news%03d.txt` et `news%03d.mpo` n'est pas relu).
-5. Elle relit l'en-tête de la base (`0x10` octets, `0x104C8E`), lève le bit 0 de son quatrième octet s'il ne l'était pas (interprété : « il y a des notifications non lues ») et le réécrit (`0x104C6C`).
+3. `news_u_add_notification` (`0x107688`) copie au plus `0x70` octets de l'en-tête (`clamp` `0x104504`, `__aeabi_memcpy` `0x104FB8`), **résout le numéro de processus en identifiant de programme** par `FSUSER_GetProgramLaunchInfo` (`fs_get_program_launch_info`, `0x1068B2`) et le range en +8, puis range l'heure (`get_current_time`, `0x10716C`) en +0x28.
+4. Elle écrit la notification par `news_db_add_notification` (`0x104520`) : si la base est pleine (100) ou si la place libre (`FSUSER_GetFreeBytes`, en blocs de 0x1000) ne suffit pas, retire la plus ancienne (`news_db_remove_entry`, ses fichiers `news%03d.txt`/`.mpo` effacés) ; puis en-tête dans la case libre, message dans `news%03d.txt`, image dans `news%03d.mpo`, `news.db` réécrit et la table d'ordre triée par date.
+5. Elle relit l'en-tête de la base (`0x10` octets, `news_db_get_header` `0x104C8E`), lève le bit 0 de son **deuxième** octet (+1) s'il ne l'était pas (interprété : « il y a des notifications non lues » ; les arrivées boss et cecd lèvent de même les bits 0 et 1) et le réécrit (`news_db_set_header`, `0x104C6C`).
 6. Elle règle la diode de notification sur le motif 2 (`0x104E48` : `ptm:sysm`, `SetInfoLEDPattern`, comme la Carte le note) et rend 0.
 
 ## Partie 5 : tables en mémoire
@@ -99,7 +99,7 @@ Un jeu ajoute une notification par `news:u` (commande 1, `0x000100C8`). Lu dans 
 | `0x10A4D4` | table des aiguillages : `0x1078C9`, `0x1079D1` (adresses Thumb) |
 | `0x10A4F4` | table des services : (nom, nombre de sessions) `news:u` 1, `news:s` 2 |
 | `0x10A504` | les noms `news:u` et `news:s` |
-| `0x10A512` à `0x10A99A` | la liste de noms de services de la bibliothèque commune (`nim:u`, `fs:LDR`, `fs:USER`, `ndm:u`, `srv:pm`, `boss:U/P/M`, `cecd:u/s`, `data:`, `err:f`, `ptm:*`, `APT:A`, `gsp::*`) : pas des sessions ouvertes par `news` |
+| `0x10A512` à `0x10A99A` | la liste de noms de services de la bibliothèque commune (`nim:u`, `fs:LDR`, `fs:USER`, `ndm:u`, `srv:pm`, `boss:U/P/M`, `cecd:u/s`, `data:`, `err:f`, `ptm:*`, `APT:A`, `gsp::*`) : la bibliothèque y prend `ptm:sysm` (`0x10A554` + 0xC, `ptm_sysm_open`) et le nom du port `err:f` ; les autres noms ne sont pas ouverts par `news` |
 | `0x10A9A4` à `0x10A9DC` | `%s/%ls`, `news.db`, `news%03d.mpo`, `news%03d.txt` (chaînes UTF-16) |
 | `0x10B280` à `0x10B290` | les pointeurs vers `data:`, `%s/%ls`, `news.db`, `news%03d.txt`, `news%03d.mpo` |
 | `0x1004BC` | la constante `0xC920181A` du résultat « session fermée » |
@@ -122,6 +122,6 @@ Rien : le jeu n'ouvre ni `news:u` ni `news:s`. Pour le portage PC, `news` n'a ri
 
 **Pas lu** :
 - Le format de `news.db`, de l'en-tête de `0x70` octets et des fichiers de message et d'image : la lecture et l'écriture disque.
-- Pourquoi `news` appelle `boss:P`, `cecd:s`, `nim:u`, `ndm:u` (probablement pour recevoir les notifications venues de SpotPass, StreetPass et de l'eShop, et pour s'écarter pendant les mises à jour de `ndm`) : leurs appels n'ont pas été suivis.
-- Les cinq paires de fonctions qui répondent aux événements de la boucle.
+- Le sens exact des deux octets de l'état +0x2d60 (+4 en veille, +6 drapeau de SetAutomaticSyncFlag, +7 réveil partiel) est lu, celui des commandes `ndm:u` 0x18 et `boss:P` 0x438 ne l'est pas.
+- 4 fonctions restent sans nom (un rappel que rien n'atteint, voir `local/analyse/news/notes-100.md`) ; 595 noms nouveaux restent de confiance moyenne.
 - La synchronisation (`SyncArrivedNotifications`, `SyncOneArrivedNotification`, `SetAutomaticSyncFlag`) : seuls les gestionnaires d'entrée ont été lus.

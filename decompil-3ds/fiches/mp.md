@@ -1,6 +1,6 @@
 # mp, le multijoueur sans fil de bas niveau
 
-`mp` est un pilote de communication sans fil locale (le mode « MP », une communication par trames entre au plus 16 consoles proches), plus bas niveau que l'UDS de `nwm`. Il n'offre qu'un service, `mp:u`, une seule session à la fois. Le module n'est pas, comme les autres, en Thumb : 714 de ses 726 fonctions sont en ARM. Il parle à la puce Wi-Fi par `nwm::EXT` (une commande pour ouvrir l'accès au matériel) et lie lui-même une interruption.
+`mp` est un pilote de communication sans fil locale (le mode « MP », une communication par trames entre au plus 16 consoles proches), plus bas niveau que l'UDS de `nwm`. Il n'offre qu'un service, `mp:u`, une seule session à la fois. Le module n'est pas, comme les autres, en Thumb : 714 de ses 726 fonctions sont en ARM. Il demande l'accès au matériel par quatre commandes de `nwm::EXT` (0x2, 0x3, 0x4, 0x5, « Inconnue » dans la Carte), lit les réglages Wi-Fi de la flash par `cfg:nor`, puis pilote lui-même les ports Wi-Fi de type DS en `0x1EC78000` (décalages de GBATEK, supposé) et lie l'interruption `0x5F`.
 
 Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_direct.py`), `outils/emulate_dispatch.py` sur l'aiguillage (en ARM, de 0 à 0xFFFF) et la Carte des services (tirée de 3dbrew, page MP_Services). Adresses du module chargé à `0x00100000`. Les noms que la Carte donne sont rares : sur 20 commandes, 8 ont un nom (GetHandle, Initialize, Shutdown, Bind, SetBeaconData, SetAppData, RecvDataFrame, SendDataFrame).
 
@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002A02`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `mp`, priorité 39 (`0x27`) |
 | Fichier lu | `local/extrait/mp/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x1F724` octets de code (`0x20` pages), `0x96C` de données en lecture seule (1 page), `0xD8` de données (1 page), `0x3D8F4` de mémoire à zéro (la plus grosse part du module : les tampons de trames), pile de `0x1000` |
-| Fonctions | 726 pour Ghidra, dont 12 en Thumb et 714 en ARM ; 22 nommées dans `mp.noms.tsv`, aucun nom sans fonction |
+| Fonctions | 726 pour Ghidra (12 en Thumb, 714 en ARM), plus 50 entrées manquées et 1 trouvée à la main, moins 10 qui ne sont pas des fonctions et 4 codes morts : 763 ; 67 nommées dans `mp.noms.tsv`, 371 avec `local/analyse/mp/noms-proposes.tsv`, 392 sans nom |
 | Service offert | `mp:u`, 1 session : table (nom, nombre de sessions) à `0x120030`, nom à `0x120040` |
 | Services appelés | lus dans l'exheader : `nwm::EXT`, `cfg:nor`, `ptm:s`. Dans le code, des chaînes pour `nwm::EXT` (`0x120070`), `cfg:nor` (`0x1207A4`), `ptm:s` (`0x1207BB`, dans la liste de la bibliothèque) |
 | Droits du noyau (exheader) | l'interruption `0x5F`, et des plages d'adresses matérielles à `0x1EC65000`, `0x1EC66000`, `0x1EC74000`, `0x1EC78000` et `0x1EC79000` (décodage de l'exheader par `capdec.py`, la correspondance avec les périphériques n'est pas lue) |
@@ -22,12 +22,12 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 
 `mp_main` (`0x100424`, un seul fil de service) :
 
-1. **Prépare le matériel.** `0x113988` (tas), l'enregistrement du service (`0x1012E8`, en-tête de commande 3, avec le nom lu dans la table `0x120030` et le nombre de sessions 1) puis `0x101138`, `0x100A88` (772 octets : initialisation du module), un `SetThreadPriority` (svc `0x0C`), `0x101040`, un envoi (`0x101974`, en-tête `0x00050082`, 2 mots ordinaires et 2 descripteurs, la taille `0x1D8`) à un service dont la poignée n'est pas identifiée ; `nwm::EXT` est le seul autre service que le module peut parler, avec `cfg:nor` et la liaison de l'interruption (`BindInterrupt`, svc `0x50`, enveloppe `0x106058`).
-2. S'abonne à quatre notifications de `sm` (numéros `0x100`, `0x104`, `0x103` et `0x302`, passés à `0x1137E8`).
+1. **Prépare le matériel.** `srv_init` (`0x113988`), l'enregistrement du service (`SRV_RegisterService`, `0x1012E8`, « mp:u », 1 session), `ptm_open` (`0x101138`, « ptm:s »), `mp_context_init` (`0x100A88`, 772 octets : tas, files, verrous, bloc partagé, événements des 16 nœuds), un `SetThreadPriority` (svc `0x0C`), `cfg_nor_open` (`0x101040` : « cfg:nor » et `CFGNOR_Initialize`), `CFGNOR_ReadData(0x28, tampon, 0x1D8)` (`0x101974` : les réglages Wi-Fi de la flash), `cfg_nor_close` et `nwmext_open` (`0x1010D0`) ; l'interruption est liée plus tard par `wifi_irq_bind` (`0x106058`, `BindInterrupt` svc `0x50`).
+2. S'abonne à quatre notifications de `sm` (numéros `0x100`, `0x104`, `0x103` et `0x302`, `register_notification_handler` `0x1137E8`, puis `SRV_Subscribe`) : `0x100` arrêt (`on_terminate_notification`), `0x104` veille (`on_sleep_notification` : `mp_shutdown_impl(1)` puis réponse 0), `0x103` veille acceptée (`on_sleep_accepted_notification` : `mp_shutdown_impl(1)` puis réponse 1), `0x302` (`on_notification_302` : `mp_shutdown_impl(0)`, sens non lu).
 3. **Boucle** sur `ReplyAndReceive` (`0x1009B4`) avec les poignées du module : la notification de `sm`, le port du service, la session (une au plus). Un port actif : `AcceptSession` (`0x100978`) ; une session : `handler(session)` avec la fonction dont l'adresse est à `0x12000C` : `mp_u_dispatch_command` (`0x11D1DC`). Une session fermée est retirée.
-4. À l'arrêt : retire le service, arrête les temporisateurs et ferme les poignées (`0x100DA8`, `0x1010C4`, `0x1010E4`, `0x101398`).
+4. À l'arrêt : `SRV_UnregisterService`, `mp_shutdown_impl` (`0x1136AC`), `mp_context_finalize` (`0x100DA8`), `nwmext_close` (`0x1010C4`), `ptm_close` (`0x1010E4`), `srv_exit` (`0x101398`).
 
-Appels système trouvés : 0x0C SetThreadPriority, 0x13 CreateMutex, 0x14 ReleaseMutex, 0x17 CreateEvent, 0x18 SignalEvent, 0x19 ClearEvent, 0x1A CreateTimer, 0x1B SetTimer, 0x1C CancelTimer, 0x1D ClearTimer, 0x1E CreateMemoryBlock, 0x1F MapMemoryBlock, 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x25 WaitSynchronizationN, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest, 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive, **0x50 BindInterrupt, 0x51 UnbindInterrupt** (aucun autre module de cette série ne lie d'interruption, à part `mvd`). Les noms viennent de `fiches/kernel11.md`.
+Appels système trouvés : 0x01 ControlMemory, 0x03 ExitProcess, 0x08 CreateThread, 0x09 ExitThread, 0x0A SleepThread, 0x0C SetThreadPriority, 0x13 CreateMutex, 0x14 ReleaseMutex, 0x17 CreateEvent, 0x18 SignalEvent, 0x19 ClearEvent, 0x1A CreateTimer, 0x1B SetTimer, 0x1C CancelTimer, 0x1D ClearTimer, 0x1E CreateMemoryBlock, 0x1F MapMemoryBlock, 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x25 WaitSynchronizationN, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest, 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive, **0x50 BindInterrupt, 0x51 UnbindInterrupt** (aucun autre module de cette série ne lie d'interruption, à part `mvd`). Les noms viennent de `fiches/kernel11.md`.
 
 ## Partie 2 : l'aiguillage
 
@@ -70,7 +70,7 @@ Notes (lues dans les gestionnaires, interprétées pour le sens) :
 - **L'état du module.** Chaque gestionnaire commence par lire un entier d'état à `0x121004` (l'adresse est dans un mot de chaque fonction, `0x11D784`, `0x11DC04`...) : 0 = le pilote est prêt (les commandes agissent) ; sinon le gestionnaire rend l'un de deux codes d'erreur selon que l'état vaut 1 ou autre : `0xC9609414` (état 1) et `0xC9609402` (autre état) pour `SendDataFrame`, avec en plus `0xC9609401` quand l'envoi est refusé, `0xC9609403` et `0xC9609407` pour la lecture d'une trame (interprété : « pas initialisé » et « arrêt en cours »). `Initialize` (`0x2`) passe de l'état 2 à 0 et refuse l'état 1 ; `Shutdown` (`0x3`) ramène à 0 et défait les structures.
 - **Les nœuds.** `Bind` (`0x4`) refuse un numéro de nœud supérieur à 15 ; `RecvDataFrame` (`0x11`) lit dans la file du nœud de numéro inférieur à 16 (base `0x122C48` + `0x2D6A8`, soit `0x14F2F0`, 0x2C octets par nœud, un anneau de 8 trames de 700 octets au plus) : le module prévoit donc **16 nœuds** et des trames de **700 octets**.
 - **Les données d'annonce.** `SetBeaconData` (`0x5`) et `SetAppData` (`0x7`) refusent plus de `0x70` octets (112) : c'est la taille des données d'application que le pilote annonce.
-- `GetHandle` (`0x1`) rend une poignée prise dans une table de 16 entrées selon l'indice demandé (`0x1186B4`) : les événements du pilote (par nœud et deux généraux).
+- `GetHandle` (`0x1`, `mp_get_handle_impl` `0x1186B4`) rend pour l'indice 0 à 15 l'événement du nœud (contexte +0x2CAA4), pour 0x10 la poignée [0x14F648+0xE4] et au-delà [0x14F648+0x88].
 
 ## Partie 4 : une opération pas à pas, RecvDataFrame
 
@@ -87,7 +87,7 @@ Notes (lues dans les gestionnaires, interprétées pour le sens) :
 
 | Adresse | Contenu |
 | --- | --- |
-| `0x12000C` | la table du service : `0x11D1DC` (aiguillage), d'autres adresses ARM (`0x11F668`, `0x11F6A4`, `0x11F67C`, `0x1136A4`) à la suite, non lues |
+| `0x12000C` | la table du service : `0x11D1DC` (aiguillage), puis les gestionnaires des notifications copiés par `mp_main` : `0x11F668` (0x100), `0x11F6A4` (0x104), `0x11F67C` (0x103), `0x1136A4` (0x302) |
 | `0x120030` | table des services : (`mp:u`, 1 session) ; le nom est à `0x120040` |
 | `0x120048` à `0x12005C` | six fonctions (`0x11B2D4`, `0x118A60`, `0x112780`, `0x11BCBC`, `0x11B438`, `0x11BCF0`), non lues : probablement les rappels du pilote |
 | `0x120070` | le nom `nwm::EXT` |
@@ -112,6 +112,6 @@ Rien : le jeu n'ouvre pas `mp:u`. Pour le portage PC, `mp` n'a rien à rendre à
 - Le déroulement de RecvDataFrame (étape 5).
 
 **Pas lu** :
-- Le protocole Wi-Fi lui-même : balises, association, sélection du canal, temporisations, envoi des trames (`SendDataFrame` `0x14` n'est lu que par son premier appel, `0x11B22C`).
-- Les fonctions de rappel du pilote (`0x120048` et suivantes) et le gestionnaire de l'interruption.
-- Les 12 commandes sans nom.
+- Le protocole Wi-Fi lui-même : sens des 84 requêtes du pilote (gestionnaires des tables `0x1201C0`-`0x120420`, sans nom), balises, association, temporisations ; `SendDataFrame` est lu jusqu'à la file d'envoi (`mp_send_data_frame_impl` `0x11B22C`, `mp_send_data_frame` `0x10FD08`, `mp_send_queue_push_frame` `0x103200`).
+- Les six rappels `0x120048`-`0x12005C` et les fils du pilote (`0x1168BC`, `0x116EFC`) ; 371 fonctions nommées et 392 restent sans nom (`local/analyse/mp/notes-100.md`).
+- Les 12 commandes sans nom de la Carte : leur effet est lu en partie (0x8 et 0x10 : paramètres d'annonce puis requête 0x245 ; 0xA : masque des nœuds +0x398 ; 0xB : octet +0x2CB8E ; 0xC : drapeaux d'événements, effacés à la lecture ; 0xD : balayage, sortie de 0xC0 octets par entrée ; 0x13 : fermeture d'un nœud, `mp_node_close`), sans nom sûr.
