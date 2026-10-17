@@ -1,10 +1,13 @@
 0x14000000	function	entry
 0x14000024	function	clear_bss
 0x14000048	function
+0x14000118	label	destroy_array
 0x1400013a	label	construct_array
-0x14000168	function	svcExitProcess
+0x14000168	function	default_exit_handler
+0x1400016c	function	svcExitProcess
 0x14000174	function	ro_main
-0x14000644	function	init_c_locale
+0x14000610	function	run_init_array
+0x14000644	function	init_program_args
 0x14000698	function	svcAcceptSession
 0x140006b0	function	svcReplyAndReceive
 0x140006d4	function	init_session_pool
@@ -14,43 +17,58 @@
 0x14000794	function	fs_init
 0x140007e8	function	init_runtime_and_srv
 0x140007f8	function	srv_init
-0x1400091c	function	srv_get_notification_semaphore
+0x1400091c	function	get_notification_semaphore
 0x14000950	function	handle_srv_notification
 0x14000a0c	function	register_notification_handler
 0x14000a9c	function	srv_is_initialized
 0x14000ab8	function	SRV_RegisterService
 0x14000b14	function	SRV_UnregisterService
 0x14000b68	function	srv_exit
-0x14000cd0	function	init_address_arbiter
+0x14000c04	function	_get_lc_ctype
+0x14000c4c	function	_get_lc_numeric
+0x14000c94	function	svcCloseHandle
+0x14000c9c	function	FSUSER_Initialize
+0x14000cd0	function	create_lock_arbiter_once
 0x14000d0c	function	init_runtime
-0x14000d6c	function	SRV_GetServiceHandle
+0x14000d30	function	init_vm_region_0e000000
+0x14000d44	function	init_vm_region_10000000
+0x14000d58	function	store_thread_local_owner
+0x14000d6c	function	srv_get_service_handle
 0x14000da0	function	SRV_RegisterClient
 0x14000ddc	function	SRV_EnableNotification
 0x14000e18	function	SRV_ReceiveNotification
 0x14000e54	function	svcCreateAddressArbiter
 0x14000e6c	function	__aeabi_uidivmod
+0x14000e9c	function	clear_thread_local_storage
+0x14000f8c	function	SRV_GetServiceHandle
 0x1400106c	function	svcConnectToPort
 0x14001084	function	svcGetProcessInfo
-0x140010a4	function	handle_fatal_result
+0x140010a4	function	panic_on_failure
 0x14001230	function	svcGetProcessId
+0x14001248	function	light_event_init
+0x1400127c	function	light_event_wait
+0x1400135c	function	light_lock_unlock
 0x140013b0	function	errf_report_error
 0x140013e8	function	ERRF_Throw
+0x14001420	function	svcBreak
 0x14001428	function	svcSleepThread
+0x14001434	function	lock_arbitrate_wait
 0x14001518	function	heap_alloc_unlocked
 0x14001584	function	heap_alloc
+0x14001964	function	sha256_transform
 0x14001a9c	function	memcpy_unaligned
 0x14001e24	function	__aeabi_memmove
 0x140021c0	function	svcDuplicateHandle
 0x140021d8	function	svcQueryMemory
 0x14002208	function	destroy_static_sessions
-0x14002224	function	FS_UpdateSha256Context
-0x140022a8	function	FS_GetProgramLaunchInfo
+0x14002224	function	FSUSER_UpdateSha256Context
+0x140022a8	function	FSUSER_GetProgramLaunchInfo
 0x140022f0	function
 0x140022f4	function
 0x140023d8	function	handle_holder_dtor
-0x14002400	function	rsa_verify_sha256
-0x14002458	function	ps_exit
-0x14002484	function	ps_init
+0x14002400	function	verify_rsa_sha256_signature
+0x14002458	function	ps_close
+0x14002484	function	ps_open
 0x140024d4	function	PS_VerifyRsaSha256
 0x1400254c	function	sha256_hash
 0x140025b8	function	ldrro_LoadCRR
@@ -71,6 +89,7 @@
 0x14003f00	function	link_indexed_imports
 0x14003fc0	function	link_anonymous_imports
 0x14004050	function	apply_relocation
+0x140041bc	function	atexit_stub
 0x140041c0	function	cro_rebase_and_relocate
 0x14004a38	function	throw_fatal_error
 0x14004a68	function	cro_list_remove
@@ -79,19 +98,21 @@
 0x14004c60	function	cro_check_mapped
 0x14004e5c	function	cro_list_find
 0x14004eac	function	check_private_rw_block
-0x14004f50	function	recursive_lock_leave
-0x14004f70	function	recursive_lock_enter
+0x14004f50	function	lock_leave
+0x14004f70	function	lock_enter
 0x14004fa8	function	svcControlProcessMemory
 0x14004fc0	function	cro_find_named_export
-0x140050b4	function	sha256_software
+0x140050b4	function	sha256_digest
 0x1400519c	function	reloc_list_apply
 0x1400526c	function	svcQueryProcessMemory
+0x1400529c	function	__aeabi_memcpy
+0x14005324	function	memcpy_words
 0x14005398	function	fill_words
 0x140053c8	function	block_pool_init
-0x1400546c	function	panic_break
+0x1400546c	function	break_process
 0x140054c0	function	strlen
 0x14005520	function	strcmp
-0x140055dc	function	recursive_lock_init
+0x140055dc	function	lock_init
 0x140055f8	function	block_pool_base_dtor
 0x14005658	function	session_ctor
 0x140056d8	function	session_dtor
@@ -105,12 +126,12 @@
 0x14005fd4	function	cro_compute_fix_ends
 0x14006148	function
 0x1400614c	function
-0x14006158	function	sha256_final
+0x14006158	function	sha256_pad
 0x140061dc	function
-0x140061e0	function	sha256_update
-0x14006278	function	rsa_context_set_key
-0x14006330	function	rsa_context_clear
-0x1400635c	function	rsa_context_init
+0x140061e0	function	sha256_update_body
+0x14006278	function	rsa_key_set
+0x14006330	function	rsa_key_clear
+0x1400635c	function	rsa_key_construct
 0x14006390	function	crs_initialize
 0x140063d4	function	cro_link
 0x1400664c	function	cro_prepare_and_link
@@ -130,9 +151,9 @@
 0x14007bd4	function	cro_fix
 0x14007cc4	function
 0x14007cc8	function
-0x14007cdc	function
+0x14007cdc	function	static_init_errf_port
 0x14007d2c	function	init_static_sessions
-0x140080b4	function
+0x140080b4	function	static_init_main_thread_handle
 0x14008114	function
 0x14008148	function
 0x1400814c	function
@@ -146,5 +167,5 @@
 0x14008290	function
 0x140082a4	function	on_terminate_notification
 0x140082b8	function
-0x140082d8	function
+0x140082d8	function	invoke_notification_callback
 0x14008300	label	run_static_initializers

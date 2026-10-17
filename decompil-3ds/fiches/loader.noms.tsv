@@ -17,7 +17,7 @@
 0x140008cc	function	_get_lc_numeric
 0x14000914	function	svcConnectToPort
 0x1400092c	function	fs_initialize_session
-0x14000958	function	FS_SetPriority
+0x14000958	function	FSUSER_SetPriority
 0x14000988	function	fs_get_session
 0x140009cc	function	create_lock_arbiter_once
 0x14000a08	function	init_runtime
@@ -29,7 +29,7 @@
 0x14000b70	function	svcCreateAddressArbiter
 0x14000b88	function	svcQueryMemory
 0x14000bb8	function	svcSleepThread
-0x14000bc4	function	FS_InitializeWithSdkVersion
+0x14000bc4	function	FSUSER_InitializeWithSdkVersion
 0x14000bfc	function	clear_thread_local_storage
 0x14000c8c	function	SRV_GetServiceHandle
 0x14000d08	function	svcGetProcessInfo
@@ -49,9 +49,9 @@
 0x14001294	function	file_close_and_free
 0x14001304	function	file_read_impl
 0x14001344	function	file_close_handle
-0x1400136c	function	FS_OpenFileDirectly
+0x1400136c	function	FSUSER_OpenFileDirectly
 0x1400169c	function	strcmp
-0x14001758	function	pool_init
+0x14001758	function	block_pool_init
 0x140017f8	function	random_below
 0x1400187c	function	srv_get_service_handle
 0x140018b0	function	file_close

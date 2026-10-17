@@ -513,7 +513,7 @@
 0xfff1b5d8	function	gic_acknowledge_interrupt
 0xfff1b5fc	function	l2_cache_invalidate_and_disable
 0xfff1b65c	function	ncch_read_exheader_info
-0xfff1b6b0	function	memcpy_aligned
+0xfff1b6b0	function	memcpy_words
 0xfff1b724	function	worker_task_enqueue
 0xfff1b788	function	dma_program_reset
 0xfff1b7e8	function	sync_object_waiters_begin
