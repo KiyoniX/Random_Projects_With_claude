@@ -10,7 +10,7 @@ Fiche du 14 octobre 2026, faite avec Ghidra sur les deux images dumpées par boo
 
 Chaque image a deux moitiés de 32 Ko. La **moitié publique** (les 32 premiers Ko) ne contient que du code. La **moitié protégée** contient du code, et surtout, à la fin, un bloc de données : les clés que partagent toutes les consoles (clés RSA publiques et privées, données des emplacements AES), et dans boot11 des données destinées au mode DS. Ce qui est propre à **cette** console n'est pas dans les mémoires mortes mais dans l'OTP, que boot9 lit et déchiffre au démarrage (partie 3.2).
 
-Cette fiche et ses deux fichiers de noms ne contiennent **aucun octet** de ces données, ni de l'OTP, ni aucune empreinte de clé : seulement des adresses, des tailles, des numéros d'emplacements de clés et des adresses de registres matériels. Les blocs de données ont été rendus non exécutables dans Ghidra avant toute analyse, et les scripts qui écrivent les listings ne lisent jamais ce qu'ils contiennent (partie « Comment ce document a été fait »). Les fichiers d'analyse restent dans `local/analyse/boot/`, jamais versionnés.
+Cette fiche et ses deux fichiers de noms ne contiennent **aucun octet** de ces données, ni de l'OTP, ni aucune empreinte de clé : seulement des adresses, des tailles, des numéros d'emplacements de clés et des adresses de registres matériels. Les blocs de données ont été rendus non exécutables dans Ghidra avant toute analyse, et les scripts qui écrivent les listings ne lisent jamais ce qu'ils contiennent (partie « Comment ce document a été fait »). Les fichiers d'analyse restent dans `local/analyse/boot9/` et `local/analyse/boot11/`, jamais versionnés.
 
 ## Carte d'identité
 
@@ -19,10 +19,10 @@ Cette fiche et ses deux fichiers de noms ne contiennent **aucun octet** de ces d
 | Processeur | ARM946E-S (ARMv5TE), langage Ghidra `ARM:LE:32:v5t` | ARM11 MPCore (ARMv6K), `ARM:LE:32:v6` |
 | Fichier | `local/dump/systeme/boot9.bin`, 65 536 octets | `local/dump/systeme/boot11.bin`, 65 536 octets |
 | Adresse | `0xFFFF0000`-`0xFFFFFFFF` (vecteurs hauts de l'ARM9) | `0x00000000`-`0x0000FFFF`, copie à `0x00010000`-`0x0001FFFF`. Le code s'exécute à la copie : ses pointeurs visent `0x0001xxxx`. Les adresses de cette fiche sont celles de la copie |
-| Moitié publique | `0xFFFF0000`-`0xFFFF7FFF` : code jusqu'à `0xFFFF5D30`, puis des zéros | `0x00010000`-`0x00017FFF` : vecteurs et petit amorçage jusqu'à `0x000100F0`, code de `0x00011000` à `0x00013BA0`, puis des zéros |
+| Moitié publique | `0xFFFF0000`-`0xFFFF7FFF` : code jusqu'à `0xFFFF5D20`, puis une configuration NDMA de 16 octets et des zéros | `0x00010000`-`0x00017FFF` : vecteurs et petit amorçage jusqu'à `0x000100F0`, code de `0x00011000` à `0x00013BA0`, puis des zéros |
 | Moitié protégée | `0xFFFF8000`-`0xFFFFFFFF` : code jusqu'à `0xFFFFB088`, données de `0xFFFFB088` à `0xFFFFE290`, puis des zéros | `0x00018000`-`0x0001FFFF` : code jusqu'à `0x00019400` (avec une petite image de police à `0x0001817C`-`0x000181F4`), données jusqu'à `0x0001D198` |
 | Verrou de la moitié protégée | `CFG9_SYSPROT9` (`0x10000000`) bit 0 | `CFG9_SYSPROT11` (`0x10000001`) bit 0, écrit **par boot9** |
-| Fonctions | 564, dont 469 en Thumb ; 258 nommées dans `boot9.noms.tsv` (160 sur 402 dans la moitié publique, 98 sur 162 dans la protégée) | 227, dont 153 en Thumb ; 109 nommées dans `boot11.noms.tsv` (88 sur 163, 21 sur 64) |
+| Fonctions | 546 comptées (564 de Ghidra, 9 entrées manquées et 3 trouvées, moins 8 qui ne sont pas des fonctions et 22 fonctions mortes) ; nommées dans `boot9.noms.tsv` (les noms de confiance moyenne restent en proposition) | 217 comptées (227 de Ghidra, 13 entrées manquées et 2 trouvées, moins 8 qui ne sont pas des fonctions et 17 fonctions mortes) ; nommées dans `boot11.noms.tsv` (les noms de confiance moyenne restent en proposition) |
 | Point d'entrée | vecteur de reset `0xFFFF0000`, qui saute à `0xFFFF0030` puis à `crt0_start` (`0xFFFF8000`, moitié protégée) | vecteur de reset `0x00000000` (et `0x00010000`), qui saute à `reset_handler` (`0x00010028`) ; le cœur 0 continue à `0x00018000` puis `crt0_start` (`0x00018004`) |
 | Fonction principale | `main` (`0xFFFF8228`, Thumb) | `main` (`0x000182A4`, Thumb) |
 
@@ -89,7 +89,7 @@ Les quatre cœurs de la New 3DS (deux sur l'ancienne) partent tous de `reset_han
 
 | Étape | boot9 (`main`, `0xFFFF8228`) | boot11 (`main`, `0x000182A4`) |
 | --- | --- | --- |
-| Matériel | `hw_init_once` (`0xFFFF1FF8`) : minuteries (`0x10003000`), interruptions (`0x10001000`), moteurs DMA (`ndma_init`, `xdma_init`), et un relevé des boutons (`hid_take_boot_snapshot`, `0xFFFF4F64`) | `hw_init_once` (`0x0001263C`) : minuteries du MPCore et chien de garde coupé (`watchdog_disable`), contrôleur d'interruptions (`gic_init`, `0x0001267C`), compteurs de performance recopiés en `0x1FFFE000`-`0x1FFFE00B`, bus I2C, relevé des boutons, deux sorties GPIO |
+| Matériel | `hw_init_once` (`0xFFFF1FF8`) : minuteries (`0x10003000`), interruptions (`0x10001000`), moteurs DMA (`ndma_init`, `xdma_init`), et un relevé des boutons (`hid_take_boot_snapshot`, `0xFFFF4F64`) | `hw_init_once` (`0x0001263C`) : minuteries du MPCore et chien de garde coupé (`watchdog_disable`), contrôleur d'interruptions (`gic_init`, `0x0001267C`), banques de WRAM partagée, alimentation du GPU et DMA de l'ARM11 (`0x00012334`), compteurs de performance recopiés en `0x1FFFE000`-`0x1FFFE00B`, bus I2C, relevé des boutons, deux sorties GPIO |
 | Données pour l'ARM9 | | `copy_ntrcard_table_to_axi_wram` (`0x000182D0`) : `0x1000` octets de la moitié protégée de boot11 vers `0x1FFFD000`, lus plus tard par boot9 pour la cartouche DS |
 | Couvercle | | `read_shell_state` (`0x00013944`) : lit le registre `0x0F` du microcontrôleur par I2C (à défaut, le GPIO `0x10147000`) et écrit le résultat en `0x1FFFE00F` : 2 si le microcontrôleur dit le couvercle fermé, 0 sinon ; à défaut de réponse, le bit 2 du GPIO (1 si fermé, d'après 3dbrew) |
 | Rendez-vous PXI | `pxi_init` (`0xFFFF2220`) : envoie l'octet 9, attend 11 | `pxi_init` (`0x00012E14`) : envoie 11, attend 9 |
@@ -142,7 +142,7 @@ Un **support** est une petite table de cinq fonctions en DTCM (`0xFFF000C8`, pos
 
 **Le chiffrement de la NAND.** `boot_device_setup_nand` lit l'identifiant de la puce (CID, `sdmmc_get_nand_cid`) et en garde le SHA-256 en DTCM (`0xFFF00608`) : c'est le compteur AES-CTR de la NAND, avec l'**emplacement `0x06`**, choisi juste avant la lecture des partitions. Les lectures « déchiffrées » passent par le moteur AES ; la lecture brute ne sert qu'au secteur 0 (l'en-tête NCSD n'est pas chiffré).
 
-**Le chiffrement hors NAND.** Pour la flash SPI et la cartouche, l'en-tête du FIRM est lu en clair, mais chaque section est déchiffrée en AES-CBC avec l'**emplacement `0x3F`**, dont la clé normale est remplacée par une clé de la moitié protégée (`aes_setup_spi_firm_section`, `0xFFFFA050` ; `aes_setup_ntrcard_firm_section`, `0xFFFFA0A0`). Le vecteur d'initialisation est fait de la position de la section dans l'image, de son adresse de chargement et deux fois de sa taille (3dbrew, Bootloader ; les quatre mots se voient dans ces deux fonctions). Sur la flash SPI, le FIRM commence à l'octet `0x400`.
+**Le chiffrement hors NAND.** Pour la flash SPI et la cartouche, l'en-tête du FIRM est lu en clair, mais chaque section est déchiffrée en AES-CBC avec l'**emplacement `0x3F`**, dont la clé normale est remplacée par une clé de la moitié protégée (`aes_setup_spi_firm_section`, `0xFFFFA050` ; `aes_setup_ntrcard_firm_section`, `0xFFFFA0A0`). Le vecteur d'initialisation est fait de la position de la section dans l'image, de son adresse de chargement et deux fois de sa taille (3dbrew, Bootloader ; les quatre mots se voient dans ces deux fonctions). Sur la flash SPI, le FIRM commence à l'octet `0x400` ; pour la cartouche, `ntrcard_read_cb` (`0xFFFFA3E6`) et les trois copies ajoutent `0x7E00` (`0x3F << 9`) à l'offset.
 
 ### 3.4 La NAND : l'en-tête NCSD et le choix de la partition
 
@@ -157,7 +157,7 @@ Un **support** est une petite table de cinq fonctions en DTCM (`0xFFF000C8`, pos
 
 Sur une console normale, les FIRM ont la priorité 0 : la partition `firm0` passe d'abord, `firm1` sert de secours.
 
-`read_firm_header_and_load` (`0xFFFF95D8`) fait la même chose pour un support sans NCSD : lecture de l'en-tête à `0x07FFBB00` au décalage demandé (0 ; la flash SPI ajoute elle-même `0x400`), mot « FIRM », signature avec l'**emplacement RSA 2**, sections. Mêmes états -33, -8, -34, -49.
+`read_firm_header_and_load` (`0xFFFF95D8`) fait la même chose pour un support sans NCSD : lecture de l'en-tête à `0x07FFBB00` au décalage demandé (0 ; la flash SPI ajoute elle-même `0x400`, la cartouche `0x7E00`), mot « FIRM », signature avec l'**emplacement RSA 2**, sections. Mêmes états -33, -8, -34, -49.
 
 ### 3.5 La vérification RSA de l'en-tête
 
@@ -315,19 +315,19 @@ Lu dans `local/dump/systeme/native.firm` : mot « FIRM », points d'entrée ARM1
 - Le découpage des emplacements AES par tour (3.2) est lu dans le pseudo-code d'une fonction de 1 342 octets ; le nombre exact d'octets de l'OTP par tour et le rôle du chiffrement de chaque tour sont à relire dans l'assembleur. Le caractère « propre à la console » des clés X des quatre premiers tours se déduit de leur source (l'OTP).
 - La remarque sur les clés écrites quatre fois (`0x10`, `0x24`, `0x38`) et sur `0x28` et `0x3C` : lue dans le pseudo-code, pas encore dans l'assembleur.
 - Le sens des sections hors NAND et le vecteur d'initialisation : la forme vient de 3dbrew, les fonctions qui le posent sont repérées mais pas lues en détail.
-- Les rôles des fonctions du pilote SD : les numéros de commande (`sd_cmd18_read_multiple` et les autres) sont tirés des valeurs passées au contrôleur, sans relecture du pilote entier.
+- Les rôles des fonctions du pilote SD : le pilote est lu en entier. La première lecture, tirée des seules valeurs passées au contrôleur, s'était trompée sur trois noms : `0xFFFF536C` est le CMD8 SEND_EXT_CSD de l'eMMC (commande `0x1C08`), le SEND_IF_COND de la carte SD est `0xFFFF538C` (argument `0x1AA`), et les deux CMD6 de l'eMMC étaient inversés (`0xFFFF556C` BUS_WIDTH, index 183 ; `0xFFFF55B4` HS_TIMING, index 185).
 - Le contenu exact des `0x64` octets recopiés à `0x07FFCD80` (identifiants et réglages de la puce NAND) : déduit de la structure du pilote.
 - `copy_ntrcard_table_to_axi_wram` : le bloc de `0x1000` octets est lu par une fonction de la cartouche DS de boot9 (`ntrcard_derive_from_boot11_table`, `0xFFFF98E8`) ; son rôle exact n'est pas lu.
 - Les deux crochets facultatifs de chaque côté (`0xFFF00058`, `0xFFF0005C`, `0x1FFE8028`, `0x1FFE802C`) : tous les quatre valent 0 dans les images initiales de la DTCM (`0xFFFFE060`) et des données de boot11 (`0x0001D078`) — testé par un script qui ne lit que ces quatre mots et n'affiche que « nul » ou « non nul » — et seul `0x1FFE8028` est écrit par le code. Les trois autres sont donc toujours nuls ; à quoi ils étaient destinés n'est pas connu.
-- `svc_handler` (boot9 `0xFFFF00DC`, boot11 `0x000110A8`) et `undefined_instruction_handler` (boot11 `0x0001114C`) : leur place dans la table des vecteurs est sûre, leur nom vient de ce qu'ils font (numéro de SVC lu sous lr, instruction de coprocesseur décodée) ; aucun appel SVC n'a été cherché dans le reste du code.
+- `svc_handler` (boot9 `0xFFFF00DC`, boot11 `0x000110A8`) et `undefined_instruction_handler` (boot11 `0x0001114C`) : leur place dans la table des vecteurs est sûre, leur nom vient de ce qu'ils font (numéro de SVC lu sous lr, instruction de coprocesseur décodée) ; aucun appel SVC n'a été cherché dans le reste du code. `svc_handler` rend la main tout de suite pour les SVC 0x12 et 0x2B (`svc_handler_return_early`, boot9 `0xFFFF00B4`, boot11 `0x00011080`). Pour les autres, il lit un demi-mot dans une table (boot9 `0xFFFF0180`, boot11 `0x00011148`) qui ne contient que des octets de code. Aucune instruction SVC n'apparaît dans le code désassemblé des deux images.
 - `read_socinfo_bit0` (`0x000121EC`) lit `0x10140FFC` ; les deux sorties GPIO de l'initialisation n'en dépendent. Le sens de ce bit n'est pas vérifié.
 - Les deux constantes `0xFFFF0000` du noyau ARM9 vues comme des régions du MPU : non relues dans la fiche du noyau ARM9.
 
 **Pas lu**
-- Le détail des moteurs DMA (NDMA, XDMA et son microcode, `xdma_build_program`), du pilote de la cartouche DS et de la flash SPI, et la plus grande partie du pilote SD. En tout, 314 fonctions de boot9 et 120 de boot11 restent sans nom.
-- L'initialisation des écrans et l'écran d'erreur de boot11 (environ 40 fonctions), et le pilote I2C du microcontrôleur au-delà de la lecture du couvercle.
+- Le microcode XDMA et CDMA est lu au niveau des codes d'instruction, pas du calcul de chaque champ. Plus aucune fonction comptée n'est sans nom.
+- Le sens exact des bits du registre `0x0F` du microcontrôleur et des broches GPIO des écrans reste supposé.
 - Les 30 fonctions que la recherche automatique a créées dans des trous collés à la fin d'une autre (signalées « à relire » dans le journal de Ghidra).
-- Une table de `switch` dans boot9 (`0xFFFF1098`) : son aide (`switch8_helper`, `0xFFFF0CDC`) est une variante que `ghidra_direct.py` ne connaît pas, et la table qui suit l'appel est désassemblée comme du code.
+- La table de `switch` de `0xFFFF1098` (`switch8_helper`) est lue : `ndma_mode_to_cnt_bits`, 11 cas, valeurs de NDMA CNT.
 - Ce que kernel11, le noyau ARM9 et Process9 font exactement des données laissées en ITCM : c'est aux fiches de ces trois binaires de le dire.
 
 ## Comment cette fiche a été faite
@@ -355,4 +355,4 @@ Lu dans `local/dump/systeme/native.firm` : mot « FIRM », points d'entrée ARM1
 - **Les points-virgules dans la ligne de commande de WSL** : `wsl.exe -- …` passe la ligne à un shell, et le `;` qui sépare deux dossiers dans `-scriptPath` coupe la commande en deux (Ghidra importe, puis aucun script ne tourne). Il faut l'entourer d'apostrophes ; `run_headless` (dans `outils/ghidra_direct.py`) protège chaque argument.
 - **Le pseudo-code ne montre pas les arguments passés en registres** autour de certains appels (les copies de clés, les numéros d'emplacement passés par la pile) : la liste des emplacements AES a été lue dans le pseudo-code, celle des emplacements RSA dans l'assembleur.
 
-**Pour reprendre.** `boot9.noms.tsv` et `boot11.noms.tsv` sont les fichiers de graines : une adresse, `function` (ARM) ou `label` (Thumb), un nom. Les adresses de boot11 sont celles de la copie à `0x00010000`. Le pseudo-code et l'assembleur sont dans `local/analyse/boot9/gh/` et `local/analyse/boot11/gh/`, les scripts de lecture dans `local/analyse/boot/`, non versionnés.
+**Pour reprendre.** `boot9.noms.tsv` et `boot11.noms.tsv` sont les fichiers de graines : une adresse, `function` (ARM) ou `label` (Thumb), un nom. Les adresses de boot11 sont celles de la copie à `0x00010000`. Le pseudo-code et l'assembleur sont dans `local/analyse/boot9/gh/` et `local/analyse/boot11/gh/`, non versionnés.
