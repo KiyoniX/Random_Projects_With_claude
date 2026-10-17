@@ -2,32 +2,55 @@
 0x100024	function	clear_bss
 0x1000b4	label	pxi_init_sessions
 0x1001b0	label	pxi_session_set
+0x100830	label	sha256_transform
 0x100950	label	run_static_initializers
+0x100c9c	label	sha256_init
+0x100cf4	label	sha256_final
+0x100d30	label	sha256_pad
+0x100d7c	label	sha256_update_impl
 0x105558	label	PxiArchive_CreateFile
 0x10559c	label	PxiArchive_DeleteFile
 0x1055d4	label	PxiArchive_RenameFile
+0x10563a	label	PxiArchive_HasDirectory
 0x1056a0	label	PxiArchive_OpenDirectory
 0x1057ac	label	PxiArchive_CreateDirectory
 0x1057e8	label	PxiArchive_DeleteDirectory
 0x105820	label	PxiArchive_RenameDirectory
 0x105918	label	PxiFile_Write
+0x105be0	label	PxiFile_CalculateHash
 0x105d8c	label	PxiFile_GetSize
 0x105dbc	label	PxiFile_SetSize
 0x105df4	label	PxiFile_Read
 0x105ed8	label	PxiFile_destroy
 0x105f2c	label	PxiArchive_Control
+0x105fe8	label	PxiArchive_HasFile
 0x106020	label	PxiArchive_OpenFile
 0x1060c8	label	PxiDirectory_Read
 0x106114	label	PxiDirectory_destroy
 0x10616c	label	PxiArchive_destroy
+0x10ba88	label	fsmgr_open_directory
 0x10bbc0	function
+0x10bddc	label	fsmgr_create_file
+0x10be28	label	fsmgr_delete_file
+0x10be68	label	fsmgr_rename_file
+0x10bee0	label	fsmgr_get_file_size
+0x10bf1c	label	fsmgr_set_file_size
+0x10bff4	label	fsmgr_create_directory
+0x10c038	label	fsmgr_delete_directory
+0x10c078	label	fsmgr_rename_directory
 0x10c574	label	pxi_acquire_session
 0x10c5f0	label	pxi_release_session
+0x10c624	label	pxi_read_special_file
+0x10c650	label	pxi_get_special_file_size
+0x10c698	label	pxi_enumerate_system_save_data
+0x10d132	label	pxi_get_product_info
 0x10d2a4	label	open_self_ncch_archive
 0x10f024	label	archive_permission_check
 0x1141e0	function	fill_words
 0x114334	function	block_pool_init
+0x1143f8	function	block_pool_base_dtor
 0x114458	label	fsmgr_read_file
+0x1144a8	label	fsmgr_write_file
 0x1144f8	function	file_session_read
 0x1147c8	function	fsuser_Initialize
 0x1148e4	function	session_GetPriority
@@ -56,12 +79,17 @@
 0x119948	label	path_get_binary12
 0x119bec	label	path_is_empty
 0x11a60c	function	__ARM_common_switch8
+0x11a77c	function	__aeabi_lmul
 0x11b38c	function	__aeabi_ldivmod
+0x11baf8	label	sha256_hash
 0x11bbb4	function	__aeabi_idivmod
 0x11bdf0	function	__aeabi_memmove
 0x11cb46	label	destroy_array
 0x11d4e2	label	construct_array
+0x11d624	function	memclr_bytes
+0x11d944	function	memset_words
 0x11d9cc	function	panic_on_failure
+0x11da3c	function	decode_thread_priority
 0x11da78	function	shift_left_64
 0x11daa0	function	svcArbitrateAddress
 0x11dc80	function	release_address_range
@@ -77,11 +105,14 @@
 0x11e2cc	label	guard_acquire
 0x11e2e0	function	lock_enter
 0x11e32c	label	pxi_open_archive
-0x11e460	function	pool_init
+0x11e460	function	msg_queue_init
 0x11e520	label	pxi_open_session
 0x11e5d0	function	__aeabi_uidivmod
+0x11e608	function	lock_init
+0x122ac8	function	svcExitProcess
 0x122ad0	function	fs_main
 0x123110	function	run_init_array
+0x123144	function	init_program_args
 0x123224	function	svcAcceptSession
 0x12323c	function	svcGetThreadId
 0x123254	function	svcWaitSynchronizationN
@@ -90,6 +121,7 @@
 0x123418	function
 0x12342c	function	set_heap_size
 0x1234d8	function	create_thread
+0x1235c8	function	init_runtime_and_srv
 0x1235d8	function	srv_init
 0x1237ac	function
 0x1237bc	function	heap_alloc
@@ -106,6 +138,9 @@
 0x123f44	function	create_lock_arbiter_once
 0x123f80	function	reserve_address_range
 0x124130	function	init_heap_region
+0x124170	function	init_runtime
+0x1241fc	function	init_vm_region_10000000
+0x124210	function	store_thread_local_owner
 0x12424c	function	heap_alloc_unlocked
 0x1242b0	function	SRV_RegisterClient
 0x1242ec	function
@@ -113,15 +148,23 @@
 0x124338	function	svcQueryMemory
 0x124368	function	svcSleepThread
 0x124374	function	server_run_request
-0x124ce4	function	PXIFS_cmd0047
+0x124980	function	light_lock_unlock
+0x1249d4	function	clear_thread_local_storage
+0x124b5c	function	heap_find_block
+0x124ce4	function	PXIFS_GenerateRandomBytes
 0x124d48	function	thread_trampoline
+0x124d8c	function	svcExitThread
 0x124d94	function	svcGetProcessInfo
 0x124db0	function	svcGetThreadPriority
 0x124dc8	function	lock_arbitrate_wait
+0x124f68	function	heap_split_block
 0x12514c	function	PXIFS_OpenArchive
-0x1251a8	function	SRV_GetServiceHandle
-0x1251f0	function	pool_put
-0x125450	function	PXIFS_cmd004F
+0x1251a8	function	srv_get_service_handle
+0x1251dc	function	copy_service_name
+0x1251f0	function	msg_queue_send
+0x1252bc	function	svcBreak
+0x125450	function	PXIFS_SetCtrCardLatencyParameter
+0x125480	function	SRV_GetServiceHandle
 0x1254f4	function	PXIFS_SetPriority
 0x125828	function	memcpy_unaligned
 0x125f4c	function	svcCreateEvent
@@ -132,6 +175,7 @@
 0x125fa4	function	svcSetThreadPriority
 0x125fac	function	svcStartInterProcessDma
 0x125ffc	function	strcpy
+0x1260e4	function	__aeabi_memset
 0x1262fc	function	fsreg_GetProgramInfo
 0x126334	function	wait_handle_forever
 0x12645c	function
@@ -241,7 +285,7 @@
 0x12a270	function	fsuser_UnregisterSpecialTitleContent
 0x12a2dc	function	fsuser_CardNorDirectCommandWithAddress
 0x12a370	function	fsuser_ExportIntegrityVerificationSeed
-0x12a400	function	fsuser_Same
+0x12a400	function	fsuser_GetLegacyBannerData2
 0x12a4b0	function	fsuser_ImportIntegrityVerificationSeed
 0x12a540	function	fsuser_Obsoleted_3_0_CreateExtSaveData
 0x12a590	function	fsuser_Obsoleted_3_0_DeleteExtSaveData
@@ -301,54 +345,54 @@
 0x12f730	function	PXIFS_ClearNandLog
 0x12f758	function	PXIFS_ClearSdmcLog
 0x12f780	function	PXIFS_CloseArchive
-0x12f7b0	function	PXIFS_cmd0048
-0x12f80c	function	PXIFS_cmd0014
+0x12f7b0	function	PXIFS_GetFileLastModified
+0x12f80c	function	PXIFS_HasDirectory
 0x12f86c	function	PXIFS_OpenDirectory
 0x12f8cc	function	PXIFS_ReadDirectory
 0x12f930	function	PXIFS_CloseDirectory
-0x12f960	function	PXIFS_cmd0015
+0x12f960	function	PXIFS_CommitSaveData
 0x12f998	function	PXIFS_DeleteSdmcRoot
-0x12f9c0	function	PXIFS_cmd0033
+0x12f9c0	function	PXIFS_GetProductInfo
 0x12fa1c	function	PXIFS_IsSdmcDetected
 0x12fa50	function	PXIFS_IsSdmcWritable
 0x12fa84	function	PXIFS_ReadNandReport
 0x12fac8	function	PXIFS_CardSlotPowerOn
 0x12fafc	function	PXIFS_CreateDirectory
 0x12fb50	function	PXIFS_DeleteDirectory
-0x12fba0	function	PXIFS_cmd0049
+0x12fba0	function	PXIFS_ReadSpecialFile
 0x12fc00	function	PXIFS_RenameDirectory
 0x12fc8c	function	PXIFS_CardSlotPowerOff
 0x12fcc0	function	PXIFS_GetNandSpeedInfo
 0x12fcf4	function	PXIFS_GetSdmcSpeedInfo
-0x12fd28	function	PXIFS_cmd000A
-0x12fd78	function	PXIFS_cmd004D
-0x12fe08	function	PXIFS_cmd000C
+0x12fd28	function	PXIFS_CalculateFileHashSHA256
+0x12fd78	function	PXIFS_ReadFileSHA256
+0x12fe08	function	PXIFS_CalcSavegameMAC
 0x12fe74	function	PXIFS_CardNorDirectRead
-0x12fec4	function	PXIFS_cmd0037
-0x12ff00	function	PXIFS_cmd0038
+0x12fec4	function	PXIFS_CreateExtSaveData
+0x12ff00	function	PXIFS_DeleteExtSaveData
 0x12ff3c	function	PXIFS_GetSdmcFatfsError
 0x12ff70	function	PXIFS_SetCardSpiBusMode
-0x12ffa8	function	PXIFS_cmd004E
+0x12ffa8	function	PXIFS_WriteFileSHA256
 0x130048	function	PXIFS_CardNorDirectWrite
 0x130094	function	PXIFS_CardSlotIsInserted
-0x1300c8	function	PXIFS_cmd0017
+0x1300c8	function	PXIFS_LockArchive
 0x130104	function	PXIFS_GetArchiveResource
-0x130154	function	PXIFS_cmd003B
+0x130154	function	PXIFS_GetLegacyRomHeader
 0x1301a4	function	PXIFS_GetSdmcCtrRootPath
-0x1301e8	function	PXIFS_cmd004A
+0x1301e8	function	PXIFS_GetSpecialFileSize
 0x130228	function	PXIFS_SetCardSpiBaudRate
-0x130260	function	PXIFS_cmd003C
+0x130260	function	PXIFS_GetLegacyBannerData
 0x1302b8	function	PXIFS_CardNorDirectCommand
-0x1302f0	function	PXIFS_cmd0039
+0x1302f0	function	PXIFS_EnumerateExtSaveData
 0x130358	function	PXIFS_SendInitializeInfoTo9
 0x130388	function	PXIFS_CardNorDirectRead_4xIO
 0x1303e0	function	PXIFS_GetLegacySubBannerData
 0x130440	function	PXIFS_GetNandArchiveResource
 0x130480	function	PXIFS_GetSdmcArchiveResource
-0x1304c0	function	PXIFS_cmd003A
-0x13051c	function	PXIFS_cmd0052
+0x1304c0	function	PXIFS_GetSpecialContentIndex
+0x13051c	function	PXIFS_EnumerateSystemSaveData
 0x13056c	function	PXIFS_StartDeviceMoveAsSource
-0x1305a8	function	PXIFS_cmd003F
+0x1305a8	function	PXIFS_DeleteAllExtSaveDataOnNand
 0x1305d8	function	PXIFS_InitializeCtrFileSystem
 0x130600	function	PXIFS_CardNorDirectReadWithAddress
 0x130658	function	PXIFS_CardSlotGetCardIFPowerStatus
@@ -361,7 +405,7 @@
 0x130848	function	PXIFS_ImportIntegrityVerificationSeed
 0x130884	function	PXIFS_CardNorDirectCpuWriteWithoutVerify
 0x1308c8	function	PXIFS_CardNorDirectSectorEraseWithoutVerify
-0x1308f8	function	PXIFS_cmd0013
+0x1308f8	function	PXIFS_HasFile
 0x130958	function	PXIFS_OpenFile
 0x1309cc	function	PXIFS_ReadFile
 0x130a2c	function	PXIFS_CloseFile
@@ -382,6 +426,7 @@
 0x1313ec	function
 0x131438	function
 0x13145c	function	fsfile_session_get_priority
+0x13149c	function	static_init_main_thread_handle
 0x1314fc	function
 0x131530	function
 0x131534	function
@@ -392,6 +437,7 @@
 0x13173c	function
 0x131a14	function	fsmgr_static_init
 0x131d54	function
+0x131e38	function	msg_queue_receive
 0x1323c4	function
 0x132adc	function
 0x132c74	function

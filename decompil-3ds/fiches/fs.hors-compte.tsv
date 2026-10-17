@@ -1,0 +1,6 @@
+adresse	raison
+0x10100c	PAS UNE FONCTION. Entrée de couverture.py « pointeur seul » : étiquette interne de 0x100e70 (cible du beq à 0x100f74, précédée du b inconditionnel de 
+0x10bc7c	PAS UNE FONCTION. Entrée de couverture.py « pointeur seul depuis case 0x10ae0c » : 0x10ae0c est au milieu de la fonction Thumb 0x10aa04 (son mot 0x000
+0x121006	PAS UNE FONCTION. Entrée de couverture.py « pointeur seul » : cible interne de 0x120fa8 (beq à 0x120fba) ; les mots 0x00121007 (0x128a00, 0x129754) so
+0x12100c	PAS UNE FONCTION. Entrée de couverture.py « pointeur de réserve » : cible interne de 0x120fa8 (beq à 0x120fd0) ; fausse graine déjà relevée par fs.md 
+0x125bb0	CODE MORT. Copie à recouvrement de 924 octets (même empreinte que __aeabi_memmove de dsp, oracle de copie OK sous unicorn) que rien ne désigne : aucun
