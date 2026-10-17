@@ -41,6 +41,8 @@
 0x802c844	label	aes_twl_keys_init
 0x802ccf8	label	pxi_send_request_and_wait
 0x802cd14	label	sha_start
+0x802cd2c	label	sha_feed
+0x802cd44	label	sha_cnt_set_mode_bits
 0x802cf90	label	title_content_archive_open_nand_sd
 0x802d2e4	label	pxips_get_local_friend_code_seed
 0x802d7b0	label	rsa_load_key_into_slot
@@ -50,6 +52,7 @@
 0x802f330	label	rsa_verify_signed_block
 0x802f39c	label	sdmmc_controller_init
 0x802f460	function	sdmmc_select_port
+0x802f5d0	label	pkcs1_strip_padding
 0x802f608	label	rsa_slot_size_bits
 0x8030bd4	label	pxi_send_message_body
 0x8030c08	label	pxi_send_channel_and_irq
@@ -75,6 +78,7 @@
 0x80345b6	function	sdmmc_mask_irq0
 0x80345c8	function	sdmmc_mask_irq1
 0x8034dc4	function	spicard_fifo_write
+0x80354c4	label	sdmmc_is_card_inserted
 0x803adf4	function	sha256_transform
 0x803bdec	function	mmc_cmd8_send_ext_csd
 0x803be08	function	sd_cmd8_send_if_cond
@@ -194,6 +198,7 @@
 0x804d69c	label	aes_cnt_set_mac_bit19
 0x804d6b8	label	aes_get_mac_status
 0x804d6c8	label	aes_set_ccm_nonce
+0x804da10	label	asn1_read_tag_and_length
 0x804dfd8	label	pxi_cnt_clear_bits
 0x804e2f8	function	ndma_set_source_address
 0x804e468	function	ndma_set_dest_address
@@ -217,9 +222,11 @@
 0x8052f10	label	thread_start
 0x8053048	label	pxifs_write_file
 0x8053b08	label	pxifs_read_file
+0x8053e00	label	sdmmc_ack_bits
 0x8054244	label	pxi_recv_word
 0x80543a8	function	sdmmc_set_command_arg
 0x8054cc4	label	hardware_init_once
+0x8054d90	label	asn1_read_tag_and_length_alt_8054d90
 0x805584c	function	sdmmc_data32_tx_irq_disable
 0x8055862	function	sdmmc_data32_rx_irq_disable
 0x80560dc	function	sdmmc_read_irq_status0
@@ -235,12 +242,16 @@
 0x80583e6	label	bind_interrupt_to_event
 0x8058960	function	svcSignalEvent
 0x8058a5c	label	unbind_interrupt_from_event
+0x8059092	label	sdmmc_read_response
 0x80591e0	function	sdmmc_data32_tx_requested
 0x80591f8	function	sdmmc_data32_rx_ready
+0x8059220	label	sdmmc_get_fifo32_address
+0x805939e	label	sdmmc_set_data32_block
 0x80593be	function	sdmmc_ack_irq_status0_alt_80593be
 0x80593ca	function	sdmmc_ack_irq_status1_alt_80593ca
 0x80593f4	function	sdmmc_ack_irq_status1_alt_80593f4
 0x8059400	function	sdmmc_data32_mode_enabled
+0x8059644	label	sdmmc_set_data_width_mode
 0x8059b6c	function	sdmmc_set_option
 0x8059b7a	function	sdmmc_set_clock_control
 0x8059b88	label	pxifs_close_archive
@@ -250,6 +261,7 @@
 0x805a1a8	function	__aeabi_idivmod
 0x805a4c0	function	rsa_wait_done
 0x805abc4	label	pxifs_get_file_size
+0x805ac28	label	blowfish_encrypt_block
 0x805ad1c	label	archive_manager_open
 0x805b194	function	__aeabi_memset
 0x805b2a0	function	destroy_array_veneer
@@ -275,6 +287,7 @@
 0x805d984	label	pxifs_close_file
 0x805da4c	function	spicard_done
 0x805daf0	label	pxifs_card_nor_direct_command
+0x805ed64	label	cfg9_card_power_write_bits
 0x805f140	function	svcCreateTimer
 0x805f20c	function	sdmmc_read_irq_status1
 0x805f8a0	label	extdata_build_path
@@ -292,6 +305,7 @@
 0x8060c84	function	__aeabi_uldivmod
 0x806107c	function	svcWaitSynchronization1
 0x8061240	label	sha256_compute
+0x8061524	function	memclr
 0x8061976	label	lock_enter
 0x80619d4	function	svcCreateMutex
 0x8061a0e	label	construct_array
@@ -299,7 +313,9 @@
 0x8061be0	label	light_lock_acquire
 0x8061bfc	label	panic
 0x8061c06	label	light_lock_release
+0x8061c28	function	memcpy_words
 0x8061c8c	label	handle_table_lookup
+0x8061d68	function	memzero
 0x8061dbc	function	__aeabi_memcpy
 0x8061e90	function	__aeabi_uidivmod
 0x806642c	label	ncch_open_exefs_file
@@ -402,12 +418,16 @@
 0x807f908	function	sdmmc_clock_autopause_disable
 0x807f91c	function	sdmmc_unmask_irq1
 0x807f92e	function	sdmmc_clock_autopause_enable
+0x807f942	label	sdmmc_set_block_count_autostop
+0x807f974	label	sdmmc_data32_tx_irq_enable
 0x807f98a	function	sdmmc_data32_rx_irq_enable
 0x807f9a8	function	sdmmc_get_clock_divider
+0x807fa60	label	sdmmc_set_bus_width_4bit
 0x8080ed8	function	sd_switch_status_high_speed_selected
 0x8080f22	function	sd_scr_supports_4bit_bus
 0x8080f30	function	mmc_ext_csd_supports_high_speed
 0x8080f3c	function	sd_switch_status_supports_high_speed
+0x8081a1c	label	clear_four_words
 0x8084c70	function	process9_main
 0x8084d40	function	runtime_init_main_thread_info
 0x8084d80	function	firm_launch_handler
