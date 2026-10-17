@@ -11,7 +11,7 @@ window.ETAT = {
   "nommees": 14179,
   "reimplementees": 0,
   "typees": 0,
-  "citees": 7488,
+  "citees": 7503,
   "recompilees": 62490,
   "binaires": [
    {
@@ -715,7 +715,7 @@ window.ETAT = {
     "proposees_haute": 0,
     "proposees_moyenne": 234,
     "typees": 0,
-    "citees": 281,
+    "citees": 296,
     "recompilees": 0,
     "reimplementees": 0
    },

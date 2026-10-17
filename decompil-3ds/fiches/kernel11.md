@@ -13,8 +13,8 @@ Fiche du 14 octobre 2026, produite avec Ghidra lancé directement sous Ubuntu, s
 | Fichier lu | `local/extrait/firm/firm_1_1ff80000.bin` |
 | Point d'entrée ARM11 | `0x1FFAF064` (en-tête du FIRM, mot `+0x08`). Le point d'entrée ARM9 est `0x0801B01C` |
 | Version | noyau **2.58-0**, écrite par le noyau dans la page de configuration (partie 9). Version du SDK du noyau : `0xF450` |
-| Langage | ARM (ARMv6K) partout, sauf une fonction Thumb de démarrage (`0x1FFB0438`) et une petite fonction à `0xFFF149E4` |
-| Fonctions | 988 : 39 + 1 Thumb dans le démarrage, 589 + 1 Thumb dans le bas du code, 337 dans le haut, 21 dans la page des vecteurs |
+| Langage | ARM (ARMv6K) partout, sauf trois fonctions Thumb : `0x1FFB0438` (démarrage), `0xFFF0000C` (`destroy_array`, atteinte par le relais ARM `0xFFF00004`) et `0xFFF149E4` (`__aeabi_vec_ctor_nocookie_nodtor`, nom supposé) |
+| Fonctions | 988 selon Ghidra : 39 + 1 Thumb dans le démarrage, 589 + 1 Thumb dans le bas du code, 337 dans le haut, 21 dans la page des vecteurs. Ghidra manque 38 entrées, dont la table des vecteurs (`0xFFFF0000`), les cinq relais d'exception du bas du code (`0xFFF0060C`…`0xFFF0063C`), la fonction Thumb `0xFFF0000C`, `0xFFF26ED0`, `0xFFFF0578`, `0xFFFF05A0` et six entrées du code de lancement d'un FIRM (`0xFFFF0994`–`0xFFFF0C3C`) ; deux de ses fonctions sont des milieux de fonction et deux du code mort. Total : 1 022 |
 | Fonctions nommées | 359 sur 988 dans `kernel11.noms.tsv`, plus 67 étiquettes de données (tables virtuelles, réserves, variables) |
 | Appels système | 126 cases dans la table (`0x00`–`0x7D`) : 97 font quelque chose, 12 rendent « non implémenté » (`0xF8C007F4`), 17 sont vides |
 | Objets du noyau | 20 classes nommées dans l'image (`KAutoObject`… `KTimer`), 21 réserves d'objets de taille fixe |
@@ -92,10 +92,10 @@ Les quatre cœurs entrent ensemble à `0x1FFAF064`, traduction d'adresses coupé
      Un `APPMEMTYPE` autre que 7 ou 8 est ramené à 6. La réserve « 64 Mo » d'une application de l'ancienne 3DS n'est pas faite ici : la région fait 124 Mo, et c'est la limite de ressources posée par `pm` qui borne l'application (interprété).
    - `memory_manager_init` (`0xFFF028A8`) pose les trois régions dans le gestionnaire de mémoire (`0xFFF328A4`).
    - Le tas des objets du noyau est installé à `0xFFF70000`. Puis 21 réserves d'objets de taille fixe y sont découpées par `slab_heap_init` (`0xFFF14894`), avec leur taille et leur nombre (partie 4).
-10. Cœur 1 seulement : `0xFFF01764`, `0xFFF02000`, et `core1_init_timer_interrupts` (`0xFFF00768`), qui lie les interruptions `0x39` et `0x3A` (minuteries, interprété).
+10. Cœur 1 seulement : `allocate_config_and_shared_pages` (`0xFFF01764`), `0xFFF02000`, et `dma_manager_init` (`0xFFF00768`), qui prépare le contrôleur DMA (PL330, `0xFFFC8000` = PA `0x10206000`) et lie ses interruptions `0x39` et `0x3A`. Les minuteries sont préparées par `hardware_timer_init` (`0xFFF01A8C`, interruptions `0x1D` et `0x1E`).
 11. Chaque cœur démarre un **fil de travail du noyau** (`start_core_work_thread`, `0xFFF00DBC`) : il exécute les tâches que les interruptions lui confient (`core_work_thread_main`, `0xFFF029B0`) puis se rendort. Les interruptions sont ouvertes.
 12. **Cœur 0 seulement : les pages partagées et les premiers processus.**
-    - Deux pages sont prises dans la région BASE (`allocate_kernel_shared_page`, `0xFFF00B00`) : la future page de configuration et la page partagée. `init_config_memory` (`0xFFF01404`) remplit la première (partie 9).
+    - Deux gestionnaires de tâches du noyau sont créés (`worker_task_manager_initialize`, `0xFFF00B00`, sur `0xFFF330E8` puis `0xFFF330FC`, priorités 1 et `0x10`) : chacun a un fil qui exécute les tâches mises en file par `worker_task_enqueue` (`0xFFF1B724`). Les pages de configuration et partagée ont été prises plus tôt, sur le cœur 1, par `allocate_config_and_shared_pages` (`0xFFF01764`). `init_config_memory` (`0xFFF01404`) remplit la première (partie 9).
     - **`create_firm_modules`** (`0xFFF00EA4`) crée les cinq processus du FIRM (ci-dessous).
     - L'état du démarrage (`0xFFF2F0C8`) passe de 1 à 2. `write_slab_heap_info_page` (`0xFFF007FC`) écrit le tableau des réserves (adresse, nombre, taille) dans une page (rôle interprété : une aide au débogage).
 13. `switch_to_first_thread` (`0xFFF0201C`) donne au fil de repos la priorité `0x40`, plus basse que toute priorité permise à un programme (0 à `0x3F`), et passe la main. Le fil de repos tourne ensuite dans une boucle `wfi` : un cœur sans travail dort.
@@ -396,7 +396,7 @@ Les objets ne sont jamais pris dans un tas général. Chaque classe a sa **rése
 | `0xFFF33380` | `0x14` | 1 723 | descripteurs de blocs de mémoire des processus (interprété) |
 | `0xFFF33390` | `0x18` | 64 | pages TLS (partie 6) |
 | `0xFFF33370` | `0x10` | 7 | noms des ports nommés (interprété : `srv:`, `err:f`…) |
-| `0xFFF333A0` | `0x18` | 127 | pas identifié (ses utilisateurs sont voisins des fonctions du débogueur) |
+| `0xFFF333A0` | `0x18` | 127 | fiches de débogage par fil (`slab_kthread_debug_info`) : `kdebug_attach_thread` (`0xFFF20670`) en prend une et la range en KThread `+0x38` |
 | `0xFFF33360` | `0x38` | 67 | événements de débogage (interprété) |
 
 Tailles et nombres sont lus deux fois et concordent : dans les appels de `kernel_main` à `slab_heap_init` (taille d'un objet, taille totale) et dans le tableau qu'écrit `write_slab_heap_info_page` (nombre, taille). Le nom de chaque classe vient de sa fonction « type » : elle désigne la chaîne et la table virtuelle qui la contient. Le lien entre une classe et sa réserve vient de deux endroits : la fonction de destruction de la table virtuelle et la fonction de création du svc. Une session est un seul objet `KSession` qui contient ses deux bouts, `KServerSession` et `KClientSession`. De même, un `KPort` contient `KServerPort` et `KClientPort`.
@@ -449,7 +449,7 @@ Enveloppe `0xFFF04B84`, travail dans `send_sync_request` (`0xFFF06A44`) puis `se
 2. **Le verrou.** Le noyau prend le verrou de l'ordonnanceur (`0xFFF2F0AC`) et efface deux drapeaux du fil : « session fermée » (`+0x35`) et « traduction ratée » (`+0x37`).
 3. **Session fermée ?** Si la session n'est plus ouverte des deux côtés (`KSession+0x44` ≠ 1), l'appel rend `0xC920181A`.
 4. **La file.** Sinon le fil est mis en pause et rangé en tête de la file de la `KServerSession` (`+0x18`). Le serveur prend les requêtes par la queue (`+0x1C`) : premier arrivé, premier servi.
-5. **Le réveil du serveur.** La session serveur est signalée (`sync_object_wake_waiters`, `0xFFF1DE50`), ce qui réveille le fil serveur le plus prioritaire qui l'attend.
+5. **Le réveil du serveur.** La session serveur est signalée (`sync_object_wake_waiters`, relais de 4 instructions `0xFFF1DE50` vers `sync_object_wake_waiters_impl` `0xFFF25C34`), ce qui réveille le fil serveur le plus prioritaire qui l'attend.
 6. **L'attente.** Le verrou est rendu, et c'est là que le fil client s'endort, jusqu'à la réponse.
 7. **Au réveil**, l'appel rend :
    - `0xC920181A` si le serveur a fermé la session pendant l'attente ;
@@ -619,7 +619,7 @@ Il y a un ordonnanceur par cœur ; son adresse est à `0xFFFF9008`. Disposition,
 | `+0x12` | nombre de fils prêts |
 | `+0x14`/`+0x18` | **masque de 64 bits** des priorités qui ont au moins un fil prêt |
 | `+0x1C` | le fil de repos du cœur |
-| `+0x28 + 8·p` | **64 files**, une par priorité p (tête, queue) |
+| `+0x28 + 8·p` | **64 files**, une par priorité p : queue en `+0x28 + 8·p`, tête en `+0x2C + 8·p` (chaînage dans KThread : `+0xA0` précédent, `+0xA4` suivant) |
 
 - **Le choix.** L'instruction CLZ sur le masque donne la priorité la plus forte non vide ; c'est le premier fil de cette file qui tourne. Si ce fil attend un objet tenu par un autre fil prêt du même cœur, c'est le détenteur qui passe : un mutex bloquant fait avancer son propriétaire (interprété).
 - **Le changement de fil** (`reschedule`, `0xFFF1A7C0`). Le noyau sauve r4-r11, sp, lr et FPEXC dans la pile noyau du fil qui sort. Si le processus change, il recharge la table de pages et `0xFFFF9004`.
@@ -657,7 +657,7 @@ Il y a un ordonnanceur par cœur ; son adresse est à `0xFFFF9008`. Disposition,
   - Sinon le fil s'inscrit auprès de l'objet et dort, avec `0x09401BFE` préchargé et une alarme si le délai est fini. Il rend 0 s'il est réveillé par l'objet.
   - Un fil qu'on termine pendant l'attente rend `0xD920060D`.
 - **WaitSynchronizationN** (`0x25`, `0xFFF0A8F0`). Mêmes règles, **256 poignées au plus** (`0xD86007F3`), et un drapeau « tous » ou « n'importe lequel ».
-- **Le réveil** (`sync_object_wake_waiters`, `0xFFF1DE50`). Il sert, parmi les fils pour qui l'objet est libre, celui de plus forte priorité. Il recommence tant que quelqu'un peut être servi. Un fil qui attend « tous » n'est réveillé que si tous ses objets sont libres ensemble.
+- **Le réveil** (`sync_object_wake_waiters` : le relais `0xFFF1DE50`, le corps `0xFFF25C34`). Il sert, parmi les fils pour qui l'objet est libre, celui de plus forte priorité. Il recommence tant que quelqu'un peut être servi. Un fil qui attend « tous » n'est réveillé que si tous ses objets sont libres ensemble.
 
 **Ce que fait chaque objet** (méthodes `+0x2C` « libre ? », `+0x30` « prendre », `+0x34` « remettre à zéro ») :
 
@@ -696,7 +696,7 @@ S'inscrire **avant** de lire la valeur évite qu'un signal arrivé entre la lect
 
 ### Les vecteurs
 
-La page `0xFFFF0000` contient huit sauts, puis du code. Chaque saut mène à un petit relais (`0xFFF0060C`…`0xFFF00644`) qui efface le moniteur exclusif (`clrex`) et charge l'adresse du vrai gestionnaire.
+La page `0xFFFF0000` contient huit sauts, puis du code. Cinq d'entre eux (instruction indéfinie, svc, abandon de lecture, abandon de données, IRQ) mènent à un petit relais (`0xFFF0060C`…`0xFFF0063C` ; `0xFFF00644` est le littéral du dernier) qui efface le moniteur exclusif (`clrex`) et charge l'adresse du vrai gestionnaire. Le reset saute en `0xFFFF0058`, le FIQ directement en `0xFFF005E0`, et le vecteur réservé boucle sur lui-même.
 
 | Vecteur | Gestionnaire | Rôle |
 | --- | --- | --- |
@@ -766,12 +766,14 @@ Réservé à `pm`, `ns` et `ptm` d'après leurs exheaders. Travail dans `kernel_
 | --- | --- |
 | 0 | lancer un autre FIRM. Identifiant bas 2 et haut 0 donnent `0x20000002`, avec le haut fixé à `0x00040138`. Les autres cœurs sont prévenus par l'interruption logicielle 6 |
 | 1 | rien |
-| 2, 7 | arrêt ou redémarrage (interprété ; le redémarrage passe par le microcontrôleur, appareil I²C `0x4A`, registre `0x20`, valeur 4) |
+| 2 | mise en veille (`0xFFFF07EC`, sur la pile de secours `0xFFFF3000` via `0xFFFF092C` → `0xFFFF05A0`) : GIC sauvé, FCRAM en auto-rafraîchissement (registres d'après 3dbrew), `wfi` jusqu'à l'IRQ `0x58`, puis tout est restauré |
+| 7 | redémarrage par le microcontrôleur (`0xFFFF05D4`, sur la pile de secours via `0xFFFF06F8` → `0xFFFF05A0`) : appareil I²C `0x4A`, registre `0x20`, valeur 4 |
 | 3 | paramètre 0 : projeter la page des paramètres de lancement du FIRM dans le processus, entre `0x10000000` et `0x14000000`. Paramètre 1 : la recopier au début de la FCRAM, où le FIRM suivant la lira |
-| 5, 10 | arrêter les autres cœurs |
+| 5 | fait par le gestionnaire de la SGI 6 (`0xFFF29710`) : paramètre 0, le cœur s'arrête (`cpsid f`, `wfi` sans fin) ; 1 ou 2, il rend l'objet par cœur qui baisse (`0xFFF2F1A0` + 8·cœur) ou rétablit (`0xFFF2F1C0` + 8·cœur) la priorité des fils du cœur |
+| 10 | changer l'horloge et l'état du cache L2 de la New 3DS (ConfigureNew3DSCPU de 3dbrew), par le gestionnaire de la SGI 6 : écriture du mode, attente de l'IRQ `0x58` |
 | 6 | sur une console de développement : sous-types 1 et 2, poser les drapeaux « gestionnaire d'exception du programme » et « svcBreak arrête la console » ; sous-type 3 : réglage du temps processeur du cœur 1 (interprété) |
 | 8 | une vérification matérielle (interprété) |
-| 9 | ranger une valeur de 64 bits |
+| 9 | ranger un identifiant de titre (64 bits, `0xFFF2F040`) ; à chaque création de processus, `0xFFF0F308` le compare à celui du KCodeSet : s'il est égal, la table de pages du processus n'utilise que des pages de 4 Ko (octet `+0x32`) |
 | autres | `0xF8C007F4` |
 
 ### Les interruptions
@@ -845,7 +847,7 @@ Ce que les fiches supposent, et ce que le noyau fait :
 
 **Interprété à la lecture, à relire**
 - L'ordre réel dans lequel les cinq modules prennent le processeur au premier instant : il est déduit des priorités.
-- Le rôle de cinq réserves sans nom, et de la page écrite par `write_slab_heap_info_page`.
+- Le rôle de quatre réserves sans nom, et de la page écrite par `write_slab_heap_info_page`.
 - La limite de 64 Mo d'une application de l'ancienne 3DS, attribuée à `pm`. Le sens d'UPDATEFLAG et des octets `+0x16` et `+0x20` de la page de configuration.
 - Dans l'IPC :
   - le sens exact de `KThread+0x94`/`+0x98` (adresses du stockage local côté programme et côté noyau) ;

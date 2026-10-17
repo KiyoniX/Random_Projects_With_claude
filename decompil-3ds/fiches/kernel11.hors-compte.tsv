@@ -1,0 +1,7 @@
+adresse	raison
+0xfff15718	pas une fonction : milieu de copy_word_from_user (les 7 bl visent 0xfff15714)
+0xfff15730	pas une fonction : milieu de strncpy_from_user (les 2 bl visent 0xfff1572c)
+0x1ffb03d4	donnée : l1_table_pointers de [kernel11.firm], les tables L1 des quatre cœurs
+0x1ffaf528	code mort : rien ne l'appelle ni ne le désigne (balayage des branchements et des mots)
+0xffff0574	code mort, listé à part dans notes-100.md
+0xffff0c64	donnée : mot de réserve du code de lancement d'un FIRM (fin de plage), pas une entrée

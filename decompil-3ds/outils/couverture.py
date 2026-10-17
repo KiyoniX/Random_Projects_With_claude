@@ -131,11 +131,15 @@ dans deux binaires (un bout de code partagé, une fin manquée) n'y trouve pas s
 """
 import bisect
 import collections
+import datetime
+import difflib
+import glob
 import hashlib
 import os
 import re
 import struct
 import sys
+import tempfile
 import types
 
 import elfer
@@ -145,6 +149,7 @@ import name_pass
 import verifier
 
 sys.path.insert(0, os.path.join(ghidra_direct.ROOT, 'recomp'))
+import cro_recomp  # noqa: E402
 import recomp  # noqa: E402
 
 ROOT = ghidra_direct.ROOT
@@ -193,6 +198,7 @@ class Binary:
         self.relocated = set(relocated)
         self.starts = {a for a, _, _ in self.functions}
         self.entries = {}                    # les entrées manquées par Ghidra (add_entries)
+        self.target = None                   # les réglages de raw_targets.toml pour une cible brute (ghidra_raw)
         self.pieces = {}                     # les morceaux d'une fonction de Ghidra en plusieurs morceaux
         self.spans = [(b, b + max(fs, ms)) for b, _, fs, ms, _ in image.segments] if image else []
         self.jump_slots = set()
@@ -238,7 +244,9 @@ def load_system(name, with_image):
         if with_image and all(os.path.isfile(os.path.join(folder, f)) for f in ('code.bin', 'exheader.bin')):
             _, code, segments = ghidra_direct.load_module(name)
             image = ghidra_direct.Image(code, segments)
-    return Binary(name, functions, names_path, image, group=GAME if name == 'maj' else name)
+    binary = Binary(name, functions, names_path, image, group=GAME if name == 'maj' else name)
+    binary.target = targets.get(name)
+    return binary
 
 
 def read_cro_table(path=os.path.join(RECOMP_OUT, 'cro_table.c')):
@@ -258,7 +266,6 @@ def load_cros(with_image):
     table = read_cro_table()
     images = {}
     if with_image and table:
-        import cro_recomp
         if os.path.isdir(cro_recomp.cl.DEFAULT_ROMFS):
             for index, cro in enumerate(cro_recomp.load_cros()):
                 images[cro.name] = cro_recomp.ModuleImage(cro, index)
@@ -471,12 +478,16 @@ def looks_arm(image, address):
     return sum(1 for w in words if w is not None and w >> 28 == 0xE) >= 4
 
 
-def at_boundary(image, address, mode, pools):
+def at_boundary(binary, address, mode, pools):
     """Une entrée plausible : un « push » (stmdb sp!, push Thumb), ou juste avant un mot de réserve de littéraux
-    (`pools`), du bourrage (nul, nop) ou une instruction qui ne laisse pas passer le fil (bx lr, pop {..., pc},
-    ldr pc, [sp], #4, b sans condition). Une case d'aiguillage, une donnée lue comme du code, un pointeur vers le
-    milieu d'une boucle n'y sont pas."""
-    if address - 4 in pools:
+    (`pools`, ou une adresse du fichier qui ne se lit pas comme une instruction « toujours » : la réserve d'une
+    fonction que rien n'a lue), du bourrage (nul,
+    nop) ou une instruction qui ne laisse pas passer le fil (bx lr, pop {..., pc}, ldr pc, [sp], #4, b sans
+    condition). Une case d'aiguillage, une donnée lue comme du code, un pointeur vers le milieu d'une boucle n'y sont
+    pas."""
+    image = binary.image
+    before = image.word(address - 4)
+    if address - 4 in pools or mode == 'arm' and before and image.offset(before) is not None and before >> 28 != 0xE:
         return True
     # Le code d'avant peut être dans l'autre mode (une fonction Thumb, son bourrage 0xFFFF, puis de l'ARM).
     half = image.half(address - 2)
@@ -528,6 +539,7 @@ def find_entries(binary):
         return first in covering(target) or origin not in pools and first <= target < (end or target + 1)
 
     def note(target, mode, kind, origin):
+        target = virtual(binary, target)
         if target in binary.starts or target in found or not binary.image.in_code(target) or mode == 'arm' and target & 3:
             return
         hosts = covering(target)
@@ -535,8 +547,9 @@ def find_entries(binary):
             return                      # du Thumb lu en ARM (ou l'inverse) : un mot de données, pas un pointeur de code
         if mode == 'arm' and veneer_body(binary.image, target) is not None and not kind.startswith(PIECE):
             kind = 'veneer'
-        elif not kind.startswith(('cible de bl', 'corps de veneer', PIECE)) and (
-                not at_boundary(binary.image, target, mode, pools) or mode == 'thumb' and looks_arm(binary.image, target)):
+        elif not kind.startswith(('cible de bl', 'corps de veneer', PIECE)) and not (
+                mode == 'arm' and kind == 'cible de b (appel terminal)' and not hosts) and (
+                not at_boundary(binary, target, mode, pools) or mode == 'thumb' and looks_arm(binary.image, target)):
             rejected.append((target, mode, kind, origin))   # rejugé quand d'autres réserves seront connues
             return                      # un saut ou un pointeur seul : il faut qu'il tombe à une frontière de code
         within = [a for a in hosts if not kind.startswith(PIECE)]
@@ -549,11 +562,33 @@ def find_entries(binary):
         body = veneer_body(binary.image, start) if mode == 'arm' else None
         if body is not None:
             note(body, 'thumb', 'corps de veneer', '%#x' % start)
-    seeds, candidates = ghidra_direct.find_pointers(binary.image)
+    # Les réglages de la cible brute (raw_targets.toml) : sans eux, le bourrage 0xFFFFFFFF de kernel11 se lit comme
+    # une table de distances (-1), et chaque case comme une fonction Thumb (1 230 fausses entrées).
+    target = binary.target or {'pointer_sources': 'all', 'thumb_pointers': True, 'relative_tables': True}
+    seeds, candidates = ghidra_direct.find_pointers(
+        binary.image, binary.image.code_ranges if target['pointer_sources'] == 'code' else None,
+        target['thumb_pointers'], target['relative_tables'])
     for target, mode, origin, _ in [(t, m, 'push Thumb', '') for t, m in seeds] + candidates:
         word = int(origin.split()[-1], 16) if origin.startswith('pointeur à ') else None
         if word is None or not inside(word, target):
             note(target, mode, 'pointeur seul', origin)
+
+    def scan_outside():
+        """Le code que Ghidra n'a mis dans aucune fonction : ses b et bl, lus mot à mot (ARM seulement). Un saut qui
+        reste entre les deux mêmes débuts connus (une entrée trouvée et la suivante) est interne à cette entrée."""
+        known = sorted(set(binary.starts) | set(found))
+        for low, high in binary.image.code_ranges:
+            for at in range(low, high - 3, 4):
+                word = binary.image.word(at)
+                if word is None or word & 0x0E000000 != 0x0A000000 or word >> 28 == 0xF or at in pools \
+                        or at in binary.jump_slots or covering(at) or not looks_arm(binary.image, at):
+                    continue
+                target = virtual(binary, at + 8 + (sext(word & 0xFFFFFF, 24) << 2))
+                if bisect.bisect_right(known, at) == bisect.bisect_right(known, target) and known and known[0] <= at:
+                    continue
+                kind = 'appel hors fonction' if word & 0x01000000 else 'cible de b hors fonction'
+                note(target, 'arm', kind, 'code hors fonction à %#x' % at)
+
     work = list(binary.functions)
     while work:
         known = sorted(set(binary.starts) | set(found))
@@ -594,7 +629,19 @@ def find_entries(binary):
         for item in retry:
             note(*item)
         work, todo[:] = list(todo), []
+        if not work:
+            scan_outside()
+            work, todo[:] = list(todo), []
     return found
+
+
+def virtual(binary, address):
+    """L'adresse virtuelle d'une adresse physique d'un morceau du noyau (carte [<cible>.firm] de raw_targets.toml) :
+    le code de lancement d'un FIRM de kernel11 est atteint par son alias 0x1FFF4AC4 (veneer 0xFFF16EC4)."""
+    for _, va, _, size, _, _, pa in ((binary.target or {}).get('firm') or {}).get('pieces', []):
+        if pa is not None and pa != va and pa <= address < pa + size:
+            return va + address - pa
+    return address
 
 
 def overruns(binary, entries):
@@ -647,8 +694,10 @@ def make_proposal(binary, address, name, source, confidence, proof, mode, rule='
 
 # Un nom de la bibliothèque C ou de l'exécution du compilateur : la fonction est la même partout où le code l'est.
 RUNTIME_NAME = re.compile(r'^(?:_Z|__aeabi_|__cxa_|__cxx|__rw_|__ARM_|__rt_|__gnu_)')
-# memcpy, memmove et memset n'y sont pas : armcc a aussi __aeabi_memcpy, qui rend dest + n au lieu de dest, avec un
+# memcpy, memmove et memset (MEM_FAMILY) n'y sont pas : armcc a aussi __aeabi_memcpy, qui rend dest + n au lieu de
+# dest, avec un
 # code presque pareil ; c'est la règle (a) qui les nomme.
+MEM_FAMILY = {'memcpy', 'memmove', 'memset'}
 LIBC_NAMES = set('memcmp memchr strlen strnlen strcpy strncpy strcat strncat strcmp strncmp strchr '
                  'strrchr strstr strspn strcspn strpbrk strtok strtol strtoul strtoll strtoull strtod atoi atol wcslen '
                  'wcscpy wcscmp wcsncmp wcsncpy sprintf snprintf vsprintf vsnprintf printf abs labs qsort bsearch rand srand '
@@ -711,14 +760,33 @@ def is_pure_svc(binary, address, name):
     return len(numbers) == 1 and SVC_NAMES.get(numbers[0]) == m.group(1) and name_pass.is_pure_svc_wrapper(game, name_pass.BASE)
 
 
+def svc_rule(binary, address, name):
+    """Un svc<Nom> n'est haute que par ses octets (is_pure_svc), jamais par ses origines ; None pour un autre nom."""
+    if not re.match(r'svc[A-Z]', name):
+        return None
+    if is_pure_svc(binary, address, name):
+        return 'haute', 'b:svc'
+    return 'moyenne', 'svc<Nom> : haute seulement par les octets (enrobage pur, bon numéro)'
+
+
+def twin_grade(binary, address, name):
+    """La confiance d'un nom de jumeau : haute, sauf un svc<Nom> que ses octets ne prouvent pas et la famille de memcpy
+    (le nom du module normal peut être celui de __aeabi_memcpy)."""
+    judged = svc_rule(binary, address, name)
+    if judged:
+        return ('haute', 'jumeau') if judged[0] == 'haute' else judged
+    if name in MEM_FAMILY:
+        return 'moyenne', 'memcpy, memmove, memset : peut-être __aeabi_memcpy, qui rend dest + n'
+    return 'haute', 'jumeau'
+
+
 def grade(binary, address, print_, name, origins, ipc, min_high):
     """(confiance, règle ou raison du plafond) d'un nom pour une fonction sans nom. Haute seulement par deux voies :
     (a) au moins deux binaires d'origine portent ce nom sur ce code, ou (b) le nom se prouve seul (symbole C++ manglé,
     bibliothèque C ou exécution du compilateur, enrobage svc vérifié sur les octets)."""
-    if is_pure_svc(binary, address, name):
-        return 'haute', 'b:svc'
-    if re.match(r'svc[A-Z]', name):
-        return 'moyenne', 'svc<Nom> : haute seulement par les octets (enrobage pur, bon numéro)'
+    judged = svc_rule(binary, address, name)
+    if judged:
+        return judged
     if ipc:
         return 'basse', 'envoi IPC : le service dépend d\'un handle masqué'
     if print_.count < min_high:
@@ -759,7 +827,6 @@ def twins(binaries, prints, excluded=frozenset()):
     sa variante « -safe », chacune dans l'ordre des adresses, sont alignées sur leurs empreintes (la plus longue suite
     commune, difflib) ; une fonction sans nom de la variante qui a l'empreinte d'une fonction nommée du module ET la
     même place dans l'alignement en prend le nom. Pas si l'une des deux adresses est refusée par la relecture."""
-    import difflib
     by_name = {b.name: b for b in binaries}
     out = []
     for safe in binaries:
@@ -890,8 +957,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
             'jumeau : empreinte %s identique (%d instructions) à %s@%#x « %s », à la même place dans l\'alignement des '
             'fonctions de %s et %s' % (prints[safe.name][there].digest, prints[safe.name][there].count, normal.name,
                                        here - normal.base, name, normal.name, safe.name),
-            judged=('haute', 'jumeau') if not re.match(r'svc[A-Z]', name) or is_pure_svc(safe, there, name) else
-            ('moyenne', 'svc<Nom> : haute seulement par les octets (enrobage pur, bon numéro)'))
+            judged=twin_grade(safe, there, name))
         stats['jumeaux'] += 1
     stats['propositions brutes'] = len(proposals)
     return proposals, conflicts, stats
@@ -973,7 +1039,6 @@ def read_rows(path):
 
 def read_excluded(folder=OUT):
     """{(binaire, adresse)} de toutes les exclusions relues (local/analyse/names-croises/exclusions*.tsv)."""
-    import glob
     return {(r[0], int(r[1], 16)) for path in glob.glob(os.path.join(folder, 'exclusions*.tsv'))
             for r in read_rows(path) if len(r) > 1 and r[1].startswith('0x')}
 
@@ -985,7 +1050,6 @@ def read_propagated(path=PROVENANCE):
 
 def record_propagated(rows, path=PROVENANCE):
     """Ajoute (binaire, adresse, nom, origine) à fiches/noms-propages.tsv, créé avec son en-tête s'il manque."""
-    import datetime
     new = not os.path.isfile(path)
     today = datetime.date.today().isoformat()
     with open(path, 'a', encoding='utf-8') as f:
@@ -997,7 +1061,8 @@ def record_propagated(rows, path=PROVENANCE):
 def apply(source=PROPOSALS, exclusions=EXCLUSIONS, binaries=None, provenance=PROVENANCE):
     """Verse les noms de confiance haute d'un fichier de propositions RELU (sans refaire le calcul) dans la fiche de noms
     de chaque binaire, sauf ceux d'exclusions.tsv (binaire, adresse, raison). Les collisions sont revérifiées contre les
-    fiches du moment (name_pass.reconcile). Un binaire sans fiche de noms (une variante « -safe ») n'en reçoit pas une."""
+    fiches du moment (name_pass.reconcile). Un binaire sans fiche de noms n'en reçoit pas une (les variantes « -safe »
+    ont la leur, remplie par les jumeaux). Chaque nom versé est noté dans fiches/noms-propages.tsv."""
     binaries = binaries or load_all(cro_images=False)
     by_name = {b.name: b for b in binaries}
     excluded = {(r[0], int(r[1], 16)) for r in read_rows(exclusions)}
@@ -1086,23 +1151,31 @@ def read_proposed(binary):
     return out
 
 
-def measure_binary(binary, sources, cited, recompiled, proposed=None):
+def read_outside(name):
+    """{adresse} de fiches/<binaire>.hors-compte.tsv (adresse, raison) : versionné, puisque le compteur en dépend."""
+    return {int(r[0], 16) for r in read_rows(os.path.join(FICHES, name + '.hors-compte.tsv')) if r[0].startswith('0x')}
+
+
+def measure_binary(binary, sources, cited, recompiled, proposed=None, outside=frozenset()):
     """Une ligne du compteur. Les adresses sont celles de la fiche. Le dénominateur : fonctions de Ghidra, entrées
-    manquées trouvées (add_entries), et lignes « function » de la fiche de noms qui ne sont ni l'une ni l'autre."""
+    manquées trouvées (add_entries), et lignes « function » de la fiche de noms qui ne sont ni l'une ni l'autre, moins
+    les adresses de fiches/<binaire>.hors-compte.tsv (adresse, raison) : une donnée, un milieu de fonction, du
+    code mort, relevés à la relecture."""
     starts = {a - binary.base for a in binary.starts}
     declared = {a for a, (kind, _) in name_pass.read_names(binary.names_path).items() if kind == 'function'} - starts
-    total = starts | declared
+    outside = set(outside) & (starts | declared)
+    total = (starts | declared) - outside
     named = {a for a in total if a in binary.names}
     origin = collections.Counter(sources.get((binary.name, a, binary.names[a][1]), 'fiche') for a in named)
     waiting = collections.Counter(c for a, c in (proposed or {}).items() if a in total and a not in named)
     return {'nom': binary.name, 'ghidra': len(starts) - len(binary.entries), 'manquees': len(binary.entries),
-            'fiche_seule': len(declared), 'trouvees': len(total), 'nommees': len(named),
+            'fiche_seule': len(declared), 'hors_compte': len(outside), 'trouvees': len(total), 'nommees': len(named),
             'proposees_haute': waiting['haute'], 'proposees_moyenne': waiting['moyenne'], 'typees': 0,
             'citees': len(starts & cited), 'recompilees': len(starts & recompiled), 'reimplementees': 0,
             'origines': dict(sorted(origin.items()))}
 
 
-LEVELS = ('ghidra', 'manquees', 'fiche_seule', 'trouvees', 'nommees', 'proposees_haute', 'proposees_moyenne', 'typees',
+LEVELS = ('ghidra', 'manquees', 'fiche_seule', 'hors_compte', 'trouvees', 'nommees', 'proposees_haute', 'proposees_moyenne', 'typees',
           'citees', 'recompilees', 'reimplementees')
 
 
@@ -1124,7 +1197,7 @@ def measure(binaries):
             cro['origines'].update(row['origines'])
         else:
             rows.append(measure_binary(b, sources, cited_addresses(fiche_stem(b.names_path)),
-                                       recompiled if b.name == 'maj' else set(), read_proposed(b)))
+                                       recompiled if b.name == 'maj' else set(), read_proposed(b), read_outside(b.name)))
     if cro:
         cro['origines'] = dict(sorted(cro['origines'].items()))
         del cro['modules']
@@ -1140,19 +1213,20 @@ def measure(binaries):
 
 
 def print_measure(rows, waiting):
-    head = '%-20s %7s %7s %6s %8s %8s %6s %7s %7s %7s %7s   %s' % (
-        'binaire', 'Ghidra', 'manq.', 'fiche', 'trouvées', 'nommées', '%', 'p.haute', 'p.moy.', 'citées', 'recomp.',
-        'origine des noms (typées et réimplémentées : 0 partout)')
+    head = '%-20s %7s %7s %6s %6s %8s %8s %6s %7s %7s %7s %7s   %s' % (
+        'binaire', 'Ghidra', 'manq.', 'fiche', 'hors', 'trouvées', 'nommées', '%', 'p.haute', 'p.moy.', 'citées',
+        'recomp.', 'origine des noms (typées et réimplémentées : 0 partout)')
     print(head)
     print('-' * len(head))
     for r in rows + [total_row(rows)]:
         share = 100 * r['nommees'] / r['trouvees'] if r['trouvees'] else 0
-        print('%-20s %7d %7d %6d %8d %8d %5.1f%% %7d %7d %7d %7d   %s' % (
-            r['nom'], r['ghidra'], r['manquees'], r['fiche_seule'], r['trouvees'], r['nommees'], share,
+        print('%-20s %7d %7d %6d %6d %8d %8d %5.1f%% %7d %7d %7d %7d   %s' % (
+            r['nom'], r['ghidra'], r['manquees'], r['fiche_seule'], r['hors_compte'], r['trouvees'], r['nommees'], share,
             r['proposees_haute'], r['proposees_moyenne'], r['citees'], r['recompilees'],
             ', '.join('%s %d' % kv for kv in r.get('origines', {}).items())))
     print('\nGhidra : funcs.tsv ; manq. : entrées manquées par Ghidra (couverture.py entrees <binaire>) ; fiche : lignes '
-          '« function » de la fiche de noms hors des deux ; p.haute, p.moy. : noms proposés pas encore versés')
+          '« function » de la fiche de noms hors des deux ; hors : retirées par fiches/<binaire>.hors-compte.tsv '
+          '(données, milieux de fonction, code mort) ; p.haute, p.moy. : noms proposés pas encore versés')
     if waiting:
         print('\nFiches de noms sans analyse dans local/analyse/<binaire>/gh (non comptées) :')
         print('   ' + ', '.join('%s (%d noms)' % (w['nom'], w['nommees']) for w in waiting))
@@ -1377,7 +1451,6 @@ def test():
           '.cro : position et préfixe du module')
     # « apply » depuis un fichier relu : la graine sans nom reçoit le nom sur place (fins de ligne CRLF gardées), une
     # ligne d'exclusions.tsv n'est pas versée, une moyenne non plus, un binaire sans fiche de noms n'en reçoit pas une
-    import tempfile
     with tempfile.TemporaryDirectory() as folder:
         b.names, b.names_path = {}, os.path.join(folder, 'mod_b.noms.tsv')
         with open(b.names_path, 'w', encoding='utf-8', newline='') as f:
@@ -1443,13 +1516,42 @@ def test():
     check(fingerprints(ent)[base + 0x180].count == 2, 'empreinte coupée à l\'entrée suivante')
     row = measure_binary(ent, {}, set(), set())
     check((row['ghidra'], row['manquees'], row['trouvees']) == (6, 6, 12), 'dénominateur avec les entrées : %r' % row)
+    row = measure_binary(ent, {}, set(), set(), outside={base + 0x300, base + 0x9999})
+    check((row['hors_compte'], row['trouvees']) == (1, 11), 'hors-compte.tsv retiré du dénominateur : %r' % row)
+    # Une cible brute : ses réglages (raw_targets.toml) sont suivis. Le bourrage 0xFFFFFFFF du code se lit sinon comme
+    # une table de distances (-1) qui vise du Thumb ; le pointeur vers l'alias physique d'un morceau (0x1fff4100) mène à
+    # son adresse virtuelle ; un b dans du code qu'aucune fonction de Ghidra ne couvre (0x380) est lu aussi.
+    raw = fake_binary('raw', base, [(0x000, [0xE59F0000, 0xE12FFF1E, 0x1FFF4100], 'arm', 8),
+                                    (0x108, [0xE3A00007, 0xE12FFF1E], 'arm', 8), (0x390, [0xE3A00006, 0xE12FFF1E], 'arm', 8)], {})
+    for at, words in ((0x100, [0xE3A00001, 0xE12FFF1E]), (0x200, [0xFFFFFFFF] * 8),
+                      (0x370, [0xE12FFF1E, 0xE3A00000, 0xE3A00001, 0xE3A00002]),
+                      (0x380, [0xEA000006, 0xE3A00003, 0xE3A00004, 0xE12FFF1E]), (0x3A0, [0xE12FFF1E, 0xE3A00005])):
+        raw.image.data = raw.image.data[:at] + struct.pack('<%dI' % len(words), *words) + raw.image.data[at + 4 * len(words):]
+    free = find_entries(raw)
+    raw.target = {'pointer_sources': 'code', 'thumb_pointers': False, 'relative_tables': False,
+                  'firm': {'pieces': [('vectors', base, 0, 0x400, 0x400, 5, 0x1FFF4000)]}}
+    kept = find_entries(raw)
+    check(any(0x200 <= a - base < 0x220 and m == 'thumb' for a, (m, _, _) in free.items())
+          and not any(0x200 <= a - base < 0x220 for a in kept), 'cible brute : réglages suivis, bourrage écarté')
+    check(kept.get(base + 0x100, ('', ''))[1] == 'pointeur de réserve', 'cible brute : alias physique suivi')
+    check(kept.get(base + 0x3A0, ('', ''))[1] == 'cible de b hors fonction', 'b lu dans le code hors fonction')
+    check(twin_grade(raw, base, 'memcpy')[0] == 'moyenne' and twin_grade(raw, base, 'heap_find_block') == ('haute', 'jumeau'),
+          'jumeau : la famille de memcpy reste moyenne')
     # Sur les vrais binaires s'ils sont là : les entrées relevées à la main dans gpio et codec (notes-100.md), et les
     # main_thread_terminate_handler de dsp et hid (un « bl abort » seul, juste après la réserve qui le désigne)
     by_hand = {'gpio': [0x100134, 0x100160, 0x100168, 0x100db0, 0x100e30, 0x100f48, 0x1011e8, 0x101580, 0x10169c,
                         0x101aa0, 0x101b0c],
                'codec': [0x100168, 0x100170, 0x1010a4, 0x10165c, 0x1016a0, 0x101828, 0x102318, 0x1022f4, 0x102514,
                          0x102f3c, 0x10343c, 0x103800, 0x103808, 0x103ec4, 0x103ee4, 0x103f70],
-               'dsp': [0x1016e0], 'hid': [0x102fc4]}
+               'dsp': [0x1016e0], 'hid': [0x102fc4],
+               # kernel11 (notes-100.md) : relais des vecteurs, veneer de destroy_array, code de lancement d'un FIRM
+               # atteint par son alias physique. Pas la table des vecteurs (seul le processeur y va) ni les deux bouts
+               # qui ne s'exécutent qu'une fois recopiés (0xffff09ac, 0xffff0a00).
+               'kernel11': [0x1ffb1254, 0x1ffb125c, 0xfff00004, 0xfff0000c, 0xfff0060c, 0xfff00618, 0xfff00624,
+                            0xfff00630, 0xfff0063c, 0xfff02e20, 0xfff02e60, 0xfff03174, 0xfff0355c, 0xfff03d48,
+                            0xfff0ba5c, 0xfff12758, 0xfff15664, 0xfff15a0c, 0xfff16ec4, 0xfff18a54, 0xfff1eb64,
+                            0xfff20258, 0xfff20c20, 0xfff25c34, 0xfff29124, 0xfff29e3c, 0xfff2a360, 0xfff2ba44,
+                            0xffff0578, 0xffff05a0, 0xffff0994, 0xffff09e4, 0xffff0a78, 0xffff0ac4]}
     for module, expected in by_hand.items():
         if os.path.isfile(os.path.join(ANALYSE, module, 'gh', 'funcs.tsv')):
             real = load_system(module, True)
