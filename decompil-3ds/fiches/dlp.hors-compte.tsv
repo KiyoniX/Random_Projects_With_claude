@@ -1,0 +1,12 @@
+adresse	raison
+0x100e96	CODE MORT. aucune référence (orphans.py et xref.py : ni b, ni bl, ni blx, ni mot vers 0x100e96/0x100e97) ; même code que __ARM_exceptions_buffer_allocate des lots relus, traité en code mort comme dans
+0x100eb0	CODE MORT. aucune référence (orphans.py et xref.py) ; même code que __ARM_exceptions_buffer_free des lots relus, traité en code mort comme dans am
+0x10156e	CODE MORT. Thumb « movs r0,#1 ; b srand » (srand_default de socket et ir) ; aucune référence (orphans.py et xref.py : ni b, ni bl, ni blx, ni mot vers 0x10156e/0x10156f)
+0x107130	PAS UNE FONCTION. entrée de couverture.py : rang du corps de division, cible du blo de __aeabi_uidivmod (0x10a668) ; morceau du corps commun 0x107104-0x107280
+0x107154	PAS UNE FONCTION. entrée de couverture.py : rang du corps de division, cible du blo de __aeabi_uidivmod (0x10a660) ; morceau du corps commun
+0x107178	PAS UNE FONCTION. entrée de couverture.py : rang du corps de division, cible du blo de __aeabi_uidivmod (0x10a658) ; morceau du corps commun 0x107104-0x107280, comme dans ns, loader, gsp
+0x1071b4	PAS UNE FONCTION. entrée de couverture.py : rang du corps de division, cible du b final de __aeabi_uidivmod (0x10a670) ; morceau du corps commun
+0x1071f0	PAS UNE FONCTION. entrée de couverture.py : rang de la boucle de division (bhs 0x1071f0 en 0x10723c) ; morceau du corps commun
+0x1071f4	PAS UNE FONCTION. entrée de couverture.py : rang du corps de division (blo en 0x1071b0, 0x1071c0, 0x1071d0) ; morceau du corps commun
+0x107224	PAS UNE FONCTION. entrée de couverture.py : rang du corps de division (blo en 0x1071a8) ; morceau du corps commun
+0x109c9c	CODE MORT. CODE MORT malgré le nom __aeabi_memmove de dlp.noms.tsv : aucune référence (orphans.py et xref.py : ni b, ni bl, ni blx, ni mot vers 0x109c9c) ; corps de 924 octets (copie à recouvrement)

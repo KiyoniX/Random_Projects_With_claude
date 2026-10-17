@@ -437,7 +437,7 @@
 0x109748	label	static_init_errf_port
 0x109780	label	init_service_names_and_tables
 0x1099ec	label	static_init_main_thread_handle
-0x109a44	label	init_block_00110001_defaults
+0x109a44	label	static_init_home_menu_title_ids
 0x109aac	label	static_init_config_buffer
 0x109b40	label	static_init_nor_lock
 0x109d00	label	on_terminate_notification

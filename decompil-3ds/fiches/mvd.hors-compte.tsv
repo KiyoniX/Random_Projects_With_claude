@@ -1,0 +1,7 @@
+adresse	raison
+0x100c2a	CODE MORT : aucune référence (balayage complet) (relecture du 17/10) ; empreinte égale (13 instr.) à __ARM_exceptions_buffer_allocate proposé dans 19 lots relus ; appelants aucun (case ou mot)
+0x100c44	CODE MORT : aucune référence (balayage complet) (relecture du 17/10) ; empreinte égale (11 instr.) à __ARM_exceptions_buffer_free proposé dans 20 lots relus ; appelants aucun (case ou mot)
+0x10309e	PAS UNE FONCTION : suite de mvd_process_nal_unit_impl (on y entre en continuant 0x10309c, cadre de pile du parent) (relecture du 17/10)
+0x10ea14	PAS UNE FONCTION. entrée de couverture.py au milieu de __aeabi_idivmod (0x10e9e8) : rang du corps de division, cible des b de 0x10ea08 et de __aeabi_uidivmod (0x10f680) ; même cas que dlp 0x107130…
+0x11000e	PAS UNE FONCTION : cible du blo en 0x110008 dans y2r_driver_initialize_impl ; le « pointeur » 0x11ce80 est dans une table de demi-mots (relecture du 17/10) ; ABSENTE de funcs.tsv. Pointeur seul (mot 0
+0x119564	PAS UNE FONCTION. entrée de couverture.py « pointeur seul » (case 0x116038 d'une table) : le mot 0x119564 est une réserve de littéraux (0x0011d278…) entre deux fonctions Thumb, désassemblée comme des 
