@@ -209,7 +209,7 @@
 0x108bf4	function	abort
 0x108bf8	function	break_process
 0x108c4c	function	lock_enter
-0x108c84	function	fatal_error
+0x108c84	function	fatal_error_unless_minor
 0x108ccc	function	init_runtime_and_srv
 0x108cdc	function	srv_init
 0x108e00	function	gx_execute_command

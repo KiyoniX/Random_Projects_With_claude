@@ -114,7 +114,7 @@
 0x1053a8	label	config_delete_savefile
 0x1053c8	label	ipc_set_write_buffer_desc
 0x105440	label	make_result
-0x10545c	function	memclr
+0x10545c	function	memclr_bytes
 0x10549c	label	ipc_get_word
 0x1054a4	function	svcSendSyncRequest
 0x1054ac	label	ipc_copy_to_words
@@ -135,7 +135,7 @@
 0x105a80	label	results_differ
 0x105a90	label	config_create_block_flags_c
 0x105a9c	label	config_create_block_flags_e
-0x105aa8	function	memclr_aligned
+0x105aa8	function	memclr
 0x105aac	function	memset_words
 0x105afc	label	config_set_block_thunk
 0x105b50	label	config_get_block

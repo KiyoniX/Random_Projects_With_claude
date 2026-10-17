@@ -1,0 +1,2 @@
+adresse	raison
+0x105620	pas une fonction : morceau de la division, atteint seulement par des branchements internes (blo 0x105614 dans __aeabi_idivmod, blo 0x1058bc dans __aeabi_uidivmod)

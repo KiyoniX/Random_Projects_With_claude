@@ -117,7 +117,7 @@
 0x103b20	function	copy_service_name
 0x103b34	function	svcConnectToPort
 0x103b4c	function	mcu_SetInterruptMask
-0x103b70	function	fatal_error
+0x103b70	function	fatal_error_unless_minor
 0x103bb8	function	mcu_read_pending_interrupts
 0x103be8	function	mcu_SetRTCAlarm
 0x103cbc	function	srv_get_service_handle_by_name

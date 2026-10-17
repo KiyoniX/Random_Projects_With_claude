@@ -68,7 +68,7 @@
 0x102768	label	FSUSER_ControlArchive
 0x102908	label	break_process
 0x10291c	label	report_fatal_error
-0x1029bc	label	get_service_handle_by_name2
+0x1029bc	label	get_service_handle_by_name_alt_1029bc
 0x102c38	label	secure_info_get_region
 0x102d76	label	memcmp
 0x102f74	label	errf_close
@@ -153,7 +153,7 @@
 0x1053b8	label	config_delete_savefile
 0x1053d8	label	ipc_set_write_buffer_desc
 0x105450	label	make_result
-0x10546c	function	memclr
+0x10546c	function	memclr_bytes
 0x1054ac	label	ipc_get_word
 0x1054b4	function	svcSendSyncRequest
 0x1054bc	label	ipc_copy_to_words
@@ -180,7 +180,7 @@
 0x105aa0	label	config_create_block_flags_c
 0x105aac	label	config_set_block_flags
 0x105acc	label	config_create_block_flags_e
-0x105ad8	function	memclr_aligned
+0x105ad8	function	memclr
 0x105adc	function	memset_words
 0x105b2c	label	config_set_block_thunk
 0x105b38	label	config_format
