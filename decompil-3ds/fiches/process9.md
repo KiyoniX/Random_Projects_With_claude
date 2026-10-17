@@ -14,7 +14,7 @@ Fiche du 14 octobre 2026, produite avec Ghidra lancé directement sous Ubuntu (W
 | Point d'entrée ARM9 | `0x0801B01C` d'après l'en-tête du FIRM : l'entrée de kernel9 (partie 1) |
 | Chiffrement | la section est **déjà en clair** dans le dump ; l'en-tête de `0x800` octets qui la précède garde ses champs de clé chiffrés (partie 1) |
 | Chargeur New 3DS | version `K9L2` (lue à `+0x50` de l'en-tête), code en clair à `0x0808A900`, 23 296 octets |
-| kernel9 | `0x08006800` à `0x0801C100`, 88 320 octets ; 497 fonctions pour Ghidra, dont 46 nommées dans `kernel9.noms.tsv` ; 40 appels système |
+| kernel9 | `0x08006800` à `0x0801C100`, 88 320 octets ; 516 fonctions (497 pour Ghidra, plus 37 entrées qu'il a manquées et 16 trouvées à la main, moins 23 mots de données et les 11 relais de la table de vecteurs morte `0x0800E800`), nommées dans `kernel9.noms.tsv` (les noms de confiance moyenne restent en proposition) ; 40 appels système |
 | Process9 | titre `0004013000003000`, NCCH de 452 608 octets à `0x0801C100` ; code non compressé, chargé à `0x08028000` |
 | Taille de Process9 | 418 704 octets de code, 27 004 de données en lecture seule, 3 400 de données, 529 964 de mémoire à zéro (jusqu'à `0x08117080`) |
 | Fonctions | 4 797 pour Ghidra (4 596 en Thumb, 201 en ARM), dont 385 nommées dans `process9.noms.tsv` |
@@ -33,7 +33,7 @@ Elle se découpe ainsi (lu par `outils/firm.py`, qui range les morceaux dans `lo
 | `0x08006000` | `0x800` | en-tête du binaire ARM9 du New 3DS | champs de clé, compteur, taille en texte décimal à `+0x30` (`540928`), version `K9L2` à `+0x50` |
 | `0x08006800` | `0x15900` | kernel9 | du code ARM dès `0x08006800` ; son point d'entrée `0x0801B01C` est celui de l'en-tête |
 | `0x0801C100` | `0x6E800` | le NCCH de Process9 | le mot `NCCH` à `+0x100`, l'exheader nommé `Process9`, un exefs qui ne contient que `.code` |
-| `0x0808A900` | `0x5B00` | le chargeur du New 3DS (« kernel9loader ») | du code Thumb et ARM qui touche les registres AES, SHA et SD/MMC |
+| `0x0808A900` | `0x5B00` | le chargeur du New 3DS (« kernel9loader ») | du code Thumb et ARM qui touche les registres AES, SHA et SD/MMC, l'OTP (`0x10012000`, `0x10012100`), `CFG9_SYSPROT9` (`0x10000000`) et `0x10010010`/`0x10010014` |
 
 Le binaire ARM9 annoncé par l'en-tête fait `0x84100` octets à partir de `0x08006800` : il finit pile à `0x0808A900`, à la fin du NCCH de Process9. kernel9 et Process9 sont donc la partie chiffrée sur la console ; le chargeur, derrière, est en clair.
 
@@ -43,7 +43,7 @@ Le binaire ARM9 annoncé par l'en-tête fait `0x84100` octets à partir de `0x08
 - le mot `+0x04` de l'en-tête du FIRM vaut `DEC` en ASCII ;
 - `etat.json` note que la section ARM9 a été déchiffrée par GodMode9.
 
-Le point d'entrée `0x0801B01C` de l'en-tête est donc probablement celui que l'outil a réécrit : sur la console, l'ARM9 entre d'abord dans le chargeur, qui se termine en sautant à une adresse rangée dans ses données (le mot à `0x08090234` vaut `0x0801B01C`). L'adresse d'entrée d'origine du chargeur n'est pas lue.
+Le point d'entrée `0x0801B01C` de l'en-tête est donc probablement celui que l'outil a réécrit : sur la console, l'ARM9 entre d'abord dans le chargeur, qui se termine en sautant à une adresse rangée dans ses données (le mot à `0x08090234` vaut `0x0801B01C`). L'entrée d'origine du chargeur est probablement `0x0808AA3C` (supposé : aucune référence dans l'image) : c'est la seule routine qui masque les interruptions, pose les piles, appelle `0x0808AEC8` (régions et caches), `0x0808B004` (bss et constructeurs) et `0x0808AAD0` (le corps du chargeur), puis passe par `0x0808B024`, qui ne saute à l'adresse rendue (le mot `0x08090234`) que si elle est dans [`0x08006800`, `0x0808A900`).
 
 **La version.** Le NCCH de Process9 porte la version 2 de son format et le titre `0004013000003000`. Le numéro de version du FIRM lui-même n'est pas dans la section ARM9 ; il est écrit par kernel11 dans la page de configuration (fiche de kernel11).
 
@@ -51,9 +51,9 @@ Le point d'entrée `0x0801B01C` de l'en-tête est donc probablement celui que l'
 
 kernel9 est un noyau à part entière, plus petit que celui de l'ARM11 : pas de mémoire virtuelle (l'ARM946 n'a qu'une unité de protection), un seul processus, pas d'IPC par ports.
 
-**Le démarrage.** `kernel9_entry` (`0x0801B01C`) masque les interruptions, règle le cache, met à zéro les registres, puis pose la pile de chaque mode du processeur. Les adresses de piles viennent d'une petite fonction en tête de la zone (`0x0801B000`) : `0x08002800`, `0x08002000`, `0x08001FC0`, dans la mémoire interne de l'ARM9. La fonction à `0x0801B144` règle l'unité de protection (huit régions écrites dans le coprocesseur 15, non décodées ici), les mémoires rapides et le cache. `kernel9_clear_bss_and_init` (`0x0801B114`) vide la zone de données puis la suite saute à `kernel9_main` (`0x08006830`). Tout ce code de démarrage est placé à `0x0801B000`, et kernel9 réutilise ensuite cette zone : `kernel9_main` confie la mémoire de `0x0801B000` à `0x08028000` à un gestionnaire de mémoire (`0x0800F154`). Interprété : c'est le tas du noyau.
+**Le démarrage.** `kernel9_entry` (`0x0801B01C`) masque les interruptions, règle le cache, met à zéro les registres, puis pose la pile de chaque mode du processeur. Les adresses de piles viennent d'une petite fonction en tête de la zone (`0x0801B000`) : `0x08002800`, `0x08002000`, `0x08001FC0`, dans la mémoire interne de l'ARM9. La fonction à `0x0801B144` lit `0x10000004`, `0x10010000` et `0x10010010`, écrit deux octets en `0x1FFFFFF1`/`0x1FFFFFF2`, pose le bit 0 de `0x10000200`, se synchronise avec l'ARM11 sur l'octet `0x1FFFFFF0`, puis règle l'unité de protection (huit régions de 12 octets lues dans la table `0x0801B3A0`), les mémoires rapides (c9 = `0x0A` et `0x20`) et le contrôle (c1 = `0x4307D`, vecteurs hauts). `kernel9_clear_bss_and_init` (`0x0801B114`) vide `0x10B4` octets en `0x08019600`, met à zéro les deux mots de `0x0817FFE0` et lance les 13 constructeurs statiques de la table `0x0801B424`, puis la suite saute à `kernel9_main` (`0x08006830`). Tout ce code de démarrage est placé à `0x0801B000`, et kernel9 réutilise ensuite cette zone : `kernel9_main` confie la mémoire de `0x0801B000` à `0x08028000` à un gestionnaire de mémoire (`0x0800F154`). Interprété : c'est le tas du noyau.
 
-**`kernel9_main`** prépare les réserves d'objets du noyau (quinze appels à la même fonction d'initialisation, une par type d'objet), les interruptions et les minuteries, puis crée Process9 :
+**`kernel9_main`** prépare les réserves d'objets du noyau (quinze appels à `slab_heap_init` `0x0800EEA8` : neuf pour les types d'objets, une pour les nœuds de liste `0x0801A250`, une pour les blocs de pages `0x0801A664` et quatre de rôle non identifié, `0x0801A514`, `0x0801A654`, `0x0801A4C4` et `0x0801A694`), les interruptions et les minuteries, puis crée Process9 :
 
 1. `kernel9_move_process9_ncch` (`0x08007080`) recopie les `0x6E800` octets du NCCH de Process9 de `0x0801C100` vers `0x081117E0`, tout en haut de la mémoire étendue de l'ARM9 du New 3DS (elle finit à `0x08180000`). Il faut le déplacer : Process9 se charge à `0x08028000`, au milieu de l'endroit où son NCCH se trouve.
 2. `kernel9_create_firm_processes` (`0x080070AC`) lit ce NCCH, crée un processus et son fil, et charge le code à `0x08028000`. La boucle est écrite pour plusieurs processus mais tourne une seule fois.
@@ -74,7 +74,7 @@ kernel9 est un noyau à part entière, plus petit que celui de l'ARM11 : pas de 
 
 Les trois appels de cache (`0x52` à `0x54`) n'acceptent que trois plages d'adresses physiques, lues dans leur code : la FCRAM (`0x20000000` à `0x30000000`), la mémoire de l'ARM9 (`0x08000000` à `0x08180000`) et la mémoire AXI (`0x1FF00000` à `0x1FF80000`). C'est la carte de ce que Process9 a le droit de toucher par DMA.
 
-**Les fils du noyau.** Pas lus. Le seul fil que `kernel9_main` crée est le fil principal de Process9 ; Process9 crée tous les autres (partie 3).
+**Les fils du noyau.** Avant de créer Process9, `kernel9_main` crée trois fils du noyau : le fil de travail du cœur (`start_core_work_thread` `0x08006F98`, entrée `0x08008310`) et deux fils de gestionnaire de tâches (`worker_task_manager_initialize` `0x08006D70`, sur `0x0801A40C` et `0x0801A420`, entrée `0x08008294`). `kernel9_create_firm_processes` crée ensuite le fil principal de Process9 (`kprocess_run`). Le fil de démarrage passe enfin à la priorité `0x40` (`thread_become_idle` `0x080075C0`) et boucle sur l'attente d'interruption : c'est le fil inactif. Process9 crée tous les autres (partie 3).
 
 ## Partie 3 : le démarrage de Process9, jusqu'à l'écoute du PXI
 
@@ -626,8 +626,8 @@ Process9 utilise 31 des 40 appels de kernel9. Leurs enveloppes, une par appel, s
 - Les noms des fonctions des pilotes (SHA, RSA, SD/MMC) : déduits des registres touchés.
 
 **Pas lu**
-- Le chargeur du New 3DS au-delà de sa structure (185 fonctions pour Ghidra dans `local/analyse/process9/loader/`), et son point d'entrée d'origine.
-- kernel9 au-delà du démarrage, de la création de Process9 et de la table des appels : l'ordonnanceur, les objets, les régions de l'unité de protection, les fils du noyau.
+- Le pilote SD/MMC du chargeur du New 3DS instruction par instruction (`0x0808C34C`, `0x0808DA18`) ; ses 193 fonctions (185 pour Ghidra dans `local/analyse/arm9loader/gh/`, plus 8 entrées) sont nommées, et son entrée d'origine `0x0808AA3C` reste supposée.
+- kernel9 : le compilateur de programmes DMA (`dma_node_*`, `dma_transfer_*`, nommés en moyenne) et le rôle de quatre réserves d'objets sans type.
 - Le corps des 93 commandes de `pxi:am9`, des commandes de cartouche et de NAND de `PxiFS`, et des commandes de `pxi:mc` hors 1 et 5.
 - Le compteur des fichiers de la carte SD, la lecture d'une cartouche, le format des contenus `.app` et du TMD côté Process9.
 - Le petit programme copié à `0x0817F000` au-delà des quatre fonctions citées.
@@ -657,6 +657,6 @@ Process9 utilise 31 des 40 appels de kernel9. Leurs enveloppes, une par appel, s
 - **Le nom `dis.py`** masque le module `dis` de Python et casse `capstone` : le désassembleur s'appelle `disasm_p9.py`.
 - **Les pages de 3dbrew** arrivent compressées par la Wayback Machine : `curl --compressed`.
 
-**Ce qui a été rangé dans `outils/`, et ce qui ne l'a pas été.** Le découpage du FIRM est dans `firm.py`, le lancement de Ghidra sur une image brute ou un ELF dans `ghidra_raw.py`, ses réglages dans `raw_targets.toml` (voir `outils/REA.md`, partie 4 ter). Relancés le 2026-10-14 : Process9 4 797 fonctions, 385 noms posés ; kernel9 497 fonctions, 46 noms ; le chargeur 185 fonctions ; aucun nom sans fonction. La lecture des aiguillages ARM par table de saut (`tables.py`, `services.py`) reste dans `local/analyse/process9/`.
+**Ce qui a été rangé dans `outils/`, et ce qui ne l'a pas été.** Le découpage du FIRM est dans `firm.py`, le lancement de Ghidra sur une image brute ou un ELF dans `ghidra_raw.py`, ses réglages dans `raw_targets.toml` (voir `outils/REA.md`, partie 4 ter). Relancés le 2026-10-14 : Process9 4 797 fonctions, 385 noms posés ; kernel9 497 fonctions, 46 noms ; le chargeur 185 fonctions ; aucun nom sans fonction. La lecture des aiguillages ARM par table de saut (`tables.py`, `services.py`) reste dans `local/analyse/process9/`. (au 17/10 : 49 fonctions et 1 étiquette dans la fiche, puis les noms relus du lot du 17/10)
 
 **Pour reprendre.** Relancer `python outils/firm.py local/dump/systeme/native.firm`, puis `python outils/ghidra_raw.py process9` et `python outils/ghidra_raw.py kernel9` (environ trois minutes chacun) : les morceaux découpés vont dans `local/extrait/firm/arm9/`, les projets Ghidra, le pseudo-code et l'assembleur de chaque fonction dans `local/analyse/process9/gh/` et `local/analyse/kernel9/gh/`. Les scripts de lecture de `local/analyse/process9/` (`q.py`, `tables.py`, `services.py`, `crosscheck.py`, `make_names.py`, `gen_doc.py`), non versionnés, lisent encore les premiers projets (`p9/gh/`, `k9/gh/`), qui ont les mêmes fonctions ; on y trouve aussi les tables (`tables/*.txt`, `services.tsv`, `crosscheck.tsv`) et les pages de 3dbrew (`web/`).
