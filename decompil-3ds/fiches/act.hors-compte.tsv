@@ -1,0 +1,12 @@
+adresse	raison
+0x102d72	CODE MORT : movs r0,#1 ; b srand (srand_default) ; aucune référence (allrefs.py)
+0x102d96	CODE MORT : même code que __ARM_exceptions_buffer_allocate ; aucune référence (allrefs.py)
+0x102db0	CODE MORT : même code que __ARM_exceptions_buffer_free ; aucune référence (allrefs.py)
+0x106b74	CODE MORT : Thumb, 216 octets, même code que l'initialisation des flux de cecd 0x117af0 (memclr des FILE, ouverture) ; aucune référence (allrefs.py)
+0x106c4c	CODE MORT : Thumb, 56 octets, même code que la fermeture des flux de cecd 0x117bc8 ; aucune référence (allrefs.py)
+0x10a8ee	PAS UNE FONCTION (fonction de Ghidra) : morceau de act_u_dispatch_command (0x10a898-0x10b20c) : atteint par bl@0x10b1f8 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x10b32e	PAS UNE FONCTION (fonction de Ghidra) : morceau de act_a_dispatch_command (0x10b20c-0x10c838) : atteint par bl@0x10be5c beq@0x10b356 bne@0x10b35e beq@0x10b36c beq@0x10b402 beq@0x10b40e +1 depuis l'aig
+0x10b33e	PAS UNE FONCTION (fonction de Ghidra) : morceau de act_a_dispatch_command (0x10b20c-0x10c838) : atteint par bl@0x10c82a depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x10c81a	PAS UNE FONCTION (fonction de Ghidra) : morceau de act_a_dispatch_command (0x10b20c-0x10c838) : atteint par bl@0x10b260 b@0x10c438 b@0x10c438 depuis l'aiguillage lui-même ; pas de push en tête, lit le
+0x112b9c	CODE MORT : Thumb, 76 octets, même code que fopen de cecd 0x10d8a8 ; aucune référence (allrefs.py)
+0x1255f4	CODE MORT : ARM, 924 octets, __aeabi_memmove (nommé ainsi dans act.noms.tsv) : aucune référence (b, bl, blx, mot, distance, adr : allrefs.py) ; même cas que 0x10e82c de cecd et 0x109c9c de dlp

@@ -1,0 +1,13 @@
+adresse	raison
+0x10454a	CODE MORT : même code que __ARM_exceptions_buffer_allocate des autres modules (si la taille ≤ 0x80 et le tampon libre, octet = 1 et rend tampon+8) ; aucune référence (allrefs.py) ; même cas que am et 
+0x104564	CODE MORT : même code que __ARM_exceptions_buffer_free (si l'adresse est tampon+8, octet = 0) ; aucune référence (allrefs.py) ; même cas que am et dlp
+0x105c7c	PAS UNE FONCTION (entrée de couverture.py, genre « pointeur seul », depuis « case 0x1053c0 ») : les octets ff ff ff ff f6 01 00 00 sont la réserve littérale de 0x105c28 (mots 0xFFFFFFFF et 0x1F6, la t
+0x10653e	CODE MORT : movs r0,#1 ; b srand (srand_default) ; aucune référence (b, bl, blx, mot, distance, adr, case : allrefs.py) ; même cas que 0x10156e de dlp
+0x10cb80	CODE MORT : push ; blx 0x10f64c (emplacement d'errno) ; ldr r0,[r0] ; pop : lecture d'errno, aucune référence (b, bl, blx, mot, distance, adr : allrefs.py), alors que __set_errno (0x10cb8a) a quatre a
+0x10d8a8	CODE MORT : Thumb, 76 octets : parcourt la table des FILE 0x12e464 pour une case libre, la met à zéro (memclr) et ouvre par 0x10d814 (mode « a », « r », « w ») : fopen de la bibliothèque C ; aucune ré
+0x10e82c	CODE MORT : ARM, 924 octets, même code que __aeabi_memmove des autres modules (subs r3,r0,r1 ; cmphs r2,r3 ; bls memcpy_unaligned…) ; aucune référence (allrefs.py) ; le module appelle sa variante cour
+0x117af0	CODE MORT : Thumb, 216 octets : met à zéro les trois FILE de 0x50 octets de 0x12e464 (memclr) et les ouvre (0x10d814, 0x117c48) : l'initialisation des flux de la bibliothèque C ; aucune référence (b, 
+0x117bc8	CODE MORT : Thumb, 56 octets : ferme les flux de 0x12e464 (0x10d7bc) et libère leurs tampons (heap_free_default) : la fermeture des flux de la bibliothèque C ; aucune référence (allrefs.py, prel31.py)
+0x11b004	PAS UNE FONCTION (fonction de Ghidra) : morceau de cecds_handle_command (0x11af50-0x11ba20) : atteint par bl@0x11ba12 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x11ba02	PAS UNE FONCTION (entrée de couverture.py) : morceau de cecds_handle_command (0x11af50-0x11ba20) : atteint par b@0x11b8a4 b@0x11b8a4 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de
+0x121828	CODE MORT (entrée) : aucun appelant de 0x121828 ; le beq en 0x10d934 de __aeabi_memmove saute dans son corps (0x121854), chemin vivant (relecture du 18/10)
