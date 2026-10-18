@@ -10,7 +10,7 @@
 0x1000c0	label	init_runtime
 0x1000dc	label	init_heap
 0x1003ec	label	set_heap_size
-0x100438	label	create_address_arbiter
+0x100438	label	create_lock_arbiter_once
 0x10050c	label	srv_enable_notification
 0x100528	label	handle_srv_notification
 0x100564	label	srv_is_initialized

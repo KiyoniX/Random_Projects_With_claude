@@ -433,7 +433,7 @@
 0xfff15200	function	start_thread
 0xfff15254	function	kthread_initialize
 0xfff15660	function	memzero
-0xfff15664	function	memset_aligned_words
+0xfff15664	function	memset_words
 0xfff156b4	function	copy_from_user
 0xfff156e4	function	copy_words_from_user
 0xfff15714	function	copy_word_from_user
@@ -499,7 +499,7 @@
 0xfff1ac5c	function	page_heap_validate_block
 0xfff1aef8	function	get_system_tick
 0xfff1af6c	function	dma_event_interrupt_status
-0xfff1af84	function	memclr
+0xfff1af84	function	memclr_bytes
 0xfff1afc4	function	klinked_list_init
 0xfff1afdc	function	page_table_build_block_list
 0xfff1b29c	function	page_block_list_total_pages

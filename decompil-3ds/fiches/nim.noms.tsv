@@ -224,7 +224,7 @@
 0x130d78	label	ipc_copy_to_words
 0x130d8c	label	ipc_set_header
 0x130dba	label	static_guard_acquire
-0x130ec0	function	results_differ
+0x130ec0	function	u32_not_equal
 0x130ed0	function	get_tls
 0x130f4c	function	svcCloseHandle
 0x130f5c	function	strlen

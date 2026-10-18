@@ -118,7 +118,7 @@
 0x108dc0	label	dlp_fkcl_cmd_0002_Finalize
 0x109382	label	memcmp
 0x109914	function	memcpy_unaligned
-0x109c9c	function	__aeabi_memmove
+0x109c9c	function	memmove_unaligned
 0x10a16c	function	svcCreateEvent
 0x10a1e4	label	construct_array
 0x10a2c4	function	svcGetSystemTick

@@ -3,7 +3,7 @@
 0x1002b8	label	init_heap
 0x100cb0	label	make_result_level1
 0x100cc4	label	set_heap_size
-0x100d10	label	create_address_arbiter
+0x100d10	label	create_lock_arbiter_once
 0x10128c	label	srv_is_initialized
 0x1012fc	label	SRV_RegisterService
 0x101350	label	SRV_UnregisterService

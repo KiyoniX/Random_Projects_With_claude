@@ -75,8 +75,8 @@
 0x102f94	label	errf_connect
 0x102fbc	label	ERRF_Throw
 0x10303c	label	crc16
-0x103074	label	sha256_pad
-0x1030c0	label	sha256_update_impl
+0x103074	label	sha_md_pad
+0x1030c0	label	sha_md_update
 0x103160	label	eeprom_read_words
 0x103184	label	lock_is_owner
 0x1033c2	label	I2CEEP_ReadEEPROM
@@ -176,7 +176,7 @@
 0x1059b4	label	get_block_00040004_default
 0x1059cc	label	hwcal_get_version
 0x1059e0	label	hwcal_load
-0x105a90	label	results_differ
+0x105a90	label	u32_not_equal
 0x105aa0	label	config_create_block_flags_c
 0x105aac	label	config_set_block_flags
 0x105acc	label	config_create_block_flags_e
@@ -455,7 +455,7 @@
 0x109fb4	function	svcGetProcessId
 0x109fcc	function	svcGetSystemTick
 0x10a024	function	memcpy_unaligned
-0x10a3ac	function	__aeabi_memmove
+0x10a3ac	function	memmove_unaligned
 0x10a79c	function	svcArbitrateAddress
 0x10a8e4	function	svcDuplicateHandle
 0x10a8fc	function	svcWaitSynchronization1

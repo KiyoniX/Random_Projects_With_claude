@@ -2,7 +2,7 @@
 0x100024	function	clear_bss
 0x10010c	label	set_heap_size
 0x10017c	label	nfc_main
-0x1004d8	label	create_address_arbiter
+0x1004d8	label	create_lock_arbiter_once
 0x100934	label	srv_is_initialized
 0x1009a4	label	SRV_RegisterService
 0x1009f8	label	SRV_UnregisterService

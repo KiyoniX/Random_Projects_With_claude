@@ -53,7 +53,7 @@
 0x101bc0	function	heap_alloc
 0x102074	function	sha256_transform
 0x1021ac	function	memcpy_unaligned
-0x102534	function	__aeabi_memmove
+0x102534	function	memmove_unaligned
 0x1028d0	function	svcDuplicateHandle
 0x1028e8	function	svcReplyAndReceive
 0x102900	function	strcpy
@@ -166,7 +166,7 @@
 0x106bac	function	sha256_init
 0x106c18	function	sha256_final
 0x106c8c	function	sha256_digest
-0x106d74	function	sha256_pad
+0x106d74	function	sha_md_pad
 0x106e94	function	rsa_key_set
 0x106f4c	function	rsa_key_clear
 0x106f78	function	rsa_key_construct

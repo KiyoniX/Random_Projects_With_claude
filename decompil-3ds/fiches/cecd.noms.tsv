@@ -5,7 +5,7 @@
 0x1000f0	label	init_heap
 0x100154	label	cecd_main
 0x100434	label	set_heap_size
-0x100480	label	create_address_arbiter
+0x100480	label	create_lock_arbiter_once
 0x1006e8	label	handle_srv_notification
 0x10072c	label	srv_is_initialized
 0x10079c	label	SRV_RegisterService
@@ -47,7 +47,7 @@
 0x10a1dc	label	CFGS_GetConfigInfoBlk8
 0x10bab8	label	FSUSER_ControlArchive
 0x10c810	label	CFGU_GetConfigInfoBlk2
-0x10cc78	function	sha256_pad
+0x10cc78	function	sha_md_pad
 0x10cfcc	label	cec_access_is_blocked
 0x10d034	label	ipc_is_read_buffer_desc
 0x10d0a4	label	bitfield_extract

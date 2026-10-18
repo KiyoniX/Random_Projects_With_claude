@@ -5,7 +5,7 @@
 0x1000dc	label	init_heap
 0x100100	label	camera_main
 0x100378	label	set_heap_size
-0x1003c4	label	create_address_arbiter
+0x1003c4	label	create_lock_arbiter_once
 0x100490	label	ptm_s_close
 0x1004c4	label	ptm_s_open
 0x10054c	label	handle_srv_notification

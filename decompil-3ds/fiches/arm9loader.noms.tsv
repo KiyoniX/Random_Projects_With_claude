@@ -5,7 +5,7 @@
 0x808b024	function	arm9loader_jump_to_arm9bin
 0x808b104	function	copy_64_bytes_from_port
 0x808b158	function	copy_64_bytes_to_port
-0x808b1ac	function	memclr
+0x808b1ac	function	memclr_bytes
 0x808b1ec	function	aes_decrypt_block_with_slot11
 0x808b290	function	aes_init_twl_keyx_from_console_id
 0x808b398	function	derive_slot11_key_from_otp_hash

@@ -212,7 +212,7 @@
 0x109596	label	am_pxi_send_14_InstallTmdWrite
 0x1095d8	label	am_pxi_send_13_InstallTmdBegin
 0x109604	label	am_pxi_send_10_InstallTitleBegin
-0x1096b8	label	results_differ
+0x1096b8	label	u32_not_equal
 0x1096c8	label	am_pxi_send_0C_InstallTikFinish
 0x109706	label	am_pxi_send_0A_InstallTikWrite
 0x109748	label	am_pxi_send_09_InstallTikBegin
@@ -321,8 +321,8 @@
 0x10f104	label	am_pxi_send_42_InstallTitlesFinishFIRM
 0x10f160	label	am_pxi_send_39_Sign
 0x10f1dc	label	am_pxi_send_40_DoCleanup
-0x10f220	label	sha256_pad
-0x10f26c	label	sha256_update_impl
+0x10f220	label	sha_md_pad
+0x10f26c	label	sha_md_update
 0x11089c	label	static_init_errf_port
 0x110c24	label	am_sys_thread_entry
 0x110c34	label	am_app_thread_entry

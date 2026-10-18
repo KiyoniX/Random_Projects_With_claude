@@ -274,7 +274,7 @@
 0x124030	function	cfg_init_internal
 0x1240b0	function	cfg_GenHashConsoleUnique
 0x1240f8	function	cfg_GetConfigInfoBlk2
-0x124148	function	dsp_UnloadComponent
+0x124148	function	DSP_UnloadComponent
 0x124170	function	nndsp_reload_if_pending
 0x12422c	function	nndsp_unload_for_suspend
 0x124294	function	nndsp_reload_after_suspend
@@ -324,7 +324,7 @@
 0x1341b4	function	nndsp_load_component
 0x13422c	function	nndsp_load_default_component
 0x1342a4	function	nndsp_register_suspend_callbacks
-0x1342fc	function	dsp_LoadComponent
+0x1342fc	function	DSP_LoadComponent
 0x134a24	function	nnsnd_on_suspend
 0x134a6c	function	nnsnd_on_resume
 0x134ad4	function	srv_init
@@ -466,8 +466,8 @@
 0x1e277c	function	fsuser_CreateFile
 0x1e27d8	function	fsuser_DeleteFile
 0x1e2828	function	fsuser_RenameFile
-0x1e28b8	function	fsuser_OpenArchive
-0x1e2918	function	fsuser_CloseArchive
+0x1e28b8	function	FSUSER_OpenArchive
+0x1e2918	function	FSUSER_CloseArchive
 0x1e2948	function	fsuser_GetFreeBytes
 0x1e2984	function	fsuser_GetFormatInfo
 0x1e2a10	function	fsuser_OpenDirectory
@@ -486,7 +486,7 @@
 0x1e2e38	function	fsuser_GetExtDataBlockSize
 0x1e2ea4	function	fsuser_DeleteDirectoryRecursively
 0x1e2ef4	function	fsuser_GetThisSaveDataSecureValue
-0x1e2f4c	function	fsuser_OpenFile
+0x1e2f4c	function	FSUSER_OpenFile
 0x1e2fc0	function	fsfile_GetPriority
 0x1e2ff8	function	fsfile_OpenSubFile
 0x1e3044	function	fsfile_SetPriority
@@ -496,7 +496,7 @@
 0x1e3130	function	fsfile_Write
 0x1e3190	function	fsfile_GetAvailable
 0x1e31dc	function	fsfile_GetSize
-0x1e3214	function	fsfile_SetSize
+0x1e3214	function	FSFILE_SetSize
 0x1e3244	function	fsdir_GetPriority
 0x1e327c	function	fsdir_SetPriority
 0x1e32ac	function	fsdir_Read
@@ -812,6 +812,7 @@
 0x300c34	label	_ZNSs9_C_unlinkEv
 0x300c7c	label	_ZNSs7replaceEjjPKcj
 0x3011c2	label	_ZNSt11char_traitsIcE4moveEPcPKcj
+0x301830	label	memset_words
 0x302e98	label	_ZNK4__rw11__rw_file_t10_C_is_openEv
 0x3031d8	label	_ZN4__rw11__rw_file_t9_C_filenoEPSt6__FILE
 0x303262	label	_ZN4__rw21__rw_use_c_lib_localeD1Ev
@@ -945,16 +946,16 @@
 0x15eb68	function	svcBreak
 0x15eb84	function	svcGetSystemTick
 0x15eba0	function	__aeabi_memset
-0x15ebd0	function	__aeabi_memclr_alt_15ebd0
+0x15ebd0	function	memclr_bytes
 0x15ec14	function	__aeabi_uidivmod
 0x16fcb8	function	_ZN2nn3nex10ByteStreamD1Ev
 0x1722fc	function	_ZN2nn3nex6BufferD1Ev
 0x177378	function	svcCreateMemoryBlock
 0x177394	function	__aeabi_uldivmod
-0x177684	function	memcmp_alt_177684
+0x177684	function	strncmp
 0x17d810	function	svcGetThreadId
-0x183218	function	__aeabi_memcpy_alt_183218
-0x1835a0	function	__aeabi_memmove_alt_1835a0
+0x183218	function	memcpy_unaligned
+0x1835a0	function	memmove_unaligned
 0x185094	function	_ZN2nn3nex3KeyD1Ev
 0x1854f4	function	_ZN2nn3nex6StringD1Ev
 0x1941fc	function	memmove_words
@@ -1149,7 +1150,7 @@
 0x29eb58	function	_ZN2nn3nex9SchedulerD1Ev
 0x29f418	function	_ZN2nn3nex9SelectionD0Ev
 0x29f42c	function	_ZN2nn3nex9SelectionD1Ev
-0x2b74f0	function	strlen_alt_2b74f0
+0x2b74f0	function	strnlen
 0x2fe898	function	strlen
 0x2fe900	function	strcpy
 0x300988	function	__aeabi_idivmod
@@ -1260,7 +1261,7 @@
 0x15f91c	function	light_event_wait
 0x164944	function	sha256_digest
 0x16f40c	function	light_event_signal
-0x1734ec	function	sha256_pad
+0x1734ec	function	sha_md_pad
 0x17396c	function	klinked_list_insert
 0x177974	function	join_thread
 0x199d24	function	sha256_transform

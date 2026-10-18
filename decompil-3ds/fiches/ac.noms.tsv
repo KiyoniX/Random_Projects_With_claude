@@ -7,7 +7,7 @@
 0x1005f8	label	make_result_level1
 0x10076c	label	load_network_settings_slots
 0x1008e8	label	set_heap_size
-0x100934	label	create_address_arbiter
+0x100934	label	create_lock_arbiter_once
 0x100a68	label	ptm_s_open
 0x100b04	label	srv_connect
 0x100b60	label	SRV_EnableNotification
@@ -29,7 +29,7 @@
 0x101610	label	SRV_RegisterClient
 0x101648	label	SRV_RegisterService
 0x10169c	label	SRV_ReceiveNotification
-0x1017e0	label	results_differ
+0x1017e0	label	u32_not_equal
 0x1020b0	label	acu_handle_command
 0x103330	label	aci_handle_command
 0x105848	label	job_scan_aps

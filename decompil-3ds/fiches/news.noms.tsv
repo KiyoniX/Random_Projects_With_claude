@@ -2,7 +2,7 @@
 0x1000e8	label	init_heap
 0x10014c	label	news_main
 0x1004c0	label	set_heap_size
-0x10050c	label	create_address_arbiter
+0x10050c	label	create_lock_arbiter_once
 0x100680	label	handle_srv_notification
 0x1006bc	label	srv_is_initialized
 0x10072c	label	SRV_RegisterService

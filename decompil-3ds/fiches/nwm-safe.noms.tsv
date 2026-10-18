@@ -130,6 +130,7 @@
 0x113f6e	label	_ZNSsaSERKSs
 0x1144cc	label	_ZNSs7replaceEjjPKcj
 0x11966c	function	strcmp
+0x11d4ec	label	__aeabi_memmove
 0x11d578	function	shift_left_64
 0x11d9e4	label	_ZNSs9_C_unlinkEv
 0x11dce8	label	_ZNSs9_C_getRepEjj
@@ -138,7 +139,7 @@
 0x11e224	label	create_thread_wrapper
 0x11e4a0	label	memcmp
 0x11eaf0	function	memcpy_unaligned
-0x11ee78	function	__aeabi_memmove
+0x11ee78	function	memmove_unaligned
 0x11fee4	label	uds_send_frame
 0x120060	label	uds_decrypt_beacon_data
 0x1202f4	label	uds_get_state

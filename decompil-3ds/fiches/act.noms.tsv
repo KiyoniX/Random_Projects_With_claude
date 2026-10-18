@@ -153,7 +153,7 @@
 0x12237e	label	crc16_ccitt
 0x122490	label	base64_decode_checked
 0x1224dc	label	sha256_hash
-0x122558	label	sha256_update_impl
+0x122558	label	sha_md_update
 0x122600	label	FRDU_GetMyPassword
 0x12265c	label	FRDU_GetMyFriendKey
 0x12282c	label	uuid_to_string

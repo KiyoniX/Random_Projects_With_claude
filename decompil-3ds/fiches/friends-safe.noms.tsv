@@ -116,9 +116,10 @@
 0x128106	label	friend_code_is_valid
 0x128134	label	principal_id_to_friend_code
 0x128174	function	memcpy_unaligned
-0x1284fc	function	__aeabi_memmove
+0x1284fc	function	memmove_unaligned
 0x128928	function	__aeabi_ldivmod
 0x128e7c	function	strcmp
+0x130498	label	__aeabi_memmove
 0x130524	label	min_u32
 0x13053c	function	shift_left_64
 0x130564	label	destroy_array

@@ -197,7 +197,7 @@
 0x111200	function	svcArbitrateAddress
 0x111218	function	svcGetSystemTick
 0x111308	function	memcpy_unaligned
-0x111690	function	__aeabi_memmove
+0x111690	function	memmove_unaligned
 0x111a2c	function	svcCreateMutex
 0x111a44	function	svcCreateSessionToPort
 0x111a5c	function	svcDuplicateHandle

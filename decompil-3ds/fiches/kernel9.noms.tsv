@@ -1,7 +1,7 @@
 0x8006804	function	destroy_array_veneer
 0x800680c	label	destroy_array
 0x8006830	function	kernel9_main
-0x8006be4	function	memclr
+0x8006be4	function	memclr_bytes
 0x8006cc8	function	dma_manager_init
 0x8007080	function	kernel9_move_process9_ncch
 0x80070ac	function	kernel9_create_firm_processes

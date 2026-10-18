@@ -1,7 +1,7 @@
 0x8028000	function	process9_entry
 0x8028020	function	clear_bss
 0x8028044	label	storage_init_step
-0x80280a0	function	create_address_arbiter
+0x80280a0	function	create_lock_arbiter_once
 0x80280c4	label	start_interrupt_event_threads
 0x802816c	label	start_deferred_call_thread
 0x8028208	label	pxi_init
@@ -67,7 +67,7 @@
 0x8032dd8	function	sdmmc_get_data32_block_count
 0x8032de6	function	sdmmc_read_error_detail0
 0x8032df2	function	sdmmc_read_error_detail1
-0x803395c	function	sdmmc_ack_irq_status0_alt_803395c
+0x803395c	function	sdmmc_ack_irq_status0
 0x803399a	function	sdmmc_read_irq_mask0
 0x80339a6	function	sdmmc_read_irq_mask1
 0x80339b2	function	sdmmc_data32_tx_irq_enabled
@@ -249,7 +249,7 @@
 0x8059220	label	sdmmc_get_fifo32_address
 0x805939e	label	sdmmc_set_data32_block
 0x80593be	function	sdmmc_ack_irq_status0_alt_80593be
-0x80593ca	function	sdmmc_ack_irq_status1_alt_80593ca
+0x80593ca	function	sdmmc_ack_irq_status1
 0x80593f4	function	sdmmc_ack_irq_status1_alt_80593f4
 0x8059400	function	sdmmc_data32_mode_enabled
 0x8059644	label	sdmmc_set_data_width_mode
@@ -306,7 +306,7 @@
 0x8060c84	function	__aeabi_uldivmod
 0x806107c	function	svcWaitSynchronization1
 0x8061240	label	sha256_compute
-0x8061524	function	memclr
+0x8061524	function	memclr_bytes
 0x8061976	label	lock_enter
 0x80619d4	function	svcCreateMutex
 0x8061a0e	label	construct_array

@@ -62,7 +62,7 @@
 0x10235c	label	errf_connect
 0x102384	label	ERRF_Throw
 0x1023be	label	CDCCSN_cmd0005
-0x1023f6	label	CDCCSN_cmd0007
+0x1023f6	label	CDCCSN_cmd_0x0007
 0x1024a4	label	lock_guard_leave_alt_1024a4
 0x1024fe	label	lock_is_owner
 0x102594	function	__aeabi_memcpy

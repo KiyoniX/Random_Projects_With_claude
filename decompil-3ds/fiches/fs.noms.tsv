@@ -6,8 +6,8 @@
 0x100950	label	run_static_initializers
 0x100c9c	label	sha256_init
 0x100cf4	label	sha256_final
-0x100d30	label	sha256_pad
-0x100d7c	label	sha256_update_impl
+0x100d30	label	sha_md_pad
+0x100d7c	label	sha_md_update
 0x105558	label	PxiArchive_CreateFile
 0x10559c	label	PxiArchive_DeleteFile
 0x1055d4	label	PxiArchive_RenameFile

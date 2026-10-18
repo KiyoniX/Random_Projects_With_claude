@@ -70,7 +70,7 @@
 0x11a3b0	function	svcSetTimer
 0x11a994	function	socu_001F_GetResolverInfo
 0x11b098	function	memcpy_unaligned
-0x11b420	function	__aeabi_memmove
+0x11b420	function	memmove_unaligned
 0x11bc48	function	__aeabi_uldivmod
 0x11c320	function	SRV_Subscribe
 0x11c358	function	register_notification_handler
@@ -87,6 +87,7 @@
 0x122a78	function	svcDuplicateHandle
 0x122a90	function	svcGetThreadPriority
 0x122aa8	function	svcReplyAndReceive
+0x122ac0	label	__aeabi_memmove
 0x1240a4	function	socu_0004_accept
 0x1247b8	function	socu_0005_bind
 0x1248d4	function	socu_000B_close

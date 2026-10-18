@@ -8,7 +8,7 @@
 0x1000dc	label	init_heap
 0x100100	label	ptm_main
 0x1003ec	label	set_heap_size
-0x100438	label	create_address_arbiter
+0x100438	label	create_lock_arbiter_once
 0x100504	label	srv_state_init
 0x10053c	label	srv_enable_notification
 0x100558	label	handle_srv_notification

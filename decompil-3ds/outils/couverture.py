@@ -965,7 +965,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
     def independent(witnesses):
         """Les origines des témoins [(binaire, adresse, nom)], sans les noms qu'apply a propagés ; un module et sa
         variante « -safe » comptent pour un."""
-        return sorted({family(b.name) for b, a, n in witnesses if (b.name, a - b.base, b.prefix + n) not in propagated})
+        return sorted({family(b.name) for b, a, n in witnesses if (b.name, a - b.base) not in propagated})
 
     modes = {(b.name, a): m for b in binaries for a, _, m in b.functions}
     clusters = collections.defaultdict(list)
@@ -1151,8 +1151,9 @@ def read_excluded(folder=OUT):
 
 
 def read_propagated(path=PROVENANCE):
-    """{(binaire, adresse de fiche, nom de fiche)} des noms qu'apply a versés."""
-    return {(r[0], int(r[1], 16), r[2]) for r in read_rows(path) if len(r) > 2 and r[1].startswith('0x')}
+    """{(binaire, adresse de fiche)} des noms qu'apply a versés : un nom renommé depuis reste propagé, il ne devient
+    pas une origine indépendante."""
+    return {(r[0], int(r[1], 16)) for r in read_rows(path) if len(r) > 2 and r[1].startswith('0x')}
 
 
 def record_propagated(rows, path=PROVENANCE):
@@ -1602,7 +1603,7 @@ def test():
         apply(source, exclusions, binaries=[a, b, d], provenance=provenance)
         check(open(b.names_path, 'rb').read() == b'0x340000\tfunction\tfirst\r\n0x340100\tfunction\tnnosMutexLock\r\n'
               and not os.path.exists(d.names_path), 'apply : graine nommée sur place, exclusion, pas de fiche créée')
-        check(read_propagated(provenance) == {('mod_b', 0x340100, 'nnosMutexLock')}, 'apply : provenance notée')
+        check(read_propagated(provenance) == {('mod_b', 0x340100)}, 'apply : provenance notée')
         # Le cycle propager -> verser -> relancer : le nom versé dans q2 depuis q1 seul ne fait pas une seconde origine
         q1, q2, q3 = (fake_binary(n, base, [(0, plain, 'arm', 36)], {0: 'heap_find_block'} if n == 'q1' else {})
                       for n, base in (('q1', 0x00500000), ('q2', 0x00600000), ('q3', 0x00700000)))

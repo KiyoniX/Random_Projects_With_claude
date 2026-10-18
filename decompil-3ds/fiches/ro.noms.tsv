@@ -58,7 +58,7 @@
 0x14001780	function	heap_split_block
 0x14001964	function	sha256_transform
 0x14001a9c	function	memcpy_unaligned
-0x14001e24	function	__aeabi_memmove
+0x14001e24	function	memmove_unaligned
 0x140021c0	function	svcDuplicateHandle
 0x140021d8	function	svcQueryMemory
 0x14002208	function	destroy_static_sessions
@@ -127,9 +127,9 @@
 0x14005fd4	function	cro_compute_fix_ends
 0x14006148	function
 0x1400614c	function
-0x14006158	function	sha256_pad
+0x14006158	function	sha_md_pad
 0x140061dc	function
-0x140061e0	function	sha256_update_body
+0x140061e0	function	sha_md_update
 0x14006278	function	rsa_key_set
 0x14006330	function	rsa_key_clear
 0x1400635c	function	rsa_key_construct
