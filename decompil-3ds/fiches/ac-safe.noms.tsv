@@ -19,7 +19,7 @@
 0x100f38	label	start_helper_thread
 0x100f88	label	start_session_thread
 0x101160	label	run_next_job
-0x101554	label	nwm_inf_open
+0x101554	label	service_session_open
 0x1015c0	label	PTMSYSM_CheckNew3DS
 0x1015fc	label	srv_is_initialized
 0x101610	label	SRV_RegisterClient

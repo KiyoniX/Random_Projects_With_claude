@@ -22,7 +22,7 @@
 0x1010e8	label	aci_session_loop
 0x101160	label	run_next_job
 0x10130c	label	fs_init
-0x101554	label	nwm_inf_open
+0x101554	label	service_session_open
 0x1015c0	label	PTMSYSM_CheckNew3DS
 0x1015fc	label	srv_is_initialized
 0x101610	label	SRV_RegisterClient

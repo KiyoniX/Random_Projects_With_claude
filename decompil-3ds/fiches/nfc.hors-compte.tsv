@@ -1,0 +1,19 @@
+adresse	raison
+0x10144c	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x10143e (poolref.py) ; mots 0x13b49c, décodés en Thumb « push {r2, r3, r4, r7} ; movs r3,
+0x102e4c	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x102e24, 0x102e32 (poolref.py) ; mots 0x13b49c, 0x13a290, décodés en Thumb « push {r2, r3
+0x102e8e	CODE MORT : __ARM_exceptions_buffer_allocate (même code qu'am@0x102096, proposé moyenne) ; aucune référence (b, bl, blx, mot, mot ±1, mot relatif, prel31, adr, add pc : dead.py)
+0x102ea8	CODE MORT : __ARM_exceptions_buffer_free (même code qu'am@0x1020b0, proposé moyenne) ; aucune référence (dead.py)
+0x104374	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x104312, 0x10433e (poolref.py) ; mots 0x13b49c, 0x13a298, 0x155424, décodés en Thumb « pu
+0x105f14	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x105f04 (poolref.py) ; mots 0x13b49c, décodés en Thumb « push {r2, r3, r4, r7} ; movs r3,
+0x1126ca	CODE MORT : srand_default (movs r0, #1 ; b srand 0x11269c), même montage que cecd@0x10653e ; aucune référence (dead.py)
+0x1127a2	CODE MORT : conversion %c de printf (même code qu'ac@0x1138f6 _printf_char, proposé moyenne) dont aucun veneer ni aucun mot ne désigne l'entrée ; aucune référence (dead.py)
+0x119560	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x11951c, 0x11951e (poolref.py) ; mots 0x13b49c, 0x19d40, décodés en Thumb « push {r2, r3,
+0x11c230	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x11c206, 0x11c208 (poolref.py) ; mots 0x13b49c, 0x19d40, décodés en Thumb « push {r2, r3,
+0x11cf84	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x11cf58, 0x11cf5c (poolref.py) ; mots 0x13b49c, 0x19a40, décodés en Thumb « push {r2, r3,
+0x11cfc0	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x11cf9e (poolref.py) ; mots 0x13b49c, décodés en Thumb « push {r2, r3, r4, r7} ; movs r3,
+0x11d060	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x11cfd2, 0x11cfe8 (poolref.py) ; mots 0x13b49c, 0x19880, 0x19980, 0x1551dc, 0x154cdc, déc
+0x11d208	PAS UNE FONCTION (fonction de Ghidra) : réserve littérale de la fonction qui précède, lue par les ldr [pc] en 0x11d188, 0x11d192 (poolref.py) ; mots 0x13b49c, 0x19a40, 0x197e0, décodés en Thumb « push
+0x12a520	PAS UNE FONCTION (fonction de Ghidra) : morceau de nfc_m_dispatch_command (0x12a468-0x12ae00) : atteint par bl@0x12adf2 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x12aed2	PAS UNE FONCTION (fonction de Ghidra) : morceau de nfc_s_dispatch_command (0x12ae00-0x12c154) : atteint par bl@0x12c14a depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x12c13a	PAS UNE FONCTION (fonction de Ghidra) : morceau de nfc_s_dispatch_command (0x12ae00-0x12c154) : atteint par bl@0x12ae28 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x134654	CODE MORT : variante de memmove de 924 octets, même code que dsp@0x102610 __aeabi_memmove (fiche relue) ; aucune référence (dead.py) : le nom « __aeabi_memmove » de fiches/nfc.noms.tsv porte sur du co
