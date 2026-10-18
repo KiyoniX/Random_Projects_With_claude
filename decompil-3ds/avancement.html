@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avancement Décompil 3DS</title>
+  <meta name="description" content="L'avancement du chantier en pourcentages, lu dans etat.js ; la page se recharge seule.">
+  <style>
+    :root {
+      --fond: #f6f5f1; --carte: #ffffff; --texte: #1d1f21; --doux: #6b6f76; --trait: #e3e1da;
+      --vert: #2f9e5b; --jaune: #e0b23a; --vide: #ecebe6; --accent: #1f6feb;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --fond: #121416; --carte: #1b1e21; --texte: #e8e6e1; --doux: #9aa0a6; --trait: #2c3034;
+        --vert: #3fbf72; --jaune: #e6bf52; --vide: #2a2e32; --accent: #58a6ff;
+      }
+    }
+    :root[data-theme="dark"] {
+      --fond: #121416; --carte: #1b1e21; --texte: #e8e6e1; --doux: #9aa0a6; --trait: #2c3034;
+      --vert: #3fbf72; --jaune: #e6bf52; --vide: #2a2e32; --accent: #58a6ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--fond); color: var(--texte); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 22px; margin: 0 0 4px; }
+    .maj { color: var(--doux); font-size: 13px; margin-bottom: 18px; }
+    .grand { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 18px; }
+    .chiffre { background: var(--carte); border: 1px solid var(--trait); border-radius: 10px; padding: 12px 14px; }
+    .chiffre b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+    .chiffre span { color: var(--doux); font-size: 13px; }
+    section { background: var(--carte); border: 1px solid var(--trait); border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+    h2 { font-size: 15px; margin: 0 0 10px; }
+    .ligne { display: grid; grid-template-columns: minmax(120px, 260px) 1fr 64px; gap: 10px; align-items: center; padding: 4px 0; }
+    .ligne .nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ligne .pct { text-align: right; font-variant-numeric: tabular-nums; }
+    .ligne .detail { grid-column: 2 / 4; color: var(--doux); font-size: 12px; margin-top: -4px; }
+    .barre { height: 12px; background: var(--vide); border-radius: 6px; overflow: hidden; display: flex; }
+    .barre i { display: block; height: 100%; }
+    .barre .v { background: var(--vert); }
+    .barre .j { background: var(--jaune); }
+    .legende { color: var(--doux); font-size: 12px; margin: -4px 0 8px; }
+    .legende i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin: 0 4px 0 10px; }
+    .modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); column-gap: 28px; }
+    .action { color: var(--doux); font-size: 13px; }
+    .absent { color: var(--doux); }
+    @media (max-width: 520px) { .ligne { grid-template-columns: 1fr 52px; } .ligne .barre { grid-column: 1 / 3; grid-row: 2; } .ligne .detail { grid-column: 1 / 3; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Décompil 3DS — avancement</h1>
+  <div class="maj" id="maj"></div>
+  <div id="corps"><p class="absent">etat.js manque : lance <code>python outils/couverture.py mesure</code> dans decompil-3ds, puis recharge la page.</p></div>
+</main>
+<script src="etat.js"></script>
+<script>
+(function () {
+  // Mêmes groupes que outils/tableau.py.
+  var BOOT = ['boot9', 'boot11', 'arm9loader', 'kernel9', 'process9'];
+  var KERNEL = ['kernel11'];
+  var APPLETS = ['appleted', 'cabinet', 'cherry', 'ctrapp', 'error', 'error-safe', 'extrapad', 'friend', 'hmvp', 'memolib',
+    'menu', 'mint', 'newslist', 'olv', 'pnote_ap', 'snote_ap', 'skater', 'solv3', 'swkbd', 'swkbd-safe'];
+  var ORDER = ['Démarrage et ARM9', 'Noyau ARM11', 'Modules système', 'Applets', 'Jeu (Pokémon X)'];
+
+  function groupOf(name) {
+    if (BOOT.indexOf(name) >= 0) return ORDER[0];
+    if (KERNEL.indexOf(name) >= 0) return ORDER[1];
+    if (APPLETS.indexOf(name) >= 0) return ORDER[3];
+    if (name === 'maj' || name.indexOf('.cro') === 0) return ORDER[4];
+    return ORDER[2];
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fr(n) { return n.toLocaleString('fr-FR'); }
+  function pct(x) { return (100 * x).toFixed(1).replace('.', ',') + ' %'; }
+  function row(name, done, extra, detail) {
+    extra = Math.min(extra || 0, 1 - done);
+    return '<div class="ligne"><span class="nom" title="' + esc(name) + '">' + esc(name) + '</span>' +
+      '<span class="barre"><i class="v" style="width:' + (100 * done) + '%"></i><i class="j" style="width:' + (100 * extra) + '%"></i></span>' +
+      '<span class="pct">' + pct(done) + '</span>' + (detail ? '<span class="detail">' + esc(detail) + '</span>' : '') + '</div>';
+  }
+
+  var etat = window.ETAT;
+  if (!etat) return;
+  var stamp = etat.mise_a_jour_heure || etat.mise_a_jour;
+  document.getElementById('maj').textContent = 'Mis à jour le ' + stamp + ' — la page se recharge toute seule chaque minute.';
+
+  var f = etat.fonctions, groups = {};
+  f.binaires.forEach(function (b) {
+    var g = groups[groupOf(b.nom)] = groups[groupOf(b.nom)] || { total: 0, named: 0, proposed: 0, count: 0 };
+    g.total += b.trouvees; g.named += b.nommees; g.proposed += b.proposees_haute + b.proposees_moyenne; g.count += 1;
+  });
+  var weight = 0, overall = 0;
+  etat.paliers.forEach(function (p) { weight += p.poids; });
+  var paliers = etat.paliers.map(function (p) {
+    var done = p.taches.filter(function (t) { return t.fait; }).length;
+    overall += (done / p.taches.length) * p.poids / weight;
+    return row(p.id + '. ' + p.nom, done / p.taches.length, 0, done + ' / ' + p.taches.length + ' tâches');
+  }).join('');
+
+  var html = '<div class="grand">' +
+    '<div class="chiffre"><b>' + pct(f.nommees / f.total) + '</b><span>console + jeu nommés et relus</span></div>' +
+    '<div class="chiffre"><b>' + fr(f.nommees) + '</b><span>fonctions nommées sur ' + fr(f.total) + '</span></div>' +
+    '<div class="chiffre"><b>' + pct(overall) + '</b><span>paliers du projet (pondéré)</span></div>' +
+    '<div class="chiffre"><b>' + pct(f.recompilees / f.total) + '</b><span>fonctions recompilées (ARM → C)</span></div></div>';
+
+  html += '<section><h2>Décompilation</h2><div class="legende"><i style="background:var(--vert)"></i>nommé et relu' +
+    '<i style="background:var(--jaune)"></i>proposé, à relire</div>' +
+    ORDER.filter(function (k) { return groups[k]; }).map(function (k) {
+      var g = groups[k];
+      return row(k, g.named / g.total, g.proposed / g.total, fr(g.named) + ' / ' + fr(g.total) + ' fonctions, ' + g.count + ' binaires');
+    }).join('') + '</section>';
+
+  html += '<section><h2>Paliers du projet</h2>' + paliers + '</section>';
+
+  html += '<section><h2>Portage natif</h2>' +
+    row('Fonctions recompilées (ARM → C)', f.recompilees / f.total, 0, fr(f.recompilees) + ' / ' + fr(f.total)) +
+    row('Fonctions citées dans les fiches', f.citees / f.total, 0, fr(f.citees) + ' / ' + fr(f.total)) + '</section>';
+
+  function moduleList(title, list) {
+    list.sort(function (a, b) { return (a.nommees + a.proposees_haute + a.proposees_moyenne) / a.trouvees - (b.nommees + b.proposees_haute + b.proposees_moyenne) / b.trouvees; });
+    return '<section><h2>' + title + '</h2><div class="modules">' + list.map(function (b) {
+      return row(b.nom, b.nommees / b.trouvees, (b.proposees_haute + b.proposees_moyenne) / b.trouvees, fr(b.nommees) + ' / ' + fr(b.trouvees));
+    }).join('') + '</div></section>';
+  }
+  var real = f.binaires.filter(function (b) { return b.trouvees && !/-safe$/.test(b.nom); });
+  html += moduleList('Modules système, du moins avancé au plus avancé', real.filter(function (b) { return groupOf(b.nom) === ORDER[2]; }));
+  html += moduleList('Applets', real.filter(function (b) { return groupOf(b.nom) === ORDER[3]; }));
+  html += '<section><h2>Prochaine action</h2><p class="action">' + esc(etat.prochaine_action) + '</p></section>';
+  document.getElementById('corps').innerHTML = html;
+
+  setTimeout(function () { location.reload(); }, 60000);
+})();
+</script>
+</body>
+</html>

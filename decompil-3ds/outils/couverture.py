@@ -1368,6 +1368,7 @@ def write_etat(rows, waiting):
                       'sans_analyse': len(waiting)})
     etat['fonctions'] = fonctions
     etat['mise_a_jour'] = datetime.date.today().isoformat()
+    etat['mise_a_jour_heure'] = datetime.datetime.now().strftime('%d/%m/%Y à %H:%M')
     verifier.ecrire(etat)
     print('\netat.json : %d fonctions trouvées, %d nommées dans %d binaires' % (total['trouvees'], total['nommees'], len(rows)))
 

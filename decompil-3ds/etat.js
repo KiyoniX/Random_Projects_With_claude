@@ -2225,5 +2225,6 @@ window.ETAT = {
  "extrait": {
   "present": true,
   "code_octets": 5156864
- }
+ },
+ "mise_a_jour_heure": "18/10/2026 à 18:48"
 };
