@@ -3,8 +3,8 @@ window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-10-17",
- "prochaine_action": "Finir la console à 100 % d'abord : les huit modules système restants (act, camera, cecd, friends, http, nfc, nwm, ssl), la seconde voie des noms moyens, les applets, puis le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu, en lui reportant par empreinte les noms de la console (le SDK que le jeu embarque). Écarts ouverts de la Carte : act sur 3dbrew à réextraire, act 0x1F, sessions de nfc.",
+ "mise_a_jour": "2026-10-18",
+ "prochaine_action": "Tous les modules système ont eu leur première passe relue. Suite : relire et verser les secondes passes (boss, cecd), chercher la seconde voie des noms moyens (vecteurs, émulation des requêtes, sources publiques), puis les 20 applets, et finir le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu, en lui reportant par empreinte les noms de la console. Écarts ouverts de la Carte : act 0x1F (le code vérifie 0x001F0042), act 0x0A absente, cecd:s 0x0416.",
  "fonctions": {
   "total": 254507,
   "identifiees": 254507,

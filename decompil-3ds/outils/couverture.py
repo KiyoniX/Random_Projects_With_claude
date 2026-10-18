@@ -1366,6 +1366,7 @@ def write_etat(rows, waiting):
                       'binaires': [{k: r[k] for k in ('nom',) + LEVELS} for r in rows],
                       'sans_analyse': len(waiting)})
     etat['fonctions'] = fonctions
+    etat['mise_a_jour'] = datetime.date.today().isoformat()
     verifier.ecrire(etat)
     print('\netat.json : %d fonctions trouvées, %d nommées dans %d binaires' % (total['trouvees'], total['nommees'], len(rows)))
 
