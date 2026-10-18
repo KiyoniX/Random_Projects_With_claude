@@ -53,19 +53,18 @@ Vérification rapide que tout marche :
 
 ## 5. Où on en est, et quoi faire ensuite
 
-La source de vérité est **`etat.json`** : lire d'abord `objectif`, `prochaine_action`, puis les dernières entrées du `journal` et les tâches non faites des paliers (surtout le palier 7). En résumé, au soir du 16/10/2026 :
-- **Fiches** : les 59 modules système de la NAND, plus kernel11, Process9 et les bootroms, ont chacun une fiche (`fiches/README.md`). `fiches/safe.md` couvre les variantes du mode sans échec.
-- **Banc** : Pokémon X tourne jusqu'au terrain, qui s'affiche en entier. Le code du jeu y tourne en C recompilé (`--cpu hybride`), `.cro` compris.
-- **Portage Rust + wgpu (Vulkan)** : le rendu tient 60 images/s au terrain en 1×, 2× et 4×. Le runtime Rust (noyau, IPC, services, code recompilé) donne le même journal que le banc sur 3 s.
-- **Moteur de mods** (`mods/`) : sorties pour Luma et pour le PC. Le contrat entre le moteur et le portage est décrit dans `mods/README.md`.
-- **Nommage** : 1 239 fonctions du jeu nommées (`outils/name_pass.py`).
+La source de vérité est **`etat.json`** (et la fenêtre `python outils/tableau.py --suivre`). Au soir du 18/10/2026 :
+- **Décompilation** : 19 281 fonctions nommées et relues sur 254 499 (7,6 %) ; noyau ARM11 89 %, démarrage et ARM9 23 %, modules système 21 %, applets 1,5 %, jeu 2,4 %. Seuls les noms haute (deux voies) entrent dans `fiches/*.noms.tsv` ; environ 20 000 noms moyens attendent leur seconde voie dans `local/analyse/<m>/noms-proposes*.tsv`.
+- **Tous les modules système** ont eu leur première passe relue et versée ; secondes passes versées pour nim, act, nwm, boss et cecd. Règles de nommage ajoutées les 17 et 18/10 : `fiches/README.md`, « Ce qui est un nom ».
+- **Applets** : fiches de noms créées par propagation ; premiers lots relus et versés pour error, swkbd, extrapad et memolib (brouillons de fiche dans `local/analyse/<m>/fiche-brouillon.md`, pas encore versés).
+- **Outils du 18/10** : `couverture.py entrees` voit les veneers, les aiguillages Thumb et les adresses calculées depuis pc ; `outils/tableau.py` ; `outils/ipc_trace.py` (seconde voie des envois de requêtes, en cours d'écriture le 18/10 au soir).
 
-Prochains chantiers, dans l'ordre proposé :
-1. brancher le rendu `pica` sur les transferts de gsp dans le runtime Rust, pour voir le jeu en direct dans une fenêtre ;
-2. finir le cycle des trous de `code.bin` (banc → `trous.txt` → régénération) pour que l'hybride devienne vraiment rapide ;
-3. reporter dans la Carte des services les écarts des neuf dernières fiches (am, news, act, dlp, mp, nfc, mvd, nim, qtm) ;
-4. compléter `nim`, relancer `emulate_dispatch.py --helper` sur nfc, nim et mvd ;
-5. le son, les entrées réelles, puis les applets.
+Prochains chantiers, dans l'ordre :
+1. finir et valider `ipc_trace.py`, puis promouvoir les envois de requêtes TRACED (relecture d'abord) ;
+2. décisions de nommage relues et pas encore appliquées (rapports des relecteurs des applets) : `gl_delete_all_*` et `gl_context_init_*` dans error, swkbd, extrapad, memolib ; style `apt_<action>` (abandon de `applet_` et `_locked`) ; `cfg_get_debug_flag` (et `fiches/ir.noms.tsv` 0x108750 `cfg_check_cstick_present`, à décider) ; `errf_report_error` / `report_fatal_error` / `fatal_error_unless_minor` dans error et swkbd ; noms `utf16_*` → `wcs*` ; style `nngx*` ; les `CDCCSN_cmdNNNN` et ~140 autres noms au vieux format `_cmdNNNN` → `_cmd_0xNNNN` ;
+3. verser les fiches .md des quatre applets à partir des brouillons corrigés, puis les 16 autres applets ;
+4. finir le noyau, l'ARM9 et les mémoires de démarrage ;
+5. ensuite seulement le jeu, en lui reportant par empreinte les noms de la console.
 
 ## 6. Les directives de l'utilisateur (elles étaient dans la mémoire du portable)
 
