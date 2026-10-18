@@ -80,7 +80,7 @@
 0x104000	label	ipc_is_read_buffer_desc
 0x104028	label	ipc_is_write_buffer_desc
 0x10403e	label	ipc_check_header
-0x10405e	label	extract_bits
+0x10405e	label	bitfield_extract
 0x104074	function	build_block_00180001
 0x104224	label	translate_country_info
 0x104268	label	set_uuid_clock_sequence

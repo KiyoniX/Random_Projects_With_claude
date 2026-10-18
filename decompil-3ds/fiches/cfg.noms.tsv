@@ -101,7 +101,7 @@
 0x1040c2	label	ipc_write_buffer_desc_size
 0x1040d4	label	ipc_is_write_buffer_desc
 0x1040ea	label	ipc_check_header
-0x10410a	label	extract_bits
+0x10410a	label	bitfield_extract
 0x104120	function	build_block_00180001
 0x1041e4	label	signed_file_get_data_locked
 0x10420c	label	reset_block_00040003_locked

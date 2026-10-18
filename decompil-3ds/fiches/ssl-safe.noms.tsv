@@ -19,7 +19,7 @@
 0x1011ec	label	report_fatal_error
 0x101354	label	srv_is_initialized
 0x101368	label	find_notification_handler
-0x10155c	label	soc_initialize_wrapper
+0x10155c	label	soc_u_open
 0x1015b0	label	soc_start_session
 0x101698	label	server_receive_loop
 0x102250	label	errf_close
@@ -27,7 +27,7 @@
 0x102f38	label	break_process
 0x1063b4	label	sslc_lib_create_context
 0x110820	label	register_mount_point
-0x110f20	label	is_process_id_descriptor
+0x110f20	label	ipc_is_pid_desc
 0x111ed2	label	sslmgr_CreateRootCertChain
 0x11207a	label	sslmgr_DestroyRootCertChain
 0x1121b2	label	sslmgr_RemoveCrlFromCrlStore

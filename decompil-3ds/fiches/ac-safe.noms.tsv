@@ -159,8 +159,8 @@
 0x113996	label	_ZNSsaSERKSs
 0x113ef4	label	_ZNSs7replaceEjjPKcj
 0x116b08	label	ps_ps_open
-0x116b38	label	PSPS_cmd0008
-0x116b78	label	PSPS_cmd0006
+0x116b38	label	PS_GetRomMakerCode
+0x116b78	label	PS_GetRomId
 0x116bec	label	CFG_SecureInfoGetRegion
 0x116c28	label	CFG_SetConfigInfoBlk4
 0x116c70	label	CFG_UpdateConfigNANDSavegame

@@ -1,0 +1,23 @@
+adresse	raison
+0x1030d6	CODE MORT : aucune référence (b, bl, blx, cbz, mot absolu ±1, mot relatif, prel31, adr / add pc : allrefs.py, dead.py) ; même code que __ARM_exceptions_buffer_allocate, CODE MORT dans ac (0x108056) et
+0x1030f0	CODE MORT : aucune référence (même balayage) ; même code que __ARM_exceptions_buffer_free, CODE MORT dans ac (0x108070) et act (0x102db0)
+0x10e548	CODE MORT : aucune référence (même balayage) ; prépare trois FILE de 0x50 octets (memclr 0x133e90 sur chacun, chaînage +0x4c), les ouvre par file_open_mode (0x130324) et règle leur tampon par file_set
+0x10e620	CODE MORT : aucune référence (même balayage) ; ferme les flux de la liste (+0x4c) par file_close (0x130280) : même code que la fermeture de stdio, CODE MORT dans ac (0x1143b8) et act (0x106c4c)
+0x1236a8	CODE MORT : aucune référence (même balayage) ; rend *(0x130700()) : même code que la lecture d'errno, CODE MORT dans ac (0x10af20) et boss (0x1198c8)
+0x1284fc	CODE MORT : aucune référence (même balayage) ; ARM, 924 octets, même code que la variante de memmove CODE MORT dans ac (0x10e2ec) et act (0x1255f4) ; le module appelle __aeabi_memmove (0x130498)
+0x130b5e	PAS UNE FONCTION (fonction de Ghidra) : bloc de nettoyage d'exception de 0x130afc : lit r6 (l'objet global que 0x130afc charge en 0x130afe), libère [r6+8] (bl 0x1307f4, bl 0x135148), remet [r6+8] et [
+0x132aba	PAS UNE FONCTION (entrée de couverture.py) : avance de la boucle d'utf16_strcmp (adds r0/r1, #2), atteinte seulement par le beq en 0x132ac8 de la même boucle
+0x132abe	PAS UNE FONCTION (fonction de Ghidra) : test de la boucle d'utf16_strcmp (0x132ab8 : b 0x132abe ; ldrh, cmp, beq 0x132aba…), atteint seulement par ce b ; aucune autre référence ; pas de cadre (même ca
+0x132ad6	PAS UNE FONCTION (entrée de couverture.py) : corps de la boucle de copy_bytes_range (ldrb, strb), atteint seulement par le bne en 0x132ae0
+0x132ade	PAS UNE FONCTION (fonction de Ghidra) : test de la boucle de copy_bytes_range (0x132ad4 : b 0x132ade), atteint seulement par ce b
+0x132ae8	PAS UNE FONCTION (entrée de couverture.py) : corps de la boucle de copy_halfwords_range (ldrh, strh), atteint seulement par le bne en 0x132af2
+0x132af0	PAS UNE FONCTION (fonction de Ghidra) : test de la boucle de copy_halfwords_range (0x132ae6 : b 0x132af0), atteint seulement par ce b
+0x132c8e	PAS UNE FONCTION (entrée de couverture.py) : corps de la boucle de 0x132c8c (ldrb, strb), atteint seulement par le bne en 0x132c98
+0x132c96	PAS UNE FONCTION (fonction de Ghidra) : test de la boucle de 0x132c8c (b 0x132c96), atteint seulement par ce b
+0x133176	PAS UNE FONCTION (entrée de couverture.py) : corps de la boucle de fill_bytes_n (strb de [r2]), atteint seulement par le bgt en 0x133180
+0x13317e	PAS UNE FONCTION (fonction de Ghidra) : test de la boucle de fill_bytes_n (0x133174 : b 0x13317e), atteint seulement par ce b
+0x133186	PAS UNE FONCTION (entrée de couverture.py) : corps de la boucle de fill_halfwords_n (strh de [r2]), atteint seulement par le bgt en 0x133190
+0x13318e	PAS UNE FONCTION (fonction de Ghidra) : test de la boucle de fill_halfwords_n (0x133184 : b 0x13318e), atteint seulement par ce b
+0x1416fe	PAS UNE FONCTION (fonction de Ghidra) : morceau de frdu_handle_command (0x14164c-0x1424b0) : atteint par bl@0x1424a6 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x142582	PAS UNE FONCTION (fonction de Ghidra) : morceau de frda_handle_command (0x1424b0-0x1435ac) : atteint par bl@0x14359e depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x156510	CODE MORT : aucune référence (même balayage) ; ARM, 128 octets : subs r3, r0, r1 ; cmphs r2, r3 ; bls memcpy_words (0x1357a8), sinon copie arrière par mots : même code que cecd 0x121828 et mp 0x103598

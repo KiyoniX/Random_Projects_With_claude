@@ -345,8 +345,8 @@
 0x116aa4	label	FSFILE_Close
 0x116c48	label	ps_close
 0x116c68	label	ps_ps_open
-0x116c98	label	PSPS_GetRomMakerCode
-0x116cd8	label	PSPS_GetRomId
+0x116c98	label	PS_GetRomMakerCode
+0x116cd8	label	PS_GetRomId
 0x116d4c	label	CFG_SecureInfoGetRegion
 0x116d88	label	CFG_SetConfigInfoBlk4
 0x116dd0	label	CFG_UpdateConfigNANDSavegame

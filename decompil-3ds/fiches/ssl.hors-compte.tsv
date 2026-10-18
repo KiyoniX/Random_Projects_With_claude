@@ -1,0 +1,8 @@
+adresse	raison
+0x1026aa	CODE MORT : aucune référence (b, bl, blx, cbz, mot absolu ±1, mot relatif, prel31, adr / add pc : allrefs.py, dead.py) ; (p, n) : si n <= 0x80 et *p == 0, met *p à 1 et rend p + 8 : même code que __AR
+0x1026c4	CODE MORT : aucune référence (même balayage) ; (tampon, p) : si p == tampon + 8, remet l'octet à 0 : même code que __ARM_exceptions_buffer_free, CODE MORT dans ac (0x108070) et act (0x102db0)
+0x11d608	PAS UNE FONCTION (entrée de couverture.py) : mot de la réserve littérale de 0x11d5d4, valeur 0x0013b6a9, lu par « ldr r0, [pc, #8] » en 0x11d5fa ((0x11d5fe & ~3) + 8 = 0x11d608) ; la « case » 0x11d308
+0x1293ec	PAS UNE FONCTION (entrée de couverture.py) : rang de la boucle de division de __aeabi_idivmod (0x1293c0, « blo #0x1293ec » en 0x1293e0), où saute aussi __aeabi_uidivmod (« blo #0x1293ec » en 0x129b1c)
+0x12ab8c	CODE MORT : aucune référence (même balayage) ; ARM, 924 octets, copie à recouvrement (subs r3, r0, r1 ; cmphs r2, r3 ; bls vers memcpy_unaligned 0x12a804) : même code que la variante de memmove CODE M
+0x131030	PAS UNE FONCTION (entrée de couverture.py) : mot 0x00146678 de la réserve qui suit 0x130fa8 (adresse de la chaîne « …\CRYPTOCME\common\module\crypto\cry_kgen.c » à 0x146678) ; la seule « référence », 
+0x134148	PAS UNE FONCTION (entrée de couverture.py) : étiquette interne de 0x134118 (cas r1 == 5, « beq #0x134148 » en 0x134132, même cadre push {r4, r5, r6, lr}) ; la « case » 0x134920 qui y mène est le litté

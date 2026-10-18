@@ -47,7 +47,7 @@
 0x1034f0	label	BOSSP_GetNsDataLastUpdatePrivileged
 0x1038a0	label	ipc_check_header
 0x1038d2	label	ipc_is_read_buffer_desc
-0x1038e8	label	extract_bits
+0x1038e8	label	bitfield_extract
 0x103980	function	__aeabi_uidivmod
 0x1039a4	function	__aeabi_idivmod
 0x1041c4	function	__aeabi_ldivmod

@@ -128,7 +128,7 @@
 0x104be8	label	ptm_GetBatteryLevel
 0x104c94	label	ptm_SetRtcAlarm
 0x104caa	label	ipc_check_header
-0x104cca	label	extract_bits
+0x104cca	label	bitfield_extract
 0x104d0c	label	play_history_clear
 0x104d74	label	ptm_SetPedometerRecordingMode
 0x104dbe	label	pedometer_clear_history

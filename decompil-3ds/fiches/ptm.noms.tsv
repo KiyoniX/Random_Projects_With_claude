@@ -150,7 +150,7 @@
 0x104d6c	label	ptm_SetRtcAlarm
 0x104d78	label	ptm_RegisterAlarmClient
 0x104d82	label	ipc_check_header
-0x104da2	label	extract_bits
+0x104da2	label	bitfield_extract
 0x104de4	label	play_history_clear
 0x104e4c	label	ptm_SetPedometerRecordingMode
 0x104e96	label	pedometer_clear_history

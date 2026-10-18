@@ -109,7 +109,7 @@
 0x127a5a	label	ipc_check_header
 0x127a7c	label	frd_0002_IsOnline
 0x127a94	label	frd_0001_HasLoggedIn
-0x127ab0	label	extract_bits
+0x127ab0	label	bitfield_extract
 0x127bec	label	frdn_0004_QueryStatus
 0x127c36	label	frdn_0002_Resume
 0x127ef4	label	frd_002F_AllowHalfAwake
