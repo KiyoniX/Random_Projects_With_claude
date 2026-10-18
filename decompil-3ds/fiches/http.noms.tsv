@@ -1,10 +1,11 @@
 0x100000	function	entry
 0x100048	label	static_guard_acquire
+0x100160	function	svcExitProcess
 0x100168	function	main
 0x1002b4	function	set_heap_size
 0x100360	function	is_new_3ds
 0x1003bc	function	throw_fatal_error
-0x100430	function	srv_connect
+0x100430	function	ptm_open
 0x100498	function	run_module
 0x100770	function	svcControlMemory
 0x100a98	function	create_lock_arbiter_once
@@ -18,8 +19,9 @@
 0x101764	function	svcCreateSemaphore
 0x10177c	function	svcQueryMemory
 0x1017ac	function	server_start
-0x101d64	function	PTMS_CheckNew3DS
+0x101d64	function	PTMSYSM_CheckNew3DS
 0x101ef8	function	register_notification_handler
+0x102084	function	SRV_GetServiceHandle
 0x1020e0	function	SRV_UnregisterService
 0x102208	function	socket_layer_init
 0x102460	function	server_worker_loop
@@ -38,6 +40,7 @@
 0x1048f0	function	ssl_init
 0x1049d4	function	SOCU_InitializeSockets
 0x104a18	function	SOCU_ShutdownSockets
+0x104aa8	function	svcBreak
 0x104ab0	function	svcCreateEvent
 0x104ac8	function	svcCreateMemoryBlock
 0x104ae4	function	svcCreateThread
@@ -48,6 +51,7 @@
 0x105858	function	lock_arbitrate_wait
 0x105d4c	function	SSLC_Initialize
 0x106490	function	thread_trampoline
+0x1064d4	function	svcExitThread
 0x1064dc	function	strncmp
 0x1065cc	function	tls_start_connection
 0x1066fc	function	socket_setup_and_connect
@@ -56,11 +60,11 @@
 0x107a3c	function	SOCU_shutdown
 0x107b10	function	svcWaitSynchronizationN
 0x108d44	function	tls_create_context_session
-0x108e54	function	SSLC_StartConnection
-0x108e78	function	SSLC_SetCrlStore
-0x108ea0	function	SSLC_ContextSetClientCert
-0x108ec8	function	SSLC_ContextSetRootCertChain
-0x108ef0	function	SSLC_ContextClearOpt
+0x108e54	function	ssl_context_start_connection
+0x108e78	function	ssl_context_set_crl_store
+0x108ea0	function	ssl_context_set_client_cert
+0x108ec8	function	ssl_context_set_root_cert_chain
+0x108ef0	function	ssl_context_clear_opt
 0x108f5c	function	SSLC_DestroyCrlStore
 0x108f8c	function	SSLC_DestroyRootCertChain
 0x108fbc	function	SSLC_CloseClientCertContext
@@ -103,11 +107,11 @@
 0x10ef98	function	create_thread
 0x10f0ac	function	release_address_range
 0x10f16c	function	memcpy_words
-0x10f35c	function	job_queue_push
+0x10f35c	function	msg_queue_try_send
 0x10f4a8	function	context_core_from_id
 0x10f684	function	context_core_set_state
 0x10f71c	function	strcmp
-0x10f87c	function	SRV_GetServiceHandle
+0x10f87c	function	srv_get_service_handle
 0x10f8b0	function	strlen
 0x10fa84	function	panic_on_failure
 0x10fc50	function	heap_alloc
@@ -141,7 +145,7 @@
 0x113688	function	context_core_queue_nonblocking
 0x113d80	function	context_core_set_client_cert_default_impl
 0x113e78	function	context_core_add_default_cert_impl
-0x114264	function	shared_memory_map
+0x114264	function	map_shared_memory
 0x1143bc	function	join_thread
 0x114408	function	thread_dtor
 0x114764	function	SSLC_CreateCrlStore
@@ -150,6 +154,7 @@
 0x11481c	function	SSLC_OpenClientCertContext
 0x11487c	function	SSLC_AddTrustedRootCA
 0x1148cc	function	SSLC_RemoveCrlFromCrlStore
+0x114900	function	SSLC_RootCertChainRemoveCert
 0x114934	function	SSLC_AddInternalCrlToCrlStore
 0x11497c	function	SSLC_OpenDefaultClientCertContext
 0x1149c0	function	SSLC_RootCertChainAddDefaultCert
@@ -354,7 +359,7 @@
 0x119bb8	function	httpc_000D_SetProxy
 0x119bfc	function	httpc_0024_AddTrustedRootCA
 0x119c20	function	httpc_session_destroy_and_free
-0x119dbc	function	svcExitProcess
+0x119dbc	function	svcExitProcess_thunk
 0x119dc4	function	httpc_session_queue_index
 0x11a2bc	function	init_memory_pools
-0x11a828	function	job_queue_push_blocking
+0x11a828	function	msg_queue_send

@@ -7,7 +7,7 @@
 0x100168	function	main
 0x1002b4	function	set_heap_size
 0x100360	function	is_new_3ds
-0x100430	function	srv_connect
+0x100430	function	ptm_open
 0x100498	function	run_module
 0x100770	function	svcControlMemory
 0x100a98	function	create_lock_arbiter_once
@@ -20,8 +20,9 @@
 0x1016f8	function	svcCreateAddressArbiter
 0x101710	function	svcCreateSemaphore
 0x101728	function	server_start
-0x101cdc	function	PTMS_CheckNew3DS
+0x101cdc	function	PTMSYSM_CheckNew3DS
 0x101e70	function	register_notification_handler
+0x101ffc	label	SRV_GetServiceHandle
 0x102058	function	SRV_UnregisterService
 0x102180	function	socket_layer_init
 0x1023d8	function	server_worker_loop
@@ -54,8 +55,8 @@
 0x10790c	function	SOCU_shutdown
 0x1079e0	function	svcWaitSynchronizationN
 0x108c14	function	tls_create_context_session
-0x108d24	function	SSLC_StartConnection
-0x108d98	function	SSLC_ContextClearOpt
+0x108d24	function	ssl_context_start_connection
+0x108d98	function	ssl_context_clear_opt
 0x108e04	function	SSLC_DestroyRootCertChain
 0x108e34	function	SSLC_CloseClientCertContext
 0x10979c	function	block_pool_init
@@ -88,13 +89,15 @@
 0x10e0ac	function	create_thread
 0x10e1c0	function	release_address_range
 0x10e280	function	memcpy_words
-0x10e470	function	job_queue_push
+0x10e470	function	msg_queue_try_send
 0x10e5bc	function	context_core_from_id
 0x10e830	function	strcmp
-0x10e990	function	SRV_GetServiceHandle
+0x10e990	function	srv_get_service_handle
 0x10e9c4	function	strlen
 0x10eb98	function	panic_on_failure
 0x10ed64	function	heap_alloc
+0x110378	label	SSLC_StartConnection
+0x110410	label	SSLC_ContextClearOpt
 0x110444	function	SSLC_InitializeConnectionSession
 0x11047c	function	SSLC_CreateContext
 0x110e48	function	SOCU_setsockopt
@@ -118,7 +121,7 @@
 0x112fac	function	context_core_queue_nonblocking
 0x11360c	function	context_core_set_client_cert_default_impl
 0x113674	function	context_core_add_default_cert_impl
-0x113a58	function	shared_memory_map
+0x113a58	function	map_shared_memory
 0x113bb0	function	join_thread
 0x113bfc	function	thread_dtor
 0x113e20	function	SSLC_CreateRootCertChain
@@ -200,4 +203,4 @@
 0x118834	function	httpc_session_release
 0x1189b4	function	httpc_session_destroy_and_free
 0x119050	function	init_memory_pools
-0x1195bc	function	job_queue_push_blocking
+0x1195bc	function	msg_queue_send

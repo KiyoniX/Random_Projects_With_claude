@@ -1,0 +1,7 @@
+adresse	raison
+0x102cd4	PAS UNE FONCTION (fonction de Ghidra) : morceau de camq_handle_command (0x102c60-0x103568) : atteint par bl@0x10355a depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
+0x1039de	CODE MORT : même code que __ARM_exceptions_buffer_allocate d'am, cfg, codec ; aucune référence (allrefs.py : ni b, bl, blx, mot, distance ; prel31.py : aucun mot prel31), comme dans ac, act, boss
+0x1039f8	CODE MORT : même code que __ARM_exceptions_buffer_free ; aucune référence (allrefs.py, prel31.py), comme dans ac, act, boss
+0x107f0c	CODE MORT : ldr de __rt_errno_addr puis lecture d'errno (même code que errno_get de qtm, proposé) ; aucune référence (rawref.py : ni b, bl, blx ARM ou Thumb, ni mot ; prel31.py : aucun mot), comme dan
+0x10b76c	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun de __aeabi_idivmod (0x10b740-0x10b8bc), atteint seulement par les blo en 0x108f58 (__aeabi_uidivmod) et 0x10b760 (__aeabi_
+0x1115b2	PAS UNE FONCTION (fonction de Ghidra) : morceau de cam_handle_command (0x111538-0x111ec4) : atteint par bl@0x111eb8 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage

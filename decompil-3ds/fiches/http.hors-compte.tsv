@@ -1,0 +1,12 @@
+adresse	raison
+0x100040	PAS UNE FONCTION (entrée de couverture.py) : réserve littérale de clear_bss (0x100024 : ldr r0, [pc, #0x14] lit 0x100040) ; le seul « pointeur » est le mot 0x115ae0 = 0x00100040, une case de la table 
+0x10009e	CODE MORT : même code que __ARM_exceptions_buffer_allocate d'am, cfg, codec ; aucune référence (allrefs.py, prel31.py)
+0x1000b8	CODE MORT : même code que __ARM_exceptions_buffer_free ; aucune référence (allrefs.py, prel31.py)
+0x10cdd8	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun (rsbs / subhs / adcs) où sautent __aeabi_uidivmod (0x10d048) et le corps lui-même : b en 0x10d074 (__aeabi_uidivmod) ; san
+0x10cdfc	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun (rsbs / subhs / adcs) où sautent __aeabi_uidivmod (0x10d048) et le corps lui-même : bhs en 0x10ce60 (même corps) ; sans ca
+0x10ce00	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun (rsbs / subhs / adcs) où sautent __aeabi_uidivmod (0x10d048) et le corps lui-même : blo en 0x10cdd4 et 0x10d070 ; sans cad
+0x10ce30	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun (rsbs / subhs / adcs) où sautent __aeabi_uidivmod (0x10d048) et le corps lui-même : blo en 0x10cdcc, 0x10cdf0 et 0x10d068 
+0x10ce64	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun (rsbs / subhs / adcs) où sautent __aeabi_uidivmod (0x10d048) et le corps lui-même : blo en 0x10cdc4 et 0x10d060 ; sans cad
+0x10ce88	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun (rsbs / subhs / adcs) où sautent __aeabi_uidivmod (0x10d048) et le corps lui-même : blo en 0x10d058 ; sans cadre de pile ;
+0x10ceac	PAS UNE FONCTION (entrée de couverture.py) : rang du corps de division commun (rsbs / subhs / adcs) où sautent __aeabi_uidivmod (0x10d048) et le corps lui-même : blo en 0x10d050 ; sans cadre de pile ;
+0x10cec8	PAS UNE FONCTION : morceau de __aeabi_idivmod (entrée 0x10cda4 sans référence) : branche « quotient 0 ou 1 », atteinte seulement par le blo en 0x10cdb0 (relecture du 18/10)
