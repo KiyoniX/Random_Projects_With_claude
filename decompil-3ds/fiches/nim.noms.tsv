@@ -6,6 +6,7 @@
 0x100cac	label	nim_main
 0x100e80	label	make_result_level1
 0x100eec	label	AC_SetClientVersion
+0x1017a0	label	nim_nup_fini
 0x101990	label	SRV_RegisterClient
 0x1019c8	label	SRV_Subscribe
 0x101dac	label	report_fatal_error
@@ -88,6 +89,7 @@
 0x10a158	label	nim_aoc_cmd_0010_GetTaxes
 0x10a544	label	nim_aoc_cmd_001F_GetStandbyMode
 0x10af20	label	nim_aoc_cmd_0003_SetApplicationId
+0x10b0b4	label	nim_aoc_cmd_0009_ListContentSetsEx
 0x10b3b4	label	nim_aoc_cmd_0025_RefreshServerTime
 0x10b7c4	label	nim_aoc_cmd_0019_AccountListPurchaseHistory
 0x10ba8c	label	nim_aoc_cmd_000C_ListContentSetGroups
@@ -99,9 +101,11 @@
 0x10bff8	label	nim_ndm_cmd_0005_GetDaemonState
 0x10c008	label	nim_ndm_cmd_0004_SetDaemonToSuspendedState
 0x10c018	label	nim_ndm_cmd_0001_GetDaemonEventHandle
+0x10c028	function	nim_ndm_cmd_0002_nop
 0x10c038	label	nim_ndm_cmd_0003_SetDaemonToWorkingState
 0x10c048	label	nim_s_cmd_0023_CheckECardSOAP
 0x10c16c	label	nim_s_cmd_0029_AccountCheckBalanceSOAP
+0x10c1e4	label	nim_s_cmd_0016_ListTitles
 0x10c45c	label	nim_s_cmd_000F_SetCountrySOAP
 0x10c534	label	nim_s_cmd_000E_UnregisterSOAP
 0x10c67c	label	nim_s_cmd_0003_GetProgress
@@ -111,6 +115,7 @@
 0x10cbbc	label	nim_s_cmd_0008_GetTaskList
 0x10cc14	label	nim_s_cmd_0006_IsTaskRegistered
 0x10cc6c	label	nim_s_cmd_002A_CurrencyAccountsCheckBalanceSOAP
+0x10cd60	label	nim_s_cmd_0055_RegisterTask
 0x10cf3e	label	nim_s_cmd_0001_StartDownloadSimple
 0x10cf58	label	nim_s_cmd_0002_CancelDownload
 0x10cf94	label	nim_s_cmd_0033_GetStandbyModeSOAP
@@ -119,6 +124,8 @@
 0x10d390	label	nim_s_cmd_002D_DownloadTickets
 0x10d518	label	nim_s_cmd_0020_GetPurchaseInfoSOAP
 0x10d674	label	nim_s_cmd_001F_GetTaxLocationSOAP
+0x10d7cc	label	nim_s_cmd_0017_ListContentSetsExSOAP
+0x10d910	label	nim_s_cmd_0018_ListItemsSOAP
 0x10dd68	label	nim_s_cmd_003C_RegisterSelf
 0x10de9c	label	nim_s_cmd_003A_DownloadTmd
 0x10df1c	label	nim_s_cmd_002C_AccountGetETicketDetailsSOAP
@@ -128,6 +135,7 @@
 0x10e514	label	nim_s_cmd_003F_GetInitializeResult
 0x10e834	label	nim_s_cmd_0022_AccountDeleteTitleETicketsSOAP
 0x10e8ac	label	nim_s_cmd_004B_GetCountryAttributesSOAP
+0x10e984	label	nim_s_cmd_0019_ListContentSetGroupsSOAP
 0x10eb00	label	nim_s_cmd_0013_DeleteExternalAccountSOAP
 0x10eb90	label	nim_s_cmd_0014_DeleteSavedCardSOAP
 0x10ed18	label	nim_s_cmd_003B_DownloadContent
@@ -141,6 +149,8 @@
 0x10f6dc	label	nim_s_cmd_0054_GetAccountAttributesByProfileSOAP
 0x10f7d4	label	nim_s_cmd_0044_GetContentSizesSOAP
 0x10fb30	label	nim_s_cmd_000D_Connect
+0x10fc30	function	nim_s_cmd_0011_unsupported
+0x10fc38	function	nim_s_cmd_0010_unsupported
 0x1114dc	label	nim_s_cmd_000B_SetAttribute
 0x1119d4	label	nim_s_cmd_0042_StartDownload
 0x111a1c	label	nim_s_cmd_005C_DeleteAccountSavedData
@@ -173,15 +183,20 @@
 0x11d454	label	AM_CommitImportTitlesAndUpdateFirmwareAuto
 0x11d550	label	CFGS_SecureInfoGetRegion
 0x11d58c	label	CFGS_SecureInfoGetSerialNo
+0x11e198	function	sha1_hash
 0x120100	label	AM_GetNumTickets
 0x120138	label	AM_GetPersonalizedTicketInfoList
 0x120188	label	AM_DeleteTicketId
 0x122b20	label	PTMS_NotifySleepPreparationComplete
+0x123464	function	svcSignalEvent
 0x123bc4	function	shift_left_64
 0x124030	label	_ZNSs9_C_unlinkEv
 0x1242a8	label	_ZNSs9_C_getRepEjj
+0x124328	label	_ZNSt11char_traitsIcE4copyEPcPKcj
 0x1243e0	label	_ZNSsC1ERKSs
 0x12441c	label	_ZNSsC1EPKcRKSaIcE
+0x1259c4	function	__aeabi_memset
+0x125ec8	function	memmove_words
 0x127160	function	__aeabi_ldivmod
 0x1278e0	function	__aeabi_idivmod
 0x128184	function	strcpy
@@ -191,6 +206,7 @@
 0x12a06c	function	strncpy
 0x12c716	label	memcmp
 0x12d054	function	strcmp
+0x12eab8	function	nup_check_system_update_available
 0x12ec0c	function	memcpy_unaligned
 0x12f570	function	__aeabi_uldivmod
 0x12f9ac	function	__aeabi_uidivmod
@@ -212,6 +228,8 @@
 0x130f4c	function	svcCloseHandle
 0x130f5c	function	strlen
 0x130fd4	label	construct_array
+0x13124c	function	sha1_init
+0x131280	function	sha1_final
 0x133394	label	AC_GetConnectingLocation
 0x133418	label	AM_EndImportTicket
 0x13345c	label	AM_BeginImportTicket
@@ -264,6 +282,7 @@
 0x14c694	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE
 0x14c890	label	static_init_errf_port
 0x14e948	label	_ZNKSt8messagesIcE6do_getEiiiRKSs
+0x14ecfc	function	svcExitProcess
 0x14ed04	function	svcControlMemory
 0x14ed28	function	svcAcceptSession
 0x14ed40	function	svcCreateAddressArbiter
@@ -274,7 +293,11 @@
 0x14edec	function	svcCreateMemoryBlock
 0x14ee08	function	svcCreateThread
 0x14ee2c	function	svcGetProcessId
+0x14ef04	function	svcReleaseMutex
 0x14ef0c	function	svcUnmapMemoryBlock
 0x14f044	function	svcBreak
 0x14f04c	function	svcExitThread
+0x14f188	function	svcClearEvent
+0x14f2c4	function	svcSleepThread
+0x14fde0	function	memcpy
 0x150164	function	svcDuplicateHandle

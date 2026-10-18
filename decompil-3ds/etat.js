@@ -8,10 +8,10 @@ window.ETAT = {
  "fonctions": {
   "total": 254508,
   "identifiees": 254508,
-  "nommees": 16709,
+  "nommees": 16732,
   "reimplementees": 0,
   "typees": 0,
-  "citees": 7712,
+  "citees": 7730,
   "recompilees": 62491,
   "binaires": [
    {
@@ -475,7 +475,7 @@ window.ETAT = {
     "proposees_haute": 0,
     "proposees_moyenne": 865,
     "typees": 0,
-    "citees": 182,
+    "citees": 184,
     "recompilees": 0,
     "reimplementees": 0
    },
@@ -951,9 +951,9 @@ window.ETAT = {
     "fiche_seule": 0,
     "hors_compte": 32,
     "trouvees": 3507,
-    "nommees": 280,
+    "nommees": 303,
     "proposees_haute": 0,
-    "proposees_moyenne": 675,
+    "proposees_moyenne": 662,
     "typees": 0,
     "citees": 181,
     "recompilees": 0,
@@ -1360,7 +1360,7 @@ window.ETAT = {
     "proposees_haute": 0,
     "proposees_moyenne": 543,
     "typees": 0,
-    "citees": 114,
+    "citees": 130,
     "recompilees": 0,
     "reimplementees": 0
    },
