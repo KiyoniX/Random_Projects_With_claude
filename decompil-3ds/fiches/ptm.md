@@ -99,7 +99,7 @@ Ce sont exactement les sept événements que 3dbrew donne pour ce signal (« MCU
 
 ## Partie 3 : les commandes
 
-Chaque aiguillage lit l'en-tête dans le tampon du fil (à `+0x80` du stockage local), en tire le numéro de commande (les 16 bits du haut, par `extract_bits`) et saute à l'aide d'une petite fonction du compilateur (`0x106ed8`) suivie, dans le code, d'une table d'un octet par cas. Les noms et les en-têtes de requête viennent de 3dbrew ; l'adresse et l'en-tête de réponse sont lus dans le code et retrouvés en faisant tourner chaque aiguillage dans un émulateur.
+Chaque aiguillage lit l'en-tête dans le tampon du fil (à `+0x80` du stockage local), en tire le numéro de commande (les 16 bits du haut, par `bitfield_extract`) et saute à l'aide d'une petite fonction du compilateur (`0x106ed8`) suivie, dans le code, d'une table d'un octet par cas. Les noms et les en-têtes de requête viennent de 3dbrew ; l'adresse et l'en-tête de réponse sont lus dans le code et retrouvés en faisant tourner chaque aiguillage dans un émulateur.
 
 **Qui a droit à quoi.** Il n'y a pas de contrôle de droits à l'intérieur d'un aiguillage : c'est le service ouvert qui choisit l'aiguillage.
 

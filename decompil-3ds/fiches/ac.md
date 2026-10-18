@@ -435,7 +435,7 @@ Le contexte d'une session (au bas de sa pile, `0x6F4` octets ; seuls les champs 
 | | | `0x00050082`… | `CFGNOR_ReadData` | `0x116f94` | lire |
 | | | `0x00060082`… | `CFGNOR_WriteData` | `0x116fdc` | écrire |
 | | | `0x00020000` | `CFGNOR_Shutdown` | `0x117024` | refermer |
-| `ps:ps` | `0x125b78` | `0x00060040`, `0x00080040` | `PSPS_GetRomId`, `PSPS_GetRomMakerCode` | `0x116cd8`, `0x116c98` | Carte ps:ps |
+| `ps:ps` | `0x125b78` | `0x00060040`, `0x00080040` | `PS_GetRomId`, `PS_GetRomMakerCode` | `0x116cd8`, `0x116c98` | Carte ps:ps |
 | `nwm::INF` | `0x125be4` | `0x00070742` | `NWMINF_ConnectToEncryptedAP` | `0x1175d0` | se connecter à un point d'accès chiffré |
 | | | `0x000603C4` | `NWMINF_RecvBeaconBroadcastData` | `0x1176a4` | balayage |
 | | | numéros 3, 4, 5, 9, 10, 11, 12, 14 | `NWMINF_cmd0003`, `0004`, `0005`, `0009`, `000A`, `000B`, `000C`, `000E` | `0x117644`, `0x117674`, `0x11751c`, `0x1174ec`, `0x1061e8`, `0x117598`, `0x11755c`, `0x107c28` | `?` dans 3dbrew (la 11 « rend un événement ») |

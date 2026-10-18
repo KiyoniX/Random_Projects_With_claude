@@ -30,7 +30,7 @@ Appels système trouvés : 0x01 ControlMemory, 0x02 QueryMemory, 0x03 ExitProces
 
 ## Partie 2 : les deux aiguillages
 
-Chaque aiguillage lit le numéro de commande dans les 16 bits du haut de l'en-tête (`extract_bits`, `0x1038E8`), saute à un cas par une table de `switch` (Ghidra ne la reconstruit pas ; `emulate_dispatch.py` l'exécute) et vérifie l'en-tête et les descripteurs (`ipc_check_header`, `0x1038A0`). Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F`, comme les autres modules.
+Chaque aiguillage lit le numéro de commande dans les 16 bits du haut de l'en-tête (`bitfield_extract`, `0x1038E8`), saute à un cas par une table de `switch` (Ghidra ne la reconstruit pas ; `emulate_dispatch.py` l'exécute) et vérifie l'en-tête et les descripteurs (`ipc_check_header`, `0x1038A0`). Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F`, comme les autres modules.
 
 Les deux tables ont été exécutées par `emulate_dispatch.py news 0x1078c8=news:u 0x1079d0=news:s` :
 

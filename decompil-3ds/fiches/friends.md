@@ -11,11 +11,11 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000003202`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `friends`, priorité 60 (`0x3C`), version 21.0.0 d'après l'inventaire de la NAND |
 | Fichier lu | `local/extrait/friends/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x56CEC` octets de code (87 pages), `0xAFC0` de données en lecture seule (11 pages), `0x2A90` de données (3 pages), `0xAD9E4` de mémoire à zéro, pile de `0x4000` |
-| Fonctions | 4 666 pour Ghidra, dont 4 559 en Thumb et 107 en ARM ; 170 nommées dans `friends.noms.tsv` |
+| Fonctions | 4 666 pour Ghidra, dont 4 559 en Thumb et 107 en ARM, plus 43 entrées manquées, moins 15 qui ne sont pas des fonctions (deux sorties d'aiguillage, un bloc d'exception, six tests et six corps de boucles) et 7 fonctions mortes : 4 687 ; 215 nommées dans `friends.noms.tsv`, 1 140 avec `local/analyse/friends/noms-proposes.tsv` |
 | Services offerts | `frd:u` (54 commandes), `frd:a` (70 : les 54 de `frd:u` plus 16) et `frd:n` (4) ; 8, 8 et 1 sessions déclarées, mais 9 sessions au plus en tout (partie 2). Ils ne sont pas dans l'exheader : un service offert n'a pas à y figurer |
 | Services appelés | lus dans l'exheader : `ac:u`, `soc:U`, `http:C`, `fs:USER`, `cfg:s`, `ptm:s`, `ps:ps`, `ptm:sets`, `APT:U`, `nwm::EXT` ; lus dans le code (une fonction d'ouverture par nom, partie 7) : les dix, plus `srv:` (port), `err:f` (port), `ndm:u`, `APT:S` et `APT:A` (essayés juste avant `APT:U`, voir la partie 7) ; `ptm:sysm`, `ptm:gets`, `ptm:play`, `cfg:u`, `gsp::Lcd` et `gsp::Gpu` ont un nom dans le module mais aucune fonction d'ouverture trouvée |
 | Dépendances déclarées | huit titres : `ac` (`…2402`), `cfg` (`…1702`), `http` (`…2902`), `nwm` (`…2D02`), `ps` (`…3102`), `ptm` (`…2202`), les sockets (`…2E02`) et `ssl` (`…2F02`) ; les noms viennent de l'inventaire de la NAND |
-| Fils | un seul fil de service (le fil principal) ; `svcCreateThread` n'est appelé que par une fonction de bibliothèque (`thread_create`, `0x1033a8`) dont on n'a pas suivi l'usage |
+| Fils | un seul fil de service (le fil principal) ; `svcCreateThread` n'est appelé que par une fonction de bibliothèque (`create_thread_impl`, `0x1033a8`) dont on n'a pas suivi l'usage |
 
 Deux particularités. D'abord, le module n'a qu'**un seul fil qui sert toutes les sessions** (pas de fils de travail comme `ndm`, pas un fil par client comme `hid`) : une commande en attend une autre, et tous les clients partagent un même tampon de requête et un même tampon de réponse. Ensuite, la logique des trois aiguillages est dupliquée : `frd:a` n'est pas `frd:u` plus un cas, c'est une seconde copie du même code (3,1 ko chacune) avec les commandes `0x401` à `0x410` en plus.
 
@@ -56,7 +56,7 @@ C'est un serveur à un seul fil. La liste des poignées attendues est à `0x2124
 
 **L'objet de session** (800 octets ; les commandes qui parlent de la session reçoivent `objet + 8`) : `+8` numéro du processus client et `+0xC` version de bibliothèque du client (écrits par SetClientSdkVersion), `+0x1C` dernier résultat de la session (rendu par GetLastResponseResult), `+0x20` drapeau « Login fait » (lu par HasLoggedIn), `+0x21` et `+0x22` drapeaux « données d'authentification prêtes » et « données du localisateur prêtes », suivis de ces données : `+0x30`, `0x138` octets (GetGameAuthenticationData) et `+0x168`, `0x198` octets (GetServiceLocatorData), `+0x308` masque de notifications (écrit par SetNotificationMask), `+0x310` à `+0x31C` la taille et l'adresse de la zone de requête (`0x800`) et de la zone de réponse (`0x1800`). Les données d'authentification sont donc **propres à chaque session**, pas à l'objet principal.
 
-**L'aiguillage.** `frdu_handle_command` lit l'en-tête (`get_tls`, `0x135840`, puis `+0x80`), prend le numéro dans les 16 bits du haut (`extract_bits`, `0x127ab0`) et saute par une table (un numéro de `0x37` ou plus est refusé : `cmp #0x37` à `0x141672`). `frda_handle_command` fait de même avec deux tables de saut : une pour les numéros de 1 à `0x36`, une pour `0x401` à `0x410`. `frdn_handle_command` est une suite de comparaisons (4 numéros). Les commandes qui reçoivent une poignée, un tampon ou un numéro de processus vérifient les mots de traduction avec de petites fonctions (`ipc_check_header`, `0x127a5a`, compare l'en-tête entier ; `ipc_check_static_buffer_descriptor`, `0x1274d8` ; `ipc_check_write_buffer_descriptor`, `0x1272e8` ; `ipc_check_process_id_descriptor`, `0x126998`, mot égal à `0x20`). Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F` ; un en-tête qui ne va pas, `0x00000040` et `0xD9001830` (émulation).
+**L'aiguillage.** `frdu_handle_command` lit l'en-tête (`get_tls`, `0x135840`, puis `+0x80`), prend le numéro dans les 16 bits du haut (`bitfield_extract`, `0x127ab0`) et saute par une table (un numéro de `0x37` ou plus est refusé : `cmp #0x37` à `0x141672`). `frda_handle_command` fait de même avec deux tables de saut : une pour les numéros de 1 à `0x36`, une pour `0x401` à `0x410`. `frdn_handle_command` est une suite de comparaisons (4 numéros). Les commandes qui reçoivent une poignée, un tampon ou un numéro de processus vérifient les mots de traduction avec de petites fonctions (`ipc_check_header`, `0x127a5a`, compare l'en-tête entier ; `ipc_check_static_buffer_descriptor`, `0x1274d8` ; `ipc_is_write_buffer_desc`, `0x1272e8` ; `ipc_is_pid_desc`, `0x126998`, mot égal à `0x20`). Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F` ; un en-tête qui ne va pas, `0x00000040` et `0xD9001830` (émulation).
 
 **Les notifications de `srv:`.** Cinq gestionnaires sont inscrits (`0x100`, `0x104`, `0x105`, `0x301`, `0x302`). Les trois dont on a l'adresse : `on_notification_100` (`0x14a9e0`) lève deux drapeaux, dont le premier fait sortir `service_main` de sa boucle dès qu'il ne reste plus de session (probablement l'arrêt du système, par analogie avec `ndm`) ; `on_notification_105` (`0x14a9f4`) appelle une méthode de l'objet principal (`0x1442c8`) et s'arrête sur une erreur ; `on_notification_302` (`0x14aa0a`) appelle `0x1445fc`. Le sens de `0x104`, `0x301` et `0x302` n'est pas établi.
 
@@ -125,7 +125,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew (la page Friend_Service
 
 Remarques sur le tableau :
 - **Cinq commandes n'ont pas de fonction à elles** : SetNotificationMask (écrit le mot dans `+0x308` de la session), GetLastResponseResult (rend `+0x1C` de la session), PrincipalIdToFriendCode, IsValidFriendCode et SetClientSdkVersion (écrit la version dans `+0xC` et le numéro de processus dans `+8`) sont écrites dans l'aiguillage. `0x24` appelle `principal_id_to_friend_code` (`0x128134`) et rend `0xE0E0C4EB` quand le code obtenu est nul (identifiant principal nul) ; `0x26` appelle `friend_code_is_valid` (`0x128106`) ; `0x25` appelle `frd_0025_FriendCodeToPrincipalId`, qui passe par la même validation, et rend `0xE0E0C401` pour un code invalide (ces deux résultats sont ceux que l'émulation obtient sur un état vide).
-- **Deux commandes sont refusées par l'émulation** : `0x34` et `0x35` vérifient des mots de traduction que `emulate_dispatch.py` ne sait pas fabriquer (« refusé malgré les descripteurs essayés »). Leur fonction et leurs en-têtes (requête `0x00340046`, `0x00350082` ; réponse `0x00340040`, `0x00350042`) sont lus dans le pseudo-code de l'aiguillage seulement : appels `frd_0034_AddFriendWithApproach` et `frd_0035_DecryptApproachContext`, `ipc_check_header` avec `0x34, 1, 6` et `0x35, 2, 2`, `ipc_write_header` avec `0x34, 1, 0` et `0x35, 1, 2`. C'est la seule voie, d'où leur place dans « interprété ».
+- **Deux commandes sont refusées par l'émulation** : `0x34` et `0x35` vérifient des mots de traduction que `emulate_dispatch.py` ne sait pas fabriquer (« refusé malgré les descripteurs essayés »). Leur fonction et leurs en-têtes (requête `0x00340046`, `0x00350082` ; réponse `0x00340040`, `0x00350042`) sont lus dans le pseudo-code de l'aiguillage seulement : appels `frd_0034_AddFriendWithApproach` et `frd_0035_DecryptApproachContext`, `ipc_check_header` avec `0x34, 1, 6` et `0x35, 2, 2`, `ipc_set_header` avec `0x34, 1, 0` et `0x35, 1, 2`. C'est la seule voie, d'où leur place dans « interprété ».
 - **Les numéros `0x2D` et `0x36` partagent une fonction** (`frd_002D_GetNatProperties`, `0x1265f8`, qui rend trois valeurs) : `0x2D` n'en rend que deux, `0x36` les trois.
 - Le pseudo-code de `0x14164c` mélange par endroits des blocs de `0x1424b0` (la table de saut de `0x1424de`) : c'est un défaut de la reconstruction de Ghidra, pas un second aiguillage. L'émulation, qui exécute le code, est la voie fiable pour `frd:u` et `frd:a`.
 
@@ -234,26 +234,26 @@ Résultats d'erreur que les commandes rendent (valeurs lues dans les constantes 
 
 ## Partie 7 : les services que `friends` appelle
 
-Chaque service a une fonction d'ouverture, qui appelle `srv_init` puis `srv_get_service_handle_by_name` (`0x13528c`, ou `srv_get_service_handle_by_cstring`, `0x135702`, qui passe par `strlen`) et donc `SRV_GetServiceHandle` (`0x102948`, en-tête `0x00050100`) : le nom du service est dans une chaîne du module, et la fonction est repérée par ses références à cette chaîne.
+Chaque service a une fonction d'ouverture, qui appelle `srv_init` puis `srv_get_service_handle` (`0x13528c`, ou `get_service_handle_by_name`, `0x135702`, qui passe par `strlen`) et donc `SRV_GetServiceHandle` (`0x102948`, en-tête `0x00050100`) : le nom du service est dans une chaîne du module (ou une table de pointeurs de noms, `0x158874` pour `cfg:s`, `0x1588f8` à `0x15890C` pour les `ptm:*`, `0x1645CC` pour `APT:S` et `APT:U`), et la fonction est repérée par ses références à cette chaîne.
 
 | Service | Fonction d'ouverture | Adresse |
 | --- | --- | --- |
 | `ac:u` | `ac_u_open` | `0x100c74` |
-| `fs:USER` | `fs_user_open` (appelle ensuite l'initialisation du système de fichiers) | `0x100d4c` |
+| `fs:USER` | `fs_init` (ouvre `fs:USER` puis initialise la session du système de fichiers) | `0x100d4c` |
 | `nwm::EXT` | `nwm_ext_open` | `0x100f30` |
 | `http:C` | `http_c_open` | `0x101a14` |
 | `soc:U` | `soc_u_open` | `0x101be0` |
 | `ps:ps` | `ps_ps_open`, `ps_ps_open_second` | `0x1038c0`, `0x113190` |
 | `cfg:s` | `cfg_s_open` | `0x1043e0` |
-| `err:f` | `err_f_open` | `0x103544` |
+| `err:f` | `errf_connect` | `0x103544` |
 | `ptm:s` | `ptm_s_open` | `0x100494` |
 | `ptm:sets` | `ptm_sets_open` | `0x13f36c` |
-| `APT:S`, `APT:U`, `APT:A` | `apt_s_open`, `apt_u_open`, `apt_a_open` | `0x102a0c`, `0x103d38`, `0x104c68` |
+| `APT:S`, `APT:U`, `APT:A` (nom par défaut en `[0x1645F4]`) | `apt_choose_service_s`, `apt_choose_service_u` choisissent le nom ; `apt_open_session` ouvre la session avec le nom choisi, `APT:A` si aucun ne l'est | `0x102a0c`, `0x103d38`, `0x104c68` |
 | `ndm:u` | `ndm_u_open` | `0x1107f8` |
 
 Le serveur d'authentification des jeux (NASC) est joint par `http:C` : le module contient trois adresses `https` (production, test, développement), et d'après 3dbrew il ajoute les certificats par défaut 1, 2 et 3 (non vérifié dans le code). Le module contient aussi la chaîne `data:` (à `0x161220`, neuf références, sans doute le point de montage de son fichier de sauvegarde ; usage non lu).
 
-`APT:S`, `APT:A` et `APT:U` ont chacun leur fonction d'ouverture, et `apt_s_open` puis `apt_u_open` sont appelées l'une à côté de l'autre (`0x101b1c` et `0x101b22`), comme `apt_a_open` et `apt_u_open` (`0x104cdc` à `0x104cee`) : la bibliothèque essaie probablement la variante privilégiée avant `APT:U`, la seule que l'exheader autorise (interprété ; même mécanisme que `boss` côté jeu).
+`0x102a0c` et `0x103d38` ne font que choisir le nom `APT:S` ou `APT:U` (`0x133a14`, s'il n'est pas déjà choisi) ; `0x104c68` ouvre la session `[0x16461C]` avec le nom choisi (`APT:A`, `[0x1645F4]`, si aucun ne l'a été), et `0x104cd0` (`apt_connect`) réessaie avec `APT:U` si le premier essai échoue : la bibliothèque essaie d'abord la variante privilégiée, puis `APT:U`, la seule que l'exheader autorise (même mécanisme que `boss` côté jeu).
 
 Ce que ces services font pour `friends` n'est pas lu, hors l'ouverture : voir « pas lu ».
 
@@ -330,7 +330,7 @@ Ce qu'on n'a pas vérifié : la réaction de Pokémon X à un identifiant princi
 
 | Quoi | 3dbrew / Carte | Le code | Ligne de la fiche |
 | --- | --- | --- | --- |
-| GetMyScreenName (`0x00090000`), mots de réponse | « 2-9 », huit mots de nom (donc une réponse `0x00090240`) | la réponse est `0x000901C0` : six mots (`0x12784c` copie 11 caractères = 22 octets) ; confirmé par l'émulation et par le pseudo-code de l'aiguillage (`ipc_write_header` avec `9` et `7`) | partie 3 (tableau, ligne `0x09`) et partie 9 |
+| GetMyScreenName (`0x00090000`), mots de réponse | « 2-9 », huit mots de nom (donc une réponse `0x00090240`) | la réponse est `0x000901C0` : six mots (`0x12784c` copie 11 caractères = 22 octets) ; confirmé par l'émulation et par le pseudo-code de l'aiguillage (`ipc_set_header` avec `9` et `7`) | partie 3 (tableau, ligne `0x09`) et partie 9 |
 | `frd:n`, les quatre commandes | 3dbrew les nomme sans détail ; la Carte les marque « non lues » | `0x00010042` (un événement), `0x00020040`, `0x00030040` (un octet), `0x00040080` (un octet de 0 à 3) | partie 3, `frd:n` |
 | `ndm.md` partie 7 et `ndm.noms.tsv` | `FRDN_cmd0001` à `FRDN_cmd0004` « non nommées sur 3dbrew » | ce sont GetHandleOfNdmStatusChangedEvent, Resume, SuspendAsync et QueryStatus (3dbrew les nomme) | partie 3, `frd:n` |
 | `frd:a` `0x401` à `0x410` | 3dbrew donne les en-têtes de requête sans détail | les arguments des 16 commandes sont lus (partie 3) ; les réponses sont toutes un résultat seul (`0x040X0040`) | partie 3, `frd:a` seul |
@@ -347,7 +347,7 @@ Ce qu'on n'a pas vérifié : la réaction de Pokémon X à un identifiant princi
 - La formule du code d'ami et celle de ResultToErrorCode : le pseudo-code de Ghidra et l'assembleur de capstone, et pour la première, la description de 3dbrew.
 - Le jeu : `frd_open_session` (SetClientSdkVersion, puis GetMyPresence) et les adresses des 22 fonctions d'envoi, lues dans `pokemon-x-services.tsv` et dans le pseudo-code du jeu.
 - Les 27 appels système : relevés dans l'assembleur de toutes les fonctions (`svc` par capstone) et dans les références de Ghidra.
-- La structure de la boucle : un seul `svcReplyAndReceive` côté serveur (`0x15558c`) ; un seul `svcAcceptSession` (`0x155574`) ; un seul `svcCreateThread` (`0x155600`, appelé par `thread_create`).
+- La structure de la boucle : un seul `svcReplyAndReceive` côté serveur (`0x15558c`) ; un seul `svcAcceptSession` (`0x155574`) ; un seul `svcCreateThread` (`0x155600`, appelé par `create_thread_impl`).
 
 **Interprété à la lecture du pseudo-code, à relire dans Ghidra**
 - Les noms des fonctions de travail : ils viennent de 3dbrew. Les trois nombres de mots de réponse et les tailles lus dans l'aiguillage sont d'accord, mais le corps de beaucoup de fonctions (surtout GetMyApproachContext, DecryptApproachContext, AddFriendOffline, RequestGameAuthentication, RequestServiceLocator) n'a pas été lu en entier.
@@ -367,7 +367,7 @@ Ce qu'on n'a pas vérifié : la réaction de Pokémon X à un identifiant princi
 - Le calcul de `0x13f5ea` (décodage d'un code d'ami brouillé), de `0x143f58` (utilisé par ResultToErrorCode), de `0x125296`, des corps de GetMyApproachContext (chiffrement par `APT:Wrap` d'après 3dbrew) et des commandes de mise à jour de `frd:a`.
 - Les corps des fonctions de bibliothèque (`0x13xxxx`, `0x14xxxx`, `0x15xxxx` : conteneurs, chaînes, SHA-1, démarrage du runtime C++) et la plupart des 4 496 fonctions sans nom.
 - L'usage de `ps:ps`, `cfg:s`, `ptm:sets`, `APT:*` par le module (ils ne sont qu'ouverts).
-- Le fil : un seul fil de service est lu ; les fils créés par `thread_create` (appelé par `0x135504`) ne sont pas suivis.
+- Le fil : un seul fil de service est lu ; les fils créés par `create_thread_impl` (appelé par `0x135504`) ne sont pas suivis.
 - Pour le portage : ce que Pokémon X fait de chaque réponse (identifiant principal à 0, échec de Login, attente de l'événement), seul le côté envoi est lu.
 
 ## Comment cette fiche a été faite
