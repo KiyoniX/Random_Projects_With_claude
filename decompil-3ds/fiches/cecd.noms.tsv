@@ -45,6 +45,7 @@
 0x108ea0	label	FSUSER_CreateSystemSaveData
 0x108ef8	label	FSUSER_DeleteSystemSaveData
 0x10a1dc	label	CFGS_GetConfigInfoBlk8
+0x10b4b4	label	strcat
 0x10bab8	label	FSUSER_ControlArchive
 0x10c810	label	CFGU_GetConfigInfoBlk2
 0x10cc78	function	sha_md_pad
@@ -83,6 +84,7 @@
 0x111684	label	cec_write_message
 0x111828	function	memclr_bytes
 0x111868	function	svcCreateEvent
+0x111a94	function	hmac_sha256
 0x111efc	label	unmount_archive
 0x112064	label	cec_read_raw_file
 0x112430	function	__aeabi_uidivmod
@@ -115,7 +117,15 @@
 0x114cd0	label	FRDU_IsIncludedInFriendList
 0x114de0	label	_ZNSt6localeC1Ev
 0x114e80	label	_ZNSsC1ERKSs
+0x114edc	label	vsnprintf_bounded
+0x1152b8	label	sscanf_string_getc
+0x1152d8	label	sscanf_string_ungetc
+0x115826	label	fill_words
 0x115970	label	_ZNSs11_C_allocateEjjj
+0x115b84	label	printf_next_format_char
+0x115bb4	label	buffer_putc
+0x115bbe	label	snprintf_putc
+0x116690	label	wscanset_contains
 0x116a14	label	_ZNSsaSEPKc
 0x117106	label	_ZNSsaSERKSs
 0x117680	label	_ZNSs7replaceEjjPKcj
@@ -202,6 +212,7 @@
 0x11cce8	label	cec_open_and_write
 0x11e270	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE
 0x11e5f8	label	static_init_errf_port
+0x11fb38	label	fputc_buffered
 0x11fe14	label	_ZNKSt8messagesIcE6do_getEiiiRKSs
 0x11ff74	function	svcExitProcess
 0x11ff7c	function	svcAcceptSession
@@ -211,6 +222,7 @@
 0x11ffe8	function	svcQueryMemory
 0x120024	function	svcGetProcessInfo
 0x120040	function	svcGetProcessId
+0x120058	function	hmac_sha1
 0x120200	function	svcConnectToPort
 0x120388	function	svcClearEvent
 0x120390	function	svcCreateThread
@@ -221,6 +233,12 @@
 0x120924	function	svcWaitSynchronizationN
 0x12094c	function	strcpy
 0x120b94	function	svcReleaseMutex
+0x120bb0	function	memcpy
+0x120bbc	function	udiv10_64
+0x121350	function	fp_classify
+0x121390	function	double_to_float_checked
+0x1215a0	function	ldexp_checked
+0x121698	function	frexp
 0x121968	function	sha256_transform
 0x121aa0	function	svcCreateMutex
 0x121ab8	function	svcDuplicateHandle

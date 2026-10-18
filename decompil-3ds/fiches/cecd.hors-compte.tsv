@@ -11,3 +11,4 @@ adresse	raison
 0x11b004	PAS UNE FONCTION (fonction de Ghidra) : morceau de cecds_handle_command (0x11af50-0x11ba20) : atteint par bl@0x11ba12 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de l'aiguillage
 0x11ba02	PAS UNE FONCTION (entrée de couverture.py) : morceau de cecds_handle_command (0x11af50-0x11ba20) : atteint par b@0x11b8a4 b@0x11b8a4 depuis l'aiguillage lui-même ; pas de push en tête, lit le cadre de
 0x121828	CODE MORT (entrée) : aucun appelant de 0x121828 ; le beq en 0x10d934 de __aeabi_memmove saute dans son corps (0x121854), chemin vivant (relecture du 18/10)
+0x11594a	CODE MORT : morceau de nettoyage de 0x1158e8, aucune référence (relecture du 18/10)
