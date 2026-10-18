@@ -1,0 +1,4 @@
+adresse	raison
+0x101d4e	CODE MORT : ni b, ni bl, ni blx, ni mot de l'image ne vise 0x101d4e (allrefs.py, balayage complet) ; (tampon, taille) : 0 si taille > 0x80, tampon nul ou déjà pris, sinon octet 0 à 1 et rend tampon+8 
+0x101d68	CODE MORT : aucune référence (allrefs.py) ; (tampon, p) : si p == tampon+8, octet 0 à 0 ; même code que __ARM_exceptions_buffer_free d'am et news (code mort aussi)
+0x104b9c	PAS UNE FONCTION (entrée de couverture.py) : rang de la boucle de division au milieu de __aeabi_idivmod (0x104b70), atteint par le blo en 0x104b90 (idivmod) et par celui de __aeabi_uidivmod (0x104e1c)

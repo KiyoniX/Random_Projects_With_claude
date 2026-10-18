@@ -1,0 +1,33 @@
+adresse	raison
+0x10331c	CODE MORT : ni b, ni bl, ni blx, ni mot, ni distance ne vise 0x10331c ; (tampon, taille) : 0 si taille > 0x80, tampon nul ou pris, sinon octet 0 à 1 et rend tampon+8 ; même code que __ARM_exceptions_b
+0x103336	CODE MORT : aucune référence ; (tampon, p) : si p == tampon+8, octet 0 à 0 ; même code que __ARM_exceptions_buffer_free d'am, news et ndm
+0x103a54	PAS UNE FONCTION (fonction de Ghidra) : morceau de nim_aoc_dispatch_command (0x1039c4), sans prologue ; lit [sp,#0x19c] (le cadre de l'aiguillage) et finit par add sp,#0x1fc / add sp,#0x180 / pop {r4-
+0x105458	PAS UNE FONCTION (fonction de Ghidra) : morceau de nim_aoc_dispatch_command : ipc_set_header sur [sp,#0x19c] (le tampon de l'aiguillage) sans prologue ; seul atteint par bl@0x1039e8 depuis l'aiguillag
+0x105680	PAS UNE FONCTION (fonction de Ghidra) : morceau de nim_s_dispatch_command (0x10557c) : écrit le résultat au mot 1 de [sp,#0x198] puis add sp,#0x1fc / add sp,#0x170 / pop {r4-r7,pc} (sortie de l'aiguil
+0x10568a	PAS UNE FONCTION (fonction de Ghidra) : morceau de nim_s_dispatch_command : lit [sp,#0x198] et le cadre de l'aiguillage (add r0, sp, #0x10), sans prologue ; aucune référence de l'extérieur (suite de 0
+0x107f02	PAS UNE FONCTION (fonction de Ghidra) : morceau de nim_s_dispatch_command : ipc_set_header sur [sp,#0x198], résultat au mot 1, b 0x10771a (retour dans l'aiguillage) ; atteint par bl@0x1056b2, bl@0x106
+0x107f5e	PAS UNE FONCTION (fonction de Ghidra) : morceau de nim_s_dispatch_command : ipc_set_header sur [sp,#0x198] (en-tête d'erreur) sans prologue ; seul atteint par bl@0x1055a2, dans l'aiguillage
+0x107fea	PAS UNE FONCTION (fonction de Ghidra) : morceau de nim_u_dispatch_command (0x107f78) : résultat au mot 1 de [sp,#8] puis add sp,#0x3c / pop {r4-r7,pc} ; seul atteint par bl@0x1087f2, dans l'aiguillage
+0x10ffb8	PAS UNE FONCTION (entrée de couverture.py) : tête de boucle de 0x10ffae (b 0x10fffc en 0x10ffb6 puis blo 0x10ffb8 en 0x110000), lit le cadre de 0x10ffae ([sp,#8], [sp,#0x10]) ; aucune référence de l'e
+0x111bd4	PAS UNE FONCTION (fonction de Ghidra) : donnée « CTR\0 » (octets 43 54 52 00), dont l'adresse est rendue par 0x111bd0 (adr r0, #0 ; bx lr) ; aucun branchement ne la vise (allrefs.py, pcrel.py)
+0x120524	CODE MORT : push ; blx 0x129334 ; ldr r0, [r0] ; pop : aucune référence (b, bl, blx, mot, distance, adr, veneer)
+0x123b70	CODE MORT : fonction complète (push {r3-r7,lr}) sans aucune référence (mêmes recherches)
+0x124396	PAS UNE FONCTION (fonction de Ghidra) : fragment sans prologue après le pop {r4-r6,pc} de 0x124334 et deux mov r8, r8 ; lit r6 du cadre précédent ; ni b, ni bl, ni mot, ni distance (prel31) ne le vise
+0x12539c	PAS UNE FONCTION (entrée de couverture.py) : condition de boucle au milieu de 0x125360 (atteinte par chute depuis mov r8,r8 en 0x12539a et par bne en 0x12539e) ; le « pointeur » de couverture.py est l
+0x12790c	PAS UNE FONCTION (entrée de couverture.py) : rang de la boucle de division au milieu de __aeabi_idivmod (0x1278e0), atteint par blo@0x127900 et blo@0x12f9c4 (__aeabi_uidivmod) ; même montage que les r
+0x12d620	PAS UNE FONCTION (entrée de couverture.py) : réserve littérale de 0x12d480 (mots 0x00156938, 0x001562B8, 0x5F, 0) ; aucun branchement ne la vise
+0x12ef94	CODE MORT : ARM, copie qui choisit le sens (subs r3, r0, r1 ; cmphs r2, r3 ; bls memcpy_unaligned) : forme d'un memmove ; aucune référence ; __aeabi_memmove de la fiche est 0x1295f0
+0x13b5f8	PAS UNE FONCTION (entrée de couverture.py) : suite au milieu de 0x13b344 (corps de la conversion « a » de printf) atteinte par le beq en 0x13b5da de la même fonction ; lit ses registres (r4, r5) sans 
+0x13bf46	PAS UNE FONCTION (fonction de Ghidra) : fragment sans prologue après le pop {r4-r7,pc} de 0x13bed8 et deux mov r8, r8 ; lit [sp,#0x28] ; aucune référence (mêmes recherches) : code mort
+0x13c048	CODE MORT : memclr de deux blocs de 0x50 octets puis 0x123ad0 ; aucune référence (pas dans la table des constructeurs 0x154f58-0x155020)
+0x13c120	CODE MORT : fonction complète (push {r4-r6,lr}) sans aucune référence (mêmes recherches, table des constructeurs comprise)
+0x1411cc	PAS UNE FONCTION (entrée de couverture.py) : réserve littérale de 0x1411c0 (mot 0x00153BE4, puis du code Thumb mal lu en ARM) ; aucun branchement ne la vise
+0x141518	PAS UNE FONCTION (entrée de couverture.py) : réserve littérale de 0x141504 (mot 0x0015693C) ; aucun branchement ne la vise
+0x14f464	CODE MORT : ARM, ldrex/add #1/strex : incrément atomique ; aucune référence (b, bl, blx, mot)
+0x14f480	CODE MORT : ARM, ldrex/sub #1/strex : décrément atomique ; aucune référence
+0x14f49c	CODE MORT : ARM, ldrex/add r1/strex : addition atomique ; aucune référence
+0x14f4b8	CODE MORT : ARM, ldrex/sub r1/strex : soustraction atomique ; aucune référence
+0x14f4d4	CODE MORT : ARM, ldrex/orr r1/strex : ou atomique ; aucune référence
+0x14f4f0	CODE MORT : ARM, ldrex/and r1/strex : et atomique ; aucune référence
+0x14f50c	CODE MORT : ARM, ldrex/eor r1/strex : ou exclusif atomique ; aucune référence
+0x14f528	CODE MORT : ARM, ldrex/mvn/strex : non atomique ; aucune référence
