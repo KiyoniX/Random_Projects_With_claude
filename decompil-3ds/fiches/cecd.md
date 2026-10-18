@@ -11,31 +11,31 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002602`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `cecd`, priorité 60 (`0x3C`) |
 | Fichier lu | `local/extrait/cecd/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x21EA4` octets de code (`0x22` pages), `0x145C` de données en lecture seule (2 pages), `0x135C` de données (2 pages), `0x94E8` de mémoire à zéro, pile de `0x4000` |
-| Fonctions | 1 731 pour Ghidra, dont 1 615 en Thumb et 116 en ARM ; 106 nommées dans `cecd.noms.tsv`, avec 2 étiquettes de données, aucun nom sans fonction |
+| Fonctions | 1 731 pour Ghidra, dont 1 615 en Thumb et 116 en ARM, plus 30 entrées manquées (veneers et cibles du formateur printf) et 4 entrées que seul missed.py voit (`0x115E02`, `0x116F0E`, `0x116F46`, `0x115284`), moins 3 qui ne sont pas des fonctions (`0x11B004`, `0x11BA02`, morceaux de `cecds_handle_command`, et la réserve `0x105C7C`) et 9 fonctions mortes : 1 753 ; 5 entrées encore à trier, de vraies entrées atteintes par `ldr`+`add pc` ; 180 nommées dans `cecd.noms.tsv`, 1 151 avec `local/analyse/cecd/noms-proposes.tsv` |
 | Services offerts | `cecd:u` (4 sessions au plus), `cecd:s` (4), `cecd:ndm` (1) : la table des noms et des nombres de sessions est à `0x122328` |
-| Services appelés | lus dans l'exheader : `nwm::CEC`, `fs:USER`, `ptm:s`, `ps:ps`, `cfg:s`, `frd:u` ; dans le code, des chaînes pour `ps:ps` (`0x1222AC`), `fs:USER` (`0x122437`), `nwm::CEC` (`0x12244C`), `cfg:s` (`0x122F30`), `ptm:s` (`0x122F45`) ; `frd:u` n'est écrit nulle part : le droit est déclaré mais pas de chaîne pour l'ouvrir |
-| Autres noms de services dans le module | `fs:LDR`, `srv:pm`, `err:f`, `ptm:sysm`, `ptm:gets`, `ptm:u`, `ptm:play`, `ubl_:`, `cfg:u`, `APT:A`, `gsp::Lcd`, `gsp::Gpu` : deux listes, à `0x122430` et `0x122F30`, que je n'ai pas lues (probablement la liste de noms de la bibliothèque commune, pas des sessions ouvertes par `cecd`) |
+| Services appelés | lus dans l'exheader : `nwm::CEC`, `fs:USER`, `ptm:s`, `ps:ps`, `cfg:s`, `frd:u` ; ouverts dans le code : `ps:ps` (`0x1222AC`, `ps_open`), `fs:USER` (`0x122437`, `fs_init`), `nwm::CEC` (`0x12244C`, deux sessions par `nwm_cec_open` `0x102700`), `cfg:s` (`0x122F30`, `cfg_s_open` `0x103CB8`), `ptm:s` (`0x122F45`, `ptm_s_open` `0x100660`), `frd:u` (chaîne lue par `frd_u_open` `0x11323C`), `err:f` ; `cfg:u` (`0x122F69`, `cfg_u_open` `0x10A118`, appelé par `ubl_open`), que l'exheader ne déclare pas : son ouverture sur console est supposée ; la session cfg commune `0x125008` reçoit aussi la poignée de `cfg:s`, que `cfg_s_open` y recopie ; le client `cecd` de la bibliothèque (poignées `0x125084` et `0x125088`) est présent mais n'est jamais ouvert |
+| Autres noms de services dans le module | `fs:LDR`, `srv:pm`, `ptm:sysm`, `ptm:gets`, `ptm:u`, `ptm:play`, `APT:A`, `gsp::Lcd`, `gsp::Gpu` : listes de noms de la bibliothèque commune (`0x122430`, `0x122F30`) ; `ubl_:` est le nom de montage de l'extdata partagée `0xF000000B` (`ubl_load`, `0x108098`, fichier `ubl_:/ubll.lst`) |
 | Appelants connus | `ndm` envoie à `cecd:ndm` ses huit commandes (`fiches/ndm.md`, partie 7) ; Pokémon X envoie seize commandes à `cecd:u` (partie 6) |
 
 ## Partie 1 : le démarrage et le serveur
 
-`entry` (`0x100000`) appelle `clear_bss` (`0x100024`), `run_init_array` (`0x100060`, les constructeurs globaux) et `cecd_start` (`0x100048`), qui prépare le tas (`0x100114`) puis appelle `cecd_main` (`0x100154`, 686 lignes de pseudo-code : tout le reste).
+`entry` (`0x100000`) appelle `clear_bss` (`0x100024`), `init_program_args` (`0x10007C`), `init_runtime_and_srv` (`0x1000C8`), `setup_heap` (`0x1000B4`), `run_static_initializers` (`0x117A80`, 72 constructeurs), `run_init_array` (`0x100060`) et `cecd_start` (`0x100048`), qui pose le gestionnaire d'exception (`install_exception_handler`, `0x100114`) puis appelle `cecd_main` (`0x100154`, 686 lignes de pseudo-code : tout le reste).
 
 `cecd_main` fait, dans l'ordre :
 1. **Enregistre les trois services.** Une boucle de trois tours lit la table `cecd_service_table` (`0x122328`, des paires nom, nombre de sessions : `cecd:u` 4, `cecd:s` 4, `cecd:ndm` 1) et appelle `SRV_RegisterService` pour chacun (`0x10079C`) ; le port de chaque service est rangé dans un tableau de poignées (`0x12E72C`).
-2. **Prépare les composants** : une série d'appels à `0x100660`, `0x113A20` (trois fois avec `0x100`, `0x105`, `0x106`, les numéros de notifications de `sm`), `0x1006CC`, `0x1008FC` : le moteur de StreetPass (un objet global, atteint par `*(objet) + 0x2E00`, partie 5), les notifications de `sm` (`0x100` l'arrêt du système, `0x105` le réveil, `0x106` « la console est tout à fait réveillée », d'après `fiches/ptm.md` ; l'abonnement lui-même est dans `0x113A18` et `0x113A20`, non relus).
-3. **Boucle sur `ReplyAndReceive`** (enveloppe `0x11FF94`, svc `0x4F`) avec neuf poignées au plus : les trois ports d'écoute en tête, puis les sessions ouvertes (cinq au plus, à partir du rang 4). Une poignée de rang inférieur à 4 qui se réveille est un port : `AcceptSession` (`0x11FF7C`, svc `0x4A`) et on range la nouvelle session. Un rang de 4 ou plus est une session : on appelle `cecd_handler_table[service]` (la table de trois adresses à `0x122340`, partie 2) avec le tampon du fil. Une session fermée est retirée de la liste. Un résultat négatif inattendu passe par `0x100A30` (non lu).
+2. **Prépare les composants** : `ptm_s_open` (`0x100660`), trois gestionnaires de notification de `sm` (`register_notification_handler`, `0x113A20`, avec `0x100`, `0x105`, `0x106`), le sémaphore des notifications (`get_notification_semaphore`, `0x1006CC`), l'abonnement à `0x105` et `0x106` (`SRV_Subscribe_thunk`, `0x113A18`), puis `cecd_daemon_init` (`0x1008FC`), qui inscrit quatre autres notifications (`0x104`, `0x107`, `0x304`, `0x303`), monte la sauvegarde et lance les fils du moteur (`cecd_daemon_thread_main` `0x100E0C`, `cec_scheduler_thread_main` `0x101248`). Les sens `0x100` (arrêt), `0x105` et `0x106` (réveil) viennent de `fiches/ptm.md`.
+3. **Boucle sur `ReplyAndReceive`** (`svcReplyAndReceive`, `0x11FF94`) avec neuf poignées au plus : le sémaphore des notifications au rang 0, les trois ports, puis les sessions (cinq au plus, à partir du rang 4). Un port réveillé : `svcAcceptSession` (`0x11FF7C`) et on range la nouvelle session avec son service. Une session : on appelle `cecd_handler_table[service]` (`0x122340`) avec l'objet de service pris dans la table `0x12234C` (partie 2). Une session fermée (`0xC920181A`) est retirée par `cecd_remove_session` (`0x100A30`).
 4. **À l'arrêt** (un drapeau levé à `0x1251A4` et une liste de sessions réduite à 4) : retire les trois services (`SRV_UnregisterService`, `0x1007F0`), envoie la commande `0x11` (EXIT) au moteur (`cec_run_command`, `0x1139F4`), attend la fin d'un fil (`WaitSynchronization1`, `0x1139EC`) et rend la main.
 
-Le module n'a **qu'un fil de service** : toutes les commandes des trois services sont servies à la suite par ce fil, et chaque gestionnaire prend un verrou récursif (`mutex_guard_lock`, `0x113872`, sur un objet à `session + 8`) avant de toucher le moteur. Le module sait créer des fils (`CreateThread` est dans la liste des appels système) ; le moteur en lance sans doute pour les échanges et les temporisations : non lu.
+Le module n'a **qu'un fil de service** : toutes les commandes des trois services sont servies à la suite par ce fil, et chaque gestionnaire prend un verrou récursif (`lock_guard_enter`, `0x113872`, sur un objet à `session + 8`) avant de toucher le moteur. Le moteur tourne dans d'autres fils : `cecd_daemon_thread_main` (`0x100E0C`, les étapes de la machine à états), `cec_scheduler_thread_main` (`0x101248`), `0x1034DC`, `cec_tcp_thread_main` (`0x105080`) et `cec_exchange_thread_main` (`0x104A5C`).
 
 Appels système trouvés (leurs enveloppes sont en `0x11FF7C` et alentour, et dans quelques fonctions isolées de `0x113A00` à `0x113B00`) : 0x01 ControlMemory, 0x02 QueryMemory, 0x03 ExitProcess, 0x08 CreateThread, 0x09 ExitThread, 0x0A SleepThread, 0x13 CreateMutex, 0x14 ReleaseMutex, 0x17 CreateEvent, 0x18 SignalEvent, 0x19 ClearEvent, 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x25 WaitSynchronizationN, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest, 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive. Les noms viennent de `fiches/kernel11.md`.
 
 ## Partie 2 : les trois aiguillages
 
-`cecd_handler_table` (`0x122340`) contient trois adresses : `cecdu_handle_command` (`0x11A5BC`), `cecds_handle_command` (`0x11AF50`) et `cecdndm_handle_command` (`0x11AD68`). À côté, une seconde table de trois adresses (`0x12234C` : `0x129000`, `0x129018`, `0x129024`) que je n'ai pas lue.
+`cecd_handler_table` (`0x122340`) contient trois adresses : `cecdu_handle_command` (`0x11A5BC`), `cecds_handle_command` (`0x11AF50`) et `cecdndm_handle_command` (`0x11AD68`). La seconde table (`0x12234C` : `0x129000`, `0x129018`, `0x129024`) donne l'objet de service que `cecd_main` passe en argument au gestionnaire du même rang ; ces objets sont construits par la case `0x11E728` de la table des constructeurs.
 
-Chaque aiguillage lit le numéro dans les 16 bits du haut de l'en-tête (`header_command_number`, `0x10D0A4`) et saute à un cas. Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F`. Les trois tables ont été exécutées par `emulate_dispatch.py cecd 0x11a5bc=cecd:u 0x11af50=cecd:s 0x11ad68=cecd:ndm` (de 0 à 0xFFFF) :
+Chaque aiguillage lit le numéro dans les 16 bits du haut de l'en-tête (`bitfield_extract`, `0x10D0A4`) et saute à un cas. Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F`. Les trois tables ont été exécutées par `emulate_dispatch.py cecd 0x11a5bc=cecd:u 0x11af50=cecd:s 0x11ad68=cecd:ndm` (de 0 à 0xFFFF) :
 
 | Aiguillage | Commandes trouvées | Numéros |
 | --- | --- | --- |
@@ -74,7 +74,7 @@ Les noms sont ceux de la Carte des services (tirés de 3dbrew) ; les en-têtes d
 | 0x1E | `0x001E0082` | GetEventLog | `cecdu_001E_GetEventLog` | `0x11C1A4` | entier | `0x001E0082` | `cec_get_event_log` `0x11A1A0` |
 | 0x1F | numéro seul (3dbrew : `0x001F0000`) | GetEventLogStart | `cecdu_001F_GetEventLogStart` | `0x11C33C` | numéro | `0x001F0080` | `cec_event_log_start` `0x11A23C` |
 | 0x20 | numéro seul (3dbrew : `0x0020....`) | GetEventLogEntryCount | `cecdu_0020_GetEventLogEntryCount` | `0x11C3F8` | numéro | `0x00200080` | `0x11A268` |
-| 0x21 | numéro seul (3dbrew : `0x0021....`) | (sans nom) | `cecdu_0021_Unknown0021` | `0x11C3E4` | numéro | `0x00210080` | `0x11A244` |
+| 0x21 | numéro seul (absent de 3dbrew et de la Carte) | (sans nom) | `cecdu_0021_WrapEventLogIndex` | `0x11C3E4` | numéro | `0x00210080` | `cec_event_log_wrap_index` `0x11A244` ((r2 + r3) ramené dans [0, 10000)) |
 
 Les noms Start et Stop (0xB et 0xC) sont ceux de la Carte ; dans la version de 3dbrew relue, ce sont RunCommand et RunCommandAlt, et le code s'accorde avec ces derniers (voir plus bas). Les commandes 0x20 et 0x21 n'ont pas de nom dans la version relue de 3dbrew (« ? ») : le nom GetEventLogEntryCount (0x20) est celui de la Carte, et 0x21 n'est dans la Carte que comme en-tête incomplet. Pour les commandes « numéro », le code ne compare que le numéro : leur en-tête de requête complet n'est connu que par 3dbrew et la Carte (`0x000B0040` : un mot ordinaire, la CecCommand).
 
@@ -86,7 +86,7 @@ Les 16 commandes propres à `cecd:s` :
 
 | N° | En-tête de requête | Nom de la Carte | Gestionnaire | Adresse | Vérifié | Réponse | Appelle |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0x401 | numéro seul | (aucun : en-tête incomplet `0x0401....`) | `cecds_0401_Unknown0401` | `0x118D74` | numéro | `0x04010040` | `0x11C9E4` |
+| 0x401 | numéro seul | (absent de la Carte) | `cecds_0401_CreateOrDeleteTestBoxes` | `0x118D74` | numéro | `0x04010040` | `cec_create_or_delete_test_boxes` `0x11C9E4` (boîtes `data:/CEC/test`, CEC_TEST_000 à 006) |
 | 0x402 | `0x04020002` | GetCecInfoEventHandleSys | `cecds_0402_GetCecInfoEventHandleSys` | `0x11902C` | entier | `0x04020042` | `0x11A5AC` |
 | 0x40A | numéro seul | SprCreate | `cecds_040A_SprCreate` | `0x118D14` | numéro | `0x040A0042` | `0x119764`, `0x11A5A0` |
 | 0x40B | numéro seul | SprInitialise | `cecds_040B_SprInitialise` | `0x118F5C` | numéro | `0x040B0040` | `0x119C28` |
@@ -100,10 +100,10 @@ Les 16 commandes propres à `cecd:s` :
 | 0x413 | numéro seul | SprFinaliseRecv | `cecds_0413_SprFinaliseRecv` | `0x118FF0` | numéro | `0x04130040` | `0x119D2C` |
 | 0x414 | numéro seul | SprDone | `cecds_0414_SprDone` | `0x118D64` | numéro | `0x04140040` | `0x109124` |
 | 0x415 | numéro seul | GenHashConsoleUnique | `cecds_0415_GenHashConsoleUnique` | `0x118C9E` | numéro | `0x041500C0` | `0x11CF60` |
-| 0x416 | `0x04160002` | (sans nom) | `cecds_0416_Unknown0416` | `0x119084` | entier | `0x04160082` | `0x11CFA8` |
-| 0x417 | numéro seul | (aucun : en-tête incomplet `0x0417....`) | `cecds_0417_Unknown0417` | `0x118F50` | numéro | `0x04170080` | `0x11CF84` |
+| 0x416 | `0x04160002` | (Carte : « Inconnue ») | `cecds_0416_GetBlockedUserList` | `0x119084` | entier | `0x04160082` | `cec_get_blocked_user_list` `0x11CFA8` (identifiants de `ubl_:/ubll.lst`) |
+| 0x417 | numéro seul | (absent de la Carte) | `cecds_0417_GetBlockListMaxTag` | `0x118F50` | numéro | `0x04170080` | `cec_get_block_list_max_tag` `0x11CF84` |
 
-Le module accepte donc sur `cecd:s` **les 22 commandes de `cecd:u`, plus 0x401 et 0x417 que la Carte n'avait que comme en-têtes incomplets**, en plus des 14 autres que la Carte nommait déjà. Les noms « Spr » (SPotpass? « Send/Receive Pass ») sont ceux de 3dbrew ; je n'ai lu aucune des fonctions « Spr ». Les noms 0x401, 0x416 et 0x417 n'existent pas dans 3dbrew.
+Le module accepte donc sur `cecd:s` **les 22 commandes de `cecd:u`, plus 0x401 et 0x417 que la Carte ne liste pas**, en plus des 14 autres que la Carte nomme (0x416 y est « Inconnue »). Les corps des commandes « Spr » sont nommés d'après leur commande (`cec_spr_create` `0x119764`, `cec_spr_add_slot` `0x119838`, `cec_spr_done` `0x109124`…) ; ils refusent hors de l'état OVER_BOSS (`0xE0A10BEE`). Les commandes 0x401, 0x416 et 0x417 n'existent pas dans 3dbrew.
 
 ### `cecd:ndm` (8 commandes)
 
@@ -122,7 +122,7 @@ Les huit en-têtes de requête sont exactement ceux que `ndm` envoie (`CECDNDM_I
 
 ### Ce que fait chaque commande de `cecd:u`, lu dans le code
 
-- **Les verrous et les contrôles.** La plupart des gestionnaires prennent le verrou de la session (`mutex_guard_lock`) ; les douze qui touchent aux fichiers ou aux données (1 à 0xA, 0x11, 0x12) testent `cec_access_is_blocked` (`cec_access_is_blocked_sys` dans `cecd:s`, qui a le même code) ; s'il rend 1, le gestionnaire rend le résultat `0xC8A10BF0` (constante lue à `0x11C584` et dans les gestionnaires voisins) sans toucher aux fichiers. 0xC8A10BF0 est le seul code d'erreur propre à `cecd` que j'ai trouvé dans les gestionnaires.
+- **Les verrous et les contrôles.** La plupart des gestionnaires prennent le verrou de la session (`lock_guard_enter`) ; les douze qui touchent aux fichiers ou aux données (1 à 0xA, 0x11, 0x12) testent `cec_access_is_blocked` (`cec_access_is_blocked_sys` dans `cecd:s`, qui a le même code) ; s'il rend 1, le gestionnaire rend le résultat `0xC8A10BF0` (constante lue à `0x11C584` et dans les gestionnaires voisins) sans toucher aux fichiers. 0xC8A10BF0 est le seul code d'erreur propre à `cecd` que j'ai trouvé dans les gestionnaires.
 - **Lecture d'un message (3).** `cec_read_message` (`0x110AF8`) construit le chemin `"%s/%s/%s/_%s"` avec `data:/CEC`, l'identifiant de la boîte, `InBox___` (si l'argument de boîte est nul) ou `OutBox__`, et l'identifiant du message ; il lit au plus la taille donnée (la taille réelle du fichier si elle est plus petite) et rend la taille lue au mot 2 de la réponse. C'est le pas à pas de la partie 4.
 - **Suppression (8).** `cec_delete` (`0x10EC80`) prend un type de chemin ; pour les messages (types 6 et 7, `InBox` et `OutBox`) il en fait le chemin avec l'identifiant du message, pour les dossiers il détruit le dossier (`0x113308`), pour les fichiers le fichier (`0x1126D2`) ; il remet à zéro un champ du moteur (`+8`) au passage.
 - **Ouverture, lecture, écriture d'un fichier brut (1, 2, 5, 0x11, 0x12).** Les types de chemin sont ceux de 3dbrew (`CecDataPathType`). `cec_open_raw_file` (`0x11CC0C`), quand le type est 0xB (dossier de la boîte) avec le drapeau de création, ou 0x96 (un fichier `MBoxData.050`) avec le drapeau suivant, écrit 8 octets (`0x1180BC` puis `cec_write_raw_file`) dans un fichier de type 0x96 (`MBoxData.050`). Pour `OpenRawFile` (1) et `OpenAndRead` (0x12), quand le type est 2 (`MBoxInfo`) et que le bit 1 des drapeaux est levé, le gestionnaire lève l'octet `+0x40` d'un objet global (voir Stop) ; `OpenAndWrite` (0x11), pour le type 2 et le bit 2, appelle d'abord `cec_prepare_write` puis, si l'écriture réussit, `0x1137B0(1)`, qui lève un octet à `+5` d'un autre objet (Delete et WriteMessageWithHMAC font le même appel). Le sens de ces deux octets n'est pas lu.
@@ -149,9 +149,9 @@ Lecture d'un message de la boîte d'entrée par un jeu (`cecd:u`, commande 3, `0
 | --- | --- |
 | `0x122328` | table des services : trois paires (nom, nombre de sessions) : `cecd:u` 4, `cecd:s` 4, `cecd:ndm` 1 |
 | `0x122340` | table des aiguillages : `0x11A5BD`, `0x11AF51`, `0x11AD69` (adresses Thumb) |
-| `0x12234C` | seconde table de trois adresses : `0x129000`, `0x129018`, `0x129024` (pas lues) |
+| `0x12234C` | les trois objets de service (`0x129000`, `0x129018`, `0x129024`) passés au gestionnaire du même rang par `cecd_main` |
 | `0x122358` | les trois noms de service : `cecd:u`, `cecd:s`, `cecd:ndm` |
-| `0x124754` | table de noms d'états du moteur, 36 octets par entrée : `WIRELESS_PARAM_SETUP`, `WIRELESS_READY`, `WIRELESS_START_CONFIG`, `SCAN`, `SCANNING`, `CONNECT`, `CONNECTING`, `CONNECTED`, `CONNECT_TCP`, `CONNECTING_TCP`, `CONNECTED_TCP`, `NEGOTIATION`, `SEND_RECV_START`, `SEND_RECV_INIT`, `SEND_READY`, `SEND`, `RECEIVE_READY`, `RECEIVE`, `CONNECTION_FINISH_TCP`, `CONNECTION_FINISH`, `SEND_POST`, `RECEIVE_POST`, `FINISHING`, `FINISH`, `OVER_BOSS`, `IDLE`, `(UNKNOWN)`. L'ordre est celui de la table ; je n'ai pas relié ses indices aux valeurs que le moteur range dans son état |
+| `0x124708` | table des états du moteur, 0x24 octets par entrée (valeur sur 4 octets puis nom) : NONE 0, INIT 1, WIRELESS_PARAM_SETUP 2, WIRELESS_READY 3, WIRELESS_START_CONFIG 4, SCAN 0x10, SCANNING 0x11, CONNECT 0x12, CONNECTING 0x13, CONNECTED 0x14, CONNECT_TCP 0x15, CONNECTING_TCP 0x16, CONNECTED_TCP 0x17, NEGOTIATION 0x20, SEND_RECV_START 0x30, SEND_RECV_INIT 0x31, SEND_READY 0x32, SEND 0x33, RECEIVE_READY 0x34, RECEIVE 0x35, CONNECTION_FINISH_TCP 0x36, CONNECTION_FINISH 0x37, SEND_POST 0x38, RECEIVE_POST 0x39, FINISHING 0x3F, FINISH 0x40, OVER_BOSS 0x50, IDLE 0xFF ; ce sont les valeurs sur lesquelles `cecd_daemon_thread_main` aiguille ses 22 étapes `cec_step_*` |
 | `0x124B08` | les quatre états de `ndm` : `NDM_STATUS_WORKING`, `NDM_STATUS_IDLE`, `NDM_STATUS_SUSPENDING`, `NDM_STATUS_SUSPENDED` |
 | `0x124BA4` | les noms des 22 `CecCommand` (36 octets par entrée), dans l'ordre exact de 3dbrew : `NONE` 0, `START` 1, `RESET_START` 2, `READYSCAN` 3, `READYSCANWAIT` 4, `STARTSCAN` 5, `RESCAN` 6, `NDM_RESUME` 7, `NDM_SUSPEND` 8, `NDM_SUSPEND_IMMEDIATE` 9, `STOPWAIT` 0xA, `STOP` 0xB, `STOP_FORCE` 0xC, `STOP_FORCE_WAIT` 0xD, `RESET_FILTER` 0xE, `DAEMON_STOP` 0xF, `DAEMON_START` 0x10, `EXIT` 0x11, `OVER_BOSS` 0x12, `OVER_BOSS_FORCE` 0x13, `OVER_BOSS_FORCE_WAIT` 0x14, `END` 0x15 |
 | `0x107B08`, `0x107B20`, `0x10C7D4` | les fichiers `data:/CEC/SessionId___`, `data:/CEC/MacFilter___`, `data:/CEC/MBoxList____` ; `data:/CEC/TMP` (fichiers temporaires) à `0x100D24` et ailleurs |
@@ -159,7 +159,7 @@ Lecture d'un message de la boîte d'entrée par un jeu (`cecd:u`, commande 3, `0
 
 Les chemins de boîte aux lettres sont ceux de 3dbrew : `data:/CEC/MBoxList____`, `data:/CEC/<id>/MBoxInfo____`, `InBox___/BoxInfo_____`, `OutBox__/OBIndex_____`, `InBox___/_<message>`, `OutBox__/_<message>`, `MBoxData.001` à `.199`. Le module écrit les chaînes `InBox___`, `OutBox__` et `%s/%s/%s/_%s` ; je n'ai pas relevé les autres dans le code.
 
-Le moteur : un objet global dont l'adresse est dans une variable (`*DAT_0011C218` et ses sœurs) et dont les gestionnaires prennent l'adresse `+ 0x2E00` (c'est le gestionnaire de boîtes, une sous-structure du moteur). Les deux octets qui conditionnent les commandes sont à `+0x3F` (moteur démarré) et `+0x40` (boîte créée). Pas relu en entier.
+Le moteur : l'objet `0x1254B0` (`cec_get_engine`, `0x10FE9C`, rangé en `0x124508` par `cec_mbox_ctor`) dont les gestionnaires prennent l'adresse `+ 0x2E00` (le gestionnaire de boîtes) ; l'état de la machine est le mot +0 de l'objet `[0x1251E4]` (`cec_get_state`, `cec_state_transition`). Les deux octets qui conditionnent les commandes sont à `+0x3F` (moteur démarré) et `+0x40` (boîte créée).
 
 ## Partie 6 : ce que Pokémon X envoie
 
@@ -206,8 +206,7 @@ Pour le portage PC, ce qui peut rester factice et ce qui doit être vrai :
 - Les trois numéros de notification (`0x100`, `0x105`, `0x106`).
 
 **Pas lu** :
-- Le moteur de StreetPass : la machine à états (états de `0x124754`), l'ordonnanceur de scans, la connexion Wi-Fi par `nwm::CEC`, l'envoi et la réception, le chiffrement et le HMAC des messages.
-- Les 16 commandes propres à `cecd:s`, hors l'en-tête et le point d'entrée.
-- La seconde table d'adresses à `0x12234C`.
-- Les deux listes de noms de services à `0x122430` et `0x122F30`.
-- L'appel à `frd:u` (le droit est dans l'exheader ; aucune chaîne dans le code).
+- Le protocole de StreetPass : le détail des étapes (`cec_step_*`), des fils TCP et d'échange, le chiffrement et le HMAC des messages.
+- Les champs exacts des commandes `Spr` (métadonnées des emplacements).
+- Les deux listes de noms de services à `0x122430` et `0x122F30` (liste de la bibliothèque).
+- Le rôle de `frd:u` : `frd_u_open` ouvre la session et lit la présence, l'usage par le moteur n'est pas suivi.

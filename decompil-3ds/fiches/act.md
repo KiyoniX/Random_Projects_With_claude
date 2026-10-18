@@ -11,9 +11,9 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000003802`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `act`, priorité 60 (`0x3C`) |
 | Fichier lu | `local/extrait/act/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x25A50` octets de code (`0x26` pages), `0x1E0C` de données en lecture seule (2 pages), `0x6B8` de données (1 page), `0x183F0` de mémoire à zéro, pile de `0x16000` (la plus grande des modules lus : les requêtes HTTP et le XML sont dans la pile) |
-| Fonctions | 1 862 pour Ghidra, dont 1 796 en Thumb et 66 en ARM ; 88 nommées dans `act.noms.tsv`, aucun nom sans fonction |
+| Fonctions | 1 862 pour Ghidra, dont 1 796 en Thumb et 66 en ARM, plus 8 entrées manquées, moins 4 cas d'aiguillage que Ghidra prend pour des fonctions (`0x10A8EE`, `0x10B32E`, `0x10B33E`, `0x10C81A`) et 7 fonctions mortes (dont `__aeabi_memmove` `0x1255F4`) : 1 859 ; 141 lignes dans `act.noms.tsv`, 566 avec `local/analyse/act/noms-proposes.tsv` (dont 30 noms de case `*_Unknown` à remplacer) |
 | Services offerts | `act:u` et `act:a`, 3 sessions chacun : table à `0x126024` (nom, nombre de sessions) |
-| Services appelés | lus dans l'exheader : `am:net`, `cfg:s`, `fs:USER`, `http:C`, `ptm:s`, `frd:u`. Dans le code, des chaînes pour `am:net` (`0x1268A2`, la référence à `0x101C6C`), `fs:USER` (`0x1268FB`, `0x101280`), `http:C` (`0x126910` et `0x126917`, `0x101B10` et `0x121D0C`). `cfg:s` et `ptm:s` sont dans la liste de noms de la bibliothèque (`0x127BBF` et suivantes), `frd:u` n'est écrit nulle part |
+| Services appelés | lus dans l'exheader : `am:net`, `cfg:s`, `fs:USER`, `http:C`, `ptm:s`, `frd:u`. Ouverts dans le code : `am:net` (`0x1268A2`, `am_net_open` `0x101C38`), `fs:USER` (`0x1268FB`, `fs_init`), `http:C` (`0x126910` par `http_c_open` `0x101A78`, `0x126917` pour la session d'un contexte par `0x121CC8`), `frd:u` (chaîne lue par `frd_u_open` `0x101110`), `cfg:s`, `cfg:i` et, essayé d'abord par `cfg_open_any` (`0x1210AC`), `cfg:u` (absent de l'exheader) : `0x1283DC` pour cfg:i, `0x1283E0` pour cfg:s ou cfg:i, `0x1283E4` pour la session commune (cfg:u, cfg:s ou cfg:i) ; `ptm:s` `0x128438`, `err:f` |
 | Appelants connus | `act:u` : `menu`, `mint`, `olv` (Miiverse), `solv3` ; `act:a` : `mint` (réglages) ; d'après leurs exheaders. `act` et `nim` sont les deux clients d'`am:net` (exheaders). Pokémon X n'ouvre aucun des deux : `act` n'est pas parmi les 37 noms de services que le jeu contient (`pokemon-x-services.md`) |
 | Fichiers de `data:` | `uuid.dat`, `common.dat`, `persisid.dat`, `transid.dat` (formats `data://...` à `0x102080`, `0x10217C`, `0x1024FC`, `0x102540`), `account.dat` (`0x102A34`, `0x104130`), `miiimg%02u.dat` (`0x1040DC`) et un dossier par compte `data://%08x/%ls` (`0x126434`, `0x12644C`) |
 
@@ -21,12 +21,12 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 
 `act_main` (`0x10010C`, un seul fil de service) :
 
-1. Enregistre les deux services (`0x100764`, en-tête de commande 3, quatre mots) d'après la table `0x126024` : `act:u`, 3 sessions, `act:a`, 3 sessions.
+1. Enregistre les deux services (`SRV_RegisterService`, `0x100764`, en-tête `0x00030100`) d'après la table `0x126024` : `act:u`, 3 sessions, `act:a`, 3 sessions.
 2. Prépare des objets globaux (initialisations gardées par des indicateurs de première utilisation) et s'abonne à trois notifications de `sm` (`0x100`, `0x104` et `0x105`, par `0x115698`) : l'arrêt, puis la veille et le réveil d'après `fiches/ptm.md` ; interprété.
-3. **Boucle** sur `ReplyAndReceive` (enveloppe `0x124C70`) avec neuf poignées au plus : rang 0 la notification de `sm`, rangs 1 et 2 les deux ports, puis les sessions (rangs 3 à 8 : **six sessions au plus à la fois**). Rang 1 ou 2 : `AcceptSession` (`0x124C58`), la session est rangée avec le numéro de son service. Rang de 3 ou plus : une commande ; le module appelle `handler_table[service](session)` avec la table de deux adresses de `0x128288` : `act_u_dispatch_command` (`0x10A898`) et `act_a_dispatch_command` (`0x10B20C`). Une session fermée (`0xC920181A`, constante lue à `0x1003B4`) est retirée (`0x100890`).
+3. **Boucle** sur `ReplyAndReceive` (`svcReplyAndReceive`, `0x124C70`) avec neuf poignées au plus : rang 0 la notification de `sm`, rangs 1 et 2 les deux ports, puis les sessions (rangs 3 à 8 : **six sessions au plus à la fois**). Rang 1 ou 2 : `AcceptSession` (`svcAcceptSession`, `0x124C58`), la session est rangée avec le numéro de son service. Rang de 3 ou plus : une commande ; le module appelle `handler_table[service](session)` avec la table de deux adresses de `0x128288` : `act_u_dispatch_command` (`0x10A898`) et `act_a_dispatch_command` (`0x10B20C`). Une session fermée (`0xC920181A`, constante lue à `0x1003B4`) est retirée (`0x100890`).
 4. À l'arrêt : ferme les services et rend la main.
 
-Appels système trouvés : 0x18 SignalEvent, 0x1E CreateMemoryBlock, 0x1F MapMemoryBlock (le bloc partagé d'`Initialize`), 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1, 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest (`0x115374`), 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession, 0x4F ReplyAndReceive. Les noms viennent de `fiches/kernel11.md`.
+Appels système trouvés : 0x03 ExitProcess (`0x124C08`), 0x08 CreateThread, 0x09 ExitThread, 0x0A SleepThread (`0x124DE4`), 0x18 SignalEvent (`0x1259B0`), 0x1E CreateMemoryBlock, 0x1F MapMemoryBlock (`0x1259A8`), 0x20 UnmapMemoryBlock, 0x21 CreateAddressArbiter, 0x22 ArbitrateAddress, 0x23 CloseHandle, 0x24 WaitSynchronization1 (`0x124DEC`), 0x27 DuplicateHandle, 0x28 GetSystemTick, 0x2B GetProcessInfo, 0x2D ConnectToPort, 0x32 SendSyncRequest (`0x115374`), 0x35 GetProcessId, 0x3C Break, 0x4A AcceptSession (`0x124C58`), 0x4F ReplyAndReceive (`0x124C70`) (octets lus par `svcs.py`). Les noms viennent de `fiches/kernel11.md`.
 
 ## Partie 2 : les deux aiguillages
 
@@ -39,7 +39,7 @@ Les deux tables ont été exécutées par `emulate_dispatch.py act 0x10a898=act:
 | `act:u` | 34 | `0x01` à `0x22` |
 | `act:a` | 87 | les 34 de `act:u`, plus `0x401` à `0x435` (53) |
 
-**`act:a` a toutes les commandes d'`act:u`**, aux mêmes adresses (vérifié : mêmes numéros, mêmes gestionnaires). La Carte compte 30 commandes pour `act:u` et 83 pour `act:a` (30 + 53) : **le code en accepte 4 de plus** dans les deux services, `0x0A`, `0x20`, `0x21` et `0x22` (voir les notes).
+**`act:a` a toutes les commandes d'`act:u`**, aux mêmes adresses (vérifié : mêmes numéros, mêmes gestionnaires). La Carte compte maintenant 33 commandes pour `act:u` (0x20, 0x21 et 0x22 y sont nommées) : **le code en accepte une de plus**, `0x0A`, absente de la Carte et de 3dbrew.
 
 ## Partie 3 : les commandes
 
@@ -80,9 +80,9 @@ Les noms et les en-têtes de requête sont ceux de la Carte (3dbrew ; « Inconnu
 | 0x1D | `0x001D0004` | InquireMailAddress | `act_cmd_001D_InquireMailAddress` | `0x11014C` | émulation | entier | `0x001D0042` |
 | 0x1E | `0x001E0082` | AcquireEula | `act_cmd_001E_AcquireEula` | `0x110014` | émulation | entier | `0x001E0040` |
 | 0x1F | `0x001F0082` (code : `0x001F0042`) | AcquireEulaLanguageList | `act_cmd_001F_AcquireEulaLanguageList` | `0x10FEE4` | émulation | entier | `0x001F0040` |
-| 0x20 | `0x00200382` | (absente de la Carte) | sans nom | `0x10FDC0` | émulation | entier | `0x00200040` |
-| 0x21 | `0x00210002` | (absente de la Carte) | sans nom | `0x10FD6C` | émulation | entier | `0x00210042` |
-| 0x22 | `0x00220342` | (absente de la Carte) | sans nom | `0x10FC68` | émulation | entier | `0x00220042` |
+| 0x20 | `0x00200382` | AcquireIndependentServiceTokenV2 | `act_cmd_0020_AcquireIndependentServiceTokenV2` | `0x10FDC0` | émulation | entier | `0x00200040` |
+| 0x21 | `0x00210002` | GetIndependentServiceTokenV2 (Carte : « GetIndepdendentServiceTokenV2 ») | `act_cmd_0021_GetIndependentServiceTokenV2` | `0x10FD6C` | émulation | entier | `0x00210042` |
+| 0x22 | `0x00220342` | GetCachedIndependentServiceTokenV2 | `act_cmd_0022_GetCachedIndependentServiceTokenV2` | `0x10FC68` | émulation | entier | `0x00220042` |
 
 ### `act:a` (aiguillage `act_a_dispatch_command` à `0x10b20c`)
 
@@ -119,9 +119,9 @@ Les noms et les en-têtes de requête sont ceux de la Carte (3dbrew ; « Inconnu
 | 0x1D | `0x001D0004` | InquireMailAddress | `act_cmd_001D_InquireMailAddress` | `0x11014C` | émulation | entier | `0x001D0042` |
 | 0x1E | `0x001E0082` | AcquireEula | `act_cmd_001E_AcquireEula` | `0x110014` | émulation | entier | `0x001E0040` |
 | 0x1F | `0x001F0082` (code : `0x001F0042`) | AcquireEulaLanguageList | `act_cmd_001F_AcquireEulaLanguageList` | `0x10FEE4` | émulation | entier | `0x001F0040` |
-| 0x20 | `0x00200382` | (absente de la Carte) | sans nom | `0x10FDC0` | émulation | entier | `0x00200040` |
-| 0x21 | `0x00210002` | (absente de la Carte) | sans nom | `0x10FD6C` | émulation | entier | `0x00210042` |
-| 0x22 | `0x00220342` | (absente de la Carte) | sans nom | `0x10FC68` | émulation | entier | `0x00220042` |
+| 0x20 | `0x00200382` | AcquireIndependentServiceTokenV2 | `act_cmd_0020_AcquireIndependentServiceTokenV2` | `0x10FDC0` | émulation | entier | `0x00200040` |
+| 0x21 | `0x00210002` | GetIndependentServiceTokenV2 (Carte : « GetIndepdendentServiceTokenV2 ») | `act_cmd_0021_GetIndependentServiceTokenV2` | `0x10FD6C` | émulation | entier | `0x00210042` |
+| 0x22 | `0x00220342` | GetCachedIndependentServiceTokenV2 | `act_cmd_0022_GetCachedIndependentServiceTokenV2` | `0x10FC68` | émulation | entier | `0x00220042` |
 | 0x401 | `0x04010080` | Inconnue | sans nom | `0x108048` | émulation | numéro | `0x04010040` |
 | 0x402 | `0x04020000` | CreateConsoleAccount | `act_a_cmd_0402_CreateConsoleAccount` | `0x108FC8` | émulation | numéro | `0x04020040` |
 | 0x403 | `0x04030040` | CommitConsoleAccount | `act_a_cmd_0403_CommitConsoleAccount` | `0x108F38` | émulation | numéro | `0x04030040` |
@@ -179,7 +179,7 @@ Les noms et les en-têtes de requête sont ceux de la Carte (3dbrew ; « Inconnu
 
 Notes :
 
-- **Quatre commandes absentes de la Carte** (`act:u` et `act:a`) : `0x0A` (numéro seul, réponse `0x000A0040`), `0x20` (`0x00200382`, réponse `0x00200040`), `0x21` (`0x00210002`, réponse `0x00210042`) et `0x22` (`0x00220342`, réponse `0x00220042`). Leurs en-têtes de requête sont ceux du code, vérifiés en entier pour les trois dernières. Leurs gestionnaires (sans nom, sans nom...) sont aux adresses de la table ; ce qu'elles font n'est pas lu.
+- **Une commande absente de la Carte** (`act:u` et `act:a`) : `0x0A` (numéro seul, réponse `0x000A0040`) ; son gestionnaire (`0x110FE8`) n'a encore qu'un nom de case. `0x20`, `0x21` et `0x22` sont dans la Carte (partie 3).
 - **`0x1F` AcquireEulaLanguageList** : l'aiguillage vérifie l'en-tête `0x001F0042` (1 mot ordinaire, 1 descripteur), la Carte donne `0x001F0082`. L'émulation trouve que l'aiguillage compare l'en-tête de la requête à `0x001F0042` et répond `0x001F0040`. L'écart vient de la Carte ou de la version de 3dbrew relue ; le code prime.
 - **`0x03` GetLastResponseCode, `0x07` GetResultAsync** : leurs cas sont dans le corps de l'aiguillage (pas de gestionnaire séparé). `0x07` vérifie l'en-tête `0x00070082`.
 - **`act:a` `0x434`** : l'émulation a refusé la requête (descripteurs). L'adresse `0x108C30` est la seule fonction que l'aiguillage appelle sans qu'une commande de l'émulation y mène : c'est le gestionnaire, par élimination (pseudo-code, interprété).
@@ -209,7 +209,7 @@ Les décalages sont ceux de la fiche d'un compte en mémoire ; ce que chacun con
 | `0x127B66` à `0x127B85` | les préfixes d'environnement des adresses du serveur : `staging.`, `game-dev.`, `system-dev.`, `library-dev.` |
 | `0x1278AC` à `0x127B5D` | les noms des attributs de la fiche d'un compte (`MiiData`, `TimeZoneId`, `AssignedPrincipalId`, `SimpleAddressId`, `AssignedAccountId`, `FpLocalAccountId`, `IsPasswordCacheEnabled`, `IsMailAddressValidated`, `IsServerAccountDeleted`, `IsCommitted`, `NfsPassword`, `AccountPasswordCache`, `AccountPasswordHash`, `MiiName`, `MiiImageUrl`, `BirthMonth`/`BirthYear`/`BirthDay`, `Gender`, `UtcOffset`, `Country`, `LastAuthenticationResult`, `DefaultAccountPersistentId`, `CommonUuid`, `PersistentIdList`, `ClockSequence`, `LastTime`...) : ce sont les clés du format de `account.dat` et de `common.dat` |
 
-**Le réseau.** Les requêtes vers le serveur de comptes sont construites dans `act` : une adresse de la forme `https://%s%saccount.nintendo.net/v%u/api/` (`0x10E564`, avec un préfixe d'environnement), des en-têtes d'authentification (`Basic`, `HashedBasic`, `Bearer`, `0x10DEF4` et `0x10E1CC`), et une série d'en-têtes `X-Nintendo-*` qui présentent la console et le titre : `Platform-ID`, `Device-Type`, `Device-ID`, `Serial-Number`, `System-Version`, `Region`, `Country`, `Client-ID`, `Client-Secret`, `API-Version`, `FPD-Version`, `Environment`, `Title-ID`, `Unique-ID`, `Application-Version`, `Device-Model`, `Device-Cert`, `Date` (de `0x10E4E0` à `0x117874`). Les services déclarés laissent penser que les valeurs viennent d'`am:net` (certificat de l'appareil, par `GetDeviceCert`, `am_cmd_0818_GetDeviceCert` côté `am`), de `cfg:s` (numéro de série, région, pays) et de constantes du module (interprété, les appels ne sont pas suivis) : **deux chaînes de 32 caractères hexadécimaux, à `0x126858` et `0x12687C`, sont l'identifiant et le secret du client** (`Client-ID`, `Client-Secret`). Elles ne sont pas recopiées ici. Le certificat de la console, le numéro de série et les identifiants d'appareil sont lus à l'exécution et ne sont dans aucun fichier du dépôt.
+**Le réseau.** Les requêtes vers le serveur de comptes sont construites dans `act` : une adresse de la forme `https://%s%saccount.nintendo.net/v%u/api/` (`0x10E564`, avec un préfixe d'environnement), des en-têtes d'authentification (`Basic`, `HashedBasic`, `Bearer`, `0x10DEF4` et `0x10E1CC`), et une série d'en-têtes `X-Nintendo-*` qui présentent la console et le titre : `Platform-ID`, `Device-Type`, `Device-ID`, `Serial-Number`, `System-Version`, `Region`, `Country`, `Client-ID`, `Client-Secret`, `API-Version`, `FPD-Version`, `Environment`, `Title-ID`, `Unique-ID`, `Application-Version`, `Device-Model`, `Device-Cert`, `Date` (de `0x10E4E0` à `0x117874`). Les valeurs viennent d'`am:net` (`AMNET_GetDeviceCert` `0x103D18`, `AMNET_GetDeviceId` `0x103C78`), de `cfg:s` (`CFGS_SecureInfoGetSerialNo` `0x104444`), de la session commune `0x1283E4` pour les `CFGU_*` (`CFGU_SecureInfoGetRegion` `0x104F84`, `CFGU_GetCountryCodeID` `0x1211C8`, `CFGU_GetSystemModel` `0x10448C`) : elles passent par la session commune, non par cfg:u et de constantes du module (requêtes lues ; le rangement de chaque valeur dans son en-tête n'est pas suivi) : **deux chaînes de 32 caractères hexadécimaux, à `0x126858` et `0x12687C`, sont l'identifiant et le secret du client** (`Client-ID`, `Client-Secret`). Elles ne sont pas recopiées ici. Le certificat de la console, le numéro de série et les identifiants d'appareil sont lus à l'exécution et ne sont dans aucun fichier du dépôt.
 
 ## Partie 6 : ce que Pokémon X envoie
 
