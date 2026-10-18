@@ -6,7 +6,6 @@
 0x100cac	label	nim_main
 0x100e80	label	make_result_level1
 0x100eec	label	AC_SetClientVersion
-0x1017a0	label	nim_nup_fini
 0x101990	label	SRV_RegisterClient
 0x1019c8	label	SRV_Subscribe
 0x101dac	label	report_fatal_error
@@ -192,7 +191,6 @@
 0x123bc4	function	shift_left_64
 0x124030	label	_ZNSs9_C_unlinkEv
 0x1242a8	label	_ZNSs9_C_getRepEjj
-0x124328	label	_ZNSt11char_traitsIcE4copyEPcPKcj
 0x1243e0	label	_ZNSsC1ERKSs
 0x12441c	label	_ZNSsC1EPKcRKSaIcE
 0x1259c4	function	__aeabi_memset
