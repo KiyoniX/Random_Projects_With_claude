@@ -11,13 +11,13 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002B02`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `ndm`, priorité 48 (`0x30`) |
 | Fichier lu | `local/extrait/ndm/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x9C40` octets de code (10 pages), `0xDAC` de données en lecture seule, `0x404` de données, `0x3804` de mémoire à zéro, pile de `0x1000` |
-| Fonctions | 880 pour Ghidra, dont 812 en Thumb et 68 en ARM ; 223 nommées dans `ndm.noms.tsv` |
+| Fonctions | 880 pour Ghidra, dont 812 en Thumb et 68 en ARM ; 242 nommées dans `ndm.noms.tsv` (880 avec les propositions de `local/analyse/ndm/noms-proposes.tsv`) |
 | Service offert | `ndm:u` seul, 24 commandes, 6 sessions au plus |
 | Services appelés | lus dans l'exheader : `ac:u`, `ptm:s`, `nwm::EXT`, `nim:ndm`, `ndm:u`, `cecd:ndm`, `frd:n`, `boss:M` ; lus dans le code : les mêmes huit, plus `srv:` (port) et `err:f` (port) |
 | Dépendances déclarées | sept titres : `ac` (`…2402`), `cecd` (`…2602`), `nim` (`…2C02`), `nwm` (`…2D02`), `ptm` (`…2202`), `friends` (`…3202`), `boss` (`…3402`) ; les noms viennent de la liste des titres système de 3dbrew |
 | Fils | six : le fil principal, trois fils de travail qui exécutent les commandes, et deux fils lancés par les composants (la machine à états du Wi-Fi et l'ordonnanceur) |
 
-Une particularité : `ndm` est client de son propre service. L'exheader autorise `ndm:u` parmi les services qu'il peut ouvrir, et le code l'ouvre (`ndmu_client_open`, `0x105f94`) pour envoyer EnterExclusiveState et LeaveExclusiveState à lui-même. La raison est visible dans `ac_connect` (`0x102d70`) : c'est la même suite d'appels que la fonction de connexion Wi-Fi de la bibliothèque du système que Pokémon X contient aussi (partie 7). `ndm` embarque donc les bibliothèques clientes `ac` et `ndm` du système, et s'en sert telles quelles.
+Une particularité : `ndm` est client de son propre service. L'exheader autorise `ndm:u` parmi les services qu'il peut ouvrir, et le code l'ouvre (`ndm_u_open`, `0x105f94`) pour envoyer EnterExclusiveState et LeaveExclusiveState à lui-même. La raison est visible dans `ac_connect` (`0x102d70`) : c'est la même suite d'appels que la fonction de connexion Wi-Fi de la bibliothèque du système que Pokémon X contient aussi (partie 7). `ndm` embarque donc les bibliothèques clientes `ac` et `ndm` du système, et s'en sert telles quelles.
 
 ## Partie 1 : le démarrage
 
@@ -33,7 +33,7 @@ Une particularité : `ndm` est client de son propre service. L'exheader autorise
 8. `ndm_main` (`0x100048`, Thumb) : tout le reste.
 9. `svcExitProcess`.
 
-`ndm_main` fait cinq choses : une initialisation gardée (`0x100150`), `server_register_service` (`0x100358`) qui enregistre `ndm:u` auprès de `sm`, un appel (`0x105e14`), `server_run` (`0x100170`, 272 octets) qui fait tourner le serveur, puis `0x1002cc` qui le démonte.
+`ndm_main` fait cinq choses : `install_exception_handler` (`0x100150`), `server_register_service` (`0x100358`) qui enregistre `ndm:u` auprès de `sm`, `fatal_if_failed` (`0x105e14`) sur son résultat, `server_run` (`0x100170`, 272 octets) qui fait tourner le serveur, puis `server_stop_workers` (`0x1002cc`) qui le démonte.
 
 `server_register_service` lit le descripteur du service (`build_ndm_service_descriptor`, `0x108b6c` le construit : la chaîne `ndm:u` est copiée dedans) et appelle `register_service_by_name` (`0x1007e0`) : longueur du nom par `strlen` (`0x105878`), puis `SRV_RegisterService` (`0x100fb4`, en-tête `0x00030100`) avec un nombre de sessions qui vaut 6 (l'octet `+0x11` du descripteur est nul, et le code ajoute 5 puis 1 s'il est nul ; lu dans l'assembleur de `0x100358`).
 
@@ -78,8 +78,8 @@ Résumé : la même fonction du système (`svcReplyAndReceive`) est appelée à 
 | `0x107` | non identifié | le même (appelle `0x10499c`, qui lève un drapeau sur la machine du Wi-Fi) |
 | `0x213` | couvercle ouvert (d'après `hid`) | pas lu |
 | `0x214` | couvercle fermé (d'après `hid`) | pas lu |
-| `0x300` et `0x301` | non identifiés | `on_notification_300_301` (`0x10742c`) |
-| `0x302`, `0x303`, `0x304` | non identifiés | pas lus |
+| `0x300` et `0x301` | non identifiés | `on_scheduler_notification` (`0x10742c`) |
+| `0x302`, `0x303`, `0x304` | non identifiés | `on_network_pause_notification` (`0x1073c0`) : `0x302` met l'ordonnanceur en pause et poste l'événement 1 à la machine du Wi-Fi (`scheduler_pause_and_reset_network`, puis `NWMEXT_cmd_0x0005`), `0x303` signale le concentrateur, `0x304` reprend (`network_resume_after_pause`) |
 
 Ce que fait `on_sleep_wake_notification` pour `0x104` (lu dans le pseudo-code) : lever le drapeau « endormi » du concentrateur (`+0xBD`), suspendre l'ordonnanceur (`0x1074fc`), poser un drapeau (`0x10b298` + 1 et + 2), demander à la machine du Wi-Fi l'événement 9, puis dire à `ptm` que `ndm` est prêt (`PTMS_NotifySleepPreparationComplete`, `0x108284`, appelé de `0x108236`). Pour `0x105` : l'inverse (drapeau baissé, ordonnanceur relancé, démons remis en route).
 
@@ -100,7 +100,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew ; la fonction, l'adress
 | 9 | `0x00090000` | ResumeScheduler | `ndmu_0009_ResumeScheduler` | `0x104490` | numéro | `0x00090040` |
 | 10 | `0x000A0000` | GetCurrentState | `ndmu_000A_GetCurrentState` | `0x106bc8` | numéro | `0x000A0080` |
 | 11 | `0x000B0000` | GetTargetState | `ndmu_000B_GetTargetState` | `0x106b10` | numéro | `0x000B0080` |
-| 12 | `0x000C0000` | non implémentée (3dbrew) | `ndmu_000C_NotImplemented` | `0x106cec` | numéro | `0x000C0042` |
+| 12 | `0x000C0000` | non implémentée (3dbrew) | `ndmu_000C_unsupported` | `0x106cec` | numéro | `0x000C0042` |
 | 13 | `0x000D0040` | QueryStatus | `ndmu_000D_QueryStatus` | `0x106a14` | numéro | `0x000D0080` |
 | 14 | `0x000E0040` | GetDaemonDisableCount | `ndmu_000E_GetDaemonDisableCount` | `0x106cf4` | numéro | `0x000E00C0` |
 | 15 | `0x000F0000` | GetSchedulerDisableCount | `ndmu_000F_GetSchedulerDisableCount` | `0x106df4` | numéro | `0x000F00C0` |
@@ -112,7 +112,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew ; la fonction, l'adress
 | 21 | `0x00150000` | ResetDefaultDaemons | `ndmu_0015_ResetDefaultDaemons` | `0x106cd4` | numéro | `0x00150040` |
 | 22 | `0x00160000` | GetDefaultDaemons | `ndmu_0016_GetDefaultDaemons` | `0x10887c` | numéro | `0x00160080` |
 | 23 | `0x00170000` | ClearHalfAwakeMacFilter | `ndmu_0017_ClearHalfAwakeMacFilter` | `0x106d9c` | numéro | `0x00170040` |
-| 24 | `0x00180004` (absent de 3dbrew) | sans nom | `ndmu_0018` | `0x106e20` | entier | `0x00180040` |
+| 24 | `0x00180004` (absent de 3dbrew) | sans nom | `ndmu_0018_SetSchedulerEvent` | `0x106e20` | entier | `0x00180040` |
 
 Le dernier numéro de 3dbrew est `0x17` : la commande 24 (`0x18`) n'y est pas.
 
@@ -152,7 +152,7 @@ Tous les résultats d'erreur du module ont le même module 26 (`0x1A`) dans leur
 C'est la commande 1. Elle ne répond qu'une fois que la machine à états exclusifs est arrivée à l'état demandé.
 
 1. **L'aiguillage.** L'en-tête doit valoir `0x00010042` en entier, et le mot 2 doit être le descripteur `0x20`. L'état est l'octet bas du mot 1. `ndmu_0001_EnterExclusiveState` (`0x106cbc`) range le numéro de processus dans la session (`+4`). Si l'état est nul, il rend `0xD8E06BED` ; sinon il appelle `exclusive_state_request` (`0x104518`).
-2. **Le verrou du module.** `exclusive_state_request` prend le grand verrou `0x10c228` (`mutex_guard_init`, `0x10597a`) que toutes les commandes se partagent.
+2. **Le verrou du module.** `exclusive_state_request` prend le grand verrou `0x10c228` (`lock_guard_enter`, `0x10597a`) que toutes les commandes se partagent.
 3. **Le propriétaire.** L'enregistrement `0x10b288` garde en `+4` le numéro du processus qui est déjà entré en état exclusif. Pour une entrée, si ce numéro est celui de l'appelant, le résultat est `0xC8A06811` (« déjà fait »). Pour une sortie (commande 2, état 0), si ce numéro est celui d'un autre processus, le résultat est `0xC8A06810`. Dans les autres cas on continue.
 4. **Le verrou d'état.** `lock_check` (`0x10601c`) regarde le verrou de LockState (`0x10b290`) : s'il est tenu par un autre processus, `0xC8A0680A`.
 5. **L'état visé.** `exclusive_state_set_target` (`0x107014`) range l'état visé dans l'octet `+5` de la machine (`0x10b3f4`).
@@ -193,7 +193,7 @@ Il y a trois niveaux de compteurs : par session (`+8` à `+0x14` de l'objet de s
 
 **ResumeDaemons (commande 7).** Le même chemin à l'envers : le compteur de la session doit valoir au moins 1 pour chaque bit (sinon `0xC8A0680D`), il baisse de 1, et au passage à zéro `daemon_enable_by_index` (`0x1045ac`) fait baisser le compteur du démon. `daemon_enable` (`0x104fa8`) rend `0xC8A0680E` si le compteur du démon était déjà nul ; quand il tombe à zéro, il lit l'état du démon (`daemon_get_status`, `0x104ee6`, qui attend et rend l'octet d'état : 0 occupé, 1 inactif, 2 en suspension, 3 suspendu, comme dans 3dbrew) et, si le démon n'est ni occupé ni inactif et qu'il est configuré pour repartir (`+0x1C`), demande la reprise (`daemon_request_resume`, `0x104ebe`, méthode virtuelle `+8` du client).
 
-**Les clients des démons.** Le module envoie lui-même la suspension à chaque démon par le service qui lui correspond (partie 7) : `CECDNDM_SuspendDaemon` (`0x103b0c`) et `CECDNDM_ResumeDaemon` (`0x103c80`) pour `cecd:ndm`, `NIMNDM_SetDaemonToSuspendedState` (`0x1080f0`) et `NIMNDM_SetDaemonToWorkingState` (`0x108194`) pour `nim:ndm`. Pour `frd:n` et `boss:M`, les commandes sont envoyées par des fonctions sans nom (`FRDN_cmd…`, `BOSSM_cmd…`).
+**Les clients des démons.** Le module envoie lui-même la suspension à chaque démon par le service qui lui correspond (partie 7) : `CECDNDM_SuspendDaemon` (`0x103b0c`) et `CECDNDM_ResumeDaemon` (`0x103c80`) pour `cecd:ndm`, `NIMNDM_SetDaemonToSuspendedState` (`0x1080f0`) et `NIMNDM_SetDaemonToWorkingState` (`0x108194`) pour `nim:ndm`, `FRDN_SuspendAsync` (`0x1087c0`) et `FRDN_Resume` (`0x108834`) pour `frd:n` (noms de la Carte) ; pour `boss:M`, dont la Carte ne nomme pas ces commandes, `BOSSM_cmd_0x0001` à `BOSSM_cmd_0x0007`.
 
 **SuspendScheduler (commande 8).** `ndmu_0008_SuspendScheduler` (`0x106c20`), compteur de session `+0x18` (100 au plus) :
 
@@ -238,11 +238,11 @@ Un objet de session (créé à l'acceptation, détruit par `ndmu_session_destroy
 
 ## Partie 7 : les services que `ndm` appelle
 
-Chaque requête envoyée a sa petite fonction (un seul `svcSendSyncRequest`, `0x10558c`, appelé par 62 fonctions d'envoi relevées dans les références de Ghidra). Les en-têtes sont écrits par `ipc_write_header` (`0x105594`) à partir de `ipc_make_header` (`0x10505e`, numéro dans les 16 bits du haut, paramètres ordinaires dans les bits 6 à 11, mots de traduction dans les bits 0 à 5). Les noms sont ceux de 3dbrew quand la commande y est nommée.
+Chaque requête envoyée a sa petite fonction (un seul `svcSendSyncRequest`, `0x10558c`, appelé par 62 fonctions d'envoi relevées dans les références de Ghidra). Les en-têtes sont écrits par `ipc_set_header` (`0x105594`) à partir de `make_ipc_header` (`0x10505e`, numéro dans les 16 bits du haut, paramètres ordinaires dans les bits 6 à 11, mots de traduction dans les bits 0 à 5). Les noms sont ceux de 3dbrew quand la commande y est nommée.
 
 | Service | Poignée | En-tête | Fonction | Adresse | Pour quoi faire |
 | --- | --- | --- | --- | --- | --- |
-| `srv:` (port) | `0x10b318` | `0x00010002` | `SRV_RegisterClient` | `0x100f7c` | se déclarer à `sm` (par `connect_to_srv`, `0x100824`, qui réessaie toutes les 500 ms tant que le port n'existe pas) |
+| `srv:` (port) | `0x10b318` | `0x00010002` | `SRV_RegisterClient` | `0x100f7c` | se déclarer à `sm` (par `srv_connect`, `0x100824`, qui réessaie toutes les 500 µs tant que le port n'existe pas) |
 | | | `0x00020000` | `SRV_EnableNotification` | `0x101c88` | obtenir le sémaphore des notifications |
 | | | `0x00030100` | `SRV_RegisterService` | `0x100fb4` | créer `ndm:u` |
 | | | `0x000400C0` | `SRV_UnregisterService` | `0x101008` | le retirer à l'arrêt (par `server_unregister_service`, `0x100916`) |
@@ -260,13 +260,13 @@ Chaque requête envoyée a sa petite fonction (un seul `svcSendSyncRequest`, `0x
 | | | `0x00070042` | `CECDNDM_SetNZoneSSIDList` | `0x103b48` | |
 | | | `0x00080042` | `CECDNDM_SetNZoneMacFilter` | `0x103b8c` | |
 | `nim:ndm` | `0x10b2c4` | `0x00010000` | `NIMNDM_GetDaemonEventHandle` | `0x10812c` | |
-| | | `0x00020000` | `NIMNDM_cmd0002` | `0x108164` | (3dbrew : ne fait rien) |
+| | | `0x00020000` | `NIMNDM_cmd_0x0002` | `0x108164` | (3dbrew : ne fait rien) |
 | | | `0x00030000` | `NIMNDM_SetDaemonToWorkingState` | `0x108194` | relancer le démon |
 | | | `0x00040040` | `NIMNDM_SetDaemonToSuspendedState` | `0x1080f0` | le suspendre |
 | | | `0x00050000` | `NIMNDM_GetDaemonState` | `0x1080b8` | lire son état |
-| `frd:n` | `0x10b32c` | `0x00010000`, `0x00020000`, `0x00030040`, `0x00040000` | `FRDN_cmd0001` à `FRDN_cmd0004` | `0x1087fc`, `0x108834`, `0x1087c0`, `0x108788` | non nommées sur 3dbrew |
-| `boss:M` | dans l'objet | `0x00010002` (avec `0x20`), `0x00020000`, `0x00030040`, `0x00040000`, `0x00050000`, `0x00060000`, `0x00070000` | `BOSSM_cmd0001` à `BOSSM_cmd0007` | `0x108500`, `0x1085ce`, `0x1085fa`, `0x108566`, `0x1084cc`, `0x108532`, `0x10859a` | non nommées sur 3dbrew |
-| `nwm::EXT` | `0x10b334` | `0x00050002` (avec `0x20`) | `NWMEXT_cmd0005` | `0x1081cc` | (3dbrew : `?`) |
+| `frd:n` | `0x10b32c` | `0x00010000`, `0x00020000`, `0x00030040`, `0x00040000` | `FRDN_GetHandleOfNdmStatusChangedEvent`, `FRDN_Resume`, `FRDN_SuspendAsync`, `FRDN_QueryStatus` | `0x1087fc`, `0x108834`, `0x1087c0`, `0x108788` | noms de la Carte (frd:n) |
+| `boss:M` | dans l'objet | `0x00010002` (avec `0x20`), `0x00020000`, `0x00030040`, `0x00040000`, `0x00050000`, `0x00060000`, `0x00070000` | `BOSSM_cmd_0x0001` à `BOSSM_cmd_0x0007` | `0x108500`, `0x1085ce`, `0x1085fa`, `0x108566`, `0x1084cc`, `0x108532`, `0x10859a` | non nommées sur 3dbrew |
+| `nwm::EXT` | `0x10b334` | `0x00050002` (avec `0x20`) | `NWMEXT_cmd_0x0005` | `0x1081cc` | (3dbrew : `?`) |
 | `ptm:s` | `0x10b350` | `0x04050000` | `PTMS_GetAwakeReason` | `0x108240` | pourquoi la console s'est réveillée |
 | | | `0x04030042` | `PTMS_NotifySleepPreparationComplete` | `0x108284` | dire à `ptm` que `ndm` est prêt pour la veille |
 | `ndm:u` (lui-même) | `0x10b3b0` | `0x00010042` | `NDMU_EnterExclusiveState` | `0x107930` | entrer en état exclusif pour se connecter |
@@ -332,9 +332,9 @@ La suite qu'un jeu parcourt pour se connecter (lue dans `0x1dcb80`, `0x1dcd88` e
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
 **Vérifié par deux voies indépendantes**
-- Les 24 numéros de commande de `ndm:u`, leur fonction et leur en-tête de réponse : le pseudo-code de Ghidra de `ndmu_handle_command` d'un côté, et de l'autre `emulate_dispatch.py`, qui exécute l'aiguillage pour chaque numéro (24 commandes, un numéro inconnu rend `0xD900182F`). Les fonctions et les en-têtes de réponse tombent à l'identique : les en-têtes de réponse que le pseudo-code écrit (`ipc_write_header` avec le numéro, le nombre de mots ordinaires et de mots de traduction) sont les mêmes que ceux de l'émulation pour les 24 commandes, et les cinq comparaisons d'en-tête entier du pseudo-code (`1, 1, 2`, `2, 0, 2`, `4, 0, 2`, `5, 0, 2`, `0x18, 0, 4`) donnent les cinq en-têtes de l'émulation.
+- Les 24 numéros de commande de `ndm:u`, leur fonction et leur en-tête de réponse : le pseudo-code de Ghidra de `ndmu_handle_command` d'un côté, et de l'autre `emulate_dispatch.py`, qui exécute l'aiguillage pour chaque numéro (24 commandes, un numéro inconnu rend `0xD900182F`). Les fonctions et les en-têtes de réponse tombent à l'identique : les en-têtes de réponse que le pseudo-code écrit (`ipc_set_header` avec le numéro, le nombre de mots ordinaires et de mots de traduction) sont les mêmes que ceux de l'émulation pour les 24 commandes, et les cinq comparaisons d'en-tête entier du pseudo-code (`1, 1, 2`, `2, 0, 2`, `4, 0, 2`, `5, 0, 2`, `0x18, 0, 4`) donnent les cinq en-têtes de l'émulation.
 - Les en-têtes de requête : 3dbrew pour les numéros 1 à `0x17` ; l'émulation retrouve tout l'en-tête de `0x00010042`, `0x00020002`, `0x00040002`, `0x00050002` et `0x00180004`, et le nombre de mots lus par le code pour les autres colle à 3dbrew.
-- La table des 24 commandes est complétée par la lecture du corps de chaque fonction : le pseudo-code de Ghidra, et pour `ndmu_000C_NotImplemented`, `ndmu_0003_QueryExclusiveMode` et `ndmu_0001_EnterExclusiveState`, l'assembleur de capstone.
+- La table des 24 commandes est complétée par la lecture du corps de chaque fonction : le pseudo-code de Ghidra, et pour `ndmu_000C_unsupported`, `ndmu_0003_QueryExclusiveMode` et `ndmu_0001_EnterExclusiveState`, l'assembleur de capstone.
 - Les services appelés : l'exheader autorise huit noms (`ac:u`, `ptm:s`, `nwm::EXT`, `nim:ndm`, `ndm:u`, `cecd:ndm`, `frd:n`, `boss:M`), et ce sont les huit que le code ouvre ; les sept titres des dépendances sont ceux des sept autres services (liste des titres de 3dbrew).
 - Le serveur : `svcReplyAndReceive` n'a que deux appelants (`server_receive_loop` et `handle_request_and_reply`), `ndmu_session_handle_request` n'a qu'un appelant dans la table, et `svcCreateThread` n'en a qu'un (`create_thread_impl`). Vus dans les références de Ghidra et dans l'assembleur.
 - Le nom `ndm:u` et ses six sessions : la chaîne dans le descripteur construit en `0x108b6c` et l'assembleur de `server_register_service`.
@@ -348,7 +348,7 @@ La suite qu'un jeu parcourt pour se connecter (lue dans `0x1dcb80`, `0x1dcd88` e
 - Les noms `network_machine_…` et `scheduler_…` : le rôle de la machine du Wi-Fi (états 0 à 11 de 3dbrew) et de l'ordonnanceur (intervalles) vient des champs que les commandes lisent, pas de la lecture des fils eux-mêmes.
 - Que la commande 23 vide le filtre du démon 0 (appel de `0x107a14` sur son objet).
 - Le sens des notifications `0x107`, `0x300` à `0x304`.
-- Le sens du mot passé à `ndmu_0018` et son usage : elle remplace une poignée gardée dans l'ordonnanceur ; aucun client connu.
+- Le sens du mot passé à `ndmu_0018_SetSchedulerEvent` et son usage : elle remplace une poignée gardée dans l'ordonnanceur ; aucun client connu.
 - La taille du tas (`0x9000`) et du pool (`0x4000`).
 
 **Pas lu**
@@ -356,7 +356,7 @@ La suite qu'un jeu parcourt pour se connecter (lue dans `0x1dcb80`, `0x1dcd88` e
 - Le détail des clients de `frd:n` et de `boss:M` (les commandes sont envoyées, mais ce qu'elles font n'est pas lu).
 - Le calcul de chaque transition d'état du Wi-Fi (événements 1 et 9 seulement vus).
 - La table de messages d'erreur (`0x103e50` renvoie des codes selon un numéro : lu pour les valeurs, pas pour leur emploi).
-- 657 fonctions sans nom, dont presque toutes sont de petites fonctions de C++ (listes chaînées, constructeurs, fonctions virtuelles triviales).
+- Aucune fonction sans nom après les propositions de `local/analyse/ndm/noms-proposes.tsv` (880 sur 880 ; 638 nommées en moyenne ou haute confiance, à relire).
 
 ## Comment cette fiche a été faite
 

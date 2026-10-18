@@ -11,9 +11,9 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002402`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `ac`, priorité 56 (`0x38`) |
 | Fichier lu | `local/extrait/ac/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x1D978` octets de code (30 pages), `0x15B0` de données en lecture seule (2 pages), `0x5CE4` de données (6 pages), `0x1A0B8` de mémoire à zéro, pile de `0x1000` |
-| Fonctions | 1 575 pour Ghidra, dont 1 478 en Thumb et 97 en ARM ; 286 nommées dans `ac.noms.tsv` |
+| Fonctions | 1 575 pour Ghidra (1 478 en Thumb, 97 en ARM), plus 44 entrées (34 manquées par Ghidra, 10 posées à la main), moins 124 qui ne sont pas des fonctions (cas des deux aiguillages, suites que Ghidra coupe après `ipc_set_header`, boucles, rang de division, bloc d'exception) et 7 fonctions mortes : 1 488 ; 341 nommées dans `ac.noms.tsv`, 1 473 avec `local/analyse/ac/noms-proposes.tsv` |
 | Services offerts | `ac:u` (65 commandes) et `ac:i` (227 commandes, dont les 65 de `ac:u`) ; jusqu'à 10 sessions, 11 sur New 3DS, pour les deux ensemble |
-| Services appelés | lus dans l'exheader : `ac:u`, `ptm:s`, `ps:ps`, `nwm::INF`, `soc:P`, `soc:U`, `cfg:s`, `cfg:nor`, `http:C`, `fs:USER` ; lus dans le code : `ptm:s`, `cfg:s`, `cfg:nor`, `ps:ps`, `nwm::INF`, `soc:P`, `http:C`, `fs:USER`, plus `srv:` (port) ; `ac:u` (que l'exheader autorise, comme `ndm:u` pour `ndm`) et `soc:U` n'ont pas été vus ouverts par le code |
+| Services appelés | lus dans l'exheader : `ac:u`, `ptm:s`, `ps:ps`, `nwm::INF`, `soc:P`, `soc:U`, `cfg:s`, `cfg:nor`, `http:C`, `fs:USER` ; lus dans le code : `ptm:s`, `cfg:s`, `cfg:nor`, `ps:ps`, `nwm::INF`, `soc:P`, `http:C`, `fs:USER`, plus `srv:` (port) ; `ac:u` (que l'exheader autorise, comme `ndm:u` pour `ndm`) n'a pas été vu ouvert ; `soc:U` n'est jamais ouvert : le secours de gethostid (`SOCU_gethostid` `0x1187A4` sur [`0x125B88`]) lit une poignée que seule la mise à zéro statique (`0x11B5C2`) écrit ; chemin mort, comme `cecd:u` dans boss |
 | Dépendances déclarées | six titres : `cfg` (`…1702`), `http` (`…2902`), `nwm` (`…2D02`), `ps` (`…3102`), `ptm` (`…2202`), les sockets (`…2E02`) ; les noms viennent de la liste des titres système de 3dbrew |
 | Fils | le fil principal, deux fils de service (un moniteur de lien et un exécuteur de tâches), un fil par session ouverte, et des fils de tâches lancés à la demande |
 
@@ -25,7 +25,7 @@ Le module contient aussi, dans sa section de données (de `0x121700` à `0x12590
 
 1. `clear_bss` (`0x100024`).
 2. `0x100198` : met à jour deux champs du bloc des arguments du programme (même gabarit que dans `ndm`).
-3. `0x1001e8` : appelle `0x100318` puis `srv_init` (`0x111148`), qui ouvre le port `srv:` (`connect_to_srv`, `0x100b04`, avec la même boucle de nouvel essai toutes les 500 ms que dans `ndm`) et se déclare (`SRV_RegisterClient`, `0x101610`).
+3. `0x1001e8` : appelle `0x100318` puis `srv_init` (`0x111148`), qui ouvre le port `srv:` (`srv_connect`, `0x100b04`, avec la même boucle de nouvel essai toutes les 500 ms que dans `ndm`) et se déclare (`SRV_RegisterClient`, `0x101610`).
 4. `0x1001d0` : fixe la taille du tas à `0x11000` octets (interprété, trois petites fonctions non lues en détail).
 5. `run_init_array_relative` (`0x114270`) et `run_init_array` (`0x10017c`) : les constructeurs globaux (une table de distances et une table d'adresses vide).
 6. `ac_main` (`0x100048`, Thumb) : tout le reste.
@@ -36,7 +36,7 @@ Le module contient aussi, dans sa section de données (de `0x121700` à `0x12590
 2. `0x100358` : demande à `ptm` si la console est une New 3DS (`PTMSYSM_CheckNew3DS`, `0x1015c0`, commande `0x040A0000`, comme `hid`). Si oui, le nombre de sessions passe de 10 (valeur du module, `0x121624`) à 11.
 3. `0x1003b8` : `SRV_EnableNotification` (`0x100b60`), qui rend le sémaphore des notifications, rangé à `0x121670`.
 4. `0x111134`, appelé cinq fois : `SRV_Subscribe` (`0x100b9c`) aux notifications `0x104`, `0x103`, `0x105`, `0x106` et `0x302`.
-5. `0x10028c` : charge les réglages réseau (`load_network_settings_slots`, `0x10076c`, qui lit trois emplacements de `0xC00` octets) et ouvre `fs:USER` (`fs_user_open`, `0x10130c`).
+5. `0x10028c` : charge les réglages réseau (`load_network_settings_slots`, `0x10076c`, qui lit trois emplacements de `0xC00` octets) et ouvre `fs:USER` (`fs_init`, `0x10130c`).
 6. `0x1002cc` : ouvre `soc:P` (`soc_p_open`, `0x100c88`) et `nwm::INF` (`nwm_inf_open`, `0x101554`).
 7. `0x1001fc`, `0x10024c` (la file des tâches `0x1271a8`), puis la création de verrous et d'événements (`0x111124`, `0x1110f4`, `0x1110d0`, `0x11108c`) et `0x1003f4`, qui range une poignée à `0x12163c` : non lus en détail.
 8. `server_main_loop` (`0x100418`) : la boucle de service, jamais quittée avant l'arrêt.
@@ -50,7 +50,7 @@ Les fils :
 | Exécuteur de tâches | `job_thread_main` | `0x100d48` | `start_helper_thread` | attend trois signaux ; sur le premier, exécute la tâche suivante (`run_next_job`, `0x101160`) |
 | Session `ac:u` | `acu_session_thread_main` | `0x100db8` | `start_session_thread` (`0x100f88`) | répond aux commandes d'un seul client |
 | Session `ac:i` | `aci_session_thread_main` | `0x100ebc` | `start_session_thread` | idem pour `ac:i` |
-| Balayage USB | `thread_trampoline` | `0x105f3c` | `job_begin_scan_usb` (`0x105ca4`) | lancé par la tâche de type 9, BeginScanUsbAccessPoint |
+| Balayage USB | `thread_entry_tail_call` | `0x105f3c` | `job_begin_scan_usb` (`0x105ca4`) | lancé par la tâche de type 9, BeginScanUsbAccessPoint ; `0x105f3c` n'est qu'un `bx r0` vers la fonction donnée, le vrai `thread_trampoline` est `0x107a6a` |
 
 Tous passent par `create_thread` (`0x11071a`), qui appelle `create_thread_impl` (`0x105f40`), la seule fonction qui appelle `svcCreateThread` (`0x11c474`). Chaque fil de session a une pile de `0xC00` octets rangée à `0x129C60 +` rang `× 0xC00` ; son contexte (partie 6) est posé en bas de cette pile.
 
@@ -372,7 +372,7 @@ Commande `0x0D`, la plus courte des lectures d'état.
 1. `acu_session_loop` reçoit la requête sur la poignée de la session. L'en-tête n'est pas comparé en entier : l'aiguillage ne regarde que le numéro `0x0D`.
 2. `acu_handle_command` appelle `acu_000D_GetWifiStatus` (`0x10f7c0`) avec l'adresse d'un mot de sortie.
 3. La fonction lit le mot global `0x121614`. S'il n'est pas nul, elle le recopie dans la sortie et rend 0. S'il est nul, elle rend `0xE0A09D2E` (description 302) et la sortie n'est pas écrite.
-4. L'aiguillage écrit la réponse par `ipc_write_header` (`0x110bd8`) : commande 13, deux mots ordinaires, aucun mot de traduction, soit `0x000D0080`, suivi du résultat et de la valeur. La session rend la main à `svcReplyAndReceive`.
+4. L'aiguillage écrit la réponse par `ipc_set_header` (`0x110bd8`) : commande 13, deux mots ordinaires, aucun mot de traduction, soit `0x000D0080`, suivi du résultat et de la valeur. La session rend la main à `svcReplyAndReceive`.
 
 Le mot `0x121614` est le **type** de lien (un masque) et `0x121610` (un mot de 16 bits, rendu par GetStatus, commande `0x0C`) son **état** de 0 à 3 : ce partage est lu dans `connect_to_ap`, où l'état de 1 à 3 mène à trois chemins, et où le masque est comparé à `0x10` et `0x20` ; le sens de chaque bit n'est pas lu.
 
@@ -413,7 +413,7 @@ Le contexte d'une session (au bas de sa pile, `0x6F4` octets ; seuls les champs 
 
 ## Partie 7 : les services que `ac` appelle
 
-`ac` envoie ses requêtes par `svcSendSyncRequest` (`0x110bd0`), en-tête écrit par `ipc_write_header` (`0x110bd8`, le même gabarit que dans `ndm` : numéro dans les 16 bits du haut, mots ordinaires bits 6 à 11, mots de traduction bits 0 à 5). Les fonctions d'envoi sont environ 75 ; les 31 dont la poignée est une variable globale connue (relevées par un script sur l'assembleur et le pseudo-code) sont classées ci-dessous, les autres vont à des poignées rangées dans des objets (surtout `http:C`, `soc:P` et `fs:USER`) et ne sont pas classées. Les noms viennent de 3dbrew ou des fiches de `cfg` et `ptm` quand la commande y est nommée.
+`ac` envoie ses requêtes par `svcSendSyncRequest` (`0x110bd0`), en-tête écrit par `ipc_set_header` (`0x110bd8`, le même gabarit que dans `ndm` : numéro dans les 16 bits du haut, mots ordinaires bits 6 à 11, mots de traduction bits 0 à 5). Les fonctions d'envoi sont relevées une à une dans `noms-proposes.tsv` (FSUSER_, FSFILE_, HTTPC_, SOCP_, SOCU_, PSPS_, CFG_, NWMINF_, SRV_, ERRF_) ; les 31 dont la poignée est une variable globale connue (relevées par un script sur l'assembleur et le pseudo-code) sont classées ci-dessous, les autres vont à des poignées rangées dans des objets (surtout `http:C`, `soc:P` et `fs:USER`) et ne sont pas classées. Les noms viennent de 3dbrew ou des fiches de `cfg` et `ptm` quand la commande y est nommée.
 
 | Service | Poignée | En-tête | Fonction | Adresse | Pour quoi faire |
 | --- | --- | --- | --- | --- | --- |
@@ -435,12 +435,12 @@ Le contexte d'une session (au bas de sa pile, `0x6F4` octets ; seuls les champs 
 | | | `0x00050082`… | `CFGNOR_ReadData` | `0x116f94` | lire |
 | | | `0x00060082`… | `CFGNOR_WriteData` | `0x116fdc` | écrire |
 | | | `0x00020000` | `CFGNOR_Shutdown` | `0x117024` | refermer |
-| `ps:ps` | `0x125b78` | numéros 6 et 8 | `PSPS_cmd0006`, `PSPS_cmd0008` | `0x116cd8`, `0x116c98` | non nommées |
+| `ps:ps` | `0x125b78` | `0x00060040`, `0x00080040` | `PSPS_GetRomId`, `PSPS_GetRomMakerCode` | `0x116cd8`, `0x116c98` | Carte ps:ps |
 | `nwm::INF` | `0x125be4` | `0x00070742` | `NWMINF_ConnectToEncryptedAP` | `0x1175d0` | se connecter à un point d'accès chiffré |
 | | | `0x000603C4` | `NWMINF_RecvBeaconBroadcastData` | `0x1176a4` | balayage |
 | | | numéros 3, 4, 5, 9, 10, 11, 12, 14 | `NWMINF_cmd0003`, `0004`, `0005`, `0009`, `000A`, `000B`, `000C`, `000E` | `0x117644`, `0x117674`, `0x11751c`, `0x1174ec`, `0x1061e8`, `0x117598`, `0x11755c`, `0x107c28` | `?` dans 3dbrew (la 11 « rend un événement ») |
 
-Pour `cfg:nor`, le nombre de mots de ReadData et WriteData envoyés par `ac` n'est pas relevé ; les en-têtes `…0082` sont ceux de la fiche `cfg`, avec les mêmes numéros. Deux autres fonctions d'envoi proches de celles de `cfg:s` (`0x116e04`, en-tête `0x00810042`, et `0x116e94`, numéro 1) ne sont pas classées.
+Pour `cfg:nor`, le nombre de mots de ReadData et WriteData envoyés par `ac` n'est pas relevé ; les en-têtes `…0082` sont ceux de la fiche `cfg`, avec les mêmes numéros. Deux autres fonctions d'envoi de `cfg:s` : `0x116e04`, en-tête `0x04080042` (`CFG_SecureInfoGetSerialNo`, sur [0x125ba4]), et `0x116e94`, en-tête `0x00010082` (`CFG_GetConfigInfoBlk2`, sur la copie [0x125ba8]).
 
 ## Partie 8 : les appels système utilisés
 
@@ -524,7 +524,7 @@ Le balayage (`0x1dcb80`) est appelé depuis `0x420c18` (la fonction qui prépare
 
 **Pas lu**
 - `connect_to_ap` (`0x1102bc`) et ses sous-fonctions (`0x106fa0`, `0x107190`, `0x10d574`, `0x10d338`), c'est-à-dire ce que `ac` envoie à `nwm` pour se connecter, y compris le protocole du test de connexion HTTP et de l'authentification (`http:C`, `soc:P`).
-- Les 22 commandes d'`ac:i` dont l'émulation n'a pas retrouvé la fonction, et la commande `0x3C` (GetAPSSIDList) vue par l'aiguillage d'`ac:i`.
+- Les commandes `0x405` (gestionnaire `0x1064c0`, non lu) et `0x406` (traitée dans l'aiguillage même) d'`ac:i` ; les autres sont retrouvées par `emu2.py` (descripteurs de tampon statique de plusieurs numéros et tailles), voir `noms-proposes.tsv`.
 - Le chargement des trois réglages réseau (`load_network_settings_slots`, `0x10076c`, seulement l'ossature : trois tampons de `0xC00` octets, une somme de contrôle) et leur écriture.
 - La moitié des fonctions d'envoi vers les objets (`http:C`, `soc:P`, `fs:USER`).
 - Environ 1 300 fonctions sans nom, dont la bibliothèque standard C++ (les chaînes `locale`, `ios` et `bad_alloc` en sont les traces), les certificats et le code de chiffrement qui les lit.
@@ -549,7 +549,7 @@ Le balayage (`0x1dcb80`) est appelé depuis `0x420c18` (la fonction qui prépare
 | Le côté du jeu | le pseudo-code de la mise à jour (`local/analyse/maj/gh/`) | |
 
 **Pièges rencontrés.**
-- Ghidra croit que `ipc_write_header` (`0x110bd8`) ne revient jamais : il supprime le code qui suit chaque envoi (la poignée, `svcSendSyncRequest`, la lecture de la réponse). Les en-têtes et les poignées de `ac` se lisent dans l'assembleur, pas dans le pseudo-code.
+- Ghidra croit que `ipc_set_header` (`0x110bd8`) ne revient jamais : il supprime le code qui suit chaque envoi (la poignée, `svcSendSyncRequest`, la lecture de la réponse). Les en-têtes et les poignées de `ac` se lisent dans l'assembleur, pas dans le pseudo-code.
 - Les boucles de session sont coupées en deux fonctions par Ghidra (`0x10100c` et `0x101038`, `0x1010e8` et `0x101114`).
 - L'émulateur ne retrouve pas les commandes qui reçoivent deux tampons statiques ou plus : sept dans `ac:u` (lues à la main), vingt-deux dans `ac:i` (pas lues).
 

@@ -11,9 +11,9 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000003402`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `boss`, priorité 62 (`0x3E`) |
 | Fichier lu | `local/extrait/boss/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x43FBC` octets de code (`0x44` pages), `0x4A7C` de données en lecture seule (5 pages, à `0x144000`), `0x27D4` de données (3 pages, à `0x149000`), `0x26D64` de mémoire à zéro, pile de `0x2000` |
-| Fonctions | 3 690 pour Ghidra (3 689 avant les noms : un nom a créé une fonction), dont 3 580 en Thumb et 110 en ARM (beaucoup de bibliothèques embarquées : HTTP, la pile réseau NEX `NEX_2_4_1_S25`, XML) ; 207 nommées dans `boss.noms.tsv` (les trois aiguillages, leurs gestionnaires, le programme principal, la table des codes d'erreur), aucune étiquette de données, aucun nom sans fonction |
+| Fonctions | 3 690 pour Ghidra (3 580 en Thumb, 110 en ARM), plus 53 entrées (50 manquées, 3 posées à la main), moins 215 qui ne sont pas des fonctions (cas des trois aiguillages, suites coupées après `ipc_set_header`, réserves de littéraux, boucles, rang de division, bloc d'exception) et 8 fonctions mortes : 3 520 ; 282 nommées dans `boss.noms.tsv`, 1 226 avec `local/analyse/boss/noms-proposes.tsv` (beaucoup de bibliothèques embarquées : HTTP, la pile réseau NEX `NEX_2_4_1_S25`, XML) |
 | Services offerts | `boss:U` (2 sessions), `boss:P` (4), `boss:M` (1) : chaînes à `0x14400C`, `0x144013`, `0x14401A`, lues par `boss_service_main` (`0x100884`) |
-| Services appelés | lus dans l'exheader : `http:C`, `ac:u`, `ptm:s`, `ptm:play`, `cfg:s`, `fs:USER`, `ps:ps`, `frd:u`, `cecd:s`. Dans le code, des chaînes pour `fs:USER` (`0x144CA7`), `fs:LDR` (`0x144CA0`), `http:C` (`0x144CBC`), `srv:pm`, `cecd:u`, `cecd:s`, `ptm:sysm`, `ptm:s`, `ptm:gets`, `ptm:u`, `ptm:play`, `gsp::Lcd`, `gsp::Gpu` ; `ac:u` et `frd:u` sont déclarés mais n'ont pas de chaîne d'ouverture |
+| Services appelés | lus dans l'exheader : `http:C`, `ac:u`, `ptm:s`, `ptm:play`, `cfg:s`, `fs:USER`, `ps:ps`, `frd:u`, `cecd:s`. Dans le code, des chaînes pour `fs:USER` (`0x144CA7`), `fs:LDR` (`0x144CA0`), `http:C` (`0x144CBC`), `srv:pm`, `cecd:u`, `cecd:s`, `ptm:sysm`, `ptm:s`, `ptm:gets`, `ptm:u`, `ptm:play`, `gsp::Lcd`, `gsp::Gpu` ; `ac:u` est ouvert par `ac_u_open` (`0x100990`, chaîne `0x144C44` elle-même, citée par le mot `0x100A28`) et `frd:u` par `frd_u_open` (`0x127920`, chaîne en `0x1279C0`, lue par `adr` en `0x127952`) ; la chaîne `cecd:u` (`0x144D70`) n'est lue par aucun code |
 | Appelants connus | Pokémon X : 28 commandes de `boss:U` (partie 5) ; `ndm` : `boss:M` (`fiches/ndm.md`) |
 
 ## Partie 1 : le démarrage et le serveur
@@ -24,7 +24,7 @@ Appels système trouvés (balayage de toutes les fonctions) : 0x01 ControlMemory
 
 ## Partie 2 : les trois aiguillages
 
-Chaque aiguillage lit le numéro dans les 16 bits du haut de l'en-tête (`header_command_number`, `0x11B156`) et saute par un `switch`. Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F` ; une requête mal formée `0xD9001830`. Exécutés par `emulate_dispatch.py boss 0x130d3c 0x131c30 0x130c00` :
+Chaque aiguillage lit le numéro dans les 16 bits du haut de l'en-tête (`bitfield_extract(en-tête, 16, 16)`, `0x11B156`, le même code qu'am) et saute par un `switch`. Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F` ; une requête mal formée `0xD9001830`. Exécutés par `emulate_dispatch.py boss 0x130d3c 0x131c30 0x130c00` :
 
 | Service | Aiguillage | Commandes | Comment il est identifié |
 | --- | --- | --- | --- |
@@ -34,7 +34,7 @@ Chaque aiguillage lit le numéro dans les 16 bits du haut de l'en-tête (`header
 
 L'attribution (U, P, M) repose sur le nombre de commandes et les en-têtes, et sur l'ordre des chaînes dans `boss_service_main` ; elle n'a pas été vérifiée en suivant la session de chaque service jusqu'à son aiguillage : **interprétée** (très probable).
 
-**`boss:P` a ses propres copies des 55 commandes de `boss:U`** (autres adresses de gestionnaires, même forme que `cecd:s`), plus ses 88 commandes privilégiées. Pour 9 d'entre elles (0x421 à 0x424, 0x435, 0x436, 0x43A, 0x43B, 0x448), l'émulation ne trouve pas de gestionnaire distinct (`-` dans le tableau) : elles sont traitées dans l'aiguillage lui-même ou renvoient à une fonction que le tri a prise pour une aide.
+**`boss:P` a ses propres copies des 55 commandes de `boss:U`** (autres adresses de gestionnaires, même forme que `cecd:s`), plus ses 88 commandes privilégiées. Pour 9 d'entre elles (0x421 à 0x424, 0x435, 0x436, 0x43A, 0x43B, 0x448), l'émulation ne trouve pas de gestionnaire distinct (`-` dans le tableau) : elles sont traitées dans l'aiguillage lui-même ou renvoient à une fonction que le tri a prise pour une aide. Pour les cas 0x1 et 0x401, l'émulation a pris pour gestionnaire le contrôle du descripteur d'identifiant de processus (`0x11B0BA`) : les vrais gestionnaires sont `0x12FE54` et `0x130808` (bl en `0x131E10` et `0x132C7E`).
 
 ## Partie 3 : les commandes
 
@@ -104,7 +104,7 @@ Les noms sont ceux de la Carte (tirés de 3dbrew). Les en-têtes de requête («
 
 | N° | En-tête de requête | Commande (Carte) | Gestionnaire | Vérifié | Réponse |
 | --- | --- | --- | --- | --- | --- |
-| 0x1 | `0x00010082` | InitializeSession | `0x11b0ba` | entier | `0x00000040` |
+| 0x1 | `0x00010082` | InitializeSession | `0x12fe54` | entier (puis `ipc_is_pid_desc` `0x11B0BA` sur le mot 3) | `0x00010040` (supposé : l'émulation s'arrêtait au contrôle) |
 | 0x2 | `(numéro seul)` | SetStorageInfo | `0x12fc8c` | numéro | `0x00020040` |
 | 0x3 | `(numéro seul)` | UnregisterStorage | `0x12fea0` | numéro | `0x00030040` |
 | 0x4 | `(numéro seul)` | GetStorageInfo | `0x12fb54` | numéro | `0x00040080` |
@@ -159,7 +159,7 @@ Les noms sont ceux de la Carte (tirés de 3dbrew). Les en-têtes de requête («
 | 0x35 | `0x003500c2` | RegisterImmediateTask | `0x130244` | entier | `0x00350042` |
 | 0x36 | `0x00360084` | SetTaskQuery | `0x12f944` | entier | `0x00360044` |
 | 0x37 | `0x00370084` | GetTaskQuery | `0x12f87c` | entier | `0x00370044` |
-| 0x401 | `0x04010082` | InitializeSessionPrivileged | `0x11b0ba` | entier | `0x00000040` |
+| 0x401 | `0x04010082` | InitializeSessionPrivileged | `0x130808` | entier (puis `ipc_is_pid_desc` sur le mot 3) | `0x04010040` (supposé) |
 | 0x402 | `(numéro seul)` | (sans nom) | `0x12fab0` | numéro | `0x04020040` |
 | 0x403 | `(numéro seul)` | (sans nom) | `0x12fb84` | numéro | `0x04030040` |
 | 0x404 | `(numéro seul)` | GetAppNewFlag | `0x1307f0` | numéro | `0x04040080` |
