@@ -1,0 +1,5 @@
+adresse	raison
+0x100132	CODE MORT : aucune référence (allrefs.py, xref.py, prel31.py, aucune adresse calculée) ; (tampon, taille) : 0 si taille > 0x80, tampon nul ou pris, sinon octet 0 à 1 et rend tampon + 8 (__ARM_exceptio
+0x10014c	CODE MORT : aucune référence (allrefs.py, xref.py, prel31.py) ; (tampon, p) : si p = tampon + 8, octet 0 à 0 (__ARM_exceptions_buffer_free d'am, proposition)
+0x12497e	CODE MORT : aucune référence (allrefs.py, xref.py, prel31.py) ; Thumb : blx 0x13ea74 puis ldr r0,[r0] (lecture d'errno)
+0x138e9c	PAS UNE FONCTION : entrée de couverture.py (« pointeur seul depuis case 0x137594 ») ; le mot 0x137594 vaut 0x1908 (GL_RGBA, réserve de gl_convert_texels), pas une adresse ; la seule référence réelle e
