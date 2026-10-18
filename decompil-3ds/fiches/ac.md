@@ -37,7 +37,7 @@ Le module contient aussi, dans sa section de données (de `0x121700` à `0x12590
 3. `0x1003b8` : `SRV_EnableNotification` (`0x100b60`), qui rend le sémaphore des notifications, rangé à `0x121670`.
 4. `0x111134`, appelé cinq fois : `SRV_Subscribe` (`0x100b9c`) aux notifications `0x104`, `0x103`, `0x105`, `0x106` et `0x302`.
 5. `0x10028c` : charge les réglages réseau (`load_network_settings_slots`, `0x10076c`, qui lit trois emplacements de `0xC00` octets) et ouvre `fs:USER` (`fs_init`, `0x10130c`).
-6. `0x1002cc` : ouvre `soc:P` (`soc_p_open`, `0x100c88`) et `nwm::INF` (`nwm_inf_open`, `0x101554`).
+6. `0x1002cc` : ouvre `soc:P` (`soc_p_open`, `0x100c88`) et `nwm::INF` (`nwm_inf_open`, `0x100A14`, qui appelle `service_session_open`, `0x101554`, l'ouvreur générique de session : même code que `service_session_open` de `ndm`).
 7. `0x1001fc`, `0x10024c` (la file des tâches `0x1271a8`), puis la création de verrous et d'événements (`0x111124`, `0x1110f4`, `0x1110d0`, `0x11108c`) et `0x1003f4`, qui range une poignée à `0x12163c` : non lus en détail.
 8. `server_main_loop` (`0x100418`) : la boucle de service, jamais quittée avant l'arrêt.
 

@@ -11,9 +11,9 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002D02`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `nwm`, priorité 38 (`0x26`) |
 | Fichier lu | `local/extrait/nwm/exefs/code.bin` (et `code.elf`), avec `exheader.bin` |
 | Taille | `0x3CB74` octets de code (`0x3D` pages), `0x169F4` de données en lecture seule (`0x17` pages, à `0x13D000`), `0xBD0` de données (1 page, à `0x154000`), `0xAF38` de mémoire à zéro, pile de `0x2000` |
-| Fonctions | 2 812 pour Ghidra, dont 2 677 en Thumb et 135 en ARM ; 181 nommées dans `nwm.noms.tsv` (les aiguillages, leurs gestionnaires, une vingtaine de fonctions de travail de `nwm::UDS`), aucune étiquette de données, aucun nom sans fonction |
+| Fonctions | 2 812 pour Ghidra, dont 2 677 en Thumb et 135 en ARM, plus 240 entrées manquées et 1 trouvée par missed.py (`0x112FF0`), moins 230 qui ne sont pas des fonctions (226 morceaux de `wifi_manager_step` `0x1024A0`, que Ghidra coupe en 31 (`0x1024A0` et 30 morceaux ; avec 196 entrées de couverture.py), un morceau de chacun des aiguillages SAP et TST, une boucle et un bloc de nettoyage) et 14 fonctions mortes : 2 809 ; 250 lignes dans `nwm.noms.tsv` dont 110 noms de case à retirer, 770 avec `local/analyse/nwm/noms-proposes.tsv` |
 | Services offerts | sept, dans un tableau de pointeurs à `0x154298` (ordre : `nwm::INF`, `nwm::SOC`, `nwm::SAP`, `nwm::CEC`, `nwm::EXT`, `nwm::UDS`, `nwm::TST`), les noms à `0x13D120` ; sessions au plus, tableau à `0x13D104` : INF 2, SOC 4, SAP 2, CEC 4, EXT 6, UDS 2, TST 1 |
-| Services appelés | lus dans l'exheader : `cfg:u`, `mcu::NWM`, `ps:ps`, `ptm:s` ; la chaîne `mcu::NWM` est à `0x13D4F4`. La Carte donne en plus `gpio:NWM` et `cfg:s` (3dbrew) : aucun des deux n'est dans l'exheader de ce module |
+| Services appelés | lus dans l'exheader : `cfg:u`, `mcu::NWM`, `ps:ps`, `ptm:s` ; ouverts dans le code : `srv:` (`srv_connect` `0x1012A0`), `mcu::NWM` (`0x13D4F4`, session `[0x154694]` ouverte par `0x100680`), `ps:ps` (`ps_ps_open` `0x120E04`, `[0x1547F0]`), `ptm:s` (`ptm_s_open` `0x100B78`, `[0x154938]`), `cfg:u`, `cfg:s` et `cfg:i` (`cfg_u_open` `0x10D89C`, `cfg_s_open` `0x10D994`, `cfg_i_open` `0x10D9F4`, dans la session commune `[0x1548C8]`), `err:f` ; `cfg:s` et `cfg:i` ne sont pas dans l'exheader ; la Carte donne en plus `gpio:NWM`, absent de l'exheader et du code |
 | Matériel | l'exheader demande quatre pages d'entrées-sorties : `0x1EC22000-0x1EC23FFF` et `0x1EE22000-0x1EE23FFF` (3dbrew : registres WIFI à `0x1EC22000`, PDN à `0x1EC40000`, SDIO du Wi-Fi à `0x1EE22000`), et le module utilise `BindInterrupt` (svc `0x50`), `StartInterProcessDma` (`0x55`), `StopDma` (`0x56`), `GetDmaState`... et `SetWifiEnabled` (`0x5A`) |
 | Appelants connus | Pokémon X (`nwm::UDS`, partie 6), `cecd` (`nwm::CEC`), `socket` (`nwm::SOC`), `ac` (`nwm::INF`), `ns` et `ndm` (`nwm::EXT`) |
 
@@ -37,7 +37,7 @@ Appels système trouvés (balayage de toutes les fonctions, `svc` ARM et Thumb) 
 
 ## Partie 2 : les sept aiguillages
 
-Chaque aiguillage lit le numéro de commande dans les 16 bits du haut de l'en-tête (`FUN_001224ca`, ici sans nom) et saute par un `switch` de `__ARM_common_switch8`. Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F` ; un en-tête mal formé (mauvais nombre de mots ou de descripteurs) rend `0xD9001830`. Les sept ont été exécutés par `emulate_dispatch.py nwm 0x109580 0x105b00 0x105e68 0x1051e0 0x1049cc 0x10508c 0x106158` (de 0 à 0xFFFF, `0x10508C` de 0 à 0xFF) :
+Chaque aiguillage lit le numéro de commande dans les 16 bits du haut de l'en-tête (`bitfield_extract`, `0x1224CA`) et saute par un `switch` de `__ARM_common_switch8`. Un numéro inconnu rend l'en-tête `0x00000040` et le résultat `0xD900182F` ; un en-tête mal formé (mauvais nombre de mots ou de descripteurs) rend `0xD9001830`. Les sept ont été exécutés par `emulate_dispatch.py nwm 0x109580 0x105b00 0x105e68 0x1051e0 0x1049cc 0x10508c 0x106158` (de 0 à 0xFFFF, `0x10508C` de 0 à 0xFF ; rejoué de 0 à 0x500 le 18/10, mêmes tables) :
 
 | Service | Aiguillage | Commandes | Comment il est identifié (deux voies) |
 | --- | --- | --- | --- |
@@ -132,7 +132,7 @@ Les noms de champs sont ceux de 3dbrew, **interprétés** ; les offsets sont lus
 
 ## Partie 4 : les autres services
 
-Ces tables suivent la même forme (numéro, en-tête exigé, nom de la Carte, gestionnaire, vérification, réponse). Aucun jeu n'en envoie une seule commande, sauf par les modules `cecd`, `socket`, `ac`, `ns`, `ndm`. Les gestionnaires sont nommés dans `nwm.noms.tsv` par `<service>_cmd_<numéro>_<nom de la Carte>`. Les gestionnaires qui apparaissent dans plusieurs tables (`0x122450`, `0x122476`, `0x1223FC`, `0x12232C`...) sont des fonctions communes : par exemple `0x122450` rend l'octet d'état du service Wi-Fi interne (INF 2, SAP 2, CEC 2, EXT 1) et `0x12232C` enregistre un processus (« numéro de processus » dans l'en-tête de requête : `0x000E0002`, `0x001E0002`, `0x00050002`).
+Ces tables suivent la même forme (numéro, en-tête exigé, nom de la Carte, gestionnaire, vérification, réponse). Aucun jeu n'en envoie une seule commande, sauf par les modules `cecd`, `socket`, `ac`, `ns`, `ndm`. Les noms de case (`<service>_cmd_<numéro>`) de `nwm.noms.tsv` ne sont pas des noms (règle du 17/10) et sont à retirer ; la plupart de ces gestionnaires prennent le gestionnaire Wi-Fi (`wifi_manager_acquire` `0x1230DC`), lisent son état et demandent une transition (`wifi_manager_request_state` `0x1239A8`). Les gestionnaires qui apparaissent dans plusieurs tables (`0x122450`, `0x122476`, `0x1223FC`, `0x12232C`...) sont des fonctions communes : par exemple `0x122450` rend l'octet d'état du gestionnaire Wi-Fi (INF 2, SAP 2, CEC 2, EXT 1) et `0x12232C` enregistre un processus (« numéro de processus » dans l'en-tête de requête : `0x000E0002`, `0x001E0002`, `0x00050002`).
 
 ### nwm::INF (aiguillage 0x105B00, 16 commandes)
 
@@ -215,7 +215,7 @@ Ces tables suivent la même forme (numéro, en-tête exigé, nom de la Carte, ge
 | 0x1 | `(numéro seul)` | (sans nom) | `0x122450` | numéro | `0x00010080` |
 | 0x2 | `(numéro seul)` | (sans nom) | `0x1087a8` | numéro | `0x00020040` |
 | 0x3 | `(numéro seul)` | (sans nom) | `0x108864` | numéro | `0x00030040` |
-| 0x4 | `(numéro seul)` | (sans nom) | `0x108950` | numéro | `0x00040040` |
+| 0x4 | `(numéro seul)` | (Carte : Inconnue ; 3dbrew : SetWifiLinkLevel) | `0x108950` | numéro | `0x00040040` |
 | 0x5 | `0x00050002` | (sans nom) | `0x12232c` | entier | `0x00050040` |
 | 0x6 | `(numéro seul)` | (sans nom) | `0x108904` | numéro | `0x00060240` |
 | 0x7 | `(numéro seul)` | (sans nom) | `0x1088c4` | numéro | `0x00070200` |
@@ -279,72 +279,72 @@ Ces tables suivent la même forme (numéro, en-tête exigé, nom de la Carte, ge
 | 0x2 | `0x00020042` |  | `0x107c18` | entier | `0x00020040` |
 | 0x3 | `(numéro seul)` |  | `0x107b10` | numéro | `0x00030040` |
 | 0x4 | `(numéro seul)` |  | `0x122450` | numéro | `0x00040080` |
-| 0x5 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00050040` |
-| 0x6 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00060040` |
-| 0x7 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00070040` |
-| 0x8 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00080040` |
-| 0x9 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00090040` |
-| 0xA | `(numéro seul)` |  | `0x12324c` | numéro | `0x000a0040` |
-| 0xB | `(numéro seul)` |  | `0x12324c` | numéro | `0x000b0040` |
-| 0xC | `(numéro seul)` |  | `0x12324c` | numéro | `0x000c0040` |
+| 0x5 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00050040` |
+| 0x6 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00060040` |
+| 0x7 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00070040` |
+| 0x8 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00080040` |
+| 0x9 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00090040` |
+| 0xA | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x000a0040` |
+| 0xB | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x000b0040` |
+| 0xC | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x000c0040` |
 | 0xD | `0x000d0382` |  | `0x107c7a` | entier | `0x000d0040` |
 | 0xE | `(numéro seul)` |  | `0x107c6c` | numéro | `0x000e0040` |
 | 0xF | `(numéro seul)` |  | `0x12188c` | numéro | `0x000f0180` |
 | 0x10 | `(numéro seul)` |  | `0x1079a0` | numéro | `0x00100040` |
-| 0x11 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00110040` |
-| 0x12 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00120040` |
-| 0x13 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00130040` |
-| 0x14 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00140040` |
-| 0x15 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00150040` |
-| 0x16 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00160040` |
-| 0x17 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00170040` |
-| 0x18 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00180040` |
-| 0x19 | `0x001900c2` |  | `0x1215cc` | entier | `0x00190042` |
-| 0x1A | `(numéro seul)` |  | `0x1215cc` | numéro | `0x001a0040` |
-| 0x1B | `(numéro seul)` |  | `0x1215cc` | numéro | `0x001b0040` |
-| 0x1C | `0x001c0042` |  | `0x1215cc` | entier | `0x001c0082` |
-| 0x1D | `(numéro seul)` |  | `0x1215cc` | numéro | `0x001d0040` |
-| 0x1E | `0x001e0082` |  | `0x1215cc` | entier | `0x001e0042` |
-| 0x1F | `(numéro seul)` |  | `0x1215cc` | numéro | `0x001f0040` |
-| 0x20 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00200040` |
-| 0x21 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00210040` |
-| 0x22 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00220040` |
-| 0x23 | `0x00230042` |  | `0x1215cc` | entier | `0x00230042` |
-| 0x24 | `0x00240042` |  | `0x1215cc` | entier | `0x00240042` |
-| 0x25 | `0x00250082` |  | `0x1215cc` | entier | `0x00250042` |
-| 0x26 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00260040` |
-| 0x27 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00270040` |
-| 0x28 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00280040` |
-| 0x29 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00290040` |
-| 0x2A | `0x002a0042` |  | `0x1215cc` | entier | `0x002a0042` |
+| 0x11 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00110040` |
+| 0x12 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00120040` |
+| 0x13 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00130040` |
+| 0x14 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00140040` |
+| 0x15 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00150040` |
+| 0x16 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00160040` |
+| 0x17 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00170040` |
+| 0x18 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00180040` |
+| 0x19 | `0x001900c2` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | entier | `0x00190042` |
+| 0x1A | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x001a0040` |
+| 0x1B | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x001b0040` |
+| 0x1C | `0x001c0042` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | entier | `0x001c0082` |
+| 0x1D | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x001d0040` |
+| 0x1E | `0x001e0082` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | entier | `0x001e0042` |
+| 0x1F | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x001f0040` |
+| 0x20 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00200040` |
+| 0x21 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00210040` |
+| 0x22 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00220040` |
+| 0x23 | `0x00230042` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | entier | `0x00230042` |
+| 0x24 | `0x00240042` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | entier | `0x00240042` |
+| 0x25 | `0x00250082` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | entier | `0x00250042` |
+| 0x26 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00260040` |
+| 0x27 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00270040` |
+| 0x28 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00280040` |
+| 0x29 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00290040` |
+| 0x2A | `0x002a0042` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | entier | `0x002a0042` |
 | 0x2B | `0x002b0042` |  | `0x121636` | entier | `0x002b0040` |
 | 0x2C | `(numéro seul)` |  | `0x12160a` | numéro | `0x002c0082` |
 | 0x2D | `0x002d0082` |  | `0x1215fa` | entier | `0x002d0080` |
 | 0x2E | `(numéro seul)` |  | `0x1215f0` | numéro | `0x002e0040` |
-| 0x2F | `0x002f0082` |  | `0x12324c` | entier | `0x002f0042` |
-| 0x30 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00300080` |
+| 0x2F | `0x002f0082` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | entier | `0x002f0042` |
+| 0x30 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00300080` |
 | 0x31 | `0x00310082` |  | `0x121576` | entier | `0x00310042` |
-| 0x32 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00320040` |
-| 0x33 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00330080` |
-| 0x34 | `0x00340042` |  | `0x12324c` | entier | `0x00340042` |
+| 0x32 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00320040` |
+| 0x33 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00330080` |
+| 0x34 | `0x00340042` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | entier | `0x00340042` |
 | 0x35 | `(numéro seul)` |  | `-` | numéro | `0x00350080` |
 | 0x36 | `0x00360084` |  | `0x107b78` | entier | `0x00360044` |
 | 0x37 | `0x00370002` |  | `0x12232c` | entier | `0x00370040` |
-| 0x38 | `(numéro seul)` |  | `0x1215cc` | numéro | `0x00380040` |
-| 0x39 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00390040` |
-| 0x3A | `0x003a00c2` |  | `0x12324c` | entier | `0x003a0042` |
-| 0x3B | `(numéro seul)` |  | `0x12324c` | numéro | `0x003b0040` |
-| 0x3C | `(numéro seul)` |  | `0x12324c` | numéro | `0x003c0040` |
+| 0x38 | `(numéro seul)` |  | `nwm_cmd_unsupported` `0x1215CC` (rend 0x3F4, non implémenté) | numéro | `0x00380040` |
+| 0x39 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00390040` |
+| 0x3A | `0x003a00c2` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | entier | `0x003a0042` |
+| 0x3B | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x003b0040` |
+| 0x3C | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x003c0040` |
 | 0x3D | `0x003d0042` |  | `0x121560` | entier | `0x003d0042` |
-| 0x3E | `(numéro seul)` |  | `0x12324c` | numéro | `0x003e0040` |
-| 0x3F | `(numéro seul)` |  | `0x12324c` | numéro | `0x003f0080` |
-| 0x40 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00400040` |
+| 0x3E | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x003e0040` |
+| 0x3F | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x003f0080` |
+| 0x40 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00400040` |
 | 0x41 | `(numéro seul)` |  | `0x1079ae` | numéro | `0x00410040` |
-| 0x42 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00420080` |
-| 0x43 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00430040` |
-| 0x44 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00440040` |
-| 0x45 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00450040` |
-| 0x46 | `(numéro seul)` |  | `0x12324c` | numéro | `0x00460040` |
+| 0x42 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00420080` |
+| 0x43 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00430040` |
+| 0x44 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00440040` |
+| 0x45 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00450040` |
+| 0x46 | `(numéro seul)` |  | dans l'aiguillage (le cas construit une tâche et la passe à `worker_task_run_sync` `0x12324C`) | numéro | `0x00460040` |
 
 
 Contenu lu des commandes de `nwm::INF`, `nwm::EXT` : `nwm::INF` 6 (RecvBeaconBroadcastData) est la même fonction (`0x1220A8`) que StartScan de l'UDS : elle met la demande dans la machine d'état Wi-Fi (commande interne 5 si l'état est 3, 10 si l'état est 6) et attend la fin du balayage. `nwm::EXT` 8 est ControlWirelessEnabled ; 7 rend `0x1C` octets d'état (3dbrew). Le reste n'est pas lu.
@@ -392,7 +392,7 @@ La fonction du jeu qui appelle CreateNetwork2 (`0x2B0678`) vérifie avant l'envo
 | GetChannel | `0x001A0000` | `0x2B1F78` | `uds_cmd_001A_GetChannel` `0x10AAF0` (`0x10BB30`) | un octet : le canal du réseau (0 hors réseau) |
 | ConnectNetwork2 | `0x001E0084` | `0x2B20CC` | `uds_cmd_001E_ConnectNetwork2` `0x10ACEC` (`uds_connect_network_impl` `0x10BFA8`) | 0 si l'état est 3 et que le réseau existe ; l'état passe à 9 (client) ou 10 (spectateur, mot 1 = 2) ; événement signalé |
 | ScanOnConnection | `0x00220402` | `0x2B2130` | `uds_cmd_0022_ScanOnConnection` `0x10ADD0` (`0x10C3A8`) | seulement client ou spectateur (état 9 ou 10) ; sinon `0xC8A113EA` ; écrit le même tampon que StartScan |
-| Inconnue | `0x00230000` | `0x2B2484` | `uds_cmd_0023` `0x10B11C` | un u16 en deuxième mot de réponse (réponse `0x00230080`) : 0 convient |
+| Inconnue | `0x00230000` | `0x2B2484` | (sans nom) `0x10B11C` (appelle `0x1223FC`) | un u16 en deuxième mot de réponse (réponse `0x00230080`) : 0 convient |
 
 Le jeu n'envoie ni EjectSpectator, ni Scrap, ni les commandes 0x15 à 0x1C, ni Flush, ni les deux anciennes (Initialize `0x000102C2`, CreateNetwork `0x00040402`, ConnectNetwork `0x00090442`).
 
@@ -417,4 +417,4 @@ Une émulation doit tenir **un seul objet réseau global** (comme nwm) avec : l'
 
 **Interprété** : le rang SAP et TST ; le fil propre à chaque session UDS ; les noms des champs de l'objet (de 3dbrew) ; les réponses minimales de la partie 6 et tout ce qui est dit du bouclage du jeu ; la nature de l'octet global `0x1546C2`.
 
-**Pas lu** : le chiffrement des balises et la dérivation de la clé CCMP ; la machine d'état Wi-Fi interne (`0x12039C`, `0x1211F8`, états 5, 0x10, 0x11) et le pilote du matériel (SDIO, interruptions, DMA) ; la création de chaque événement (type de réinitialisation de celui d'Initialize) ; les corps de `nwm::INF`, `nwm::SOC`, `nwm::SAP`, `nwm::CEC`, `nwm::EXT` et `nwm::TST` (seules les tables sont établies) ; la durée réelle d'un balayage ; ce que le jeu fait des réponses au-delà de ses fonctions d'enveloppe (la boucle StartScan / CreateNetwork / DestroyNetwork vient de la bibliothèque UDS du jeu, que je n'ai lue que jusqu'à `0x2B0678`).
+**Pas lu** : le chiffrement des balises et la dérivation de la clé CCMP ; la machine d'état Wi-Fi interne (`0x12039C`, `0x1211F8`, états 5, 0x10, 0x11) et le pilote du matériel (SDIO, interruptions, DMA) ; la création de chaque événement (type de réinitialisation de celui d'Initialize) ; les corps de `nwm::INF`, `nwm::SOC`, `nwm::SAP`, `nwm::CEC`, `nwm::EXT` et `nwm::TST` (seules les tables sont établies) ; la durée réelle d'un balayage ; ce que le jeu fait des réponses au-delà de ses fonctions d'enveloppe (la boucle StartScan / CreateNetwork / DestroyNetwork vient de la bibliothèque UDS du jeu, que je n'ai lue que jusqu'à `0x2B0678`). Le module embarque la pile HTC/WMI d'Atheros, un pilote de bus SDIO et wpa_supplicant 0.5.10-Devicescape (chaîne `0x13F3DA`) : 14 de leurs fonctions sont nommées d'après les messages de leurs sources (supposé), le reste n'est pas apparié. 2 039 fonctions restent sans nom (`local/analyse/nwm/notes-100.md`).

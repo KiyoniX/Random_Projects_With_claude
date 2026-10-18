@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000002902`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `http`, priorité 58 (`0x3A`, octet `0x20F`) |
 | Fichier lu | `local/extrait/http/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x1AA6C` octets de code (27 pages, de `0x100000`), `0xB8C` de données en lecture seule à `0x11B000`, `0x3F0` de données à `0x11C000`, `0x565C` de mémoire à zéro, pile de `0x1000` |
-| Fonctions | 739 pour Ghidra, dont 727 en ARM et 12 en Thumb ; 326 nommées dans `http.noms.tsv` |
+| Fonctions | 739 pour Ghidra (727 en ARM, 12 en Thumb), plus 48 entrées manquées, moins 9 qui ne sont pas des fonctions (une réserve littérale, huit rangs de division) et 2 fonctions mortes : 776 ; 360 nommées dans `http.noms.tsv`, 647 avec `local/analyse/http/noms-proposes.tsv` |
 | Service offert | `http:C` seul (la chaîne est à `0x11B008`), 66 commandes |
 | Services appelés | lus dans l'exheader : `ptm:s`, `soc:U`, `ssl:C` ; lus dans le code : les mêmes trois, plus `srv:` (port) et `err:f` (port) |
 | Dépendances déclarées | deux titres : `…2E02` (les sockets) et `…2F02` (`ssl`) ; les noms viennent de la liste des titres système de 3dbrew |
@@ -25,12 +25,12 @@ Deux choses à savoir avant de lire la suite.
 
 ## Partie 1 : le démarrage
 
-`entry` (`0x100000`) appelle `0x100024` (une préparation), `0x100254` (qui range deux champs de l'en-tête des arguments, comme dans `ndm`), `0x10FAF4`, les constructeurs globaux par une table de distances relatives (`0x100124`) et par une table de pointeurs (`0x100220`), puis `main` (`0x100168`), puis `svcExitProcess` (`0x119DBC`).
+`entry` (`0x100000`) appelle `clear_bss` (`0x100024`), `init_program_args` (`0x100254`, qui range deux champs du bloc de `__rt_locale`), `init_runtime_and_srv` (`0x10FAF4`), les constructeurs globaux par une table de distances relatives (`run_static_initializers`, `0x100124`) et par une table de pointeurs (`run_init_array`, `0x100220`), puis `main` (`0x100168`), puis `svcExitProcess` (`0x100160`, par b ; `0x119DBC` n'en est qu'un saut).
 
 `main` fait, dans l'ordre :
 
-1. `srv_connect` (`0x100430`) ouvre le port `srv:` ; un résultat négatif donne `throw_fatal_error` (`0x1003BC`).
-2. `is_new_3ds` (`0x100360`) lit une seule fois si la console est une New 3DS, par `ptm_check_new_3ds_cached` (`0x100C40`, qui envoie `PTMS_CheckNew3DS` à `ptm:s`). La réponse choisit deux constantes écrites dans un enregistrement global : `0x30000` sur une 3DS ordinaire, `0x50000` sur une New 3DS (interprété : le code réserve ensuite de la mémoire à partir de cette taille ; l'emploi n'est pas suivi plus loin).
+1. `ptm_open` (`0x100430`) ouvre `ptm:s` (nom lu par le mot `0x11B20C`, poignée `0x11C348`, copiée à `0x11C338`) ; un résultat négatif donne `throw_fatal_error` (`0x1003BC`). Le port `srv:` est connecté par `srv_init` (`0x10FB04`).
+2. `is_new_3ds` (`0x100360`) lit une seule fois si la console est une New 3DS, par `ptm_check_new_3ds_cached` (`0x100C40`, qui envoie `PTMSYSM_CheckNew3DS` à `ptm:s`). La réponse choisit deux constantes écrites dans un enregistrement global : `0x30000` sur une 3DS ordinaire, `0x50000` sur une New 3DS (interprété : le code réserve ensuite de la mémoire à partir de cette taille ; l'emploi n'est pas suivi plus loin).
 3. Trois préparations non lues (`0x1002B4`, `0x1006B4`, `0x100404`), puis `run_module` (`0x100498`), qui fait `module_start` (`0x101430`), `server_run` (`0x100D78`) et, à la sortie, `module_stop` (`0x1015BC`, qui arrête les sockets par `socu_shutdown`, `0x103704`).
 
 `module_start` met en route le réseau du module : `socket_layer_init` (`0x102208`, qui prépare un bloc de mémoire partagée et appelle `socu_init`), puis `server_start` (`0x1017AC`), qui prépare les objets de synchronisation et les listes de travail (trois nombres en entrée, deux plafonnés à `0x20` avec les valeurs par défaut 4 et 8, le troisième à 4 : leur sens n'est pas lu) et initialise `ssl:C` (`ssl_init`, `0x1048F0`).
@@ -235,7 +235,7 @@ Ce qu'il faut retenir du tableau :
 1. Si la session a déjà un objet derrière elle (`+0x10` non nul), le résultat est `0xD8A0A066`.
 2. Si un compteur global (lu par pointeur à `0x119788`) vaut 16 ou plus, le résultat est `0xD8A0A067` (interprété : c'est le nombre de clients, que `client_init` augmente).
 3. Un client de `0xBC` octets est alloué par le tas du module et construit par `client_ctor` (`0x1174F4`) ; une allocation qui rate donne `0xD860A003`.
-4. `client_init` (`0x116150`) range le numéro du processus à `+0xC` du client. Si le bloc a une taille et une poignée, `shared_memory_map` (`0x114264`) le mappe : la taille doit être un multiple de `0x1000`, sinon `0xE0E01BF2` ; le mappage utilise `svcMapMemoryBlock` (`0x1F`) avec le droit 3. À la fermeture, `shared_memory_unmap` (`0x10DB8C`, `svcUnmapMemoryBlock`, `0x20`) le rend. Un client dont le mappage échoue est détruit.
+4. `client_init` (`0x116150`) range le numéro du processus à `+0xC` du client. Si le bloc a une taille et une poignée, `map_shared_memory` (`0x114264`) le mappe : la taille doit être un multiple de `0x1000`, sinon `0xE0E01BF2` ; le mappage utilise `svcMapMemoryBlock` (`0x1F`) avec le droit 3. À la fermeture, `unmap_shared_memory` (`0x10DB8C`, `svcUnmapMemoryBlock`, `0x20`) le rend. Un client dont le mappage échoue est détruit.
 5. La session devient principale (`+0xC` à 1), s'inscrit dans la liste globale (`0x11979C`, sous un verrou), et la commande rend `0`.
 
 La taille du bloc est ce que 3dbrew appelle la « POST buffer size » : le module le mappe mais n'en fait rien de visible dans `Initialize` (son emploi n'est pas lu).
@@ -247,7 +247,7 @@ Le chemin d'une requête de Pokémon X, d'une commande à l'autre :
 1. **CreateContext** (2, session principale). La méthode de session passe l'adresse de l'URL, la méthode et le pointeur de sortie ; **elle ne passe pas la taille de l'URL** (mot 1), le module lit la chaîne jusqu'au zéro. `httpc_client_0002_CreateContext` (`0x116A80`) compte les contextes déjà ouverts (huit au plus, sinon `0xD8A0A01A`), puis demande à `context_core_create` (`0x112834`) un enregistrement de `0x870` octets (mis à zéro, avec deux objets de synchronisation), y range l'URL et la méthode (`0x1141BC`) et le met à l'état 1. La méthode est un octet : 1 GET, 2 POST, 3 HEAD, 4 PUT, 5 DELETE, 6 POST et 7 PUT (même table que 3dbrew ; les chaînes `GET `, `POST `, `HEAD `, `PUT `, `DELETE ` sont choisies par `request_write_head`, `0x1054C4`, avec 6 comme 2 et 7 comme 4). Le client range ensuite deux valeurs par défaut dans l'enregistrement (`+0x854` : une valeur globale ; `+0x858` : `0x3FC0` ; leur sens n'est pas lu, ce pourrait être la taille des tampons de socket de la commande 0x10), puis `client_add_context` (`0x1170BC`) crée l'objet de contexte de `0x70` octets (la poignée est à `+0x18`) et l'accroche à la liste du client. La poignée entière est la réponse (mot 2).
 2. **L'appelant ouvre une nouvelle session `http:C`** (par `SRV_GetServiceHandle`, c'est le client qui le fait, pas le module) **et lui envoie InitializeConnectionSession** (8) avec la poignée. `httpc_0008_InitializeConnectionSession` (`0x119958`) exige une session libre (sinon `0xD8A0A066`) et appelle `session_attach_context` (`0x1197E8`) : celle-ci parcourt **toutes** les sessions principales, retient celles dont le numéro de processus est celui de l'appelant et cherche la poignée dans leur liste (`client_find_context`). Trouvée, la session devient une session de contexte (`+0xC` à 2) et son objet est le contexte ; sinon le résultat est `0xD8A0A064`. **Un contexte ne peut donc être pris que par une session du même processus que celui qui l'a créé.**
 3. Les commandes de réglage (AddRequestHeader, AddDefaultCert, SetPostDataType…) arrivent sur cette session de contexte. Le contexte vérifie que la poignée est la sienne, puis appelle le cœur de contexte, qui range le réglage dans l'enregistrement (partie 5).
-4. **BeginRequestAsync** (10) passe par `request_begin` (`0x10A854`), qui travaille sur l'état de l'**objet** de contexte (octet `+0xC`) : l'état 3 passe à 9 et l'état 4 (posé par SetPostDataType) à 5, l'événement de fin est créé au premier appel (`svcCreateEvent`, `0x104AB0`), puis le cœur passe à l'état 2 et l'enregistrement est poussé dans la file des fils de requête. BeginRequest (9) appelle `request_begin(objet, 0)` et pousse avec `context_core_queue_blocking` (`0x113600`, qui attend de la place, par `job_queue_push_blocking`, `0x11A828`) ; **BeginRequestAsync (10) appelle `request_begin(objet, 1)` et pousse sans attendre** (`context_core_queue_nonblocking`, `0x113688`, par `job_queue_push`, `0x10F35C`) : si la file est pleine, l'état du cœur revient à 1 et le résultat interne est `0xFFFFE00A`, soit `0xD8A0A00A`. Si la mise en file échoue, l'état de l'objet revient à 1.
+4. **BeginRequestAsync** (10) passe par `request_begin` (`0x10A854`), qui travaille sur l'état de l'**objet** de contexte (octet `+0xC`) : l'état 3 passe à 9 et l'état 4 (posé par SetPostDataType) à 5, l'événement de fin est créé au premier appel (`svcCreateEvent`, `0x104AB0`), puis le cœur passe à l'état 2 et l'enregistrement est poussé dans la file des fils de requête. BeginRequest (9) appelle `request_begin(objet, 0)` et pousse avec `context_core_queue_blocking` (`0x113600`, qui attend de la place, par `msg_queue_send`, `0x11A828`) ; **BeginRequestAsync (10) appelle `request_begin(objet, 1)` et pousse sans attendre** (`context_core_queue_nonblocking`, `0x113688`, par `msg_queue_try_send`, `0x10F35C`) : si la file est pleine, l'état du cœur revient à 1 et le résultat interne est `0xFFFFE00A`, soit `0xD8A0A00A`. Si la mise en file échoue, l'état de l'objet revient à 1.
 5. Un fil de requête (`http_request_worker`, `0x10384C`) prend l'enregistrement et fait, en réglant à chaque pas l'état du cœur : 3 (pris), 5 puis `request_connect` (`0x104B08`), 6 puis `request_write_head` (`0x1054C4`, la ligne de requête, `Host:`, les en-têtes, la fin de ligne), 7 puis `request_send_body` (`0x1052D4`), 8 puis `request_read_response` (`0x104E40`, `1164` octets : la ligne d'état, les en-têtes, `Content-Length`, `Transfer-Encoding: chunked`, `Connection: Keep-Alive`), 9 (données prêtes), 10 (terminée ou en échec). Le sens exact des états est interprété ; l'ordre est lu.
 6. **GetDownloadSizeState** (6) lit deux champs du cœur (`context_core_get_download_size`, `0x112AB8`) : le nombre d'octets reçus (`+0x7BC`) et la taille totale (`+0x364`, ou 0 tant qu'elle n'est pas connue : l'indicateur est à `+0x360`).
 7. **GetResponseStatusCode** (34) et **GetResponseHeader** (30) commencent par `request_wait_event` (`0x10B280`) : si l'objet est fermé (`+0x10`), `0xD8A0A018` ; si son état est inférieur à 9, `0xD8A0A016` (« pas prêt ») ; sinon elle attend l'événement de fin (sans délai pour la version sans délai, avec délai pour l'autre : `0xD820A069` si le temps est écoulé). Ensuite le code d'état HTTP est lu dans le cœur (`+0x368`, `request_get_status_code`, `0x10AE68`, qui exige l'état du cœur supérieur à 7), ou l'en-tête demandé est cherché par son nom dans le tampon du cœur (`+0x36C`, `request_get_response_header`, `0x10ABFC`).
@@ -304,10 +304,10 @@ Chaque requête envoyée a sa petite fonction (un seul `svcSendSyncRequest` en l
 | | `0x00020000` | `SRV_EnableNotification` | `0x10311C` | obtenir le sémaphore des notifications |
 | | `0x00030100` | `SRV_RegisterService` | `0x1030C0` | créer `http:C` |
 | | `0x000400C0` | `SRV_UnregisterService` | `0x1020E0` | le retirer à l'arrêt |
-| | `0x00050100` | `SRV_GetServiceHandle` | `0x10F87C` | ouvrir `ssl:C`, `soc:U` et `ptm:s` |
+| | `0x00050100` | `SRV_GetServiceHandle` | `0x102084` | ouvrir `ssl:C`, `soc:U` et `ptm:s` (l'enveloppe est `srv_get_service_handle`, `0x10F87C`) |
 | | `0x000B0000` | `SRV_ReceiveNotification` | `0x103158` | lire une notification |
 | `err:f` (port) | `0x00010800` | `ERRF_Throw` | `0x1046C0` | signaler une erreur fatale |
-| `ptm:s` | `0x040A0000` | `PTMS_CheckNew3DS` | `0x101D64` | savoir si la console est une New 3DS (la Carte nomme cette commande CheckNew3DS pour `ptm:s`) |
+| `ptm:s` | `0x040A0000` | `PTMSYSM_CheckNew3DS` | `0x101D64` | savoir si la console est une New 3DS |
 | `soc:U` | `0x00010044` | `SOCU_InitializeSockets` | `0x1049D4` | une fois, au démarrage (partie 1) |
 | | `0x000200C2` | `SOCU_socket` | `0x111498` | créer un socket (AF_INET ou AF_INET6 selon le contexte, par `socket_create_for_request`, `0x1069C0`) |
 | | `0x00060084` | `SOCU_connect` | `0x1114E4` | se connecter |
@@ -324,18 +324,18 @@ Chaque requête envoyée a sa petite fonction (un seul `svcSendSyncRequest` en l
 | `ssl:C` | `0x00010002` | `SSLC_Initialize` | `0x105D4C` | une fois, au démarrage |
 | | `0x000200C2` | `SSLC_CreateContext` | `0x1109C0` | un contexte TLS par connexion |
 | | `0x00120042` | `SSLC_InitializeConnectionSession` | `0x110988` | attacher une session à ce contexte |
-| | `0x00130040` | `SSLC_StartConnection` | `0x108E54` | la poignée de main TLS |
+| | `0x00130040` | `SSLC_StartConnection` | `0x110888` | la poignée de main TLS (enveloppe `ssl_context_start_connection`, `0x108E54`) |
 | | `0x00150082` / `0x00170082` | `SSLC_Read` / `SSLC_Write` | `0x112250` / `0x1122A0` | lire et écrire en clair |
-| | `0x00180080` | `SSLC_ContextSetRootCertChain` | `0x108EC8` | choisir la chaîne de racines |
-| | `0x00190080` | `SSLC_ContextSetClientCert` | `0x108EA0` | choisir le certificat client |
-| | `0x001A0080` | `SSLC_SetCrlStore` | `0x108E78` | choisir le magasin de CRL |
-| | `0x001B0080` | `SSLC_ContextClearOpt` | `0x108EF0` | retirer des options de vérification |
+| | `0x00180080` | `SSLC_ContextSetRootCertChain` | `0x110920` | choisir la chaîne de racines (enveloppe `0x108EC8`) |
+| | `0x00190080` | `SSLC_ContextSetClientCert` | `0x1108EC` | choisir le certificat client (enveloppe `0x108EA0`) |
+| | `0x001A0080` | `SSLC_SetCrlStore` | `0x1108B8` | choisir le magasin de CRL (enveloppe `0x108E78`) |
+| | `0x001B0080` | `SSLC_ContextClearOpt` | `0x110954` | retirer des options de vérification (enveloppe `0x108EF0`) |
 | | `0x001E0040` | `SSLC_DestroyContext` | `0x1079B0` | fermer le contexte TLS |
 | | `0x00030000`, `0x00040040`, `0x00050082`, `0x00060080` | `SSLC_CreateRootCertChain`, `SSLC_DestroyRootCertChain`, `SSLC_AddTrustedRootCA`, `SSLC_RootCertChainAddDefaultCert` | `0x114798`, `0x108F8C`, `0x11487C`, `0x1149C0` | les chaînes de racines (commandes 0x2D, 0x2E, 0x2F, 0x30 de `http:C`) |
 | | `0x00080000`, `0x00090040`, `0x000A0082`, `0x000B0080`, `0x000C0080` | `SSLC_CreateCrlStore`, `SSLC_DestroyCrlStore`, `SSLC_AddCrlToCrlStore`, `SSLC_AddInternalCrlToCrlStore`, `SSLC_RemoveCrlFromCrlStore` | `0x114764`, `0x108F5C`, `0x1147CC`, `0x114934`, `0x1148CC` | les magasins de CRL (commandes 0x3E à 0x42) |
 | | `0x000D0084`, `0x000E0040`, `0x000F0040` | `SSLC_OpenClientCertContext`, `SSLC_OpenDefaultClientCertContext`, `SSLC_CloseClientCertContext` | `0x11481C`, `0x11497C`, `0x108FBC` | les certificats client (commandes 0x32 à 0x34) |
 
-`SSLC_RemoveCertFromRootChain` (`0x00070080`) est envoyée en ligne par `httpc_client_0031_RootCertChainRemoveCert` (`0x11721C`), qui n'a donc pas de fonction d'envoi à part.
+`SSLC_RootCertChainRemoveCert` (`0x00070080`) a sa fonction d'envoi `0x114900`, atteinte par b depuis `ssl_root_cert_chain_remove_cert` (`0x114B5C`), lui-même atteint par b depuis `httpc_client_0031_RootCertChainRemoveCert` (`0x11721C`) ; Ghidra avait fusionné les trois.
 
 Le côté `ssl` de ces échanges est dans [ssl](ssl.md).
 
@@ -354,17 +354,17 @@ Le côté `ssl` de ces échanges est dans [ssl](ssl.md).
 | --- | --- | --- | --- |
 | ControlMemory | `0x01` | `svcControlMemory` | `0x100770` |
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x10177C` |
-| ExitProcess | `0x03` | `svcExitProcess` | `0x119DBC` (et `entry`) |
+| ExitProcess | `0x03` | `svcExitProcess` | `0x100160` (atteint par b depuis `entry` et depuis `0x119DBC`) |
 | CreateThread | `0x08` | `svcCreateThread` | `0x104AE4` |
-| ExitThread | `0x09` | en ligne | `0x106490` |
-| SleepThread | `0x0A` | `svcSleepThread` | `0x10DF48` (aussi `0x10DF4C`, `0x10E190`) |
+| ExitThread | `0x09` | `svcExitThread` | `0x1064D4` (8 octets que Ghidra mettait dans `thread_trampoline`) |
+| SleepThread | `0x0A` | `svcSleepThread` | `0x10DF48` (mov r0,r0 qui tombe dans `svcSleepThread_body`, `0x10DF4C` ; `0x10E190` n'en est qu'un saut) |
 | CreateSemaphore | `0x15` | `svcCreateSemaphore` | `0x101764` |
 | ReleaseSemaphore | `0x16` | `svcReleaseSemaphore` | `0x10E6C0` |
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x104AB0` |
 | SignalEvent | `0x18` | en ligne (8 fonctions) | par exemple `0x10F294` |
 | ClearEvent | `0x19` | en ligne (3 fonctions) | par exemple `0x10F504` |
 | CreateMemoryBlock | `0x1E` | `svcCreateMemoryBlock` | `0x104AC8` |
-| MapMemoryBlock | `0x1F` | en ligne | `0x114264` |
+| MapMemoryBlock | `0x1F` | en ligne | `0x114264` (`map_shared_memory`) |
 | UnmapMemoryBlock | `0x20` | en ligne | `0x10DB8C` |
 | CreateAddressArbiter | `0x21` | `svcCreateAddressArbiter` | `0x10174C` |
 | ArbitrateAddress | `0x22` | `svcArbitrateAddress` | `0x10D2AC` |
@@ -378,7 +378,7 @@ Le côté `ssl` de ces échanges est dans [ssl](ssl.md).
 | SendSyncRequest | `0x32` | en ligne (45 fonctions) | `0x100CA0` et les autres envois |
 | GetProcessId | `0x35` | `svcGetProcessId` | `0x103834` |
 | GetThreadId | `0x37` | `svcGetThreadId` | `0x1027EC` |
-| Break | `0x3C` | `svcBreak` | `0x10FA2C` |
+| Break | `0x3C` | `svcBreak` | `0x104AA8` (atteint par b depuis `break_process`, `0x10FA30` ; `0x10FA2C` en est le veneer) |
 | AcceptSession | `0x4A` | `svcAcceptSession` | `0x10381C` |
 | ReplyAndReceive | `0x4F` | `svcReplyAndReceive` | `0x10E0B0` |
 

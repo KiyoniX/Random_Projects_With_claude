@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra (`outils/ghidra_direct.py`, le mo
 | Titre | `0004013020001602`, un titre de la CTRNAND réservé à la New 3DS (lu dans l'exheader) |
 | Fichier lu | `local/extrait/camera/exefs/code.bin` et `exheader.bin` (122 880 octets de fichier) |
 | Taille | 82 916 octets de code (`.text`, 21 pages), 32 500 de données en lecture seule, 1 588 de données, 9 996 de mémoire à zéro ; pile de 0x1000 |
-| Fonctions | 1 029, dont 945 en Thumb et 84 en ARM ; 287 nommées dans `camera.noms.tsv` |
+| Fonctions | 1 029 pour Ghidra (945 en Thumb, 84 en ARM), plus 3 entrées manquées, moins 3 qui ne sont pas des fonctions (deux morceaux d'aiguillage, un rang de division) et 3 fonctions mortes : 1 026 ; 310 nommées dans `camera.noms.tsv`, 867 avec `local/analyse/camera/noms-proposes.tsv` (8 noms de case retirés) |
 | Services offerts | `cam:u`, `cam:s`, `cam:c` (même aiguillage, 68 commandes), `y2r:u` (45 commandes), `cam:q` (62 commandes, un fil à part, New 3DS seulement) |
 | Services appelés | `i2c::CAM`, `mcu::CAM`, `pdn:c`, `cfg:s`, `csnd:SND`, `ptm:s` (la liste de l'exheader), plus `srv:` et le port `err:f` |
 | Dépendance déclarée | un seul titre, `0004013000002702` |
@@ -25,14 +25,14 @@ Le module est écrit en C++ avec une bibliothèque d'objets (verrous récursifs,
 `entry` (`0x100000`, ARM) appelle, à la suite :
 
 1. `clear_bss` (`0x100024`), qui met à zéro `0x11d638` à `0x11fd40`.
-2. Deux fonctions Thumb (`0x100070`, `0x1000b4`) puis `0x1000a8` qui réserve un tas de `0x8000` octets (`ControlMemory`), et le parcours des constructeurs statiques (`0x10fa7c`, table de distances, puis `run_init_array` à `0x100054`). Les constructeurs posent entre autres les identifiants de client à `0x11d37c` (0), `0x11d384` (1), `0x11d38c` (2) et `0x11d394` (3), dans `0x11292c`.
-3. `main_trampoline` (`0x100048`), qui appelle `camera_main`.
+2. `init_program_args` (`0x100070`), `init_runtime_and_srv` (`0x1000b4`, qui appelle `init_runtime` puis `srv_init`), puis `setup_heap` (`0x1000a8`, `init_heap(0x8000)`), et `run_static_initializers` (`0x10fa7c`, table de distances de 31 cases), puis `run_init_array` à `0x100054`. Les constructeurs posent entre autres les identifiants de client à `0x11d37c` (0), `0x11d384` (1), `0x11d38c` (2) et `0x11d394` (3), dans `0x11292c`.
+3. `call_main` (`0x100048`), qui appelle `camera_main`.
 4. `svcExitProcess` (`0x1130f4`).
 
 `camera_main` (`0x100100`) fait tout le reste. Dans l'ordre :
 
 1. `register_service` (`0x100a22`) déclare, une fois par ligne de la table `0x115068`, les quatre services du fil principal, chacun avec une seule session au plus (le second champ de chaque ligne vaut 1).
-2. `open_ptm_session` (`0x1004c4`) ouvre `ptm:s`.
+2. `ptm_s_open` (`0x1004c4`) ouvre `ptm:s`.
 3. `register_notification_handlers` (`0x100784`) inscrit les gestionnaires de `0x214`, `0x213` et `0x10B` (partie 2), pose l'octet « New 3DS » (`is_new3ds`, `0x100928`, qui demande `PTMSYSM_CheckNew3DS` à `ptm:s`), puis appelle `init_driver_state` (`0x100d10`) et `y2r_driver_start` (`0x100c2c`).
 4. `init_driver_state` met à zéro la grosse structure d'état du pilote (`0x11d280`), ouvre `i2c::CAM`, `mcu::CAM` et `pdn:c` (noms à `0x115004`, `0x11500a`, `0x115013`) et crée deux fils : le gestionnaire des caméras (`0x1016a8`) et le fil des interruptions (`0x101c1c`). `y2r_driver_start` crée l'événement de fin de conversion et lie l'interruption `0x4B` à cet événement (`BindInterrupt`).
 5. `camera_main` inscrit encore les gestionnaires de `0x100`, `0x104` et `0x105`, demande à `srv:` le sémaphore des notifications (`SRV_EnableNotification`), s'abonne à `0x104` et `0x105`, puis `subscribe_notifications_and_start_qtm_thread` (`0x1006c8`) s'abonne à `0x213`, `0x214` et `0x10B` et, sur New 3DS, crée le fil de `cam:q`.
@@ -73,7 +73,7 @@ Un client `cam:u`, `cam:s` ou `cam:c` ne se distingue des autres que par l'octet
 | `0x105` | `on_wake_notification` | `0x112fc8` | Remet l'octet `0x11d287` à 0, remet les caméras en marche, puis le même message à `ptm` |
 | `0x213` | `on_shell_opened_notification` | `0x112318` | Met l'octet `0x11d288` à 0 et remet les caméras en marche (`0x11235c`) ; sans effet tant qu'une session `cam:c` est ouverte (octet `0x11d36c`) |
 | `0x214` | `on_shell_closed_notification` | `0x112334` | Met l'octet `0x11d288` à 1 et met les caméras en pause (`0x1123a8`) ; même réserve |
-| `0x10B` | `on_notification_10b` | `0x112354` | Appelle `0x111288`, qui libère deux objets (sens non lu) |
+| `0x10B` | `reload_calibration_on_notification` | `0x112354` | Appelle `reload_camera_calibration` (`0x111288`), qui relit l'étalonnage stéréo et l'étalonnage de la qualité d'image dans le bloc de configuration `0x60000` (`load_stereo_camera_calibration`, `load_image_quality_calibration`) |
 
 `get_unavailable_reason` (`0x10a48c`) lit ces deux octets : 2 si la console est en veille, 1 si le couvercle est fermé, 0 sinon. Presque toutes les commandes qui touchent aux caméras commencent par là : si le résultat est non nul, elles comptent le refus (`count_refused_request`, qui, tous les 64 refus, dort un instant) et rendent **`0xC9405001`**.
 
@@ -147,12 +147,12 @@ Dans la dernière colonne, **[nom]** signale une ligne dont le sens vient seulem
 | 60 | `0x003C0000` | GetSleepCamera | `cam_GetSleepCamera` | `0x10451c` | `0x003C0080` | rend les caméras en veille **PX** |
 | 61 | `0x003D0040` | SetSleepCamera | `cam_SetSleepCamera` | `0x10475c` | `0x003D0040` | met des caméras en veille **PX** |
 | 62 | `0x003E0040` | SetBrightnessSynchronization | `cam_SetBrightnessSynchronization` | `0x10562c` | `0x003E0040` | synchronise la luminosité (non lue) [nom] |
-| 63 | `0x003F0040` | sans nom | `cam_cmd003F` | `0x110f38` | `0x003F0040` | rendue sans rien faire [nom] |
-| 64 | `0x004000C0` | sans nom | `cam_cmd0040` | `0x1071dc` | `0x00400040` | même fonction de travail que SetEffect |
-| 65 | `0x00410040` | sans nom | `cam_cmd0041` | `0x1110e0` | `0x00410040` | non lue [nom] |
-| 66 | `0x00420040` | sans nom | `cam_cmd0042` | `0x111498` | `0x00420040` | non lue [nom] |
-| 67 | `0x00430000` | sans nom | `cam_cmd0043` | `0x1110fc` | `0x00430040` | non lue [nom] |
-| 68 | `0x00440000` | sans nom | `cam_cmd0044` | `0x11122c` | `0x00440040` | non lue [nom] |
+| 63 | `0x003F0040` | sans nom | (sans nom) | `0x110f38` | `0x003F0040` | refuse le client 3 (`0xD8A053EA`), mêmes refus que le gabarit (couvercle, veille), puis `0x10805c` quand cam:q a une session ; rôle non lu |
+| 64 | `0x004000C0` | sans nom | `cam_SetEffect_body` | `0x1071dc` | `0x00400040` | le corps de SetEffect (cam_SetEffect n'est qu'un appel) |
+| 65 | `0x00410040` | sans nom | (sans nom) | `0x1110e0` | `0x00410040` | client 1 (cam:s) seulement : range l'argument dans l'octet `0x11d280 + 0xf` |
+| 66 | `0x00420040` | sans nom | (sans nom) | `0x111498` | `0x00420040` | range l'argument à `0x11d280 + 0xf`, met `+0x10` à 1, puis `camera_driver_initialize` |
+| 67 | `0x00430000` | sans nom | (sans nom) | `0x1110fc` | `0x00430040` | client 1 seulement ; si cam:q a une session, `0x10805c(client 0 ou 2, 1)` puis l'octet `0x11d280 + 0x11` reçoit ce client ; rôle non lu |
+| 68 | `0x00440000` | sans nom | (sans nom) | `0x11122c` | `0x00440040` | client 1 seulement ; `0x10805c(octet 0x11d280 + 0x11, 0)` puis l'octet reprend 4 ; rôle non lu |
 
 Deux numéros partagent une fonction de travail : la commande `0x40` appelle `0x1071dc` directement, et `SetEffect` (`0x22`) y passe par `cam_SetEffect` (`0x106334`, un simple appel). Sur `cam:q` la même fonction se retrouve à deux numéros.
 
@@ -229,7 +229,7 @@ Deux numéros partagent une fonction de travail : la commande `0x40` appelle `0x
 
 La plupart des commandes de `cam:u` (celles qui posent un réglage) ont la même forme, relevée dans une quinzaine de fonctions (`cam_SetExposure`, `cam_SetWhiteBalance`, `cam_SetSharpness`, `cam_SetAutoExposure`, `cam_SetFrameRate`, `cam_SetPhotoMode`, `cam_SetContrast`, `cam_SetLensCorrection`, `cam_SetNoiseFilter`, `cam_SetDetailSize`, `cam_SetAutoExposureWindow`, `cam_SetAutoWhiteBalanceWindow`, `cam_FlipImage`, `cam_SetSize`, `cam_SetEffect`…) :
 
-1. Entrer dans le verrou du pilote (`scoped_lock_enter` sur `0x11e56c`).
+1. Entrer dans le verrou du pilote (`lock_guard_enter` sur `0x11e56c`).
 2. `get_unavailable_reason` : si non nul, `count_refused_request` puis résultat `0xC9405001`.
 3. Attendre tant que `get_shell_state` vaut 2 (transition), puis si elle vaut 1 rendre `0xF96053FE`.
 4. Calculer les caméras visées : `get_session_camera_mask` donne les caméras du client ; on garde le **ET** avec le masque de la requête.
@@ -414,20 +414,20 @@ Chaque requête a sa petite fonction (28 en tout, autant que d'appels à `SendSy
 | `csnd:SND` | `0x11d540` | `0x00010140` | `CSND_Initialize` | `0x107128` | Pour le bruit d'obturateur |
 | | | `0x00020000` | `CSND_Shutdown` | `0x103f40` | |
 | | | `0x00030040` | `CSND_ExecuteCommands` | `0x10ef5c` | |
-| | | `0x00040080` | `CSND_cmd0004` | `0x10e6cc` | |
+| | | `0x00040080` | `CSND_PlaySoundDirectly` | `0x10e6cc` | |
 | | | `0x00050000` | `CSND_AcquireSoundChannels` | `0x1070f0` | |
 | | | `0x00060000` | `CSND_ReleaseSoundChannels` | `0x103f10` | |
 | | | `0x00090082` | `CSND_FlushDataCache` | `0x10ccf8` | |
-| `pdn:c` | `0x11d4d4` | `0x00010040` | `PDN_cmd0001` | `0x10e564` | Allumer ou éteindre l'horloge des caméras (sens interprété) |
-| | | `0x00020000` | `PDN_cmd0002` | `0x10cb8c` | idem |
-| `i2c::CAM` ou `mcu::CAM` (poignée passée en paramètre, non départagé) | param. | `0x00010040` | `CAMDEV_cmd0001` | `0x10ba7c` | (non lue) |
-| | | `0x00040102` | `CAMDEV_cmd0004` | `0x10f99a` | écritures et lectures dans les capteurs (interprété) |
-| | | `0x000800C2` | `CAMDEV_cmd0008` | `0x10f9f4` | |
-| | | `0x000A0080` | `CAMDEV_cmd000A` | `0x10f2c4` | |
-| | | `0x000C00C2` | `CAMDEV_cmd000C` | `0x108288` | |
+| `pdn:c` | `0x11d4d4` | `0x00010040` | `PDNC_Control` | `0x10e564` | allumer (1) ou couper (0) l'horloge des caméras ; la fiche pdn lit le côté serveur (bit 0 de `PDN_CAMERA_CNT`) |
+| | | `0x00020000` | `PDNC_GetCameraClock` | `0x10cb8c` | lire l'état de l'horloge (absent de la Carte) |
+| `mcu::CAM` | `0x11d2b8` (copie de `0x11d2b0`) | `0x00010040` | `MCUCAM_WriteCameraLedState` | `0x10ba7c` | allumer ou éteindre la diode de la caméra |
+| `i2c::CAM` | `[0x11d638]` = `0x11d2b4` (copie de `0x11d2ac`) | `0x00040102` | `I2CCAM_MultiSetRegisterBits16` | `0x10f99a` | poser des bits d'un registre de 16 bits dans plusieurs capteurs |
+| | | `0x000800C2` | `I2CCAM_MultiWriteRegister16` | `0x10f9f4` | écrire un registre de 16 bits dans plusieurs capteurs |
+| | | `0x000A0080` | `I2CCAM_ReadRegister16` | `0x10f2c4` | lire un registre de 16 bits |
+| | | `0x000C00C2` | `I2CCAM_WriteRegisterBuffer16` | `0x108288` | écrire une suite de registres |
 | `err:f` (port) | param. | `0x00010800` | `ERRF_Throw` | `0x103c8c` | Signaler une erreur fatale |
 
-Les noms `CSND_*` viennent des en-têtes de la fiche de 3dbrew pour `csnd:SND` ; les groupes `PDN_*` et `CAMDEV_*` gardent un nom neutre parce que leurs en-têtes ne suffisent pas à les identifier sans lire le service appelé.
+Les noms `CSND_*` viennent des en-têtes de la Carte pour `csnd:SND` ; les poignées de `i2c::CAM` et `mcu::CAM` sont remontées depuis `init_driver_state` (chaînes `0x11500a`, `0x115013`), celle de l'objet pilote par `camdrv_init` (`0x10bae4`), qui range l'adresse `0x11d2b4` à `+0` de `0x11d638`.
 
 ## Ce que Pokémon X envoie
 
@@ -507,7 +507,7 @@ Tant que le jeu ne fait pas de photo, un portage peut répondre « succès » pa
 
 **Vérifié par deux voies indépendantes**
 - Les 68 numéros de commande de `cam:u`, les 45 de `y2r:u` et leur fonction : l'exécution de l'aiguillage (`emulate_dispatch.py`) d'un côté, de l'autre le pseudo-code des blocs `case` de Ghidra (61 de 68 et 38 de 45 retrouvés par un script, sans écart ; les 7 + 7 autres lus à la main dans les mêmes blocs). Pour `cam:q`, 57 sur 62 retrouvés par le script, sans écart.
-- Les en-têtes de réponse de chaque commande : le mot 0 de la réponse après exécution, et les constantes des blocs `case` (`ipc_write_header(…, numéro, mots, descripteurs)`).
+- Les en-têtes de réponse de chaque commande : le mot 0 de la réponse après exécution, et les constantes des blocs `case` (`ipc_set_header(…, numéro, mots, descripteurs)`).
 - Les quatre services du fil principal, leurs noms, la table `0x115068` et la table des gestionnaires `0x115088` : octets lus dans `code.bin`, et l'exécution des appels depuis `camera_main` dans le pseudo-code.
 - Les registres de `y2r:u` (bits du registre de contrôle, registres `+4`, `+6`, `+0x10`, `+0x20`, ports de données `0x1EE02xxx`) : les masques des fonctions `y2r_set_*_reg` et `y2r_get_*_reg` d'une part, les constantes littérales du module d'autre part (les mots `0x1EC02000` à `0x1EC02100` et `0x1EE02000` à `0x1EE02200` apparaissent dans les tables de constantes).
 - Le chemin de SetReceiving jusqu'à `svcStartInterProcessDma` : `0x1041e0` → `0x1072e0` → `start_dma` (`0x108e9e`), et `svcStartInterProcessDma` n'a qu'un seul appelant (`start_dma`) ; les ports `0x1EE20000` et `0x1EE21000` sont des constantes de `0x1072e0` et des pages demandées par l'exheader.
@@ -531,7 +531,7 @@ Tant que le jeu ne fait pas de photo, un portage peut répondre « succès » pa
 - Les tables des registres des capteurs (`Default Registers - Out Camera`, `In Camera`, présentes dans les chaînes à `0x11aaea` et suivantes), les tables de gamma et de balance des blancs.
 - Le fil `cam:q` au-delà de la table de commandes (les huit commandes propres).
 - Le bruit d'obturateur (`PlayShutterSound*`, `csnd:SND`).
-- 742 fonctions restent sans nom, pour la plupart des méthodes de la bibliothèque d'objets du module et les fonctions de travail ci-dessus.
+- 159 fonctions restent sans nom (`local/analyse/camera/notes-100.md`) : le moteur des capteurs (scripts de registres), le gestionnaire des caméras, la file de commandes de csnd, et les commandes 0x3F, 0x41 à 0x44 de cam:u et 0x39 à 0x3B de cam:q.
 
 ## Comment cette fiche a été faite
 
@@ -545,7 +545,7 @@ Tant que le jeu ne fait pas de photo, un portage peut répondre « succès » pa
 | Écrire `camera.noms.tsv`, puis relancer `ghidra_direct.py` pour que les noms sortent | `mknames.py` | une minute |
 
 **Pièges rencontrés.**
-- Le pseudo-code d'une fonction Thumb perd souvent les arguments passés dans les registres et les remplace par `in_r3` ou des paramètres fantômes : les en-têtes de réponse lus dans `ipc_write_header(…, numéro, mots, descripteurs)` sont fiables, les arguments des petites fonctions d'enveloppe (comme `cam_SetEffect`) ne le sont pas, il faut lire l'assembleur.
+- Le pseudo-code d'une fonction Thumb perd souvent les arguments passés dans les registres et les remplace par `in_r3` ou des paramètres fantômes : les en-têtes de réponse lus dans `ipc_set_header(…, numéro, mots, descripteurs)` sont fiables, les arguments des petites fonctions d'enveloppe (comme `cam_SetEffect`) ne le sont pas, il faut lire l'assembleur.
 - `emulate_dispatch.py` rend « la fonction appelée » ; quand deux commandes ont la même, il faut lire le contexte (la commande `0x40`).
 - Les appels dont le nom est long sont coupés en deux lignes dans le pseudo-code une fois nommés : un script qui cherche `nom(` doit accepter un retour à la ligne avant la parenthèse.
 
