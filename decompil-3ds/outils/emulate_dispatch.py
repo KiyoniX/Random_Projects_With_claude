@@ -183,32 +183,38 @@ class Module:
         return half & 0xFE00 == 0xB400 or word >> 28 != 0xE
 
     def count_call_sites(self):
-        """Combien d'endroits du module appellent chaque adresse, par un balayage brut de .text : « bl » ARM tous les
-        4 octets, paires « bl / blx » Thumb tous les 2 octets. Des données prises pour des appels ajoutent un peu de
-        bruit ; on ne s'en sert que pour distinguer « appelée de partout » de « appelée d'un seul endroit »."""
+        """Combien d'endroits du module appellent chaque adresse (iter_calls sur .text). Des données prises pour des
+        appels ajoutent un peu de bruit ; on ne s'en sert que pour distinguer « appelée de partout » de « appelée d'un
+        seul endroit »."""
         sites = {}
-        code, base = self.code, self.text_base
-        for offset in range(0, self.text_size - 3, 2):
-            first, second = struct.unpack_from('<HH', code, offset)
-            if first >> 11 == 0x1E and second >> 11 in (0x1F, 0x1D):
-                distance = (first & 0x7FF) << 12 | (second & 0x7FF) << 1
-                if distance & 0x400000:
-                    distance -= 0x800000
-                target = base + offset + 4 + distance
-                if second >> 11 == 0x1D:              # blx : la cible est en ARM, alignée sur 4
-                    target &= ~3
-                if self.in_text(target):
-                    sites.setdefault(target, set()).add(base + offset)
-            if offset % 4 == 0:
-                word = struct.unpack_from('<I', code, offset)[0]
-                if word & 0x0F000000 == 0x0B000000 and word >> 28 != 0xF or word >> 25 == 0x7D:
-                    distance = (word & 0xFFFFFF) << 2
-                    if distance & 0x2000000:
-                        distance -= 0x4000000
-                    target = base + offset + 8 + distance + (word >> 23 & 2 if word >> 28 == 0xF else 0)
-                    if self.in_text(target):
-                        sites.setdefault(target, set()).add(base + offset)
+        for site, target in iter_calls(self.code, self.text_base, self.text_size):
+            sites.setdefault(target, set()).add(site)
         return {target: len(callers) for target, callers in sites.items()}
+
+
+def iter_calls(code, base, size):
+    """(site, cible) de chaque appel par un balayage brut de .text : « bl » ARM tous les 4 octets, paires « bl / blx »
+    Thumb tous les 2 octets. Seules les cibles qui tombent dans .text sont rendues."""
+    for offset in range(0, size - 3, 2):
+        first, second = struct.unpack_from('<HH', code, offset)
+        if first >> 11 == 0x1E and second >> 11 in (0x1F, 0x1D):
+            distance = (first & 0x7FF) << 12 | (second & 0x7FF) << 1
+            if distance & 0x400000:
+                distance -= 0x800000
+            target = base + offset + 4 + distance
+            if second >> 11 == 0x1D:              # blx : la cible est en ARM, alignée sur 4
+                target &= ~3
+            if base <= target < base + size:
+                yield base + offset, target
+        if offset % 4 == 0:
+            word = struct.unpack_from('<I', code, offset)[0]
+            if word & 0x0F000000 == 0x0B000000 and word >> 28 != 0xF or word >> 25 == 0x7D:
+                distance = (word & 0xFFFFFF) << 2
+                if distance & 0x2000000:
+                    distance -= 0x4000000
+                target = base + offset + 8 + distance + (word >> 23 & 2 if word >> 28 == 0xF else 0)
+                if base <= target < base + size:
+                    yield base + offset, target
 
 
 def load_names(path):

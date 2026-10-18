@@ -7,6 +7,7 @@ import garc
 import ghidra_direct
 import ghidra_raw
 import inspecter
+import ipc_trace
 import lz11
 import nand
 import oracles
@@ -27,6 +28,7 @@ if __name__ == '__main__':
     nand.test()
     assert not couverture.test(), "couverture : essais en échec"
     assert not oracles.test(), "oracles : essais en échec"
+    assert not ipc_trace.test(), "ipc_trace : essais en échec"
     # Le banc d'essai (banc/tests.py) : programme ARM fabriqué, et le vrai jeu jusqu'au palier P1 s'il est là.
     import importlib.util
     import os
