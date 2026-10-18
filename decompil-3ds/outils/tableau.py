@@ -96,7 +96,8 @@ def render(etat):
     row(port, 'Fonctions recompilées (ARM → C)', f['recompilees'] / f['total'], 0, '%d/%d' % (f['recompilees'], f['total']))
     row(port, 'Fonctions citées dans les fiches', f['citees'] / f['total'], 0, '%d/%d' % (f['citees'], f['total']))
 
-    head = Text('Mis à jour le %s — prochaine action : %s' % (etat['mise_a_jour'], etat['prochaine_action']), 'grey62')
+    stamp = time.strftime('%d/%m/%Y à %H:%M', time.localtime(os.path.getmtime(ETAT)))
+    head = Text('Mis à jour le %s — prochaine action : %s' % (stamp, etat['prochaine_action']), 'grey62')
     return Panel(Group(head, Text(), paliers, Text(), decomp, Text(), port, Text(), modules), title='Décompil 3DS — avancement',
                  border_style='cyan')
 
