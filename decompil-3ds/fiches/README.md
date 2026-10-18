@@ -31,7 +31,7 @@ Chaque fiche a la même forme : carte d'identité, structure, tableaux des comma
 | [ac](ac.md) | la connexion Wi-Fi | `ac:u` (65 commandes), `ac:i` (162 de plus, noms de 3dbrew pour 106), la configuration de 0x200 octets | 286 sur 1 575 |
 | [errdisp](errdisp.md) | l'écran d'erreur fatale | le port `err:f`, Throw et SetUserString, le classement des genres d'erreur, les notifications de veille ; le dessin n'est pas lu | 34 sur 709 |
 | [ssl](ssl.md) | le client TLS | les 32 commandes de `ssl:C`, trois tables de méthodes (session, gestionnaire, contexte), SeedRNG et GenerateRandomData jusqu'à `ps:ps` | 98 sur 2 638 |
-| [cecd](cecd.md) | le démon StreetPass | `cecd:u` (22 commandes), `cecd:s` (38), `cecd:ndm` (8), les CecCommands, ReadMessage pas à pas | 108 sur 1 731 |
+| [cecd](cecd.md) | le démon StreetPass | `cecd:u` (22 commandes), `cecd:s` (38), `cecd:ndm` (8), les CecCommands, ReadMessage pas à pas | 236 sur 1 757 |
 | [socket](socket.md) | la pile réseau (TCP/IP) | `soc:U` (35 commandes), `soc:P` (9), InitializeSockets pas à pas, la structure de gethostbyname | 126 sur 829 |
 | [http](http.md) | le client HTTP et HTTPS | les 66 commandes de `http:C` sur trois étages (session, client, contexte), le chemin d'une requête | 326 sur 739 |
 | [friends](friends.md) | la liste d'amis | `frd:u` (54 commandes), `frd:a` (70), `frd:n` (4), GetFriendKeyList pas à pas | 170 sur 4 666 |
