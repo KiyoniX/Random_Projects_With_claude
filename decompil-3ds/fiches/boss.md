@@ -11,7 +11,7 @@ Fiche du 16 octobre 2026, produite avec Ghidra sans le pont REA (`outils/ghidra_
 | Titre | `0004013000003402`, un titre de la CTRNAND (lu dans l'exheader) ; nom interne `boss`, priorité 62 (`0x3E`) |
 | Fichier lu | `local/extrait/boss/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x43FBC` octets de code (`0x44` pages), `0x4A7C` de données en lecture seule (5 pages, à `0x144000`), `0x27D4` de données (3 pages, à `0x149000`), `0x26D64` de mémoire à zéro, pile de `0x2000` |
-| Fonctions | 3 690 pour Ghidra (3 580 en Thumb, 110 en ARM), plus 53 entrées (50 manquées, 3 posées à la main), moins 215 qui ne sont pas des fonctions (cas des trois aiguillages, suites coupées après `ipc_set_header`, réserves de littéraux, boucles, rang de division, bloc d'exception) et 8 fonctions mortes : 3 520 ; 282 nommées dans `boss.noms.tsv`, 1 226 avec `local/analyse/boss/noms-proposes.tsv` (beaucoup de bibliothèques embarquées : HTTP, la pile réseau NEX `NEX_2_4_1_S25`, XML) |
+| Fonctions | 3 690 pour Ghidra (3 580 en Thumb, 110 en ARM), plus 58 entrées manquées (veneers, cases Thumb, rappels), moins 221 qui ne sont pas des fonctions ou sont du code mort (`boss.hors-compte.tsv`) : 3 527 ; 384 nommées dans `boss.noms.tsv` ; 844 proposées en première passe et 548 en seconde, dans `local/analyse/boss/` (beaucoup de bibliothèques embarquées : HTTP, la pile réseau NEX `NEX_2_4_1_S25`, XML) |
 | Services offerts | `boss:U` (2 sessions), `boss:P` (4), `boss:M` (1) : chaînes à `0x14400C`, `0x144013`, `0x14401A`, lues par `boss_service_main` (`0x100884`) |
 | Services appelés | lus dans l'exheader : `http:C`, `ac:u`, `ptm:s`, `ptm:play`, `cfg:s`, `fs:USER`, `ps:ps`, `frd:u`, `cecd:s`. Dans le code, des chaînes pour `fs:USER` (`0x144CA7`), `fs:LDR` (`0x144CA0`), `http:C` (`0x144CBC`), `srv:pm`, `cecd:u`, `cecd:s`, `ptm:sysm`, `ptm:s`, `ptm:gets`, `ptm:u`, `ptm:play`, `gsp::Lcd`, `gsp::Gpu` ; `ac:u` est ouvert par `ac_u_open` (`0x100990`, chaîne `0x144C44` elle-même, citée par le mot `0x100A28`) et `frd:u` par `frd_u_open` (`0x127920`, chaîne en `0x1279C0`, lue par `adr` en `0x127952`) ; la chaîne `cecd:u` (`0x144D70`) n'est lue par aucun code |
 | Appelants connus | Pokémon X : 28 commandes de `boss:U` (partie 5) ; `ndm` : `boss:M` (`fiches/ndm.md`) |
@@ -252,13 +252,13 @@ Les noms sont ceux de la Carte (tirés de 3dbrew). Les en-têtes de requête («
 
 | N° | En-tête de requête | Commande (Carte) | Gestionnaire | Vérifié | Réponse |
 | --- | --- | --- | --- | --- | --- |
-| 0x1 | `0x00010002` | (sans nom) | `0x1389a0` | entier | `0x00010040` |
-| 0x2 | `(numéro seul)` | (sans nom) | `0x1389f4` | numéro | `0x00020040` |
-| 0x3 | `(numéro seul)` | (sans nom) | `0x1389fc` | numéro | `0x00030040` |
-| 0x4 | `(numéro seul)` | (sans nom) | `0x1389bc` | numéro | `0x00040042` |
-| 0x5 | `(numéro seul)` | (sans nom) | `0x138990` | numéro | `0x00050080` |
-| 0x6 | `(numéro seul)` | (sans nom) | `0x1389ac` | numéro | `0x00060080` |
-| 0x7 | `(numéro seul)` | (sans nom) | `0x1389d4` | numéro | `0x00070080` |
+| 0x1 | `0x00010002` | (sans nom) : range l'identifiant de processus du descripteur `0x20` et marque la session | `0x1389a0` | entier | `0x00010040` |
+| 0x2 | `(numéro seul)` | (sans nom) : reprise du démon (état 0, `boss_core_request_resume`) | `0x1389f4` | numéro | `0x00020040` |
+| 0x3 | `(numéro seul)` | (sans nom) : suspension du démon (état 2, attente si l'octet du mot 1 est non nul) | `0x1389fc` | numéro | `0x00030040` |
+| 0x4 | `(numéro seul)` | (sans nom) : rend la poignée d'événement de changement d'état du démon | `0x1389bc` | numéro | `0x00040042` |
+| 0x5 | `(numéro seul)` | (sans nom) : état du démon (octet +0 du cœur) | `0x138990` | numéro | `0x00050080` |
+| 0x6 | `(numéro seul)` | (sans nom) : minutes avant la prochaine tâche (au moins 30) | `0x1389ac` | numéro | `0x00060080` |
+| 0x7 | `(numéro seul)` | (sans nom) : rend puis efface l'octet « alarme reçue » (+0x1104) | `0x1389d4` | numéro | `0x00070080` |
 
 
 **Écarts avec la Carte.** La Carte donne `0x00030040` pour la commande 3 de `boss:M` ; le code n'en compare que le numéro. La commande 0x1F de `boss:U` (GetTaskFinishHandle) rend une poignée (réponse `0x001F0042`) ; 0x15 (SendPropertyHandle) en reçoit une. La commande 0x16 (ReceiveProperty) rend en plus un mot (`0x00160082`).
@@ -292,7 +292,7 @@ Requête `0x002F0140` (5 mots ordinaires : identifiant d'extdata u64 aux mots 1-
 
 1. Contrôle de session (`boss_user_get_session_program`, `0x11A61A`) : l'octet « initialisé » (session `+0xE10`) à 0 donne `0xC8A0F82B` ; sinon l'identifiant de programme (u64, session `+0xE18`) est pris.
 2. Sous le verrou général du cœur, il appelle `fs:USER` `CheckAuthorityToAccessExtSaveData` (`0x083D0100` : média, identifiant d'extdata en deux mots, identifiant de processus de la session). Un refus ou un échec donne `0xC8A0F840`.
-3. Il cherche dans le gestionnaire de stockages l'enregistrement du programme (clé = identifiant de programme) et en écrit un de `0x120` octets : identifiant de programme (+0, +4), validité (+8 = 1), type (+9), u16 (+0xA), taille (+0xC), extdata (+0x10, +0x14), statut 1 ou 2 selon que le programme est déjà dans la liste des 8 programmes notifiés.
+3. Il cherche dans le gestionnaire de stockages l'enregistrement du programme (clé = identifiant de programme) et en écrit un de `0x120` octets (`0x134b36`, sous le verrou `+0x39c`) : identifiant de programme (+0, +4), statut (+8 : 1, ou 2 si le programme est déjà dans la liste des 8 programmes qui ont ouvert une session `boss:P`, `boss_storage_has_session_program` `0x134696`, liste remplie par InitializeSessionPrivileged via `0x134564`), validité (+0x10 = 1), type (+0x11), u16 (+0x12), taille (+0x14), extdata (+0x18, +0x1C) ; il ne réécrit que si l'enregistrement change.
 4. Il rend 0.
 
 Dépendance : un `boss` réel a besoin que `fs` réponde « vrai » à CheckAuthority pour l'extdata du jeu ; **un remplaçant de `boss` n'a pas à appeler `fs`**, mais doit refléter ce résultat (rendre 0).
@@ -354,4 +354,4 @@ Les propriétés sont un bloc de la session ; SendProperty, ids acceptés -> (d�
 
 **Interprété** : l'attribution de `0x131C30` à `boss:P` et de `0x130C00` à `boss:M` ; `bossdb:` comme la sauvegarde système `0x00010034` ; les noms des structures (base de tâches, gestionnaire de stockages) ; le sens des propriétés ; les réponses minimales (le code les accepte, mais la réaction du jeu n'est pas lue).
 
-**Pas lu** : le planificateur, le transfert HTTP, la pile NEX, le XML des politiques et les mises à jour réelles ; le sens des octets d'état de tâche et la structure des pages (seulement les décalages) ; GetNsDataIdList (variantes 0x10, 0x11, 0x13) et ReadNsData en détail ; les 27 commandes de `boss:U` que le jeu n'envoie pas (une ligne chacune dans les notes) ; les 88 commandes privilégiées de `boss:P` ; les 7 commandes de `boss:M` ; la réaction du jeu aux codes d'erreur.
+**Pas lu** : la pile NEX, les mises à jour réelles ; le sens des octets d'état d'étape ; GetNsDataIdList (variantes 0x10, 0x11, 0x13) et ReadNsData en détail ; les 27 commandes de `boss:U` que le jeu n'envoie pas (une ligne chacune dans les notes) ; la réaction du jeu aux codes d'erreur. Le planificateur, le transfert HTTP, la liste de politiques (XML) et les 7 commandes de `boss:M` sont lus dans `local/analyse/boss/notes-100-2.md` (non relu).
