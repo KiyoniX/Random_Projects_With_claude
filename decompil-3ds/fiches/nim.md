@@ -11,12 +11,12 @@ Fiche du 16 octobre 2026, **fiche courte** : arrêt demandé en cours de route. 
 | Titre | `0004013000002C02`, un titre de la CTRNAND ; nom interne `nim`, priorité 61 (`0x3D`) |
 | Fichier lu | `local/extrait/nim/exefs/code.bin`, avec `exheader.bin` |
 | Taille | `0x5017C` octets de code (`0x51` pages), `0x4020` de données en lecture seule (5 pages), `0x9A8` de données (1 page), `0x1302C8` de mémoire à zéro (1,2 Mo : tampons des requêtes), pile de `0x1000` |
-| Fonctions | 3 481 comptées (3 466 pour Ghidra, dont 3 346 en Thumb et 120 en ARM) ; 280 nommées dans `nim.noms.tsv`, 930 avec les propositions, aucun nom sans fonction |
+| Fonctions | 3 507 comptées (3 466 pour Ghidra, dont 3 346 en Thumb et 120 en ARM, + 73 entrées manquées − 32 hors compte) ; 280 nommées dans `nim.noms.tsv`, 928 avec les propositions du premier lot, 1 339 avec celles du second, aucun nom sans fonction |
 | Services offerts | `nim:u`, `nim:s`, `nim:ndm`, `nim:aoc` (table de quatre pointeurs de noms à `0x15629C`, noms de `0x15133C` à `0x151350`) |
 | Services appelés | lus dans l'exheader : `fs:USER`, `am:net`, `ac:u`, `http:C`, `cfg:s`, `ptm:s`, `ptm:gets`. Dans le code, des chaînes pour `am:net` (`0x151912`), `http:C` (`0x1519E4`, `0x1519EB`), `fs:USER` (`0x1519CF`) |
 | Appelants connus | `nim:u` : `menu` et `news` ; `nim:s` : `mint` ; `nim:aoc` : `maj`, `menu`, `skater` ; `nim:ndm` : `ndm` (exheaders et `fiches/ndm.md`). Pokémon X n'ouvre aucun des quatre |
 | Fichiers de `nimdb:` | `account.dat`, `purchase_aoc.flg`, `autodbg.dat`, `dbgtasks.dat`, `cc.dat`, `dtl.xml`, `hash.dat`, `initacc.dat`, `ivs.dat`, `tsl.xml`, `tsl.xml.tmp`, `task.dat`, `tax.dat` (chaînes de `0x151070` à `0x151878`) |
-| Serveurs | trois adresses https : le service de commerce (`ecs`), celui de solde (`ninja`) et celui de mise à jour (`nus`), chaînes à `0x1511BC`, `0x1514B0`, `0x1514F4` et `0x151533` |
+| Serveurs | trois adresses https : le service de commerce (`ecs`), celui de solde (`ninja`) et celui de mise à jour (`nus`), chaînes à `0x1511BC`, `0x1514B0`, `0x1514F4` et `0x151533` ; plus les notifications `https://%c-npns.app.nintendo.net/api/v1/` (`0x117DA8`) et les graines `https://%s/title/0x%016llx/ext_key?country=%s` sur `kagiya-ctr.cdn.nintendo.net` (`0x113F88`) |
 
 ## Partie 1 : le démarrage et le serveur
 
@@ -33,7 +33,7 @@ L'appariement vient de la comparaison avec la Carte : `0x107F78` retrouve les 46
 
 ## Partie 2 : les commandes
 
-Les noms et les en-têtes sont ceux de la Carte (3dbrew). **La Carte ne connaît que 46, 36, 8 et 5 commandes** ; le code en a 46, 94, 38 et 5 : `nim:s` et `nim:aoc` ont donc 58 et 30 commandes sans nom de la Carte. Pour les 32 commandes de `nim:s` et `nim:aoc` que l'émulation a refusées (descripteurs), 14 sur 32 localisés : leur gestionnaire est appelé depuis le corps de l'aiguillage (table de demi-mots décodée) ; les 18 autres restent dans l'aiguillage : « non émulée » ne porte plus que sur l'en-tête de réponse.
+Les noms et les en-têtes sont ceux de la Carte (3dbrew). **La Carte ne connaît que 46, 36, 8 et 5 commandes** ; le code en a 46, 94, 38 et 5 : `nim:s` et `nim:aoc` ont donc 58 et 30 commandes sans nom de la Carte. Les 32 commandes de `nim:s` et `nim:aoc` que l'émulation a refusées (descripteurs) ont toutes leur gestionnaire localisé : il est appelé depuis le corps de l'aiguillage (table de demi-mots après le « add pc, r3 » de `0x1039F4` et `0x1055AE`, puis le bl du cas) ; « non émulée » ne porte plus que sur l'en-tête de réponse. Les commandes 0x09, 0x36 et 0x37 de `nim:s` n'ont pas de gestionnaire : le cas répond lui-même 0xE0C0D3F4.
 
 ### `nim:u` (aiguillage `nim_u_dispatch_command` à `0x107f78`)
 
@@ -97,15 +97,15 @@ Les noms et les en-têtes sont ceux de la Carte (3dbrew). **La Carte ne connaît
 | 0x6 | `0x00060080` | IsTaskRegistered | `nim_s_cmd_0006_IsTaskRegistered` | `0x10CC14` | émulation | numéro | `0x00060080` |
 | 0x7 | `0x00070080` | GetTaskInfoFromTitleId | `nim_s_cmd_0007_GetTaskInfoFromTitleId` | `0x10CA50` | émulation | numéro | `0x00070042` |
 | 0x8 | `0x00080042` | GetTaskList | `nim_s_cmd_0008_GetTaskList` | `0x10CBBC` | émulation | entier | `0x00080082` |
-| 0x9 | `` | (absente de la Carte) | dans l'aiguillage |  | émulation | numéro | `0x00090040` |
+| 0x9 | `` | (absente de la Carte) | aucun : réponse posée dans l'aiguillage (cas en 0x1057e8 : en-tête (0x9, 1, 0) et résultat 0xE0C0D3F4) |  | émulation | numéro | `0x00090040` |
 | 0xA | `0x000A0000` | CheckSysupdateAvailableSOAP | `nim_s_cmd_000A_CheckSysupdateAvailableSOAP` | `0x10E014` | émulation | numéro | `0x000A0080` |
 | 0xB | `0x000B0084` | SetAttribute | `nim_s_cmd_000B_SetAttribute` | `0x1114DC` | émulation | entier | `0x000B0040` |
 | 0xC | `0x000C0082` | SetAttributeInt32 | `nim_s_cmd_000C_SetAttributeInt32` | `0x10D250` | émulation | entier | `0x000C0040` |
 | 0xD | `0x000D0082` | Connect | `nim_s_cmd_000D_Connect` | `0x10FB30` | émulation | entier | `0x000D0082` |
 | 0xE | `0x000E0000` | UnregisterSOAP | `nim_s_cmd_000E_UnregisterSOAP` | `0x10C534` | émulation | numéro | `0x000E0040` |
 | 0xF | `0x000F0042` | SetCountrySOAP | `nim_s_cmd_000F_SetCountrySOAP` | `0x10C45C` | émulation | entier | `0x000F0040` |
-| 0x10 | `0x00100080` | Inconnue | sans nom | `0x10FC38` | émulation | numéro | `0x00100040` |
-| 0x11 | `0x001100C4` | Inconnue | sans nom | `0x10FC30` | émulation | entier | `0x00110082` |
+| 0x10 | `0x00100080` | Inconnue | `nim_s_cmd_0010_unsupported` | `0x10FC38` | émulation | numéro | `0x00100040` |
+| 0x11 | `0x001100C4` | Inconnue | `nim_s_cmd_0011_unsupported` | `0x10FC30` | émulation | entier | `0x00110082` |
 | 0x12 | `0x00120084` | SetExternalAccountSOAP | `nim_s_cmd_0012_SetExternalAccountSOAP` | `0x10E46C` | émulation | entier | `0x00120040` |
 | 0x13 | `0x00130042` | DeleteExternalAccountSOAP | `nim_s_cmd_0013_DeleteExternalAccountSOAP` | `0x10EB00` | émulation | entier | `0x00130040` |
 | 0x14 | `0x00140000` | DeleteSavedCardSOAP | `nim_s_cmd_0014_DeleteSavedCardSOAP` | `0x10EB90` | émulation | numéro | `0x00140040` |
@@ -115,37 +115,37 @@ Les noms et les en-têtes sont ceux de la Carte (3dbrew). **La Carte ne connaît
 | 0x18 | `0x0018020A` | ListItemsSOAP | `nim_s_cmd_0018_ListItemsSOAP` | `0x10D910` | émulation | entier | non émulée |
 | 0x19 | `0x0019028C` | ListContentSetGroupsSOAP | `nim_s_cmd_0019_ListContentSetGroupsSOAP` | `0x10E984` | émulation | entier | non émulée |
 | 0x1A | `0x001A0704` | (absente de la Carte) | sans nom | `0x10DD20` | émulation | entier | `0x001A08C2` |
-| 0x1B | `0x001B090E` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x1C | `0x001C06D0` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x1D | `0x001D07D4` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
+| 0x1B | `0x001B090E` | (absente de la Carte) | sans nom | `0x10CEDC` | émulation ; aiguillage décodé (cas en 0x1060b6, bl en 0x106234) | entier | non émulée |
+| 0x1C | `0x001C06D0` | (absente de la Carte) | sans nom | `0x10E204` | émulation ; aiguillage décodé (cas en 0x106294, bl en 0x10640a) | entier | non émulée |
+| 0x1D | `0x001D07D4` | (absente de la Carte) | sans nom | `0x10E5AC` | émulation ; aiguillage décodé (cas en 0x10645c, bl en 0x10662c) | entier | non émulée |
 | 0x1E | `0x001E0104` | GetTaxesSOAP | `nim_s_cmd_001E_GetTaxesSOAP` | `0x10CAC0` | émulation | entier | `0x001E0082` |
 | 0x1F | `0x001F0106` | GetTaxLocationSOAP | `nim_s_cmd_001F_GetTaxLocationSOAP` | `0x10D674` | émulation | entier | `0x001F0082` |
 | 0x20 | `0x00200808` | (absente de la Carte) | `nim_s_cmd_0020_GetPurchaseInfoSOAP` | `0x10D518` | émulation | entier | `0x00200082` |
-| 0x21 | `0x0021060A` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
+| 0x21 | `0x0021060A` | (absente de la Carte) | `nim_s_cmd_0021_GetPurchaseInfoEncryptedCardSOAP` | `0x10F1A4` | émulation ; aiguillage décodé (cas en 0x1068ce, bl en 0x1069bc) | entier | non émulée |
 | 0x22 | `0x00220080` | AccountDeleteTitleETicketsSOAP | `nim_s_cmd_0022_AccountDeleteTitleETicketsSOAP` | `0x10E834` | émulation | numéro | `0x00220040` |
 | 0x23 | `0x00230106` | (absente de la Carte) | `nim_s_cmd_0023_CheckECardSOAP` | `0x10C048` | émulation | entier | `0x00230082` |
 | 0x24 | `0x0024024C` | (absente de la Carte) | `nim_s_cmd_0024_ListECardItemsSOAP` | `0x10D014` | émulation | entier | non émulée |
 | 0x25 | `0x002504C4` | (absente de la Carte) | sans nom | `0x10C328` | émulation | entier | `0x00250882` |
-| 0x26 | `0x002601C6` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x27 | `0x002701C6` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x28 | `0x0028024A` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
+| 0x26 | `0x002601C6` | (absente de la Carte) | sans nom | `0x10C7E4` | émulation ; aiguillage décodé (cas en 0x106cb6, bl en 0x106d4c) | entier | non émulée |
+| 0x27 | `0x002701C6` | (absente de la Carte) | sans nom | `0x10DBEC` | émulation ; aiguillage décodé (cas en 0x106d72, bl en 0x106e0c) | entier | non émulée |
+| 0x28 | `0x0028024A` | (absente de la Carte) | sans nom | `0x10E034` | émulation ; aiguillage décodé (cas en 0x106e46, bl en 0x106f1c) | entier | non émulée |
 | 0x29 | `0x00290000` | AccountCheckBalanceSOAP | `nim_s_cmd_0029_AccountCheckBalanceSOAP` | `0x10C16C` | émulation | numéro | `0x00290440` |
 | 0x2A | `0x002A0082` | (absente de la Carte) | `nim_s_cmd_002A_CurrencyAccountsCheckBalanceSOAP` | `0x10CC6C` | émulation | entier | `0x002A0082` |
 | 0x2B | `0x002B0082` | (absente de la Carte) | `nim_s_cmd_002B_AccountListETicketIdsSOAP` | `0x10EFB0` | émulation | entier | `0x002B0082` |
 | 0x2C | `0x002C00C4` | (absente de la Carte) | `nim_s_cmd_002C_AccountGetETicketDetailsSOAP` | `0x10DF1C` | émulation | entier | `0x002C0084` |
 | 0x2D | `0x002D0042` | DownloadTickets | `nim_s_cmd_002D_DownloadTickets` | `0x10D390` | émulation | entier | `0x002D0040` |
 | 0x2E | `0x002E0184` | (absente de la Carte) | sans nom | `0x10EC04` | émulation | entier | `0x002E0102` |
-| 0x2F | `0x002F01CA` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x30 | `` | (absente de la Carte) | sans nom | `0x10CD8C` | émulation | numéro | `0x003000C0` |
-| 0x31 | `` | (absente de la Carte) | sans nom | `0x10EE58` | émulation | numéro | `0x00310080` |
-| 0x32 | `0x00320002` | (absente de la Carte) | sans nom | `0x10D4AC` | émulation | entier | `0x00320042` |
+| 0x2F | `0x002F01CA` | (absente de la Carte) | sans nom | `0x10DDD4` | émulation ; aiguillage décodé (cas en 0x1071b0, bl en 0x107270) | entier | non émulée |
+| 0x30 | `` | (absente de la Carte) | `nim_s_cmd_0030_GetServerTime` | `0x10CD8C` | émulation | numéro | `0x003000C0` |
+| 0x31 | `` | (absente de la Carte) | `nim_s_cmd_0031_GetCustomerSupportCode` | `0x10EE58` | émulation | numéro | `0x00310080` |
+| 0x32 | `0x00320002` | (absente de la Carte) | `nim_s_cmd_0032_GetErrorMessage` | `0x10D4AC` | émulation | entier | `0x00320042` |
 | 0x33 | `` | (absente de la Carte) | `nim_s_cmd_0033_GetStandbyModeSOAP` | `0x10CF94` | émulation | numéro | `0x00330080` |
 | 0x34 | `` | (absente de la Carte) | sans nom | `0x10DA98` | émulation | numéro | `0x003400C0` |
 | 0x35 | `` | (absente de la Carte) | `nim_s_cmd_0035_GetCountryMigrateAttributesSOAP` | `0x10F404` | émulation | numéro | `0x003500C0` |
-| 0x36 | `` | (absente de la Carte) | dans l'aiguillage |  | émulation | numéro | `0x00360040` |
-| 0x37 | `` | (absente de la Carte) | dans l'aiguillage |  | émulation | numéro | `0x00370040` |
+| 0x36 | `` | (absente de la Carte) | aucun : réponse posée dans l'aiguillage (cas en 0x10737c : en-tête (0x36, 1, 0) et résultat 0xE0C0D3F4) |  | émulation | numéro | `0x00360040` |
+| 0x37 | `` | (absente de la Carte) | aucun : réponse posée dans l'aiguillage (cas en 0x107386 : en-tête (0x37, 1, 0) et résultat 0xE0C0D3F4) |  | émulation | numéro | `0x00370040` |
 | 0x38 | `0x00380044` | (absente de la Carte) | sans nom | `0x10CE04` | émulation | entier | `0x00380042` |
-| 0x39 | `` | (absente de la Carte) | sans nom | `0x10CF7C` | émulation | numéro | `0x00390040` |
+| 0x39 | `` | (absente de la Carte) | `nim_s_cmd_0039_CheckInitialized` | `0x10CF7C` | émulation | numéro | `0x00390040` |
 | 0x3A | `0x003A0082` | (absente de la Carte) | `nim_s_cmd_003A_DownloadTmd` | `0x10DE9C` | émulation | entier | `0x003A0042` |
 | 0x3B | `0x003B00C2` | (absente de la Carte) | `nim_s_cmd_003B_DownloadContent` | `0x10ED18` | émulation | entier | `0x003B0042` |
 | 0x3C | `0x003C0002` | RegisterSelf | `nim_s_cmd_003C_RegisterSelf` | `0x10DD68` | émulation | entier | `0x003C0040` |
@@ -153,32 +153,32 @@ Les noms et les en-têtes sont ceux de la Carte (3dbrew). **La Carte ne connaît
 | 0x3E | `` | (absente de la Carte) | sans nom | `0x10D158` | émulation | numéro | `0x003E0140` |
 | 0x3F | `0x003F0000` | GetInitializeResult | `nim_s_cmd_003F_GetInitializeResult` | `0x10E514` | émulation | numéro | `0x003F0040` |
 | 0x40 | `` | (absente de la Carte) | `nim_s_cmd_0040_GetIVSDataSOAP` | `0x10F480` | émulation | numéro | `0x00400040` |
-| 0x41 | `` | (absente de la Carte) | sans nom | `0x10FB04` | émulation | numéro | `0x00410080` |
+| 0x41 | `` | (absente de la Carte) | `nim_s_cmd_0041_GetSystemUpdateCustomerSupportCode` | `0x10FB04` | émulation | numéro | `0x00410080` |
 | 0x42 | `0x00420240` | StartDownload | `nim_s_cmd_0042_StartDownload` | `0x1119D4` | émulation | numéro | `0x00420040` |
 | 0x43 | `0x00430242` | (absente de la Carte) | sans nom | `0x10EE24` | émulation | entier | `0x00430040` |
 | 0x44 | `` | (absente de la Carte) | `nim_s_cmd_0044_GetContentSizesSOAP` | `0x10F7D4` | émulation | numéro | `0x004400C0` |
-| 0x45 | `0x00450242` | (absente de la Carte) | sans nom | `0x10F6A0` | émulation | entier | `0x004500C2` |
-| 0x46 | `0x00460184` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x47 | `` | (absente de la Carte) | sans nom | `0x10D00C` | émulation | numéro | `0x00470040` |
+| 0x45 | `0x00450242` | (absente de la Carte) | `nim_s_cmd_0045_CalculateContentsRequiredSize` | `0x10F6A0` | émulation | entier | `0x004500C2` |
+| 0x46 | `0x00460184` | (absente de la Carte) | `nim_s_cmd_0046_MoveAccountSOAP` | `0x10C6A4` | émulation ; aiguillage décodé (cas en 0x107652, bl en 0x1076ba) | entier | non émulée |
+| 0x47 | `` | (absente de la Carte) | `nim_s_cmd_0047_unsupported` | `0x10D00C` | émulation | numéro | `0x00470040` |
 | 0x48 | `` | (absente de la Carte) | sans nom | `0x10ED9C` | émulation | numéro | `0x00480080` |
-| 0x49 | `0x00490042` | (absente de la Carte) | sans nom | `0x10DA54` | émulation | entier | `0x004900C0` |
-| 0x4A | `0x004A0210` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
+| 0x49 | `0x00490042` | (absente de la Carte) | `nim_s_cmd_0049_GetAccountIdHash` | `0x10DA54` | émulation | entier | `0x004900C0` |
+| 0x4A | `0x004A0210` | (absente de la Carte) | `nim_s_cmd_004A_CreateTransferSOAP` | `0x10DAC4` | émulation ; aiguillage décodé (cas en 0x107760, bl en 0x107876) | entier | non émulée |
 | 0x4B | `0x004B0082` | (absente de la Carte) | `nim_s_cmd_004B_GetCountryAttributesSOAP` | `0x10E8AC` | émulation | entier | `0x004B0102` |
 | 0x4C | `0x004C04C6` | (absente de la Carte) | sans nom | `0x10E180` | émulation | entier | `0x004C08C4` |
-| 0x4D | `0x004D06D0` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x4E | `` | (absente de la Carte) | sans nom | `0x10FA48` | émulation | numéro | `0x004E0040` |
-| 0x4F | `` | (absente de la Carte) | sans nom | `0x10FAC4` | émulation | numéro | `0x004F0140` |
-| 0x50 | `` | (absente de la Carte) | sans nom | `0x10FA88` | émulation | numéro | `0x00500040` |
+| 0x4D | `0x004D06D0` | (absente de la Carte) | sans nom | `0x10D1A0` | émulation ; aiguillage décodé (cas en 0x1079f2, bl en 0x107b6a) | entier | non émulée |
+| 0x4E | `` | (absente de la Carte) | `nim_s_cmd_004E_SaveCcDat` | `0x10FA48` | émulation | numéro | `0x004E0040` |
+| 0x4F | `` | (absente de la Carte) | `nim_s_cmd_004F_LoadCcDat` | `0x10FAC4` | émulation | numéro | `0x004F0140` |
+| 0x50 | `` | (absente de la Carte) | `nim_s_cmd_0050_DeleteCcDat` | `0x10FA88` | émulation | numéro | `0x00500040` |
 | 0x51 | `` | (absente de la Carte) | `nim_s_cmd_0051_GetWalletInfoSOAP` | `0x10EE74` | émulation ; second appel vers `0x112F98` (`%snotifications/sweep.json`) | numéro | `0x00510140` |
 | 0x52 | `` | (absente de la Carte) | sans nom | `0x10EEFC` | émulation | numéro | `0x00520040` |
 | 0x53 | `` | (absente de la Carte) | sans nom | `0x10EF40` | émulation | numéro | `0x00530500` |
 | 0x54 | `0x005400C4` | (absente de la Carte) | `nim_s_cmd_0054_GetAccountAttributesByProfileSOAP` | `0x10F6DC` | émulation | entier | `0x00540102` |
 | 0x55 | `0x00550246` | RegisterTask | `nim_s_cmd_0055_RegisterTask` | `0x10CD60` | émulation | entier | non émulée |
-| 0x56 | `0x00560002` | (absente de la Carte) | sans nom | `0x10D430` | émulation | entier | `0x00560442` |
+| 0x56 | `0x00560002` | (absente de la Carte) | `nim_s_cmd_0056_GetBalance` | `0x10D430` | émulation | entier | `0x00560442` |
 | 0x57 | `0x00570082` | ConnectNoTicketDownload | `nim_s_cmd_0057_ConnectNoTicketDownload` | `0x10F0A4` | émulation | entier | `0x00570082` |
 | 0x58 | `0x00580082` | (absente de la Carte) | `nim_s_cmd_0058_AccountListETicketIdsSOAPChecked` | `0x10C918` | émulation | entier | `0x00580042` |
-| 0x59 | `` | (absente de la Carte) | sans nom | `0x10F3F4` | émulation | numéro | `0x00590040` |
-| 0x5A | `` | (absente de la Carte) | sans nom | `0x10F3E4` | émulation | numéro | `0x005A0240` |
+| 0x59 | `` | (absente de la Carte) | `nim_s_cmd_0059_SetInitAccAccountId` | `0x10F3F4` | émulation | numéro | `0x00590040` |
+| 0x5A | `` | (absente de la Carte) | `nim_s_cmd_005A_GetInitAccAccountId` | `0x10F3E4` | émulation | numéro | `0x005A0240` |
 | 0x5B | `0x005B0000` | DeleteInitAccSavedData | `nim_s_cmd_005B_DeleteInitAccSavedData` | `0x111A38` | émulation | numéro | `0x005B0040` |
 | 0x5C | `0x005C0000` | DeleteAccountSavedData | `nim_s_cmd_005C_DeleteAccountSavedData` | `0x111A1C` | émulation | numéro | `0x005C0040` |
 | 0x5D | `` | (absente de la Carte) | sans nom | `0x10F68E` | émulation | numéro | `0x005D0040` |
@@ -189,51 +189,51 @@ Les noms et les en-têtes sont ceux de la Carte (3dbrew). **La Carte ne connaît
 
 | N° | En-tête (Carte) | Commande (Carte) | Gestionnaire | Adresse | Source | Vérifié | Réponse |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| 0x1 | `` | (absente de la Carte) | sans nom | `0x10B248` | émulation | numéro | `0x00010080` |
+| 0x1 | `` | (absente de la Carte) | `nim_aoc_cmd_0001_CheckSysupdateAvailable` | `0x10B248` | émulation | numéro | `0x00010080` |
 | 0x2 | `0x00020002` | (absente de la Carte) | `nim_aoc_cmd_0002_SetAppIdFromCaller` | `0x10BC18` | émulation | entier | `0x00020040` |
 | 0x3 | `0x00030042` | SetApplicationId | `nim_aoc_cmd_0003_SetApplicationId` | `0x10AF20` | émulation | entier | `0x00030040` |
 | 0x4 | `0x00040042` | SetTin | `nim_aoc_cmd_0004_SetTin` | `0x10BE2C` | émulation | entier | `0x00040040` |
 | 0x5 | `` | (absente de la Carte) | `nim_aoc_cmd_0005_SetAge` | `0x10BDF4` | émulation | numéro | `0x00050040` |
-| 0x6 | `0x00060082` | (absente de la Carte) | sans nom | `0x10BEAC` | émulation | entier | `0x00060082` |
+| 0x6 | `0x00060082` | (absente de la Carte) | `nim_aoc_cmd_0006_Connect` | `0x10BEAC` | émulation | entier | `0x00060082` |
 | 0x7 | `0x0007020A` | (absente de la Carte) | `nim_aoc_cmd_0007_ListTitlesEx` | `0x109EE0` | émulation | entier | non émulée |
 | 0x8 | `0x0008020A` | (absente de la Carte) | `nim_aoc_cmd_0008_ListContentSetsExUnfiltered` | `0x10A960` | émulation | entier | non émulée |
 | 0x9 | `0x000902D0` | ListContentSetsEx | `nim_aoc_cmd_0009_ListContentSetsEx` | `0x10B0B4` | émulation | entier | non émulée |
 | 0xA | `0x000A020A` | (absente de la Carte) | `nim_aoc_cmd_000A_ListItems` | `0x10AAA4` | émulation | entier | non émulée |
 | 0xB | `0x000B02D0` | (absente de la Carte) | `nim_aoc_cmd_000B_ListItemsBetween` | `0x10B42C` | émulation | entier | non émulée |
 | 0xC | `0x000C05C6` | (absente de la Carte) | `nim_aoc_cmd_000C_ListContentSetGroups` | `0x10BA8C` | émulation | entier | `0x000C0084` |
-| 0xD | `0x000D090E` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0xE | `0x000E090E` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0xF | `0x000F0A12` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
+| 0xD | `0x000D090E` | (absente de la Carte) | sans nom | `0x10A340` | émulation ; aiguillage décodé (cas en 0x10436e, bl en 0x1044e8) | entier | non émulée |
+| 0xE | `0x000E090E` | (absente de la Carte) | sans nom | `0x10B5C0` | émulation ; aiguillage décodé (cas en 0x10450e, bl en 0x104686) | entier | non émulée |
+| 0xF | `0x000F0A12` | (absente de la Carte) | sans nom | `0x10B860` | émulation ; aiguillage décodé (cas en 0x1046e6, bl en 0x1048c4) | entier | non émulée |
 | 0x10 | `0x00100104` | (absente de la Carte) | `nim_aoc_cmd_0010_GetTaxes` | `0x10A158` | émulation | entier | `0x00100082` |
 | 0x11 | `0x00110106` | (absente de la Carte) | `nim_aoc_cmd_0011_GetTaxLocation` | `0x10A81C` | émulation | entier | non émulée |
 | 0x12 | `0x00120106` | (absente de la Carte) | `nim_aoc_cmd_0012_CheckECard` | `0x109D48` | émulation | entier | non émulée |
 | 0x13 | `0x0013024C` | (absente de la Carte) | `nim_aoc_cmd_0013_ListECardItems` | `0x10A5BC` | émulation | entier | non émulée |
 | 0x14 | `0x00140312` | (absente de la Carte) | `nim_aoc_cmd_0014_ListECardItemsBetween` | `0x10AC58` | émulation | entier | non émulée |
-| 0x15 | `0x001501C6` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x16 | `0x001601C6` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
-| 0x17 | `0x0017024A` | (absente de la Carte) | dans l'aiguillage |  | émulation | entier | non émulée |
+| 0x15 | `0x001501C6` | (absente de la Carte) | sans nom | `0x10A024` | émulation ; aiguillage décodé (cas en 0x104e46, bl en 0x104ee2) | entier | non émulée |
+| 0x16 | `0x001601C6` | (absente de la Carte) | sans nom | `0x10ADEC` | émulation ; aiguillage décodé (cas en 0x104ef4, bl en 0x104f8e) | entier | non émulée |
+| 0x17 | `0x0017024A` | (absente de la Carte) | sans nom | `0x10B268` | émulation ; aiguillage décodé (cas en 0x104fc0, bl en 0x105096) | entier | non émulée |
 | 0x18 | `0x00180000` | GetBalance | `nim_aoc_cmd_0018_GetBalance` | `0x109E6C` | émulation | numéro | `0x00180440` |
 | 0x19 | `0x00190182` | (absente de la Carte) | `nim_aoc_cmd_0019_AccountListPurchaseHistory` | `0x10B7C4` | émulation | entier | `0x001900C2` |
 | 0x1A | `` | (absente de la Carte) | sans nom | `0x10BC94` | émulation | numéro | `0x001A0080` |
 | 0x1B | `0x001B0104` | (absente de la Carte) | sans nom | `0x10AF9C` | émulation | entier | `0x001B0044` |
-| 0x1C | `` | (absente de la Carte) | sans nom | `0x10A254` | émulation | numéro | `0x001C00C0` |
+| 0x1C | `` | (absente de la Carte) | `nim_aoc_cmd_001C_GetCurrentTime` | `0x10A254` | émulation | numéro | `0x001C00C0` |
 | 0x1D | `0x001D0000` | GetCustomerSupportCode | `nim_aoc_cmd_001D_GetCustomerSupportCode` | `0x10BD68` | émulation | numéro | `0x001D0080` |
-| 0x1E | `0x001E0002` | (absente de la Carte) | sans nom | `0x10A7B0` | émulation | entier | `0x001E0042` |
+| 0x1E | `0x001E0002` | (absente de la Carte) | `nim_aoc_cmd_001E_GetErrorMessage` | `0x10A7B0` | émulation | entier | `0x001E0042` |
 | 0x1F | `` | (absente de la Carte) | `nim_aoc_cmd_001F_GetStandbyMode` | `0x10A544` | émulation | numéro | `0x001F0080` |
-| 0x20 | `` | (absente de la Carte) | sans nom | `0x10ABE8` | émulation | numéro | `0x002000C0` |
+| 0x20 | `` | (absente de la Carte) | `nim_aoc_cmd_0020_GetAccountIdHash` | `0x10ABE8` | émulation | numéro | `0x002000C0` |
 | 0x21 | `0x00210000` | Initialize | `nim_aoc_cmd_0021_Initialize` | `0x109ED0` | émulation | numéro | `0x00210040` |
 | 0x22 | `0x00220042` | (absente de la Carte) | sans nom | `0x10A700` | émulation | entier | `0x00220040` |
 | 0x23 | `0x00230282` | (absente de la Carte) | sans nom | `0x10BD34` | émulation | entier | `0x00230040` |
 | 0x24 | `0x00240282` | CalculateContentsRequiredSize | `nim_aoc_cmd_0024_CalculateContentsRequiredSize` | `0x10BD8C` | émulation | entier | `0x002400C2` |
 | 0x25 | `0x00250000` | RefreshServerTime | `nim_aoc_cmd_0025_RefreshServerTime` | `0x10B3B4` | émulation | numéro | `0x002500C0` |
-| 0x26 | `` | (absente de la Carte) | sans nom | `0x10BDC8` | émulation | numéro | `0x00260080` |
+| 0x26 | `` | (absente de la Carte) | `nim_aoc_cmd_0026_GetSystemUpdateCustomerSupportCode` | `0x10BDC8` | émulation | numéro | `0x00260080` |
 
 ### `nim:ndm` (aiguillage `nim_ndm_dispatch_command` à `0x105470`)
 
 | N° | En-tête (Carte) | Commande (Carte) | Gestionnaire | Adresse | Source | Vérifié | Réponse |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0x1 | `0x00010000` | GetDaemonEventHandle | `nim_ndm_cmd_0001_GetDaemonEventHandle` | `0x10C018` | émulation | numéro | `0x00010042` |
-| 0x2 | `0x00020000` | Inconnue | sans nom | `0x10C028` | émulation | numéro | `0x00020040` |
+| 0x2 | `0x00020000` | Inconnue | `nim_ndm_cmd_0002_nop` | `0x10C028` | émulation | numéro | `0x00020040` |
 | 0x3 | `0x00030000` | SetDaemonToWorkingState | `nim_ndm_cmd_0003_SetDaemonToWorkingState` | `0x10C038` | émulation | numéro | `0x00030040` |
 | 0x4 | `0x00040040` | SetDaemonToSuspendedState | `nim_ndm_cmd_0004_SetDaemonToSuspendedState` | `0x10C008` | émulation | numéro | `0x00040040` |
 | 0x5 | `0x00050000` | GetDaemonState | `nim_ndm_cmd_0005_GetDaemonState` | `0x10BFF8` | émulation | numéro | `0x00050080` |
@@ -241,7 +241,7 @@ Les noms et les en-têtes sont ceux de la Carte (3dbrew). **La Carte ne connaît
 
 ## Partie 3 : une opération, nim:ndm GetDaemonState
 
-`ndm` demande l'état du démon `nim` (`nim:ndm`, commande 5, `0x00050000`, réponse `0x00050080`). Lu avec `fiches/ndm.md` (`NIMNDM_GetDaemonState`, côté client) : l'aiguillage `0x105470` lit le numéro 5, appelle `nim_ndm_cmd_0005_GetDaemonState` (`0x10BFF8`) qui rend l'état courant du démon (travail, suspendu...), et répond un mot. Les quatre autres commandes sont dans la même fonction de client de `ndm` : `GetDaemonEventHandle` (1), la commande vide 2 (« ne fait rien » d'après 3dbrew), `SetDaemonToWorkingState` (3), `SetDaemonToSuspendedState` (4). Les cinq adresses de gestionnaire sont consécutives (`0x10BFF8` à `0x10C038`). Le corps de ces gestionnaires n'est pas lu.
+`ndm` demande l'état du démon `nim` (`nim:ndm`, commande 5, `0x00050000`, réponse `0x00050080`). Lu avec `fiches/ndm.md` (`NIMNDM_GetDaemonState`, côté client) : l'aiguillage `0x105470` lit le numéro 5, appelle `nim_ndm_cmd_0005_GetDaemonState` (`0x10BFF8`) qui rend l'état courant du démon (travail, suspendu...), et répond un mot. Les quatre autres commandes sont dans la même fonction de client de `ndm` : `GetDaemonEventHandle` (1), la commande vide 2 (« ne fait rien » d'après 3dbrew), `SetDaemonToWorkingState` (3), `SetDaemonToSuspendedState` (4). Les cinq adresses de gestionnaire sont consécutives (`0x10BFF8` à `0x10C038`). Trois corps sont lus : l'état est l'octet +8 de l'objet du démon (`nim_get_daemon_state`, `0x110888`), la poignée d'événement son mot +4 (`nim_get_daemon_event_handle`, `0x110890`), et la commande 2 rend 0 sans rien faire (`0x10C028`, `movs r0, #0`).
 
 ## Partie 4 : tables en mémoire
 
@@ -270,6 +270,6 @@ Rien : le jeu n'ouvre aucun service de `nim`. Pour le portage PC, `nim` n'a rien
 - Le rôle des fichiers de `nimdb:`, les noms des gestionnaires, l'usage de `nim:ndm`.
 
 **Pas lu** :
-- Tout le travail du module : les requêtes SOAP, l'authentification, les tâches de téléchargement, l'installation par `am:net`, la base `nimdb:`.
-- Les 17 et 15 commandes non localisées de `nim:s` et `nim:aoc`, et les 58 + 30 commandes sans nom.
+- Le détail des tâches de téléchargement et de l'installation par `am:net`, et les variantes d'achat (`AccountPurchaseTitle`) ; les requêtes SOAP, l'inscription (`ias`), les fichiers de `nimdb:` et les clients HTTP sont lus en partie (`local/analyse/nim/notes-100-2.md`).
+- Les commandes de `nim:s` et `nim:aoc` encore sans nom : 13 achats (`nim:s` 0x1B à 0x1D, 0x26 à 0x28, 0x4D ; `nim:aoc` 0x0D à 0x0F, 0x15 à 0x17) et les autres « sans nom » des tableaux.
 - Le nombre de sessions de chaque service.
