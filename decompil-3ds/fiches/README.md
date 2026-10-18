@@ -47,7 +47,7 @@ Chaque fiche a la même forme : carte d'identité, structure, tableaux des comma
 | [ps](ps.md) | signatures, aléa, identité | 17 commandes, relais vers Process9, aléa ; aucune clé dans le module ni dans la fiche | 83 sur 185 |
 | [am](am.md) | le gestionnaire d'applications | `am:app` (13 commandes), `am:sys` (58), `am:u` (83), `am:net` (124), un relais vers `pxi:am9` (88 commandes de Process9 recoupées), GetProgramList pas à pas | 245 sur 1 081 |
 | [news](news.md) | les notifications du menu HOME | `news:u` (1 commande), `news:s` (20), AddNotification pas à pas, la base `news.db` | 33 sur 719 |
-| [act](act.md) | les comptes Nintendo Network | `act:u` (34 commandes), `act:a` (87), GetAccountDataBlock pas à pas, les en-têtes envoyés au serveur de comptes ; aucun secret recopié | 88 sur 1 862 |
+| [act](act.md) | les comptes Nintendo Network | `act:u` (34 commandes), `act:a` (87), GetAccountDataBlock pas à pas, les en-têtes envoyés au serveur de comptes ; aucun secret recopié | 182 sur 1 860 |
 | [dlp](dlp.md) | le Téléchargement Jeu | `dlp:CLNT` (20), `dlp:SRVR` (16), `dlp:FKCL` (17), un fil par session, StartScan pas à pas | 54 sur 1 107 |
 | [mp](mp.md) | le multijoueur sans fil de bas niveau | `mp:u` (20 commandes), l'interruption liée, 16 nœuds, RecvDataFrame pas à pas | 22 sur 726 |
 | [nfc](nfc.md) | les amiibo (New 3DS) | six services (`nfc:u` 34 commandes, `r` 26, `p` 19, `s` 69, `dev` 19, `m` 55), les trois modes d'`Initialize` | 197 sur 2 389 |
