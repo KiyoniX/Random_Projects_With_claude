@@ -61,6 +61,7 @@
 0x1029a8	function	client_event_handles_dtor
 0x1029c4	function	session_threads_dtor
 0x1029e0	function	light_event_pulse
+0x102bf0	function	handle_holder_dtor
 0x102c2c	function	thread_dtor
 0x102c58	function	verify_rsa_sha256_signature
 0x102cb0	function	ps_close
@@ -75,6 +76,7 @@
 0x103228	function	dsp_mem_write_bytes
 0x103328	function	dsp_mem_read_bytes
 0x103500	function	memclr
+0x103504	function	memset_words
 0x103554	function	component_check_segment_range
 0x1035b0	function	mem_region_base
 0x1035c0	function	mem_block_set_owner

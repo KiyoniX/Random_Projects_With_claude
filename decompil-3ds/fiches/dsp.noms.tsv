@@ -94,6 +94,7 @@
 0x10321c	function	dsp_mem_write_bytes
 0x10331c	function	dsp_mem_read_bytes
 0x1034f4	function	memclr
+0x1034f8	function	memset_words
 0x103548	function	component_check_segment_range
 0x1035a4	function	mem_region_base
 0x1035b4	function	mem_block_set_owner

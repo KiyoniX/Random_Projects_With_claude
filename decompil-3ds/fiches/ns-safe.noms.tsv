@@ -2,12 +2,18 @@
 # Remplie par « python outils/couverture.py apply » avec la règle « jumeau » : une fonction prend le nom
 # de fiches/ns.noms.tsv quand elle a le même code à la même place dans les deux modules. Chaque nom
 # versé est aussi noté dans fiches/noms-propages.tsv. Même format : adresse, function ou label, nom.
+0x100000	function	entry
 0x100164	label	memcmp
+0x100288	function	init_program_args
 0x100900	function	strcmp
 0x100e90	function	subscribe_system_notifications
 0x1011b4	function	start_shared_font_thread
 0x10131c	function	create_lock_arbiter_once
+0x101358	function	init_runtime
+0x1013b8	function	ps_close
+0x1013e4	function	ps_open
 0x101658	function	SRV_RegisterClient
+0x101694	function	srv_exit
 0x101968	function	start_apt_thread
 0x101a04	function	svcCreateAddressArbiter
 0x101a1c	function	svcCreateMemoryBlock
@@ -39,8 +45,11 @@
 0x104f0c	function	start_apt_worker_thread
 0x104fb8	function	svcCreateThread
 0x105030	function	AM_CheckContentRights
+0x10514c	function	file_read
 0x1054c4	function	apt_GetSharedFont
 0x105594	function	job_queue_thread_main
+0x105654	function	clear_thread_local_storage
+0x1059d0	function	crc16
 0x105a98	function	CFG_SecureInfoGetSerialNo
 0x105ae0	function	CFG_SecureInfoGetRegion
 0x105ba0	function	NWMEXT_cmd_0x0006
@@ -124,7 +133,10 @@
 0x10afe8	function	thread_trampoline
 0x10b0ec	function	AM_GetProgramInfos
 0x10b158	function	AM_GetProgramInfosIgnorePlatform
+0x10befc	function	unmap_shared_memory
+0x10bf68	function	file_get_handle
 0x10c4e0	label	destroy_array
+0x10c8dc	function	block_pool_base_dtor
 0x10cc78	function	job_deliver_parameter
 0x10d0bc	function	slot_post_notification
 0x10d480	function	parameter_store
@@ -137,6 +149,7 @@
 0x10d9c8	function	block_pool_init
 0x10da68	function	PMAPP_SetAppResourceLimit
 0x10daac	function	PMAPP_GetAppResourceLimit
+0x10db04	function	dma_close
 0x10dc74	function	launch_applet_title
 0x10ddac	function	is_home_menu_id
 0x10df40	function	slot_clear
@@ -153,6 +166,8 @@
 0x10e84c	function	__aeabi_memmove
 0x10e948	function	light_event_signal
 0x10ea00	function	light_event_wait
+0x10eac8	function	memclr_bytes
+0x10eb08	function	pool_alloc
 0x10ede4	function	svcSetTimer
 0x10eed0	function	sleep_ms
 0x10f058	function	busy_flags_try_set
@@ -169,9 +184,13 @@
 0x10f7b0	function	CFG_GetConfigInfoBlk8
 0x10f7fc	function	light_event_init
 0x10f860	function	__aeabi_memcpy
+0x10f9b4	function	memset_words
 0x10faec	function	svcCreateEvent
 0x10fb60	function	broadcast_notification
 0x10fbec	function	is_shutdown_pending
+0x10fe8c	function	file_close
+0x10fea4	function	file_read_all
+0x10ff34	function	file_get_size
 0x1100f8	function	apt_GetProgramInfo
 0x1104a4	function	SRV_Unsubscribe
 0x110538	label	construct_array
@@ -180,12 +199,16 @@
 0x110604	function	get_service_handle
 0x110638	function	create_thread
 0x110728	function	join_thread
+0x110760	function	fs_get_session
 0x110794	function	subscribe_notification
 0x1107c4	function	apt_HardwareResetAsync
 0x1107cc	function	reboot_with_firm_params
 0x110824	function	svcCreateTimer
 0x110884	function	SRV_PublishToSubscriber
 0x110914	function	panic_on_failure
+0x110c74	function	ptm_check_new_3ds_cached
+0x110d74	function	handle_srv_notification
+0x110f48	function	svcAcceptSession
 0x110f94	function	register_notification_handler
 0x1111b0	function	strlen
 0x111250	function	srv_init
@@ -220,6 +243,9 @@
 0x113680	function	AM_EndImportProgramWithoutCommit
 0x1136c0	function	AM_BeginImportProgramForOverWrite
 0x11370c	function	AM_CommitImportProgramsAndUpdateFirmwareAuto
+0x113efc	function	file_close_and_free
+0x113f6c	function	file_read_impl
+0x11403c	function	file_close_handle
 0x11421c	function	FSFILE_OpenSubFile
 0x114268	function	FSFILE_SetPriority
 0x114298	function	FSFILE_OpenLinkFile
@@ -238,7 +264,10 @@
 0x1152dc	function	nss_LaunchApplication
 0x115354	function	nss_SetTWLBannerHMAC
 0x115380	function	nss_RebootSystemClean
+0x1154b4	function	release_address_range
 0x11551c	function	reserve_address_range
+0x1156cc	function	map_shared_memory
+0x115830	function	handle_holder_dtor
 0x1158a8	function	thread_dtor
 0x115c64	function	PTMSYSM_IsShutdownByBatteryEmpty
 0x115ca4	function	PTMSYSM_ShutdownAsync
@@ -255,6 +284,8 @@
 0x11892c	function	on_notification_104
 0x1189b4	function	on_notification_103
 0x1189d8	function	on_notification_203
+0x118a68	function	file_get_size_impl
+0x119110	function	static_init_main_thread_handle
 0x11b538	function	static_init_notification_handlers
 0x11b9fc	function	init_memory_pools
 0x11c00c	function	on_notification_100

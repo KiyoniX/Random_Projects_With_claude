@@ -4931,3 +4931,2122 @@ ssl-safe	0x12a680	ipc_copy_to_words	empreinte:cfg ; a (cfg, csnd, ptm)	2026-10-1
 ssl-safe	0x12afa8	construct_array	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
 ssl-safe	0x12b26c	memcpy_words	empreinte:cfg ; a (cfg, codec, csnd, dsp)	2026-10-17
 ssl-safe	0x145214	shift_left_64	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-17
+ac	0x106318	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+ac	0x10c7d0	snprintf	empreinte:act ; b:nom	2026-10-18
+ac	0x10e2ec	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+ac	0x10f994	ipc_descriptor_buffer_size	empreinte:am ; a (am, friends, nim)	2026-10-18
+ac	0x1106cc	lock_leave	appel:camera ; a (camera, dlp, ptm)	2026-10-18
+ac	0x110d4c	sha1_final	empreinte:friends ; a (friends, nim)	2026-10-18
+ac	0x11108c	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+ac	0x1110d0	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+ac-safe	0x105de4	FSUSER_SetPriority	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x105e1c	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+ac-safe	0x1060b0	report_fatal_error	empreinte:ac ; a (ac, am)	2026-10-18
+ac-safe	0x10622e	HTTPC_Initialize	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1062f4	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+ac-safe	0x106524	aci_0450_SetNetworkIpNetMask	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x106534	aci_0466_SetNetworkProxyHost	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x106574	aci_044C_SetNetworkIpAddress	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1065cc	aci_0452_SetNetworkIpPrimaryDNS	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x106668	aci_0454_SetNetworkIpSecondaryDNS	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1066f0	aci_044E_SetNetworkDefaultGateway	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x107860	FSUSER_InitializeWithSdkVersion	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1078f0	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+ac-safe	0x107b5c	ERRF_Throw	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x107e24	HTTPC_Finalize	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x107e50	HTTPC_CloseContext	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x109754	start_ip_stack	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x10a6b0	FSUSER_OpenFileDirectly	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x10c780	snprintf	empreinte:act ; b:nom	2026-10-18
+ac-safe	0x10c800	__aeabi_lmul	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x10e268	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+ac-safe	0x10f8bc	ipc_descriptor_buffer_size	empreinte:am ; a (am, friends, nim)	2026-10-18
+ac-safe	0x10faa8	bitfield_extract	appel:ac ; a (ac, act, am, boss)	2026-10-18
+ac-safe	0x10fd7c	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+ac-safe	0x1105e8	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+ac-safe	0x11061a	fatal_error_unless_minor	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x110c68	sha1_final	empreinte:friends ; a (friends, nim)	2026-10-18
+ac-safe	0x110c9c	sha1_init	empreinte:ac ; a (ac, boss, dlp, friends)	2026-10-18
+ac-safe	0x110d40	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+ac-safe	0x110e78	svcSignalEvent	appel:ac ; b:svc	2026-10-18
+ac-safe	0x110f5c	get_current_time	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x110fa8	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+ac-safe	0x110fec	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+ac-safe	0x11156c	FSUSER_GetPriority	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1115a4	FSUSER_GetProductInfo	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1115e8	FSUSER_GetProgramLaunchInfo	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x111698	HTTPC_SetDefaultProxy	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x116864	FSFILE_SetPriority	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x11689c	FSFILE_OpenLinkFile	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1168d4	FSFILE_Read	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x116ae8	ps_close	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x116ca4	CFG_SecureInfoGetSerialNo	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x116d34	CFG_GetConfigInfoBlk2	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117830	HTTPC_AddRequestHeader	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x11788c	HTTPC_AddPostDataRaw	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1178d0	HTTPC_ClearDNSCache	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1178fc	HTTPC_SetProxyDefault	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x11792e	HTTPC_BeginRequest	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117960	HTTPC_AddPostDataAscii	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1179bc	HTTPC_CancelConnection	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x1179ee	HTTPC_CreateContext	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117a40	HTTPC_AddDefaultCert	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117a76	HTTPC_ReceiveDataTimeout	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117ac8	HTTPC_GetDownloadSizeState	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117b0a	HTTPC_SetClientCertDefault	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117b40	HTTPC_SetPostDataType	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117b7c	HTTPC_GetResponseDataTimeout	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117bd6	HTTPC_GetResponseStatusCodeTimeout	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117c1a	HTTPC_NotifyFinishSendPostData	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117c4c	HTTPC_GetResponseHeaderTimeout	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117cb8	HTTPC_SendPOSTDataTimeout	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117d0a	HTTPC_InitializeConnectionSession	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117d44	HTTPC_SendPostDataAsciiTimeout	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x117da8	HTTPC_AddTrustedRootCA	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x118440	SOCP_InitializeSockets	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x11849e	SOCP_gethostid	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x11c1ec	svcAcceptSession	appel:ac ; b:svc	2026-10-18
+ac-safe	0x11c2d0	svcClearEvent	appel:ac ; b:svc	2026-10-18
+ac-safe	0x11c370	svcSleepThread	jumeau:ac ; jumeau	2026-10-18
+ac-safe	0x11c380	__aeabi_memset	jumeau:ac ; jumeau	2026-10-18
+act	0x1006b8	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+act	0x102c98	rand	empreinte:ir ; b:nom	2026-10-18
+act	0x107a06	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+act	0x10fa50	sha256_final	empreinte:am ; a (am, boss, cfg, fs)	2026-10-18
+act	0x11082c	ipc_descriptor_buffer_size	empreinte:am ; a (am, friends, nim)	2026-10-18
+act	0x11243c	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+act	0x114396	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+act	0x114648	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+act	0x114b8c	lock_leave	appel:camera ; a (camera, dlp, ptm)	2026-10-18
+act	0x114cd4	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+act	0x1255f4	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+am	0x101e30	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+am	0x109da4	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+am	0x10a810	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+am	0x111848	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+am-safe	0x100000	entry	jumeau:am ; jumeau	2026-10-18
+am-safe	0x100698	get_notification_semaphore	jumeau:am ; jumeau	2026-10-18
+am-safe	0x1006b4	handle_srv_notification	jumeau:am ; jumeau	2026-10-18
+am-safe	0x100760	SRV_RegisterService	jumeau:am ; jumeau	2026-10-18
+am-safe	0x1007b4	SRV_UnregisterService	jumeau:am ; jumeau	2026-10-18
+am-safe	0x1007f8	srv_exit	jumeau:am ; jumeau	2026-10-18
+am-safe	0x100cd0	fatal_error_unless_minor	jumeau:am ; jumeau	2026-10-18
+am-safe	0x100d78	srv_close	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10104c	FSUSER_SetPriority	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10128c	srv_get_service_handle	jumeau:am ; jumeau	2026-10-18
+am-safe	0x1012d0	SRV_RegisterClient	jumeau:am ; jumeau	2026-10-18
+am-safe	0x101308	SRV_GetServiceHandle	jumeau:am ; jumeau	2026-10-18
+am-safe	0x1015a8	FSUSER_CreateSystemSaveData	jumeau:am ; jumeau	2026-10-18
+am-safe	0x101600	FSUSER_DeleteSystemSaveData	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10163c	FSUSER_InitializeWithSdkVersion	jumeau:am ; jumeau	2026-10-18
+am-safe	0x1016b8	am_pipe_dispatch_command	jumeau:am ; jumeau	2026-10-18
+am-safe	0x101d68	FSUSER_OpenArchive	jumeau:am ; jumeau	2026-10-18
+am-safe	0x101dc4	FSUSER_CloseArchive	jumeau:am ; jumeau	2026-10-18
+am-safe	0x101e00	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+am-safe	0x101f98	ERRF_Throw	jumeau:am ; jumeau	2026-10-18
+am-safe	0x102168	FSUSER_ControlArchive	jumeau:am ; jumeau	2026-10-18
+am-safe	0x102264	lock_is_owner	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10277c	sha256_transform	empreinte:act ; a (act, am, boss, cfg)	2026-10-18
+am-safe	0x1035b4	am_cmd_0801_BeginImportTicket	jumeau:am ; jumeau	2026-10-18
+am-safe	0x108dfa	sha256_final	empreinte:am ; a (am, boss, cfg, fs)	2026-10-18
+am-safe	0x108e40	sha256_init	empreinte:act ; a (act, am, boss, cfg)	2026-10-18
+am-safe	0x10929a	am_pxi_send_18_InstallContentWrite	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10944a	am_pxi_send_14_InstallTmdWrite	jumeau:am ; jumeau	2026-10-18
+am-safe	0x1095e6	am_pxi_send_0A_InstallTikWrite	jumeau:am ; jumeau	2026-10-18
+am-safe	0x109c6c	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+am-safe	0x109d3e	ipc_descriptor_buffer_size	empreinte:am ; a (am, friends, nim)	2026-10-18
+am-safe	0x109d90	__ARM_common_switch8	jumeau:am ; jumeau	2026-10-18
+am-safe	0x109f44	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+am-safe	0x10a1dc	report_fatal_error	empreinte:ac ; a (ac, am)	2026-10-18
+am-safe	0x10a52e	lock_guard_enter	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10a5ec	lock_leave	appel:am ; a (am, cfg, dlp, ptm)	2026-10-18
+am-safe	0x10a64e	lock_enter	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10a6d8	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+am-safe	0x10a7b8	close_handle_and_clear	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10a8d4	srv_init	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10d784	FSUSER_CreateFile	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10d7f0	FSUSER_OpenFile	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10d85c	FSFILE_Read	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10d8e4	FSFILE_Write	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10d940	FSFILE_GetSize	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10e504	am_pxi_send_46_WriteTWLSavedata	jumeau:am ; jumeau	2026-10-18
+am-safe	0x10f080	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+am-safe	0x110d70	svcExitProcess	jumeau:am ; jumeau	2026-10-18
+am-safe	0x110d78	svcAcceptSession	empreinte:ac ; b:svc	2026-10-18
+am-safe	0x111138	svcSleepThread	jumeau:am ; jumeau	2026-10-18
+am-safe	0x111140	__aeabi_lmul	jumeau:am ; jumeau	2026-10-18
+am-safe	0x111a74	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+arm9loader	0x808d940	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+boss	0x100c20	report_fatal_error	empreinte:ac ; a (ac, am)	2026-10-18
+boss	0x1061e8	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+boss	0x1109d8	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+boss	0x11b0f4	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+boss	0x11fc78	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+boss	0x123f20	sprintf	empreinte:act ; b:nom	2026-10-18
+boss	0x124ef8	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+boss	0x126ef4	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+boss	0x12716c	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+boss	0x1273a8	lock_leave	appel:camera ; a (camera, dlp, ptm)	2026-10-18
+boss	0x1275cc	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+boss	0x12760a	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+boss	0x127820	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+boss	0x13a6a0	sha1_final	empreinte:friends ; a (friends, nim)	2026-10-18
+camera	0x107f28	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+camera	0x10bc18	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+camera	0x10bda0	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+camera	0x10bed8	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+camera	0x1135cc	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+cecd	0x10e82c	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+cecd	0x1105d0	lock_leave	appel:camera ; a (camera, dlp, ptm)	2026-10-18
+cecd	0x110d52	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+cecd	0x1114d4	rand	empreinte:ir ; b:nom	2026-10-18
+cecd	0x111828	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+cecd	0x112770	sprintf	empreinte:act ; b:nom	2026-10-18
+cecd	0x112f44	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+cecd	0x113150	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+cecd	0x1131cc	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+cecd	0x113738	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+cfg	0x102ec0	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+cfg	0x102ee2	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+cfg	0x1061cc	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+cfg-safe	0x102e10	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+cfg-safe	0x102e32	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+cfg-safe	0x106208	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+codec-safe	0x104854	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+csnd	0x1015ba	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+csnd	0x102298	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+csnd	0x102ac2	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+csnd	0x103708	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+csnd	0x103746	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+csnd-safe	0x100300	ptm_s_close	jumeau:csnd ; jumeau	2026-10-18
+csnd-safe	0x10092c	srv_connect	jumeau:csnd ; jumeau	2026-10-18
+csnd-safe	0x100988	SRV_RegisterService	jumeau:csnd ; jumeau	2026-10-18
+csnd-safe	0x1015aa	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+csnd-safe	0x102264	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+csnd-safe	0x102a86	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+csnd-safe	0x1036d4	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+csnd-safe	0x103712	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+csnd-safe	0x103748	lock_leave	empreinte:am ; a (am, camera, cfg, csnd)	2026-10-18
+csnd-safe	0x10375a	lock_enter	jumeau:csnd ; jumeau	2026-10-18
+csnd-safe	0x103988	close_handle_and_clear	jumeau:csnd ; jumeau	2026-10-18
+csnd-safe	0x105138	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+csnd-safe	0x105c08	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+dlp	0x101494	rand	empreinte:ir ; b:nom	2026-10-18
+dlp	0x107900	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+dlp	0x10855c	snprintf	empreinte:act ; b:nom	2026-10-18
+dlp	0x1097d4	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+dlp	0x10a118	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+dlp	0x10a2d0	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+dlp	0x10a7d4	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+dlp	0x10f040	sha1_final	empreinte:friends ; a (friends, nim)	2026-10-18
+dlp	0x10f06c	sha1_hash	empreinte:friends ; a (friends, nim)	2026-10-18
+dlp	0x10f0e8	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+dsp	0x1034f8	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+dsp-safe	0x102bf0	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+dsp-safe	0x103504	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+errdisp	0x115e24	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+errdisp-safe	0x1001d8	init_program_args	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x100ee0	_get_lc_ctype	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x100f28	_get_lc_numeric	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x101d50	NSS_ShutdownAsync	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x101ddc	is_new_3ds	empreinte:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+errdisp-safe	0x101e38	init_runtime	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x101e5c	init_vm_region_0e000000	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x101e70	init_vm_region_10000000	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x101e84	store_thread_local_owner	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x101f40	cfg_finalize	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x103540	NSS_RebootSystem	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x10359c	NSS_SetApplicationCpuTimeLimit	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x103894	ptm_check_new_3ds_cached	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x108170	cfg_initialize	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x108738	SRV_IsServiceRegistered	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x108ac4	CSND_Reset	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x108bb4	APT_SetFatalErrDispMode	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x114d84	CSND_ReleaseSoundChannels	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x114f64	apt_close_lock_handle	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x1151f4	APT_Finalize	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x115c48	__aeabi_memset	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x115c58	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+errdisp-safe	0x115e24	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+errdisp-safe	0x116430	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+errdisp-safe	0x118020	file_close	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11c5f8	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+errdisp-safe	0x11d448	apt_lock_and_open_session	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11e800	fs_get_session	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11f1c8	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+errdisp-safe	0x11f240	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+errdisp-safe	0x11f294	ptm_close	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11f2e8	ptm_open	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11f9a0	init_runtime_and_srv	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11f9b0	srv_init	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11fad4	FSUSER_GetProgramLaunchInfo	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x11fb64	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+errdisp-safe	0x11fe7c	clear_thread_local_storage	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x120414	CSND_AcquireSoundChannels	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x120450	CSND_Initialize	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x120720	GSPGPU_StoreDataCache	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x120b14	APT_GetAppletInfo	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x120d28	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+errdisp-safe	0x12373c	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+errdisp-safe	0x12638c	APT_SleepSystem	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x126f74	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+errdisp-safe	0x127380	APT_ReplySleepQuery	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x1273c4	APT_ReplySleepNotificationComplete	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x129d4c	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+errdisp-safe	0x129dbc	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+errdisp-safe	0x129e8c	file_close_handle	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x12a194	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+errdisp-safe	0x12a25c	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+errdisp-safe	0x12bb54	GSPGPU_AcquireRight	jumeau:errdisp ; jumeau	2026-10-18
+errdisp-safe	0x12bc8c	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+errdisp-safe	0x12d9ac	static_init_main_thread_handle	jumeau:errdisp ; jumeau	2026-10-18
+friends	0x1032ec	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+friends	0x127a40	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+friends	0x1284fc	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+friends	0x1326f4	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+friends	0x132dc2	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+friends	0x1335ec	sprintf	empreinte:act ; b:nom	2026-10-18
+friends	0x1338bc	snprintf	empreinte:act ; b:nom	2026-10-18
+friends	0x133e94	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+friends	0x134032	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+friends	0x1342b0	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+friends	0x1350dc	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+friends	0x1403b4	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+friends-safe	0x1015c0	AC_SetClientVersion	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x102b9a	SOCU_ShutdownSockets	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x1032ec	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+friends-safe	0x10356c	ERRF_Throw	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x1035e4	NDMU_LeaveExclusiveState	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x103ea4	APT_Initialize	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x103ef8	APT_GetLockHandle	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x104474	CFG_GetLocalFriendCodeSeed	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10566c	PS_SeedRNG	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10569c	PS_GenerateRandomBytes	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x105de0	APT_SleepSystem	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x105e1c	APT_InquireNotification	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x106e9c	APT_GlanceParameter	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x107b18	APT_ReplySleepNotificationComplete	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x108abc	APT_CancelParameter	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x108b10	APT_ReplySleepQuery	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x109294	APT_SendParameter	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10e34e	SOCU_gethostbyname	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10ede0	AC_CloseAsync	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10ee28	AC_IsConnected	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10ee70	AC_ConnectAsync	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10eecc	AC_AddDenyApType	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10ef40	AC_SetNetworkArea	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10efb4	AC_GetConnectResult	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10efec	AC_GetInfraPriority	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f038	AC_SetInfraPriority	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f0ac	AC_SetPowerSaveMode	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f120	AC_CreateDefaultConfig	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f174	AC_GetWifiStatus	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f1ac	AC_SetRequestEulaVersion	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f228	AC_GetCurrentAPInfo	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f28c	AC_GetConnectingHotspotSubset	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f2f0	AC_GetNZoneApNumService	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x10f354	AC_GetStatus	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x110470	PS_GetRomMakerCode	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x1104b0	PS_GetRomId	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x110570	CFG_GetLocalFriendCodeSeedData	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x110854	NDMU_EnterExclusiveState	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x127a40	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+friends-safe	0x12fcfc	PS_EncryptSignDecryptVerifyAesCcm	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x1326f4	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+friends-safe	0x132dc2	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+friends-safe	0x1335ec	sprintf	empreinte:act ; b:nom	2026-10-18
+friends-safe	0x1338bc	snprintf	empreinte:act ; b:nom	2026-10-18
+friends-safe	0x133e94	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+friends-safe	0x134032	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+friends-safe	0x1342b0	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+friends-safe	0x1350dc	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+friends-safe	0x13fc74	APT_Wrap	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x13fcd0	APT_Unwrap	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x13fd5c	md5_init	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x13fd78	md5_transform	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x13ffb4	md5_update	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140028	md5_final	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x1400bc	sha1_transform	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x1403b4	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+friends-safe	0x1408a4	SOCU_setsockopt	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140908	SOCU_getsockname	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140974	SOCU_sendto	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x1409ea	SOCU_GetNetworkOpt	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140a5a	SOCU_recvfrom	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140b00	SOCU_SendToMultiple	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140b7a	SOCU_bind	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140bd6	SOCU_poll	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140c58	SOCU_close	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140c9a	SOCU_fcntl	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140ce4	SOCU_sendto_other	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140d54	SOCU_socket	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140d9e	SOCU_recvfrom_other	jumeau:friends ; jumeau	2026-10-18
+friends-safe	0x140e1e	SOCU_gethostid	jumeau:friends ; jumeau	2026-10-18
+fs	0x125bb0	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+gpio-safe	0x101dac	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+gsp	0x107d70	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+gsp-safe	0x107ca8	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+gsp-safe	0x10d2c0	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+hid-safe	0x108980	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+http	0x101e3c	handle_srv_notification	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+http	0x104698	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+http	0x1062c0	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+http	0x1063a8	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+http	0x10b358	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+http	0x10e04c	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+http	0x10f7fc	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+http	0x114300	shared_memory_dtor	empreinte:ir ; a (ir, mic)	2026-10-18
+http-safe	0x101db4	handle_srv_notification	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+http-safe	0x10460c	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+http-safe	0x106204	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+http-safe	0x1062ec	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+http-safe	0x10a788	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+http-safe	0x10d160	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+http-safe	0x10e910	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+http-safe	0x10eb44	break_process	appel:errdisp ; a (errdisp, fs, http, ir)	2026-10-18
+http-safe	0x113af4	shared_memory_dtor	empreinte:ir ; a (ir, mic)	2026-10-18
+http-safe	0x113f04	SSLC_RootCertChainRemoveCert	jumeau:http ; jumeau	2026-10-18
+i2c-safe	0x101d74	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+i2c-safe	0x1034fc	break_process	empreinte:codec ; a (codec, dsp, errdisp, fs)	2026-10-18
+ir	0x10988c	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+ir	0x10ed38	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+ir-safe	0x10020c	init_program_args	jumeau:ir ; jumeau	2026-10-18
+ir-safe	0x100e1c	init_vm_region_10000000	jumeau:ir ; jumeau	2026-10-18
+ir-safe	0x100e30	store_thread_local_owner	jumeau:ir ; jumeau	2026-10-18
+ir-safe	0x101688	clear_thread_local_storage	jumeau:ir ; jumeau	2026-10-18
+ir-safe	0x101c68	close_handle_ptr	jumeau:ir ; jumeau	2026-10-18
+ir-safe	0x102b60	memclr	empreinte:boot9 ; a (boot9, ir, ndm, news)	2026-10-18
+ir-safe	0x107e64	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+ir-safe	0x10d064	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+ir-safe	0x10d3f8	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+ir-safe	0x10d9b4	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+ir-safe	0x10df58	init_circle_pad_direction_params	empreinte:hid ; a (hid, ir)	2026-10-18
+ir-safe	0x10dfc0	add_circle_pad_directions	empreinte:hid ; a (hid, ir)	2026-10-18
+ir-safe	0x10e378	convert_circle_pad	empreinte:hid ; a (hid, ir)	2026-10-18
+ir-safe	0x10ed54	static_init_main_thread_handle	jumeau:ir ; jumeau	2026-10-18
+kernel9	0x800ecd0	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+loader	0x14002258	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+maj	0x102718	rand	empreinte:ir ; b:nom	2026-10-18
+maj	0x102d7e	strstr	empreinte:boss ; b:nom	2026-10-18
+maj	0x12f254	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+maj	0x133854	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+maj	0x134048	service_close	appel:codec ; a (codec, errdisp)	2026-10-18
+maj	0x1449dc	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+maj	0x14688c	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+maj	0x15e1fc	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+maj	0x15e378	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+maj	0x16ecdc	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+maj	0x16f804	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+maj	0x176d98	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+maj	0x17786c	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+maj	0x1778d8	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+maj	0x17d828	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+maj	0x18ec68	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+maj	0x1e1f18	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+maj	0x1e1f88	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+maj	0x1e6e80	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+maj	0x1e7460	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+maj	0x478e20	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mcu-safe	0x101cfc	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+mp	0x100110	rand	empreinte:ir ; b:nom	2026-10-18
+mp	0x1011d4	handle_srv_notification	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+mp	0x102230	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+mp	0x10fe50	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+mp	0x11181c	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+mp	0x1118e4	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+mp	0x11217c	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+mp	0x112ff4	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+mvd	0x100e0c	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+mvd	0x10b984	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+mvd	0x10f51c	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+ndm	0x105350	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+ndm	0x1057a2	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+ndm	0x105842	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+ndm	0x105d20	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+news	0x1014e8	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+news	0x10150a	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+news	0x104be4	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+news	0x106db4	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+nfc	0x1008f8	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+nfc	0x1031bc	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+nfc	0x113694	rand	empreinte:ir ; b:nom	2026-10-18
+nfc	0x1136cc	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+nfc	0x1138c4	ipc_descriptor_buffer_size	empreinte:am ; a (am, friends, nim)	2026-10-18
+nfc	0x11a7b0	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+nfc	0x11bbb8	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+nfc	0x11bd04	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+nfc	0x11bf0c	lock_leave	appel:camera ; a (camera, dlp, ptm)	2026-10-18
+nfc	0x11cadc	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+nfc	0x11db2c	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+nfc	0x12cdac	sha256_final	empreinte:am ; a (am, boss, cfg, fs)	2026-10-18
+nfc	0x12cde8	sha256_hash	empreinte:act ; a (act, boss, cfg, fs)	2026-10-18
+nfc	0x12ce64	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+nfc	0x134654	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+nim	0x101930	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+nim	0x12ef94	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+nim	0x12fd6c	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+nim	0x1306dc	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+nim	0x13071a	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+nim	0x1308cc	snprintf	empreinte:act ; b:nom	2026-10-18
+nim	0x130958	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+nim	0x130b30	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+nim	0x130c54	lock_leave	appel:camera ; a (camera, dlp, ptm)	2026-10-18
+nim	0x133c38	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+nim	0x136398	sprintf	empreinte:act ; b:nom	2026-10-18
+nim	0x13e07a	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+nim-safe	0x1013d8	svcAcceptSession	empreinte:ac ; b:svc	2026-10-18
+nim-safe	0x102184	handle_srv_notification	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+nim-safe	0x128de0	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+nim-safe	0x12da40	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+nim-safe	0x1333e8	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+nim-safe	0x133448	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+nim-safe	0x138344	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+nim-safe	0x138620	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+nim-safe	0x1397dc	unmap_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+nim-safe	0x13983c	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+nim-safe	0x143894	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+nim-safe	0x152928	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+nim-safe	0x152998	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+nim-safe	0x15310c	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+nim-safe	0x158efc	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+nim-safe	0x158f24	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns	0x10cb9c	unmap_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+ns	0x10cc08	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+ns	0x10d3c8	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+ns	0x1179fc	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+ns-safe	0x100000	entry	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x100288	init_program_args	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x101358	init_runtime	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x1013b8	ps_close	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x1013e4	ps_open	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x101694	srv_exit	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x10514c	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns-safe	0x105654	clear_thread_local_storage	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x1059d0	crc16	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x10befc	unmap_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+ns-safe	0x10bf68	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+ns-safe	0x10c8dc	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+ns-safe	0x10db04	dma_close	empreinte:fs ; a (fs, gsp, ns)	2026-10-18
+ns-safe	0x10eac8	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+ns-safe	0x10eb08	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns-safe	0x10f9b4	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+ns-safe	0x10fe8c	file_close	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x10fea4	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns-safe	0x10ff34	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns-safe	0x110760	fs_get_session	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x110c74	ptm_check_new_3ds_cached	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x110d74	handle_srv_notification	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+ns-safe	0x110f48	svcAcceptSession	empreinte:ac ; b:svc	2026-10-18
+ns-safe	0x113efc	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns-safe	0x113f6c	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns-safe	0x11403c	file_close_handle	jumeau:ns ; jumeau	2026-10-18
+ns-safe	0x1154b4	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+ns-safe	0x1156cc	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+ns-safe	0x115830	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+ns-safe	0x118a68	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+ns-safe	0x119110	static_init_main_thread_handle	jumeau:ns ; jumeau	2026-10-18
+nwm	0x100bac	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+nwm	0x102118	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+nwm	0x107698	rand	empreinte:ir ; b:nom	2026-10-18
+nwm	0x10d5b0	sha256_hash	empreinte:act ; a (act, boss, cfg, fs)	2026-10-18
+nwm	0x10ec74	sha256_final	empreinte:am ; a (am, boss, cfg, fs)	2026-10-18
+nwm	0x10fd54	snprintf	empreinte:act ; b:nom	2026-10-18
+nwm	0x1118b0	sha1_hash	empreinte:friends ; a (friends, nim)	2026-10-18
+nwm	0x112398	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+nwm	0x11e0e4	sha1_final	empreinte:friends ; a (friends, nim)	2026-10-18
+nwm	0x11efc8	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+nwm	0x121c52	ipc_descriptor_buffer_size	empreinte:am ; a (am, friends, nim)	2026-10-18
+nwm	0x1223c0	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+nwm	0x123280	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+nwm	0x123630	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+nwm	0x123996	lock_leave	empreinte:am ; a (am, camera, cfg, csnd)	2026-10-18
+nwm	0x124064	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+nwm	0x1240a8	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+nwm	0x1240d0	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+nwm-safe	0x100000	entry	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x100bc4	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+nwm-safe	0x1012e4	SRV_RegisterService	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x101338	SRV_UnregisterService	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x10137c	SRV_ReceiveNotification	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x102088	SRV_RegisterClient	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x102100	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+nwm-safe	0x1044b4	SRV_GetServiceHandle	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x104508	SRV_EnableNotification	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x104544	SRV_Subscribe	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x10767c	rand	empreinte:ir ; b:nom	2026-10-18
+nwm-safe	0x10b6e0	PS_VerifyRsaSha256	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x10d558	sha256_hash	empreinte:act ; a (act, boss, cfg, fs)	2026-10-18
+nwm-safe	0x10eb3c	sha256_init	empreinte:act ; a (act, am, boss, cfg)	2026-10-18
+nwm-safe	0x10eb94	sha256_final	empreinte:am ; a (am, boss, cfg, fs)	2026-10-18
+nwm-safe	0x10ef94	PS_GenerateRandomBytes	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x10fc78	snprintf	empreinte:act ; b:nom	2026-10-18
+nwm-safe	0x10fe98	PS_EncryptDecryptAes	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x11178c	sha1_hash	empreinte:friends ; a (friends, nim)	2026-10-18
+nwm-safe	0x1121d0	sha_md_update	empreinte:act ; a (act, am, cfg, fs)	2026-10-18
+nwm-safe	0x11473c	sha256_transform	empreinte:act ; a (act, am, boss, cfg)	2026-10-18
+nwm-safe	0x1182d0	rc4_skip	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x118c68	md5_vector	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x11df94	sha1_final	empreinte:friends ; a (friends, nim)	2026-10-18
+nwm-safe	0x11dfc8	sha1_init	empreinte:ac ; a (ac, boss, dlp, friends)	2026-10-18
+nwm-safe	0x120058	svcSignalEvent	appel:nwm ; b:svc	2026-10-18
+nwm-safe	0x120b60	SRV_PublishToSubscriber	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x121218	svcGetSystemTick	appel:nwm ; b:svc	2026-10-18
+nwm-safe	0x121a6e	ipc_descriptor_buffer_size	empreinte:am ; a (am, friends, nim)	2026-10-18
+nwm-safe	0x1221dc	check_handle_descriptor	empreinte:ac ; a (ac, camera)	2026-10-18
+nwm-safe	0x1222e6	bitfield_extract	appel:ac ; a (ac, act, am, boss)	2026-10-18
+nwm-safe	0x1230bc	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+nwm-safe	0x12346c	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+nwm-safe	0x1237d2	lock_leave	empreinte:am ; a (am, camera, cfg, csnd)	2026-10-18
+nwm-safe	0x123ea0	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+nwm-safe	0x123ee4	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+nwm-safe	0x123f0c	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+nwm-safe	0x12781c	PS_SeedRNG	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x12c040	PTMS_GetAwakeReason	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x12c084	PTMS_SetWakeupTrigger	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x12c0dc	SRV_PublishAndGetSubscriber	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x12e398	aes_unwrap	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x130980	hmac_md5	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x130998	hmac_md5_vector	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x130a52	wpa_hmac_sha1	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x130a78	hmac_sha1_vector	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x133d9a	rc4	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x1340ec	sha1_prf	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x13ada8	svcExitProcess	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x13adf8	svcAcceptSession	empreinte:ac ; b:svc	2026-10-18
+nwm-safe	0x13b094	svcSleepThread	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x13b11c	svcClearEvent	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x13b318	svcCancelTimer	appel:nwm ; b:svc	2026-10-18
+nwm-safe	0x13c5e8	svcBindInterrupt	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x13c638	svcInvalidateProcessDataCache	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x13c640	svcRestartDma	appel:nwm ; b:svc	2026-10-18
+nwm-safe	0x13c684	svcStoreProcessDataCache	jumeau:nwm ; jumeau	2026-10-18
+nwm-safe	0x13c68c	svcUnbindInterrupt	jumeau:nwm ; jumeau	2026-10-18
+pdn-safe	0x101a84	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+process9	0x8061d6c	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+ps-safe	0x102064	break_process	appel:errdisp ; a (errdisp, fs, http, ir)	2026-10-18
+ps-safe	0x102438	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+ps-safe	0x103060	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+qtm	0x1099c4	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+qtm	0x10e230	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+socket	0x100110	rand	empreinte:ir ; b:nom	2026-10-18
+socket	0x10daa4	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+socket	0x1125f0	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+socket	0x119324	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+socket	0x11a644	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+socket	0x11b4f4	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+socket	0x11c090	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+socket	0x11f928	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+socket	0x12bfe8	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+socket-safe	0x100110	rand	empreinte:ir ; b:nom	2026-10-18
+socket-safe	0x1013c8	init_runtime	jumeau:socket ; jumeau	2026-10-18
+socket-safe	0x101400	init_vm_region_10000000	jumeau:socket ; jumeau	2026-10-18
+socket-safe	0x101414	store_thread_local_owner	jumeau:socket ; jumeau	2026-10-18
+socket-safe	0x102da4	clear_thread_local_storage	jumeau:socket ; jumeau	2026-10-18
+socket-safe	0x10d9c8	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+socket-safe	0x11251c	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+socket-safe	0x119250	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+socket-safe	0x11a570	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+socket-safe	0x11bfbc	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+socket-safe	0x11f538	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+socket-safe	0x11f854	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+socket-safe	0x12bba8	unmap_shared_memory_or_panic	empreinte:errdisp ; a (errdisp, hid, mp, socket)	2026-10-18
+socket-safe	0x12bf10	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+ssl	0x100914	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+ssl	0x1009ac	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+ssl	0x102130	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+ssl	0x12a144	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+ssl	0x12a5e8	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+ssl	0x12a68a	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+ssl	0x12a76c	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+ssl	0x12ab8c	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+ssl	0x12b15c	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+ssl	0x12b2d8	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+ssl-safe	0x1008e4	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+ssl-safe	0x10097c	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+ssl-safe	0x1009d4	SRV_RegisterClient	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1013ac	SRV_UnregisterService	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1013f0	SRV_EnableNotification	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x10142c	SRV_ReceiveNotification	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1020a4	FSUSER_SetPriority	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1020fc	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+ssl-safe	0x102298	ERRF_Throw	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x10237c	SRV_RegisterService	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1023d0	SRV_GetServiceHandle	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1024f6	SOCU_ShutdownSockets	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x102790	FSUSER_InitializeWithSdkVersion	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x10365c	SOCU_close	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x111010	PS_SeedRNG	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x111040	PS_EncryptDecryptAes	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1110c4	PS_GenerateRandomBytes	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x113d00	SOCU_sendto	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x113d76	SOCU_recvfrom	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x113e1c	SOCU_fcntl	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x113e66	SOCU_sendto_other	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x113ed6	SOCU_recvfrom_other	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x113f56	SOCU_shutdown	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x117ce0	aes_invert_key_schedule	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x117d9c	aes_set_encrypt_key	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x119110	aes_cipher_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x1191a4	aes_cipher_init_encrypt_only	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x119d50	aes_ctr_crypt	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11a078	des3_cipher_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11a0e0	des3_cipher_init_encrypt_only	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11a140	des_cipher_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11a1a4	des_cipher_init_encrypt_only	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11a410	aes_ofb128_crypt	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11a8a8	md_block128_reset	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11a968	md_block128_update	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11aa2e	md_block128_final	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11aab2	md2_block_final	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11aaee	md2_block_reset	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11ab5c	md2_block_update	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11abde	md_block64_reset	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11ac94	md_block64_update	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11aec2	md_block64_final_be	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11af4c	md_block64_final_le	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b3d0	md2_transform	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b4f8	md2_get_digest	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b536	md5_get_digest	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b558	md5_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b570	rc4_cipher_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b72c	sha1_get_digest	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b74c	sha1_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b798	sha224_get_digest	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b7b8	sha224_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11b800	sha256_transform	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11bf6c	sha256_get_digest	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11bf8c	sha256_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11bfd4	sha384_get_digest	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11c014	sha384_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11c0bc	sha512_transform	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11c51c	sha512_get_digest	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x11c55c	sha512_init	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x125d7c	bitfield_extract	appel:ac ; a (ac, act, am, boss)	2026-10-18
+ssl-safe	0x12a07c	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+ssl-safe	0x12a520	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+ssl-safe	0x12a5c2	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+ssl-safe	0x12a6a4	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+ssl-safe	0x12b094	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+ssl-safe	0x12b210	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+ssl-safe	0x1412bc	svcExitProcess	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x141538	svcSleepThread	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x141748	aes_decrypt_block	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x14195c	aes_encrypt_block	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x142d60	rc4_crypt_core	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x142fe8	md5_transform	jumeau:ssl ; jumeau	2026-10-18
+ssl-safe	0x143ae4	sha1_transform	jumeau:ssl ; jumeau	2026-10-18
+appleted	0x100c96	memcmp	empreinte:ac ; b:nom	2026-10-18
+appleted	0x1011b8	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+appleted	0x1037c8	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+appleted	0x1037e0	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+appleted	0x104c4c	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+appleted	0x107218	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+appleted	0x10c8f4	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+appleted	0x10c90c	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+appleted	0x10c930	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+appleted	0x10d2a8	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+appleted	0x11269c	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+appleted	0x1126e8	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+appleted	0x112700	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+appleted	0x11270c	svcSleepThread	appel:codec ; b:svc	2026-10-18
+appleted	0x112724	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+appleted	0x112a14	strcpy	empreinte:ac ; b:nom	2026-10-18
+appleted	0x114120	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+appleted	0x114690	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+appleted	0x11e4b4	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+appleted	0x121fc0	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+appleted	0x1235c8	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+appleted	0x1245d0	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+appleted	0x13e084	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+appleted	0x13e0f4	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+appleted	0x13ea6c	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+appleted	0x13eb60	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+appleted	0x13ebb0	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+appleted	0x147b98	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+appleted	0x150044	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+appleted	0x156614	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+appleted	0x1569d8	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+appleted	0x156a60	strcmp	appel:maj ; b:nom	2026-10-18
+appleted	0x157048	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+appleted	0x15801c	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+appleted	0x158078	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+appleted	0x159b68	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+appleted	0x15a1cc	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+appleted	0x15d83c	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+appleted	0x15d88c	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+appleted	0x15dbe8	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+appleted	0x15e7b4	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+appleted	0x15ec4c	strncmp	empreinte:ac ; b:nom	2026-10-18
+appleted	0x15fd4c	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+appleted	0x15ffe0	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+appleted	0x1601a8	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+appleted	0x160314	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+appleted	0x160498	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+appleted	0x1605b4	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+appleted	0x1605fc	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+appleted	0x160a5c	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+appleted	0x160fa4	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+appleted	0x1610b8	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+appleted	0x1611c8	strncpy	empreinte:act ; b:nom	2026-10-18
+appleted	0x161284	strlen	empreinte:ac ; b:nom	2026-10-18
+appleted	0x16185c	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+appleted	0x1619b0	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+appleted	0x161a60	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+appleted	0x161adc	release_address_range	empreinte:errdisp ; a (hid, spi)	2026-10-18
+appleted	0x161b64	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+appleted	0x161fc0	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+appleted	0x1621b8	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-18
+appleted	0x1621e8	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+appleted	0x194ee4	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+appleted	0x1a51fc	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+cabinet	0x100f68	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x100f8c	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x100fa4	svcQueryMemory	empreinte:act ; b:svc	2026-10-18
+cabinet	0x101d20	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+cabinet	0x10254c	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x103f30	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x103f48	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x107700	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x107718	svcGetThreadPriority	empreinte:fs ; b:svc	2026-10-18
+cabinet	0x107738	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x12269c	file_read	appel:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cabinet	0x122ef8	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+cabinet	0x1252f0	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cabinet	0x135e70	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+cabinet	0x1361f8	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+cabinet	0x13dd24	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+cabinet	0x1466bc	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cabinet	0x14d858	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+cabinet	0x150968	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+cabinet	0x1809dc	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+cabinet	0x18515c	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+cabinet	0x18518c	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+cabinet	0x189404	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+cabinet	0x189478	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+cabinet	0x1895a4	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+cabinet	0x190ea4	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cabinet	0x1964ec	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x196504	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x1a07ac	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+cabinet	0x1ab7a4	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+cabinet	0x1abd20	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+cabinet	0x1abd54	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+cabinet	0x1abf5c	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+cabinet	0x1af9e0	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+cabinet	0x1afaa0	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+cabinet	0x1b6028	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+cabinet	0x1b7558	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+cabinet	0x1b76d4	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+cabinet	0x1bbf88	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+cabinet	0x1bc008	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+cabinet	0x1c49ac	sha256_transform	empreinte:cecd ; a (dsp, ro)	2026-10-18
+cabinet	0x1c4ae4	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+cherry	0x1054c8	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-18
+cherry	0x108080	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+cherry	0x10af14	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+cherry	0x10af2c	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+cherry	0x11233c	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+cherry	0x112358	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+cherry	0x112a70	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cherry	0x120620	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+cherry	0x120638	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-18
+cherry	0x120680	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+cherry	0x120698	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+cherry	0x121274	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+cherry	0x121afc	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+cherry	0x126a1c	svcSleepThread	appel:codec ; b:svc	2026-10-18
+cherry	0x126ae8	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+cherry	0x129604	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+cherry	0x12968c	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+cherry	0x12ad18	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+cherry	0x12be8c	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+cherry	0x12bf20	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+cherry	0x135050	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+cherry	0x135090	strncmp	empreinte:ac ; b:nom	2026-10-18
+cherry	0x135180	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+cherry	0x1454c8	_ZN2nw3lyt4PaneD1Ev	empreinte:maj ; b:nom	2026-10-18
+cherry	0x149b48	memcmp	empreinte:ac ; b:nom	2026-10-18
+cherry	0x14d958	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+cherry	0x14dc68	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+cherry	0x152340	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+cherry	0x152cd8	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+cherry	0x15370c	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+cherry	0x153bf4	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+cherry	0x153e08	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+cherry	0x153ec0	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+cherry	0x154a18	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+cherry	0x154a90	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+cherry	0x154aa8	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+cherry	0x157c58	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+cherry	0x158138	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+cherry	0x15c2c4	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+cherry	0x15c330	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+cherry	0x15c510	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cherry	0x15d7dc	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cherry	0x15d84c	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cherry	0x15d9d0	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+cherry	0x15daf4	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+cherry	0x15db24	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+cherry	0x15dc10	strcmp	empreinte:cecd ; b:nom	2026-10-18
+cherry	0x15e270	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+cherry	0x15e5a8	strlen	empreinte:ac ; b:nom	2026-10-18
+cherry	0x15ea08	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+cherry	0x15f58c	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+cherry	0x160290	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+cherry	0x1603d8	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+cherry	0x1604a0	strcpy	empreinte:ac ; b:nom	2026-10-18
+cherry	0x1605d0	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+cherry	0x160868	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+cherry	0x1608a8	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+cherry	0x160f70	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+cherry	0x1610b8	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+cherry	0x1611b4	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+cherry	0x1611d6	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+cherry	0x1615b0	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+cherry	0x161604	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+cherry	0x161cec	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+cherry	0x16a77c	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cherry	0x16a7ec	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cherry	0x16b31c	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+cherry	0x16b37c	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+cherry	0x16b46c	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+cherry	0x16b4d0	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+cherry	0x197a20	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+cherry	0x1a45e4	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+ctrapp	0x100164	init_runtime	empreinte:ac ; a (csnd, friends)	2026-10-18
+ctrapp	0x100600	make_result_level1	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+ctrapp	0x105300	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+ctrapp	0x10533c	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+ctrapp	0x10a1aa	make_system_save_path	empreinte:act ; a (cfg, ptm)	2026-10-18
+ctrapp	0x10a258	open_system_save_archive	appel:act ; a (cfg, ptm)	2026-10-18
+ctrapp	0x10a3e4	thread_trampoline	empreinte:ac ; a (ac, ndm, ptm)	2026-10-18
+ctrapp	0x10a56c	report_fatal_error	empreinte:act ; a (cfg, ptm, ssl)	2026-10-18
+ctrapp	0x10a9d2	find_notification_handler	appel:act ; a (cfg, friends, ndm, ptm)	2026-10-18
+ctrapp	0x10d2d8	break_process	empreinte:ac ; a (cfg, ndm, ptm)	2026-10-18
+ctrapp	0x10d3c0	errf_close	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+ctrapp	0x110244	ipc_copy_to_words	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+ctrapp	0x112fe8	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+ctrapp	0x1166d8	_ZNSt6localeC1Ev	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x119c88	_ZNSsaSEPKc	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x11a8fa	_ZNSs7replaceEjjPKcj	appel:ac ; b:nom	2026-10-18
+ctrapp	0x11a912	_ZNSsaSERKSs	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x11bb2e	strstr	empreinte:boss ; b:nom	2026-10-18
+ctrapp	0x13f564	snprintf	empreinte:act ; b:nom	2026-10-18
+ctrapp	0x16e304	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+ctrapp	0x16e68c	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+ctrapp	0x17301c	memcmp	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x1737a0	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x17382c	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+ctrapp	0x173854	_ZNSs7replaceEjjPKcjjj	appel:maj ; b:nom	2026-10-18
+ctrapp	0x174028	_ZNSs9_C_unlinkEv	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x17473c	_ZNSsC1ERKSs	appel:ac ; b:nom	2026-10-18
+ctrapp	0x174778	_ZNSsC1EPKcRKSaIcE	appel:ac ; b:nom	2026-10-18
+ctrapp	0x174f18	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+ctrapp	0x175b34	__aeabi_uidivmod	appel:maj ; b:nom	2026-10-18
+ctrapp	0x177080	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+ctrapp	0x17752c	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+ctrapp	0x177854	svcReleaseMutex	appel:camera ; b:svc	2026-10-18
+ctrapp	0x177c58	__aeabi_ldivmod	appel:ac ; b:nom	2026-10-18
+ctrapp	0x17c59c	strcpy	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x17c990	__aeabi_idivmod	appel:cecd ; b:nom	2026-10-18
+ctrapp	0x17ce40	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+ctrapp	0x17d3f0	strncmp	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x17d6c8	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+ctrapp	0x17d70c	svcClearEvent	appel:friends ; b:svc	2026-10-18
+ctrapp	0x17d770	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+ctrapp	0x17d958	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+ctrapp	0x17daac	strcmp	empreinte:cecd ; b:nom	2026-10-18
+ctrapp	0x17ee44	svcWaitSynchronization1	appel:ac ; b:svc	2026-10-18
+ctrapp	0x17eef8	strlen	appel:ac ; b:nom	2026-10-18
+ctrapp	0x17ef64	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+ctrapp	0x17efe0	register_mount_point	empreinte:ac ; a (cfg, ptm)	2026-10-18
+ctrapp	0x17f8f0	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+ctrapp	0x17fd60	svcCloseHandle	appel:ac ; b:svc	2026-10-18
+ctrapp	0x17fde6	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+ctrapp	0x17ffb8	make_result	appel:ac ; a (cfg, csnd, ptm)	2026-10-18
+ctrapp	0x17ffe0	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+ctrapp	0x180014	svcGetSystemTick	appel:ac ; b:svc	2026-10-18
+ctrapp	0x1800f0	svcGetThreadId	empreinte:am ; b:svc	2026-10-18
+ctrapp	0x18014c	unmount_archive	empreinte:ac ; a (cfg, ptm)	2026-10-18
+ctrapp	0x180204	register_notification_handler	empreinte:act ; a (cfg, friends, ndm, ptm)	2026-10-18
+ctrapp	0x184a20	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	appel:ac ; b:nom	2026-10-18
+ctrapp	0x185414	static_init_errf_port	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+ctrapp	0x1923f4	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:ac ; b:nom	2026-10-18
+ctrapp	0x19398c	svcCreateAddressArbiter	appel:ac ; b:svc	2026-10-18
+ctrapp	0x193e6c	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+ctrapp	0x193e90	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+ctrapp	0x193ea8	svcGetProcessInfo	appel:ac ; b:svc	2026-10-18
+ctrapp	0x193ec4	svcMapMemoryBlock	appel:camera ; b:svc	2026-10-18
+ctrapp	0x195100	svcCreateThread	appel:ac ; b:svc	2026-10-18
+ctrapp	0x19615c	svcBreak	appel:ac ; b:svc	2026-10-18
+ctrapp	0x196164	svcConnectToPort	appel:ac ; b:svc	2026-10-18
+ctrapp	0x19617c	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+ctrapp	0x196954	svcArbitrateAddress	appel:ac ; b:svc	2026-10-18
+ctrapp	0x19696c	svcExitThread	appel:ac ; b:svc	2026-10-18
+ctrapp	0x1972ec	svcUnmapMemoryBlock	appel:boss ; b:svc	2026-10-18
+ctrapp	0x1972f4	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+ctrapp	0x197828	svcWaitSynchronizationN	appel:ac ; b:svc	2026-10-18
+ctrapp	0x199dd8	svcDuplicateHandle	appel:ac ; b:svc	2026-10-18
+ctrapp	0x199df0	strncpy	empreinte:act ; b:nom	2026-10-18
+error	0x10009a	strstr	empreinte:boss ; b:nom	2026-10-18
+error	0x100f4c	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+error	0x103728	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+error	0x103740	svcQueryMemory	empreinte:act ; b:svc	2026-10-18
+error	0x103f50	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+error	0x110f68	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+error	0x110f80	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+error	0x110f9c	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+error	0x110fc0	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+error	0x110fe4	strcpy	empreinte:ac ; b:nom	2026-10-18
+error	0x124904	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+error	0x12495c	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+error	0x124da0	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+error	0x125234	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+error	0x125404	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+error	0x12541c	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+error	0x1255a0	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+error	0x125640	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+error	0x1267b8	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+error	0x127ea4	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+error	0x12814c	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+error	0x128290	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+error	0x128614	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error	0x128718	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+error	0x129818	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+error	0x129de4	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+error	0x12a358	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+error	0x12b934	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+error	0x12ee18	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+error	0x12ee5c	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+error	0x12efe8	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+error	0x12f9a0	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+error	0x12f9bc	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+error	0x12f9f0	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+error	0x12fa4c	release_address_range	empreinte:errdisp ; a (hid, spi)	2026-10-18
+error	0x130064	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+error	0x130d04	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+error	0x130df8	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+error	0x130ea4	strlen	empreinte:ac ; b:nom	2026-10-18
+error	0x1313c4	strcmp	empreinte:cecd ; b:nom	2026-10-18
+error	0x131664	strncpy	empreinte:act ; b:nom	2026-10-18
+error	0x131fd0	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+error	0x132224	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+error	0x132298	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+error	0x1330c4	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+error	0x133110	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+error	0x133128	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+error	0x133134	svcSleepThread	appel:codec ; b:svc	2026-10-18
+error	0x133140	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+error	0x1337d8	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error	0x133870	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+error	0x136f00	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error	0x13782c	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+error	0x137ca4	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+error	0x137cf4	strncmp	empreinte:ac ; b:nom	2026-10-18
+error	0x137e84	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error	0x137fbc	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+error	0x13bd1c	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+error	0x13ebe4	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+error	0x140230	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error	0x1402a0	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error	0x140dac	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+error	0x140ea0	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+error	0x140ef0	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+error	0x14ff0c	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error	0x152774	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+error-safe	0x10009a	strstr	empreinte:boss ; b:nom	2026-10-18
+error-safe	0x100f4c	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+error-safe	0x1036bc	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x103eb4	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+error-safe	0x110d20	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x110d38	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x110d54	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x110d78	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x110d9c	strcpy	empreinte:ac ; b:nom	2026-10-18
+error-safe	0x124588	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+error-safe	0x1245e0	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+error-safe	0x124a24	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+error-safe	0x124eb8	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+error-safe	0x125088	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x1250a0	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+error-safe	0x125224	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+error-safe	0x1252c4	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+error-safe	0x1263e0	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+error-safe	0x127a38	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+error-safe	0x127cc4	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+error-safe	0x127e08	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+error-safe	0x1280ec	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error-safe	0x1281f0	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+error-safe	0x1292f0	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+error-safe	0x1298bc	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+error-safe	0x129e28	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+error-safe	0x12b3cc	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+error-safe	0x12e8b4	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+error-safe	0x12e8d8	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x12ea64	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x12f41c	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x12f438	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+error-safe	0x12f46c	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+error-safe	0x12f4c8	release_address_range	empreinte:errdisp ; a (hid, spi)	2026-10-18
+error-safe	0x12fb18	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+error-safe	0x130780	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+error-safe	0x130874	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+error-safe	0x130920	strlen	empreinte:ac ; b:nom	2026-10-18
+error-safe	0x130e40	strcmp	empreinte:cecd ; b:nom	2026-10-18
+error-safe	0x1310e0	strncpy	empreinte:act ; b:nom	2026-10-18
+error-safe	0x131a4c	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+error-safe	0x131c84	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+error-safe	0x131cf8	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+error-safe	0x132b28	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-18
+error-safe	0x132b70	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x132b88	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+error-safe	0x132b94	svcSleepThread	appel:codec ; b:svc	2026-10-18
+error-safe	0x132ba0	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+error-safe	0x133238	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error-safe	0x1332d0	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+error-safe	0x1368b8	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error-safe	0x1371e4	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+error-safe	0x1376f0	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+error-safe	0x137740	strncmp	empreinte:ac ; b:nom	2026-10-18
+error-safe	0x1378d0	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error-safe	0x137a08	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+error-safe	0x13b7c4	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+error-safe	0x13e66c	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+error-safe	0x13fcb8	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error-safe	0x13fd28	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error-safe	0x140834	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+error-safe	0x140928	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+error-safe	0x140978	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+error-safe	0x14f8a4	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+error-safe	0x15239c	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+extrapad	0x1000c4	strstr	empreinte:boss ; b:nom	2026-10-18
+extrapad	0x100eac	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+extrapad	0x103960	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x103978	svcQueryMemory	empreinte:act ; b:svc	2026-10-18
+extrapad	0x10424c	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+extrapad	0x11163c	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x111654	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x111670	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x111694	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x1116b8	strcpy	empreinte:ac ; b:nom	2026-10-18
+extrapad	0x123ddc	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+extrapad	0x123e0c	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+extrapad	0x124250	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+extrapad	0x1246e4	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+extrapad	0x124868	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x124880	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+extrapad	0x124938	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+extrapad	0x1249d8	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+extrapad	0x1258f4	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+extrapad	0x127d14	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+extrapad	0x127e58	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+extrapad	0x127ee0	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+extrapad	0x128108	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+extrapad	0x1281ac	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+extrapad	0x128c58	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+extrapad	0x129114	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+extrapad	0x12a63c	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+extrapad	0x12db50	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+extrapad	0x12dbb0	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x12dda0	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x12de70	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+extrapad	0x12e6fc	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+extrapad	0x12e838	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x12e854	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+extrapad	0x12e888	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+extrapad	0x12ee3c	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+extrapad	0x12f9b0	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+extrapad	0x12faa4	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+extrapad	0x12fb1c	release_address_range	empreinte:errdisp ; a (hid, spi)	2026-10-18
+extrapad	0x12fd20	strlen	empreinte:ac ; b:nom	2026-10-18
+extrapad	0x130428	strcmp	empreinte:cecd ; b:nom	2026-10-18
+extrapad	0x1306c8	strncpy	empreinte:act ; b:nom	2026-10-18
+extrapad	0x131280	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+extrapad	0x131420	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+extrapad	0x131494	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+extrapad	0x131c80	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+extrapad	0x131ccc	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x131ce4	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+extrapad	0x131cf0	svcSleepThread	appel:codec ; b:svc	2026-10-18
+extrapad	0x131d24	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+extrapad	0x13267c	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+extrapad	0x132704	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+extrapad	0x135d30	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+extrapad	0x136914	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+extrapad	0x138374	strncmp	empreinte:ac ; b:nom	2026-10-18
+extrapad	0x138504	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+extrapad	0x13865c	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+extrapad	0x13cbd0	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+extrapad	0x13fb5c	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+extrapad	0x140a5c	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+extrapad	0x140acc	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+extrapad	0x143650	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+extrapad	0x1437b4	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+extrapad	0x143804	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+extrapad	0x14f294	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x10009a	strstr	empreinte:boss ; b:nom	2026-10-18
+friend	0x100764	srand	empreinte:act ; b:nom	2026-10-18
+friend	0x104cb0	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+friend	0x10c334	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+friend	0x10d534	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+friend	0x116d54	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+friend	0x116d78	strcpy	empreinte:ac ; b:nom	2026-10-18
+friend	0x124bb8	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-18
+friend	0x124c00	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+friend	0x124c18	svcSleepThread	appel:codec ; b:svc	2026-10-18
+friend	0x1252f4	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x1255a4	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+friend	0x125c90	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+friend	0x12fdd0	heap_alloc	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+friend	0x139c0c	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+friend	0x139c74	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+friend	0x1423ac	sha256_transform	empreinte:cecd ; a (dsp, ro)	2026-10-18
+friend	0x1424ec	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+friend	0x142504	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+friend	0x14251c	svcGetHandleInfo	empreinte:dlp ; b:svc	2026-10-18
+friend	0x142538	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+friend	0x14f284	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x14f2f4	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x1510d4	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+friend	0x15123c	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+friend	0x1512c0	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+friend	0x166f94	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+friend	0x16da7c	rand	empreinte:ir ; b:nom	2026-10-18
+friend	0x16e39c	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+friend	0x173614	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+friend	0x17409c	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+friend	0x174424	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+friend	0x174814	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+friend	0x1749bc	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+friend	0x174a1c	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+friend	0x175034	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+friend	0x1753f8	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+friend	0x175c00	strncmp	empreinte:ac ; b:nom	2026-10-18
+friend	0x1763e4	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+friend	0x176400	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+friend	0x176418	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+friend	0x177854	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+friend	0x177930	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+friend	0x177a3c	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+friend	0x1788ec	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+friend	0x17ad08	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+friend	0x17b0f8	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x17b198	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x17c1b4	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+friend	0x17cdc0	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+friend	0x17dc90	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+friend	0x17dfd8	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+friend	0x17e20c	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+friend	0x17e468	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x17f50c	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+friend	0x1800bc	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+friend	0x18039c	memcmp	empreinte:ac ; b:nom	2026-10-18
+friend	0x183f1c	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+friend	0x1845fc	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+friend	0x18677c	strncpy	empreinte:act ; b:nom	2026-10-18
+friend	0x18685c	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+friend	0x186878	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+friend	0x188630	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+friend	0x1888a0	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+friend	0x1888e0	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+friend	0x1890d0	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+friend	0x189e74	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+friend	0x18b650	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+friend	0x18b6c0	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+friend	0x18b7b4	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+friend	0x18b8b8	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+friend	0x18ba84	strcmp	appel:maj ; b:nom	2026-10-18
+friend	0x18bbe0	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+friend	0x18c9b8	strlen	empreinte:ac ; b:nom	2026-10-18
+friend	0x18ca8c	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+friend	0x18cf60	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+friend	0x18cf84	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+friend	0x1e0470	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+friend	0x1ea6a8	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+hmvp	0x100250	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x103158	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x103170	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+hmvp	0x1054dc	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+hmvp	0x1092ac	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x10a73c	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+hmvp	0x10ae6c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+hmvp	0x1148a8	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x1148c0	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+hmvp	0x12bb4c	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x12bb70	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x12bb88	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x12f770	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+hmvp	0x12fc80	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+hmvp	0x132184	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+hmvp	0x132ff8	heap_alloc	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+hmvp	0x135130	svcGetThreadId	empreinte:am ; b:svc	2026-10-18
+hmvp	0x135148	svcGetThreadPriority	empreinte:fs ; b:svc	2026-10-18
+hmvp	0x149148	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+hmvp	0x15c048	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+hmvp	0x15c0f8	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+hmvp	0x15e8a0	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+hmvp	0x15ea14	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+hmvp	0x15ed54	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+hmvp	0x1622c0	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+hmvp	0x1663a0	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+hmvp	0x166684	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+hmvp	0x16917c	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-18
+hmvp	0x171318	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+hmvp	0x172fe0	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+hmvp	0x173068	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+hmvp	0x1730d0	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+hmvp	0x173590	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+hmvp	0x1776b0	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+hmvp	0x178910	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x178928	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x1799f4	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+hmvp	0x17fd28	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+hmvp	0x17fdf0	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+hmvp	0x17ff38	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+hmvp	0x183690	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+hmvp	0x18493c	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+hmvp	0x184980	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+hmvp	0x186fe0	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+hmvp	0x187650	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+hmvp	0x188f84	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+hmvp	0x18910c	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+hmvp	0x1891dc	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+hmvp	0x18ac68	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+hmvp	0x190788	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+hmvp	0x195768	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+hmvp	0x1957d8	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+hmvp	0x195ea4	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+hmvp	0x195f04	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+hmvp	0x195ff4	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+hmvp	0x196044	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+hmvp	0x1a383c	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+hmvp	0x1a385c	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+memolib	0x1031d0	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+memolib	0x103c08	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+memolib	0x104144	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+memolib	0x1092b0	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+memolib	0x1092c8	strcpy	empreinte:ac ; b:nom	2026-10-18
+memolib	0x109818	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+memolib	0x1153e8	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+memolib	0x11540c	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+memolib	0x1159f8	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+memolib	0x120108	_ZN2nw3lyt4PaneD1Ev	empreinte:maj ; b:nom	2026-10-18
+memolib	0x12123c	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+memolib	0x121aac	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+memolib	0x121cd8	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+memolib	0x122b60	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+memolib	0x122bbc	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+memolib	0x122bd4	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+memolib	0x122cf0	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+memolib	0x123e84	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+memolib	0x123ec4	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+memolib	0x123ff4	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+memolib	0x128aec	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+memolib	0x129d50	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+memolib	0x129d98	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+memolib	0x129dc4	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+memolib	0x12ade4	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+memolib	0x12b180	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+memolib	0x12b280	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+memolib	0x12b2f0	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+memolib	0x12b36c	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+memolib	0x12b3c4	strcmp	empreinte:cecd ; b:nom	2026-10-18
+memolib	0x12b4ac	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+memolib	0x12b554	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+memolib	0x12b568	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+memolib	0x12b93c	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+memolib	0x12b994	strlen	empreinte:ac ; b:nom	2026-10-18
+memolib	0x12ba2c	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+memolib	0x12be60	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+memolib	0x1307dc	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+memolib	0x1308e4	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+memolib	0x130d90	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+memolib	0x130e50	release_address_range	empreinte:errdisp ; a (hid, spi)	2026-10-18
+memolib	0x130ed8	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+memolib	0x1324c0	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+memolib	0x1324d8	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+memolib	0x132910	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+memolib	0x1329c8	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+memolib	0x132aac	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+memolib	0x137158	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+memolib	0x1371a4	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+memolib	0x1371bc	svcSleepThread	appel:codec ; b:svc	2026-10-18
+memolib	0x1371c8	strncmp	empreinte:ac ; b:nom	2026-10-18
+memolib	0x1376cc	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+memolib	0x13f0cc	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+memolib	0x13f0d8	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+memolib	0x143484	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+memolib	0x146684	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+memolib	0x146d18	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+memolib	0x146d88	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+memolib	0x1470bc	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+memolib	0x1471b0	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+memolib	0x147200	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+memolib	0x150950	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+memolib	0x152f98	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+menu	0x10009a	strstr	empreinte:boss ; b:nom	2026-10-18
+menu	0x106954	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+menu	0x10696c	svcQueryMemory	empreinte:act ; b:svc	2026-10-18
+menu	0x10e43c	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+menu	0x10e460	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+menu	0x1186d8	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+menu	0x1186f0	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+menu	0x12b074	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+menu	0x12b090	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+menu	0x12b0dc	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+menu	0x12b0f4	svcSleepThread	appel:codec ; b:svc	2026-10-18
+menu	0x12c1bc	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+menu	0x134648	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+menu	0x1374ac	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+menu	0x1437f0	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+menu	0x143960	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+menu	0x1442f8	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+menu	0x14aa40	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+menu	0x14b184	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+menu	0x1537f8	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+menu	0x153b80	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+menu	0x1576e0	sha256_transform	empreinte:cecd ; a (dsp, ro)	2026-10-18
+menu	0x157868	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+menu	0x162e18	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+menu	0x162e88	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+menu	0x163cb0	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+menu	0x163e24	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+menu	0x163e74	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+menu	0x213d7c	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+menu	0x215b24	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+menu	0x219070	__aeabi_ldivmod	appel:maj ; b:nom	2026-10-18
+menu	0x21a59c	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+menu	0x21ad30	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+menu	0x21cbec	strnlen	appel:maj ; b:nom	2026-10-18
+menu	0x21d274	memcmp	empreinte:ac ; b:nom	2026-10-18
+menu	0x21d300	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+menu	0x21ed04	strncmp	empreinte:ac ; b:nom	2026-10-18
+menu	0x21f0ec	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+menu	0x21f194	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+menu	0x21fb28	strcpy	empreinte:ac ; b:nom	2026-10-18
+menu	0x220dc8	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+menu	0x221898	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+menu	0x2219a0	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+menu	0x223ad8	svcGetThreadId	empreinte:am ; b:svc	2026-10-18
+menu	0x224c60	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+menu	0x227050	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+menu	0x227074	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+menu	0x2283b0	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+menu	0x22841c	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+menu	0x228550	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+menu	0x22887c	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+menu	0x22a014	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+menu	0x22bfc4	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+menu	0x22c054	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+menu	0x22c560	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+menu	0x22fb64	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+menu	0x230a2c	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+menu	0x2326e8	strncpy	empreinte:act ; b:nom	2026-10-18
+menu	0x232774	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+menu	0x232bac	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+menu	0x232e00	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+menu	0x232e34	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+menu	0x233f14	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+menu	0x234b00	release_address_range	empreinte:errdisp ; a (hid, spi)	2026-10-18
+menu	0x234fbc	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+menu	0x235ad0	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+menu	0x235b40	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+menu	0x235c34	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+menu	0x235d38	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+menu	0x235dc4	strlen	empreinte:ac ; b:nom	2026-10-18
+menu	0x236124	strcmp	appel:maj ; b:nom	2026-10-18
+menu	0x2362c8	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+menu	0x236dd0	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+menu	0x2373f8	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+menu	0x237420	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+menu	0x237b64	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+menu	0x2e09a8	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+menu	0x2f382c	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+mint	0x100180	strstr	empreinte:boss ; b:nom	2026-10-18
+mint	0x10104e	_ZNSs11_C_allocateEjjj	appel:ac ; b:nom	2026-10-18
+mint	0x103476	_ZNSt18__rw_open_cat_dataaSERKS_	empreinte:maj ; b:nom	2026-10-18
+mint	0x104004	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+mint	0x108010	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+mint	0x108028	svcQueryMemory	empreinte:act ; b:svc	2026-10-18
+mint	0x10b540	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+mint	0x10bee8	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+mint	0x1157fc	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+mint	0x1158f4	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+mint	0x11590c	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+mint	0x115930	svcSetTimer	empreinte:boss ; b:svc	2026-10-18
+mint	0x115948	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+mint	0x122190	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+mint	0x1221dc	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+mint	0x1221e8	svcSleepThread	appel:codec ; b:svc	2026-10-18
+mint	0x127acc	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+mint	0x127d94	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mint	0x128084	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+mint	0x130d68	svcCreateTimer	empreinte:boss ; b:svc	2026-10-18
+mint	0x130d80	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+mint	0x132958	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mint	0x1329c8	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mint	0x13358c	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+mint	0x133700	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-18
+mint	0x133808	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+mint	0x133ae0	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+mint	0x181e14	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+mint	0x181e64	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+mint	0x1821ec	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+mint	0x1831e0	strncmp	empreinte:ac ; b:nom	2026-10-18
+mint	0x18341c	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+mint	0x1837b8	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mint	0x183840	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mint	0x183b30	memcmp	empreinte:ac ; b:nom	2026-10-18
+mint	0x183c98	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+mint	0x183dd4	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+mint	0x18543c	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+mint	0x1855a4	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+mint	0x185754	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+mint	0x1857bc	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+mint	0x185874	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+mint	0x185940	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+mint	0x1859b8	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+mint	0x187740	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+mint	0x187790	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+mint	0x1877fc	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+mint	0x187a8c	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mint	0x188a7c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+mint	0x189510	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+mint	0x18a634	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+mint	0x18a798	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+mint	0x18b110	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+mint	0x18b9cc	strncpy	empreinte:act ; b:nom	2026-10-18
+mint	0x18bcf0	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+mint	0x18c49c	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+mint	0x18c4d0	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+mint	0x18cabc	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+mint	0x18ea64	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+mint	0x18ed3c	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+mint	0x18eee8	srv_get_service_handle_by_name	empreinte:codec ; a (codec, dsp, hid, ir)	2026-10-18
+mint	0x18f508	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+mint	0x18fa80	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+mint	0x190e3c	memclr_bytes	appel:act ; a (act, cfg, kernel11, maj)	2026-10-18
+mint	0x191410	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+mint	0x1915d4	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+mint	0x191cf4	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+mint	0x1925b4	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+mint	0x192878	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+mint	0x1928d8	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+mint	0x192960	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+mint	0x193484	_ZNSsC1EPKcRKSaIcE	empreinte:ac ; b:nom	2026-10-18
+mint	0x193504	strcpy	empreinte:ac ; b:nom	2026-10-18
+mint	0x193590	strlen	appel:ac ; b:nom	2026-10-18
+mint	0x1f7968	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+mint	0x1fe448	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+newslist	0x10009a	strstr	empreinte:boss ; b:nom	2026-10-18
+newslist	0x1042ec	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+newslist	0x108ad8	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+newslist	0x109ccc	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+newslist	0x112400	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+newslist	0x112418	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+newslist	0x11243c	strcpy	empreinte:ac ; b:nom	2026-10-18
+newslist	0x117364	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+newslist	0x11f3b4	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+newslist	0x11f400	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+newslist	0x11f418	svcSleepThread	appel:codec ; b:svc	2026-10-18
+newslist	0x11fb04	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+newslist	0x11fde8	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+newslist	0x1205d4	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+newslist	0x129b80	heap_alloc	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+newslist	0x12c4a0	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+newslist	0x12c4bc	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+newslist	0x12c4c8	strncmp	empreinte:ac ; b:nom	2026-10-18
+newslist	0x12eec8	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+newslist	0x12ef30	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+newslist	0x130f18	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+newslist	0x1312a0	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+newslist	0x131640	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+newslist	0x1319e0	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+newslist	0x142424	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+newslist	0x142770	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+newslist	0x142e94	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+newslist	0x142f4c	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+newslist	0x142fac	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+newslist	0x143acc	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+newslist	0x143ae4	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+newslist	0x14455c	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+newslist	0x144638	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+newslist	0x144744	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+newslist	0x144a14	memcmp	empreinte:ac ; b:nom	2026-10-18
+newslist	0x146740	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+newslist	0x146a64	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+newslist	0x1479d0	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+newslist	0x14849c	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+newslist	0x1484d0	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+newslist	0x1492c4	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+newslist	0x14960c	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+newslist	0x149688	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+newslist	0x1496f4	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+newslist	0x14a5b8	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+newslist	0x14b0d8	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+newslist	0x14ebc4	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+newslist	0x150158	strncpy	empreinte:act ; b:nom	2026-10-18
+newslist	0x150238	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+newslist	0x150254	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+newslist	0x151b64	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+newslist	0x151dd4	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+newslist	0x151e14	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+newslist	0x1525a8	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+newslist	0x1529cc	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+newslist	0x153ac4	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+newslist	0x153b34	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+newslist	0x153c28	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+newslist	0x153d2c	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+newslist	0x153e4c	strcmp	empreinte:cecd ; b:nom	2026-10-18
+newslist	0x153fa8	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+newslist	0x154718	strlen	empreinte:ac ; b:nom	2026-10-18
+newslist	0x1547a8	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+newslist	0x154b78	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+newslist	0x154b8c	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+newslist	0x15768c	sha256_transform	empreinte:cecd ; a (dsp, ro)	2026-10-18
+newslist	0x1577cc	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+newslist	0x15a09c	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+newslist	0x15a10c	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+newslist	0x15abbc	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+newslist	0x15acb0	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+newslist	0x15ad00	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+newslist	0x187dbc	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+newslist	0x18e264	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+olv	0x100124	run_init_array	empreinte:loader ; a (loader, ro)	2026-10-18
+olv	0x100440	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+olv	0x10060c	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+olv	0x100734	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-18
+olv	0x101bac	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+olv	0x101bc4	svcCreateTimer	empreinte:boss ; b:svc	2026-10-18
+olv	0x101bdc	svcSetTimer	empreinte:boss ; b:svc	2026-10-18
+olv	0x102a00	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+olv	0x1031fc	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+olv	0x1125bc	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+olv	0x113480	file_read	appel:errdisp ; a (errdisp, loader, ns)	2026-10-18
+olv	0x121d5c	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+olv	0x13db14	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+olv	0x13e810	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+olv	0x149fa4	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+olv	0x15fa9c	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+olv	0x164954	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+olv	0x1884f4	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+olv	0x188d6c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+olv	0x1a0a54	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+olv	0x1a9efc	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+olv	0x1b2e10	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+olv	0x1b2eb0	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+olv	0x1bdcd8	sha256_transform	empreinte:cecd ; a (dsp, ro)	2026-10-18
+olv	0x1bdea0	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+olv	0x1bded0	svcGetThreadPriority	empreinte:fs ; b:svc	2026-10-18
+olv	0x1bdee8	svcQueryMemory	empreinte:act ; b:svc	2026-10-18
+olv	0x1e5450	_ZN2nw3lyt4PaneD1Ev	empreinte:maj ; b:nom	2026-10-18
+olv	0x1eb764	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+olv	0x1f80c4	strnlen	empreinte:maj ; b:nom	2026-10-18
+olv	0x1f875c	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+olv	0x1f8ae4	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+olv	0x21ab3c	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+olv	0x231890	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+olv	0x232108	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+olv	0x2324f8	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+olv	0x232708	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+olv	0x232a48	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+olv	0x23386c	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+olv	0x23f558	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+olv	0x244a5c	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+olv	0x249bc8	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+olv	0x249d7c	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+olv	0x249d94	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+olv	0x249e70	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+olv	0x24a010	svcGetThreadId	empreinte:am ; b:svc	2026-10-18
+olv	0x24a1e4	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+olv	0x24c290	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+olv	0x24c530	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+olv	0x24ec30	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+olv	0x24edb4	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+olv	0x24ee24	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+olv	0x24ef18	break_process	appel:errdisp ; a (errdisp, fs, http, ir)	2026-10-18
+olv	0x24f0c0	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+olv	0x367cf0	heap_alloc	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+pnote_ap	0x1001a8	init_runtime	empreinte:ac ; a (csnd, friends)	2026-10-18
+pnote_ap	0x100754	make_result_level1	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+pnote_ap	0x1049d0	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+pnote_ap	0x104a0c	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+pnote_ap	0x108d96	make_system_save_path	empreinte:act ; a (cfg, ptm)	2026-10-18
+pnote_ap	0x108de8	open_system_save_archive	appel:act ; a (cfg, ptm)	2026-10-18
+pnote_ap	0x10919c	report_fatal_error	empreinte:act ; a (cfg, ptm, ssl)	2026-10-18
+pnote_ap	0x1095be	find_notification_handler	appel:act ; a (cfg, friends, ndm, ptm)	2026-10-18
+pnote_ap	0x10ba90	break_process	empreinte:ac ; a (cfg, ndm, ptm)	2026-10-18
+pnote_ap	0x10bab8	errf_close	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+pnote_ap	0x10e722	thread_trampoline	empreinte:ac ; a (ac, ndm, ptm)	2026-10-18
+pnote_ap	0x10eff8	make_result	appel:ac ; a (cfg, csnd, ptm)	2026-10-18
+pnote_ap	0x11088c	ipc_copy_to_words	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+pnote_ap	0x111f30	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+pnote_ap	0x114da0	_ZNSsaSEPKc	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x114f82	_ZNSs7replaceEjjPKcj	appel:ac ; b:nom	2026-10-18
+pnote_ap	0x114fac	_ZNSsaSERKSs	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x115480	_ZNSs7replaceEjjPKcjjj	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x11a064	snprintf	empreinte:act ; b:nom	2026-10-18
+pnote_ap	0x11ca8a	_ZN4__rw11__rw_file_t11_C_get_modeEi	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x11caa2	_ZN4__rw11__rw_file_t7_C_seekEli	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x137714	_ZNKSt7codecvtIwcSt11__mbstate_tE6do_outERS0_PKwS4_RS4_PcS6_RS6_	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x137b70	_ZNSt5ctypeIwEC1Ej	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x137be0	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	appel:ac ; b:nom	2026-10-18
+pnote_ap	0x1386d0	static_init_errf_port	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+pnote_ap	0x14347c	_ZNKSt6locale12_C_use_facetERKNS_2idEbiPFPN4__rw15__rw_facet_baseEiPKcjE	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x14376c	_ZN4__rw11__rw_file_t8_C_writeEPKvjj	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x14378a	_ZNSt4fposISt11__mbstate_tEaSERKS1_	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x1446b0	_ZNSoC1EPSt15basic_streambufIcSt11char_traitsIcEE	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x14f324	memcmp	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x152db0	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x152e48	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+pnote_ap	0x152e70	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+pnote_ap	0x153310	_ZNSs9_C_unlinkEv	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x153740	_ZNSt6localeC1Ev	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x153770	_ZNSsC1ERKSs	appel:ac ; b:nom	2026-10-18
+pnote_ap	0x1537ac	_ZNSsC1EPKcRKSaIcE	appel:ac ; b:nom	2026-10-18
+pnote_ap	0x153a58	strncmp	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x153ba8	__aeabi_uidivmod	empreinte:cecd ; b:nom	2026-10-18
+pnote_ap	0x154ff0	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+pnote_ap	0x1552a4	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+pnote_ap	0x155518	svcReleaseMutex	appel:camera ; b:svc	2026-10-18
+pnote_ap	0x15577c	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+pnote_ap	0x155a04	__aeabi_ldivmod	appel:ac ; b:nom	2026-10-18
+pnote_ap	0x15a3a0	strcpy	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x15a670	__aeabi_idivmod	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x15a980	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+pnote_ap	0x15aa28	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+pnote_ap	0x15afd8	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+pnote_ap	0x15b028	strcmp	empreinte:cecd ; b:nom	2026-10-18
+pnote_ap	0x15bb24	svcWaitSynchronization1	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x15bbb4	strlen	appel:ac ; b:nom	2026-10-18
+pnote_ap	0x15bc20	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+pnote_ap	0x15bc9c	register_mount_point	empreinte:ac ; a (cfg, ptm)	2026-10-18
+pnote_ap	0x15c86a	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+pnote_ap	0x15cca0	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+pnote_ap	0x15ccd4	svcGetSystemTick	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x15cd64	svcGetThreadId	empreinte:am ; b:svc	2026-10-18
+pnote_ap	0x15cdc0	unmount_archive	empreinte:ac ; a (cfg, ptm)	2026-10-18
+pnote_ap	0x15ceec	svcCloseHandle	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x15cf24	svcMapMemoryBlock	appel:act ; b:svc	2026-10-18
+pnote_ap	0x15cf2c	register_notification_handler	empreinte:act ; a (cfg, friends, ndm, ptm)	2026-10-18
+pnote_ap	0x166c72	_ZNKSt4fposISt11__mbstate_tEplEl	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x166ce8	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:ac ; b:nom	2026-10-18
+pnote_ap	0x166e7e	_ZNSt13basic_filebufIcSt11char_traitsIcEE4syncEv	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x16700e	_ZNSt13basic_filebufIcSt11char_traitsIcEE8overflowEi	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x16719c	_ZNSt13basic_filebufIwSt11char_traitsIwEE4syncEv	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x167334	_ZNSt13basic_filebufIwSt11char_traitsIwEE8overflowEi	empreinte:maj ; b:nom	2026-10-18
+pnote_ap	0x167520	_ZNSt15basic_streambufIcSt11char_traitsIcEE5sputcEc	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x16758c	_ZNSt15basic_streambufIwSt11char_traitsIwEE5sputcEw	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x169008	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E	appel:maj ; b:nom	2026-10-18
+pnote_ap	0x16a53c	svcCreateAddressArbiter	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16a724	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+pnote_ap	0x16a748	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+pnote_ap	0x16a760	svcGetProcessInfo	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16bed0	svcConnectToPort	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16cf74	svcBreak	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16cf7c	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+pnote_ap	0x16cf94	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+pnote_ap	0x16d8f0	svcArbitrateAddress	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16d908	svcClearEvent	appel:friends ; b:svc	2026-10-18
+pnote_ap	0x16d910	svcCreateMemoryBlock	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16d92c	svcCreateThread	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16d950	svcUnmapMemoryBlock	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16e258	svcExitThread	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x16e268	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+pnote_ap	0x16e9f0	svcWaitSynchronizationN	appel:ac ; b:svc	2026-10-18
+pnote_ap	0x170328	svcDuplicateHandle	appel:ac ; b:svc	2026-10-18
+skater	0x114a9c	_ZNSs11_C_allocateEjjj	empreinte:boss ; b:nom	2026-10-18
+skater	0x119df8	_ZNSt6localeC1Ev	empreinte:ac ; b:nom	2026-10-18
+skater	0x11ab50	_ZNSsC1ERKSs	empreinte:ac ; b:nom	2026-10-18
+skater	0x11dcf4	_ZNSs9_C_getRepEjj	empreinte:ac ; b:nom	2026-10-18
+skater	0x121678	_ZNSsaSEPKc	empreinte:ac ; b:nom	2026-10-18
+skater	0x124c54	_ZNSs7replaceEjjPKcj	appel:ac ; b:nom	2026-10-18
+skater	0x124c7c	_ZNSsaSERKSs	empreinte:ac ; b:nom	2026-10-18
+skater	0x129aa4	_ZNSs9_C_unlinkEv	empreinte:ac ; b:nom	2026-10-18
+skater	0x190c3c	rand	empreinte:ir ; b:nom	2026-10-18
+skater	0x1ca316	_ZN4__rw23__rw_numpunct_impl_dataIcED1Ev	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d091e	_ZNKSt14codecvt_bynameIwcSt11__mbstate_tE10do_unshiftERS0_PcS3_RS3_	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d0942	_ZNKSt14codecvt_bynameIwcSt11__mbstate_tE11do_encodingEv	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d0c16	_ZNKSt5ctypeIcE10do_tolowerEPcPKc	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d0c44	_ZNKSt5ctypeIcE10do_tolowerEc	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d0c64	_ZNKSt5ctypeIcE10do_toupperEPcPKc	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d0c92	_ZNKSt5ctypeIcE10do_toupperEc	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d110c	_ZNSt14collate_bynameIcED1Ev	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d1124	_ZNSt18__rw_open_cat_dataC1Ev	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d13e0	_ZNSt6locale16_C_remove_facetsEi	empreinte:maj ; b:nom	2026-10-18
+skater	0x1d1488	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:ac ; b:nom	2026-10-18
+skater	0x1ed6cc	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+skater	0x1ed850	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+skater	0x1f4e04	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+skater	0x203008	memcmp	empreinte:ac ; b:nom	2026-10-18
+skater	0x2099e0	strstr	empreinte:boss ; b:nom	2026-10-18
+skater	0x20cfe8	strncmp	empreinte:ac ; b:nom	2026-10-18
+skater	0x220f10	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+skater	0x22ee74	strcmp	empreinte:cecd ; b:nom	2026-10-18
+skater	0x241ffc	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+skater	0x247394	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+skater	0x247a08	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+skater	0x2504f0	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+skater	0x2507e0	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+skater	0x25357c	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+skater	0x2535d0	strlen	empreinte:ac ; b:nom	2026-10-18
+skater	0x253ae8	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+skater	0x259520	light_event_wait	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+skater	0x2596a4	light_event_init	empreinte:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+skater	0x259768	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+skater	0x259808	break_process	appel:errdisp ; a (errdisp, fs, http, ir)	2026-10-18
+skater	0x25b824	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+skater	0x25b898	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+skater	0x25b8ac	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+skater	0x25ba5c	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+skater	0x25bec8	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+skater	0x262eee	_ZNK4__rw17__rw_collate_dataIcE13_C_coll_orderEc	appel:maj ; b:nom	2026-10-18
+skater	0x263fe8	_ZNKSt7collateIcE10do_compareEPKcS2_S2_S2_	empreinte:maj ; b:nom	2026-10-18
+skater	0x264108	_ZNKSt7collateIcE7do_hashEPKcS2_	empreinte:maj ; b:nom	2026-10-18
+skater	0x264230	_ZNSs5beginEv	empreinte:maj ; b:nom	2026-10-18
+skater	0x2642e4	_ZNSt8numpunctIcE12_C_initfacetERKSt6locale	empreinte:maj ; b:nom	2026-10-18
+skater	0x264834	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+skater	0x264bd0	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+skater	0x264bec	svcQueryMemory	empreinte:act ; b:svc	2026-10-18
+skater	0x264ec4	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+skater	0x2659c8	init_heap_region	empreinte:codec ; a (codec, i2c, ir, mcu)	2026-10-18
+skater	0x26711c	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+skater	0x267140	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+skater	0x26c02c	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+skater	0x26d308	strnlen	appel:maj ; b:nom	2026-10-18
+skater	0x26faf8	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+skater	0x26fb10	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+skater	0x26fb3c	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+skater	0x27654c	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+skater	0x276564	svcGetThreadId	empreinte:am ; b:svc	2026-10-18
+skater	0x27657c	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+skater	0x277e20	file_read	appel:errdisp ; a (errdisp, loader, ns)	2026-10-18
+skater	0x27f50c	svcCreateTimer	empreinte:boss ; b:svc	2026-10-18
+skater	0x281d8c	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+skater	0x28fc80	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+skater	0x299b58	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+skater	0x29ac00	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+skater	0x29bc08	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+skater	0x29c148	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+skater	0x2a1264	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+skater	0x2a4b14	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+skater	0x2a57bc	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+skater	0x2a58b8	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+skater	0x2a5920	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+skater	0x2a8614	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+skater	0x2de664	svcSetTimer	empreinte:boss ; b:svc	2026-10-18
+skater	0x2e92dc	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+skater	0x2e9664	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+skater	0x313198	strncpy	empreinte:act ; b:nom	2026-10-18
+skater	0x3132ac	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+skater	0x321550	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+skater	0x330b88	strcpy	empreinte:ac ; b:nom	2026-10-18
+skater	0x331278	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+skater	0x3360c4	sha256_transform	empreinte:cecd ; a (dsp, ro)	2026-10-18
+skater	0x3361fc	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+skater	0x33ce34	linear_vaddr_to_paddr	empreinte:dsp ; a (dsp, gsp)	2026-10-18
+snote_ap	0x1001a8	init_runtime	empreinte:ac ; a (csnd, friends)	2026-10-18
+snote_ap	0x100748	make_result_level1	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+snote_ap	0x1047b4	handle_srv_notification	empreinte:camera ; a (camera, cecd, cfg, dlp)	2026-10-18
+snote_ap	0x1047f0	unregister_notification_handler	empreinte:cecd ; a (cecd, ndm)	2026-10-18
+snote_ap	0x10879a	make_system_save_path	empreinte:act ; a (cfg, ptm)	2026-10-18
+snote_ap	0x1087ec	open_system_save_archive	appel:act ; a (cfg, ptm)	2026-10-18
+snote_ap	0x108b28	report_fatal_error	empreinte:act ; a (cfg, ptm, ssl)	2026-10-18
+snote_ap	0x108fb6	find_notification_handler	appel:act ; a (cfg, friends, ndm, ptm)	2026-10-18
+snote_ap	0x10b09c	break_process	empreinte:ac ; a (cfg, ndm, ptm)	2026-10-18
+snote_ap	0x10b0c4	errf_close	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+snote_ap	0x10e450	make_result	appel:ac ; a (cfg, csnd, ptm)	2026-10-18
+snote_ap	0x10fcfe	ipc_copy_to_words	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+snote_ap	0x111224	light_event_clear	empreinte:ac ; a (ac, ptm)	2026-10-18
+snote_ap	0x1127e8	_ZNSt6localeC1Ev	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x113194	_ZNSs11_C_allocateEjjj	appel:ac ; b:nom	2026-10-18
+snote_ap	0x11403c	_ZNSsaSEPKc	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x11421e	_ZNSs7replaceEjjPKcj	appel:ac ; b:nom	2026-10-18
+snote_ap	0x114248	_ZNSsaSERKSs	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x114aa8	memcmp	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x1216fc	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	appel:ac ; b:nom	2026-10-18
+snote_ap	0x122058	static_init_errf_port	empreinte:ac ; a (cfg, csnd, ptm)	2026-10-18
+snote_ap	0x127404	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x1284bc	svcCreateAddressArbiter	appel:ac ; b:svc	2026-10-18
+snote_ap	0x128654	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+snote_ap	0x128678	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+snote_ap	0x128690	svcGetProcessInfo	appel:ac ; b:svc	2026-10-18
+snote_ap	0x1286ac	svcGetThreadId	empreinte:am ; b:svc	2026-10-18
+snote_ap	0x1286c4	svcMapMemoryBlock	appel:camera ; b:svc	2026-10-18
+snote_ap	0x134aa8	__aeabi_memmove	empreinte:fs ; b:nom	2026-10-18
+snote_ap	0x134b34	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+snote_ap	0x134b5c	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+snote_ap	0x134ffc	_ZNSs9_C_unlinkEv	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x135408	_ZNSsC1ERKSs	appel:ac ; b:nom	2026-10-18
+snote_ap	0x135444	_ZNSsC1EPKcRKSaIcE	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x135760	__aeabi_uidivmod	empreinte:cecd ; b:nom	2026-10-18
+snote_ap	0x1369ac	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+snote_ap	0x136c30	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+snote_ap	0x136ebc	svcReleaseMutex	appel:camera ; b:svc	2026-10-18
+snote_ap	0x1373bc	light_event_signal	empreinte:camera ; a (camera, ptm)	2026-10-18
+snote_ap	0x137658	__aeabi_ldivmod	appel:ac ; b:nom	2026-10-18
+snote_ap	0x1376f4	light_event_wait	empreinte:ac ; a (ac, ptm)	2026-10-18
+snote_ap	0x13bf18	strcpy	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x13c1e8	__aeabi_idivmod	empreinte:maj ; b:nom	2026-10-18
+snote_ap	0x13c6a0	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+snote_ap	0x13cc30	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+snote_ap	0x13cc80	strcmp	empreinte:cecd ; b:nom	2026-10-18
+snote_ap	0x13dac0	svcWaitSynchronization1	appel:ac ; b:svc	2026-10-18
+snote_ap	0x13db74	strlen	appel:ac ; b:nom	2026-10-18
+snote_ap	0x13dbe0	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+snote_ap	0x13dc5c	register_mount_point	empreinte:ac ; a (cfg, ptm)	2026-10-18
+snote_ap	0x13e8bc	svcCloseHandle	appel:ac ; b:svc	2026-10-18
+snote_ap	0x13e980	light_event_init	empreinte:dlp ; a (dlp, mvd, ptm)	2026-10-18
+snote_ap	0x13ee88	lock_leave	appel:cfg ; a (cfg, dlp, ptm)	2026-10-18
+snote_ap	0x13eebc	svcGetSystemTick	appel:ac ; b:svc	2026-10-18
+snote_ap	0x13ef90	unmount_archive	empreinte:ac ; a (cfg, ptm)	2026-10-18
+snote_ap	0x13f0c4	register_notification_handler	empreinte:act ; a (cfg, friends, ndm, ptm)	2026-10-18
+snote_ap	0x13fa8c	svcConnectToPort	appel:ac ; b:svc	2026-10-18
+snote_ap	0x140ca0	svcBreak	appel:ac ; b:svc	2026-10-18
+snote_ap	0x140ca8	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+snote_ap	0x140cc0	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+snote_ap	0x1414d8	svcArbitrateAddress	appel:ac ; b:svc	2026-10-18
+snote_ap	0x1414f0	svcClearEvent	appel:friends ; b:svc	2026-10-18
+snote_ap	0x1414f8	svcCreateMemoryBlock	appel:ac ; b:svc	2026-10-18
+snote_ap	0x141514	svcCreateThread	appel:ac ; b:svc	2026-10-18
+snote_ap	0x141538	svcUnmapMemoryBlock	appel:ac ; b:svc	2026-10-18
+snote_ap	0x141eb4	svcExitThread	appel:ac-safe ; b:svc	2026-10-18
+snote_ap	0x141ec4	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+snote_ap	0x14264c	svcWaitSynchronizationN	appel:ac ; b:svc	2026-10-18
+snote_ap	0x14283c	strncmp	empreinte:ac ; b:nom	2026-10-18
+snote_ap	0x143fe4	svcDuplicateHandle	appel:ac ; b:svc	2026-10-18
+solv3	0x1003d0	_ZNSt6localeC1Ev	empreinte:ac ; b:nom	2026-10-18
+solv3	0x100ae0	_ZNSs11_C_allocateEjjj	appel:ac ; b:nom	2026-10-18
+solv3	0x10178c	_ZN4__rw15__rw_locale_impC1EPKcjj	appel:maj ; b:nom	2026-10-18
+solv3	0x1023e4	_ZNSs7replaceEjjPKcj	appel:ac ; b:nom	2026-10-18
+solv3	0x103518	_ZN4__rw27__rw_reallocate_temp_bufferEPvj	appel:maj ; b:nom	2026-10-18
+solv3	0x1036b6	_ZNKSt6locale12_C_use_facetERKNS_2idEbiPFPN4__rw15__rw_facet_baseEiPKcjE	appel:maj ; b:nom	2026-10-18
+solv3	0x1039c8	_ZNSt18__rw_open_cat_dataC1Ev	empreinte:maj ; b:nom	2026-10-18
+solv3	0x1039ee	_ZNSt18__rw_open_cat_dataaSERKS_	appel:maj ; b:nom	2026-10-18
+solv3	0x103ccc	_ZNSt6localeC1EPN4__rw15__rw_locale_impE	empreinte:ac ; b:nom	2026-10-18
+solv3	0x103e08	_ZSt13__rw_get_catsv	appel:maj ; b:nom	2026-10-18
+solv3	0x103f40	_ZN4__rw18__rw_locale_vectorIPNS_15__rw_facet_baseEE6resizeEjRKS2_	appel:maj ; b:nom	2026-10-18
+solv3	0x103fa0	_ZN4__rw18__rw_locale_vectorISt18__rw_open_cat_dataE6resizeEj	appel:maj ; b:nom	2026-10-18
+solv3	0x104034	_ZNKSt8messagesIcE6do_getEiiiRKSs	empreinte:ac ; b:nom	2026-10-18
+solv3	0x104110	_ZNSt8numpunctIcE12_C_initfacetERKSt6locale	empreinte:maj ; b:nom	2026-10-18
+solv3	0x104194	_ZNSt9basic_iosIcSt11char_traitsIcEE4initEPSt15basic_streambufIcS1_E	empreinte:maj ; b:nom	2026-10-18
+solv3	0x1079c8	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+solv3	0x10b91c	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+solv3	0x10b934	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+solv3	0x10bc7c	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+solv3	0x113af0	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+solv3	0x113b14	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+solv3	0x113b30	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+solv3	0x114228	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+solv3	0x11e080	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
+solv3	0x11e19c	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+solv3	0x11e1b4	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+solv3	0x11e388	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+solv3	0x11e46c	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+solv3	0x11e4d8	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+solv3	0x11e9a4	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+solv3	0x124170	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
+solv3	0x1242d4	thread_trampoline	empreinte:dsp ; a (dsp, gsp, hid, i2c)	2026-10-18
+solv3	0x124320	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+solv3	0x124338	svcSleepThread	appel:codec ; b:svc	2026-10-18
+solv3	0x124ae4	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+solv3	0x1274e8	msg_queue_send	empreinte:fs ; a (fs, http)	2026-10-18
+solv3	0x129ebc	msg_queue_try_send	empreinte:gsp ; a (gsp, http)	2026-10-18
+solv3	0x132684	svcCreateMutex	empreinte:am ; b:svc	2026-10-18
+solv3	0x13269c	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+solv3	0x1327a4	strncpy	empreinte:act ; b:nom	2026-10-18
+solv3	0x141fac	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+solv3	0x14201c	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+solv3	0x142c20	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+solv3	0x142c8c	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+solv3	0x142d80	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+solv3	0x142eb0	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+solv3	0x142f00	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+solv3	0x15eac8	_ZNSt15basic_streambufIcSt11char_traitsIcEE5sputcEc	empreinte:maj ; b:nom	2026-10-18
+solv3	0x16c8f8	_ZN2nw3lyt4PaneD1Ev	empreinte:maj ; b:nom	2026-10-18
+solv3	0x178944	strncmp	empreinte:ac ; b:nom	2026-10-18
+solv3	0x179150	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+solv3	0x17f268	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+solv3	0x17f308	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+solv3	0x17f368	light_semaphore_release	empreinte:fs ; a (gsp, pm, pxi)	2026-10-18
+solv3	0x17f6e8	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+solv3	0x17faec	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+solv3	0x17fbb4	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+solv3	0x17fbcc	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+solv3	0x18141c	memcpy_unaligned	empreinte:ac ; a (cfg, dsp, maj)	2026-10-18
+solv3	0x1817a4	memmove_unaligned	empreinte:am-safe ; a (dsp, maj)	2026-10-18
+solv3	0x181fd0	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+solv3	0x182020	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+solv3	0x187ebc	memcmp	empreinte:ac ; b:nom	2026-10-18
+solv3	0x188828	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+solv3	0x18924c	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+solv3	0x1897c4	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+solv3	0x189914	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+solv3	0x18ee38	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+solv3	0x18eea8	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+solv3	0x18f080	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+solv3	0x18f16c	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+solv3	0x18f7b0	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+solv3	0x18f840	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+solv3	0x18f934	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+solv3	0x18f9ec	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+solv3	0x1901fc	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+solv3	0x190660	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+solv3	0x1907d4	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+solv3	0x190918	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+solv3	0x1909a0	strcmp	appel:maj ; b:nom	2026-10-18
+solv3	0x190a5c	_ZNSt6localeD1Ev	appel:maj ; b:nom	2026-10-18
+solv3	0x190b88	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+solv3	0x190b9a	_ZN4__rw21__rw_use_c_lib_localeD1Ev	appel:maj ; b:nom	2026-10-18
+solv3	0x190f44	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+solv3	0x191200	shift_left_64	empreinte:ac ; a (kernel11, kernel9)	2026-10-18
+solv3	0x1912fc	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+solv3	0x191348	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+solv3	0x1913d0	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+solv3	0x191a40	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+solv3	0x191ad8	_ZNSsaSERKSs	empreinte:ac ; b:nom	2026-10-18
+solv3	0x191c64	_ZNSs9_C_unlinkEv	appel:ac ; b:nom	2026-10-18
+solv3	0x191cac	_ZNSsaSEPKc	empreinte:ac ; b:nom	2026-10-18
+solv3	0x191d60	_ZNSs9_C_getRepEjj	empreinte:ac ; b:nom	2026-10-18
+solv3	0x191eb4	_ZNSsC1ERKSs	empreinte:ac ; b:nom	2026-10-18
+solv3	0x191ef0	_ZNSsC1EPKcRKSaIcE	empreinte:ac ; b:nom	2026-10-18
+solv3	0x19200c	strcpy	appel:ac ; b:nom	2026-10-18
+solv3	0x19207c	strlen	appel:ac ; b:nom	2026-10-18
+solv3	0x1db764	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+solv3	0x1e916c	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+swkbd	0x100288	strstr	empreinte:boss ; b:nom	2026-10-18
+swkbd	0x10087c	memcmp	empreinte:ac ; b:nom	2026-10-18
+swkbd	0x1012c4	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+swkbd	0x1058c4	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x105de8	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+swkbd	0x1061bc	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+swkbd	0x1142f4	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x11430c	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x114328	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x11434c	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x114370	strcpy	empreinte:ac ; b:nom	2026-10-18
+swkbd	0x1286d0	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-18
+swkbd	0x128718	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x128730	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+swkbd	0x12873c	svcSleepThread	appel:codec ; b:svc	2026-10-18
+swkbd	0x128748	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+swkbd	0x128f5c	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd	0x129044	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+swkbd	0x1290fc	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+swkbd	0x12944c	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+swkbd	0x12c8d8	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd	0x12d2b8	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+swkbd	0x12e608	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+swkbd	0x12e658	strncmp	empreinte:ac ; b:nom	2026-10-18
+swkbd	0x12e7e8	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd	0x12e878	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+swkbd	0x12ee20	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+swkbd	0x134310	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+swkbd	0x143530	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+swkbd	0x14b8dc	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+swkbd	0x1510f8	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x151110	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+swkbd	0x1511b0	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+swkbd	0x151d9c	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+swkbd	0x153960	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+swkbd	0x153f3c	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+swkbd	0x153fa8	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd	0x154d68	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+swkbd	0x154f70	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+swkbd	0x156c28	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+swkbd	0x1579f8	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+swkbd	0x157a1c	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x157b74	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x158d58	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+swkbd	0x158dbc	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x158dd8	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+swkbd	0x158e0c	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+swkbd	0x15947c	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+swkbd	0x15b054	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+swkbd	0x15b148	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+swkbd	0x15b1f4	strlen	empreinte:ac ; b:nom	2026-10-18
+swkbd	0x15b714	strcmp	empreinte:cecd ; b:nom	2026-10-18
+swkbd	0x15b9bc	strncpy	empreinte:act ; b:nom	2026-10-18
+swkbd	0x15bff4	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+swkbd	0x15c064	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+swkbd	0x15c43c	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+swkbd	0x15c550	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+swkbd	0x15c6d4	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+swkbd	0x15c778	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+swkbd	0x15c79c	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+swkbd	0x16aa28	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+swkbd	0x16f954	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd	0x16f9c4	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd	0x16ff4c	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+swkbd	0x170040	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+swkbd	0x170090	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+swkbd	0x195b94	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd	0x199238	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+swkbd-safe	0x100288	strstr	empreinte:boss ; b:nom	2026-10-18
+swkbd-safe	0x10087c	memcmp	empreinte:ac ; b:nom	2026-10-18
+swkbd-safe	0x1012c4	decode_thread_priority	empreinte:fs ; a (fs, gsp, mp)	2026-10-18
+swkbd-safe	0x1058c4	svcCreateAddressArbiter	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x105de8	map_shared_memory	empreinte:http ; a (http, ir, mic, socket)	2026-10-18
+swkbd-safe	0x1061bc	register_notification_handler	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
+swkbd-safe	0x1142f4	svcConnectToPort	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x11430c	svcCreateMemoryBlock	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x114328	svcCreateThread	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x11434c	svcWaitSynchronizationN	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x114370	strcpy	empreinte:ac ; b:nom	2026-10-18
+swkbd-safe	0x1286d0	thread_trampoline	empreinte:codec ; a (codec, mic, spi)	2026-10-18
+swkbd-safe	0x128718	svcGetProcessId	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x128730	svcGetSystemTick	appel:errdisp ; b:svc	2026-10-18
+swkbd-safe	0x12873c	svcSleepThread	appel:codec ; b:svc	2026-10-18
+swkbd-safe	0x128748	__aeabi_memmove	empreinte:ac ; b:nom	2026-10-18
+swkbd-safe	0x128f5c	file_read_all	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd-safe	0x129044	light_event_clear	empreinte:http ; a (ir, mcu, mic)	2026-10-18
+swkbd-safe	0x1290fc	lock_arbitrate_wait	appel:http ; a (ir, mcu, mic)	2026-10-18
+swkbd-safe	0x12944c	release_address_range	empreinte:gsp ; a (gsp, ir, ns)	2026-10-18
+swkbd-safe	0x12c8d8	file_get_size	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd-safe	0x12d2b8	heap_alloc	appel:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+swkbd-safe	0x12e608	__aeabi_ldivmod	empreinte:ac ; b:nom	2026-10-18
+swkbd-safe	0x12e658	strncmp	empreinte:ac ; b:nom	2026-10-18
+swkbd-safe	0x12e7e8	file_read	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd-safe	0x12e878	reserve_address_range	empreinte:errdisp ; a (hid, i2c, spi)	2026-10-18
+swkbd-safe	0x12ee20	fill_words	empreinte:errdisp ; a (pm, ro)	2026-10-18
+swkbd-safe	0x134310	__aeabi_uldivmod	appel:ac ; b:nom	2026-10-18
+swkbd-safe	0x143530	file_get_handle	appel:errdisp ; a (errdisp, loader)	2026-10-18
+swkbd-safe	0x14b8dc	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
+swkbd-safe	0x1510f8	svcArbitrateAddress	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x151110	block_pool_init	empreinte:errdisp ; a (loader, pm, ps, ro)	2026-10-18
+swkbd-safe	0x1511b0	__aeabi_uidivmod	appel:errdisp ; b:nom	2026-10-18
+swkbd-safe	0x151d9c	service_open	empreinte:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+swkbd-safe	0x153960	join_thread	appel:codec ; a (codec, dsp, gsp, hid)	2026-10-18
+swkbd-safe	0x153f3c	unmap_shared_memory_or_panic	appel:errdisp ; a (errdisp, hid)	2026-10-18
+swkbd-safe	0x153fa8	pool_alloc	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd-safe	0x154d68	construct_array	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+swkbd-safe	0x154f70	light_event_signal	empreinte:errdisp ; a (gsp, ir, mcu, mic)	2026-10-18
+swkbd-safe	0x156c28	klinked_list_insert	empreinte:kernel11 ; a (kernel11, kernel9)	2026-10-18
+swkbd-safe	0x1579f8	static_guard_acquire	empreinte:ac ; a (codec, gpio, hid, loader)	2026-10-18
+swkbd-safe	0x157a1c	svcCreateEvent	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x157b74	svcControlMemory	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x158d58	heap_alloc_unlocked	empreinte:codec ; a (codec, gpio, i2c, mcu)	2026-10-18
+swkbd-safe	0x158dbc	svcGetProcessInfo	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x158dd8	light_event_init	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+swkbd-safe	0x158e0c	unmap_shared_memory	appel:http ; a (http, ir, mic)	2026-10-18
+swkbd-safe	0x15947c	light_event_wait	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+swkbd-safe	0x15b054	create_thread	empreinte:codec ; a (codec, dsp, fs, gsp)	2026-10-18
+swkbd-safe	0x15b148	break_process	appel:codec ; a (codec, dsp, errdisp, gsp)	2026-10-18
+swkbd-safe	0x15b1f4	strlen	empreinte:ac ; b:nom	2026-10-18
+swkbd-safe	0x15b714	strcmp	empreinte:cecd ; b:nom	2026-10-18
+swkbd-safe	0x15b9bc	strncpy	empreinte:act ; b:nom	2026-10-18
+swkbd-safe	0x15bff4	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
+swkbd-safe	0x15c064	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
+swkbd-safe	0x15c43c	panic_on_failure	appel:codec ; a (codec, dsp, gpio, gsp)	2026-10-18
+swkbd-safe	0x15c550	__aeabi_memcpy	empreinte:ac ; b:nom	2026-10-18
+swkbd-safe	0x15c6d4	memcpy_words	empreinte:ac ; a (cfg, codec, csnd, dsp)	2026-10-18
+swkbd-safe	0x15c778	destroy_array	empreinte:ac ; a (dsp, pxi, ro)	2026-10-18
+swkbd-safe	0x15c79c	__aeabi_idivmod	appel:maj ; b:nom	2026-10-18
+swkbd-safe	0x16aa28	svcDuplicateHandle	empreinte:ac ; b:svc	2026-10-18
+swkbd-safe	0x16f954	file_close_and_free	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd-safe	0x16f9c4	file_read_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd-safe	0x16ff4c	shared_memory_dtor	empreinte:errdisp ; a (errdisp, hid)	2026-10-18
+swkbd-safe	0x170040	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
+swkbd-safe	0x170090	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
+swkbd-safe	0x195b94	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
+swkbd-safe	0x199238	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18

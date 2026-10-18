@@ -1,4 +1,5 @@
 0x100000	function	entry
+0x100110	label	rand
 0x100148	label	srand
 0x1001ac	label	destroy_array
 0x1001ce	label	construct_array
@@ -12,6 +13,7 @@
 0x100f28	function	create_lock_arbiter_once
 0x100f64	function	init_heap_region
 0x100ff0	function	decode_thread_priority
+0x1011d4	function	handle_srv_notification
 0x1012ac	function	SRV_RegisterClient
 0x1012e8	function	SRV_RegisterService
 0x101344	function	SRV_UnregisterService
@@ -27,6 +29,7 @@
 0x101b8c	function	svcGetProcessInfo
 0x101df8	function	reserve_address_range
 0x1021d4	function	SRV_GetServiceHandle
+0x102230	function	msg_queue_init
 0x1022f0	function	svcConnectToPort
 0x102308	function	svcGetProcessId
 0x1023cc	function	light_event_clear
@@ -46,20 +49,25 @@
 0x10c3c8	function	__aeabi_ldivmod
 0x10d46c	function	__aeabi_memmove
 0x10fa18	function	__aeabi_uldivmod
+0x10fe50	function	memclr_bytes
 0x10fe90	function	__aeabi_memcpy
 0x110288	function	light_semaphore_release
 0x110300	function	__aeabi_uidivmod
 0x110330	function	svcArbitrateAddress
 0x110348	function	heap_alloc_unlocked
 0x111754	function	light_event_wait
+0x11181c	function	msg_queue_receive
+0x1118e4	function	msg_queue_send
 0x111ed0	function	memcpy_words
 0x11201c	function	join_thread
 0x112054	function	svcSetTimer
+0x11217c	function	msg_queue_try_send
 0x1126bc	function	light_event_signal
 0x112e04	function	release_address_range
 0x112f04	function	svcCreateTimer
 0x112f1c	function	svcCreateEvent
 0x112f50	function	light_event_init
+0x112ff4	function	memset_words
 0x1137b0	function	SRV_Subscribe
 0x1137e8	function	register_notification_handler
 0x113878	function	strlen

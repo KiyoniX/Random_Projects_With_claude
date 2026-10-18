@@ -54,6 +54,7 @@
 0x10188c	function	svcReplyAndReceive
 0x1018ec	function	session_threads_dtor
 0x101a60	function	reserve_address_range
+0x101d74	function	handle_holder_dtor
 0x101da0	function	create_thread_on_heap_stack
 0x101e50	function	thread_dtor
 0x101ed0	function	i2c_handle_command
@@ -63,6 +64,7 @@
 0x103344	function	i2c_service_may_access_device
 0x103420	label	destroy_array
 0x103444	function	svcArbitrateAddress
+0x1034fc	function	break_process
 0x103550	function	release_address_range
 0x1035d8	function	lock_enter
 0x103610	function	lock_init

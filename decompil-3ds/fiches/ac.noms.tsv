@@ -47,6 +47,7 @@
 0x1060d4	label	report_fatal_error
 0x1061e8	label	NWMINF_cmd000A
 0x106252	label	HTTPC_Initialize
+0x106318	label	sha_md_update
 0x106410	label	aci_0401_LoadNetworkSetting
 0x106428	label	aci_0404_FlushNetworkSetting
 0x106440	label	aci_0403_RemoveNetworkSetting
@@ -226,6 +227,7 @@
 0x10c228	label	_ZNSs9_C_getRepEjj
 0x10c348	label	_ZNSsC1ERKSs
 0x10c384	label	_ZNSsC1EPKcRKSaIcE
+0x10c7d0	label	snprintf
 0x10c850	function	__aeabi_lmul
 0x10d148	function	__aeabi_idivmod
 0x10d2c4	function	__aeabi_ldivmod
@@ -233,6 +235,7 @@
 0x10de20	label	job_queue_push
 0x10de9c	label	is_connected
 0x10df64	function	memcpy_unaligned
+0x10e2ec	function	memmove_unaligned
 0x10e778	function	svcWaitSynchronization1
 0x10e8a0	label	acu_0041_SetTemporaryNetworkSettings
 0x10e990	label	acu_0040_SetClientVersion
@@ -291,6 +294,7 @@
 0x10f810	label	acu_0008_CloseAsync
 0x10f84c	label	acu_0007_CancelConnectAsync
 0x10f85c	label	acu_0006_DebugSetNetworkSetting1
+0x10f994	label	ipc_descriptor_buffer_size
 0x10f9a6	label	acu_0005_GetConnectResult
 0x10f9b0	label	acu_0004_ConnectAsync
 0x10fa7c	label	check_handle_descriptor
@@ -315,6 +319,7 @@
 0x110530	label	acu_0021_EndScanUsbAccessPoint
 0x1105cc	label	unexclusive_request_push
 0x110640	label	close_request_push
+0x1106cc	label	lock_leave
 0x1106fe	label	fatal_error_unless_minor
 0x11071a	label	create_thread
 0x110904	function	svcCloseHandle
@@ -325,6 +330,7 @@
 0x110c74	function	memcpy_words
 0x110ce8	function	get_tls
 0x110cf0	function	svcCreateEvent
+0x110d4c	label	sha1_final
 0x110d80	label	sha1_init
 0x110e20	function	memclr
 0x110e24	function	memset_words
@@ -333,6 +339,8 @@
 0x110fc6	label	construct_array
 0x111040	label	get_current_time
 0x11106c	label	static_guard_acquire
+0x11108c	label	light_event_signal
+0x1110d0	label	light_event_init
 0x111148	label	srv_init
 0x111650	label	FSUSER_GetPriority
 0x111688	label	FSUSER_GetProductInfo

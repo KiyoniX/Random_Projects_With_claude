@@ -3,6 +3,7 @@
 # de fiches/socket.noms.tsv quand elle a le même code à la même place dans les deux modules. Chaque nom
 # versé est aussi noté dans fiches/noms-propages.tsv. Même format : adresse, function ou label, nom.
 0x100000	function	entry
+0x100110	label	rand
 0x100148	label	srand
 0x100190	label	destroy_array
 0x100398	function	server_main
@@ -18,6 +19,9 @@
 0x1011e8	function	strcmp
 0x10132c	function	create_lock_arbiter_once
 0x101368	function	init_heap_region
+0x1013c8	function	init_runtime
+0x101400	function	init_vm_region_10000000
+0x101414	function	store_thread_local_owner
 0x10159c	function	handle_srv_notification
 0x101658	function	SRV_RegisterClient
 0x101694	function	SRV_UnregisterService
@@ -28,6 +32,7 @@
 0x101fb0	function	svcConnectToPort
 0x101fc8	function	svcCreateThread
 0x101fec	function	svcGetProcessInfo
+0x102da4	function	clear_thread_local_storage
 0x103148	function	nwm_soc_open
 0x1031d4	function	nwm_soc_get_shared_memory
 0x103220	function	NWMSOC_cmd000D
@@ -43,8 +48,10 @@
 0x1097e4	function	NWMSOC_GetMACAddress
 0x109838	function	heap_alloc
 0x109988	function	svcCreateEvent
+0x10d9c8	function	msg_queue_init
 0x10db5c	function	svcWaitSynchronizationN
 0x1120f8	function	light_event_signal
+0x11251c	function	msg_queue_try_send
 0x1125b0	function	svcGetSystemTick
 0x1125bc	function	__aeabi_ldivmod
 0x1129aa	label	static_guard_acquire
@@ -61,6 +68,7 @@
 0x1169cc	label	construct_array
 0x1169f0	function	svcArbitrateAddress
 0x1181dc	function	stack_copy_ip_address
+0x119250	function	memclr_bytes
 0x119430	function	socket_release
 0x1197ec	function	socket_find_by_fd
 0x119bb0	function	stack_get_context_alias
@@ -68,10 +76,12 @@
 0x11a2b4	function	light_event_wait
 0x11a37c	function	light_event_init
 0x11a3b0	function	svcSetTimer
+0x11a570	function	msg_queue_send
 0x11a994	function	socu_001F_GetResolverInfo
 0x11b098	function	memcpy_unaligned
 0x11b420	function	memmove_unaligned
 0x11bc48	function	__aeabi_uldivmod
+0x11bfbc	function	memset_words
 0x11c320	function	SRV_Subscribe
 0x11c358	function	register_notification_handler
 0x11c4cc	function	memcpy_words
@@ -83,6 +93,8 @@
 0x11cba8	function	srv_init
 0x11cd18	function	break_process
 0x11cd88	function	strlen
+0x11f538	function	handle_holder_dtor
+0x11f854	function	msg_queue_receive
 0x122a60	function	svcAcceptSession
 0x122a78	function	svcDuplicateHandle
 0x122a90	function	svcGetThreadPriority
@@ -110,9 +122,11 @@
 0x1278c0	function	socu_0015_sockatmark
 0x127974	function	socket_create
 0x129f78	function	stack_get_config_option
+0x12bba8	function	unmap_shared_memory_or_panic
 0x12bc48	function	map_shared_memory
 0x12bce4	function	unmap_shared_memory
 0x12bd9c	function	accept_session_on_port
+0x12bf10	function	block_pool_base_dtor
 0x12c1e0	function	NWMSOC_cmd0004
 0x12c23c	function	NWMSOC_cmd000C
 0x12c26c	function	NWMSOC_cmd000B

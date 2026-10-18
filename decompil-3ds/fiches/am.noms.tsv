@@ -44,6 +44,7 @@
 0x101c80	label	make_result
 0x101d98	label	FSUSER_OpenArchive
 0x101df4	label	FSUSER_CloseArchive
+0x101e30	label	light_event_init
 0x101f2e	label	thread_trampoline
 0x101f84	label	errf_close
 0x101fa4	label	errf_connect
@@ -220,6 +221,7 @@
 0x109992	label	am_pxi_send_0B_InstallTikAbort
 0x1099be	label	am_pxi_send_28_InstallTitleAbort
 0x109cb8	label	make_ipc_header
+0x109da4	label	light_event_wait
 0x109dea	label	ipc_set_write_buffer_desc
 0x109e12	label	ipc_set_read_buffer_desc
 0x109e26	label	ipc_write_buffer_desc_size
@@ -248,6 +250,7 @@
 0x10a71c	function	svcWaitSynchronization1
 0x10a724	label	lock_leave
 0x10a786	label	lock_enter
+0x10a810	label	light_event_signal
 0x10a8a0	label	create_thread_wrapper
 0x10a8f0	label	close_handle_and_clear
 0x10a91c	function	svcCloseHandle
@@ -348,6 +351,7 @@
 0x1113b8	function	svcArbitrateAddress
 0x1113d0	function	svcGetSystemTick
 0x1114c0	function	memcpy_unaligned
+0x111848	function	memmove_unaligned
 0x111be4	function	svcCreateMutex
 0x111bfc	function	svcCreateSessionToPort
 0x111c14	function	svcDuplicateHandle

@@ -33,6 +33,7 @@
 0x102a0c	label	apt_choose_service_s
 0x102b58	label	SOCU_InitializeSockets
 0x102b9a	label	SOCU_ShutdownSockets
+0x1032ec	label	light_event_clear
 0x1033a8	label	create_thread_impl
 0x103494	label	CFG_SetConfigInfoBlk4
 0x1034dc	label	CFG_UpdateConfigNANDSavegame
@@ -150,6 +151,7 @@
 0x127968	label	frd_0006_GetMyPreference
 0x1279d0	label	frd_0005_GetMyFriendKey
 0x127a2c	label	frd_0003_Login
+0x127a40	label	check_handle_descriptor
 0x127a5a	label	ipc_check_header
 0x127a7c	label	frd_0002_IsOnline
 0x127a94	label	frd_0001_HasLoggedIn
@@ -161,6 +163,7 @@
 0x128106	label	friend_code_is_valid
 0x128134	label	principal_id_to_friend_code
 0x128174	function	memcpy_unaligned
+0x1284fc	function	memmove_unaligned
 0x128928	function	__aeabi_ldivmod
 0x128e7c	function	strcmp
 0x12fcfc	label	PS_EncryptSignDecryptVerifyAesCcm
@@ -179,16 +182,24 @@
 0x131f64	function	__aeabi_uldivmod
 0x132694	function	svcSleepThread
 0x13269c	label	make_ipc_header
+0x1326f4	function	memclr_bytes
 0x132c08	function	svcWaitSynchronization1
 0x132c10	label	ipc_set_write_buffer_desc
+0x132dc2	label	lock_leave
 0x1330f4	function	__aeabi_uidivmod
+0x1335ec	label	sprintf
+0x1338bc	label	snprintf
 0x1338f0	function	strncpy
+0x133e94	function	memset_words
+0x134032	label	light_event_wait
 0x134070	function	svcGetProcessId
+0x1342b0	label	light_event_signal
 0x1347e4	function	__aeabi_memcpy
 0x134988	function	__aeabi_idivmod
 0x134d06	label	result_is_success
 0x134d10	label	check_local_account_loaded
 0x134f64	label	translate_internal_error
+0x1350dc	label	light_event_init
 0x135100	function	svcCreateEvent
 0x135118	label	construct_array
 0x13528c	label	srv_get_service_handle
@@ -225,6 +236,7 @@
 0x140304	label	sha1_update
 0x14030c	label	sha1_final
 0x140338	label	sha1_hash
+0x1403b4	label	sha_md_update
 0x1408a4	label	SOCU_setsockopt
 0x140908	label	SOCU_getsockname
 0x140974	label	SOCU_sendto

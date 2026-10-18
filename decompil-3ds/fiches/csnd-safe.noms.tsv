@@ -7,6 +7,7 @@
 0x1001b8	label	run_init_array
 0x10022c	label	init_runtime
 0x1002d0	label	init_heap
+0x100300	label	ptm_s_close
 0x100334	label	ptm_s_open
 0x100374	label	srv_init
 0x1003bc	label	srv_enable_notification
@@ -20,6 +21,8 @@
 0x1008a0	label	srv_state_init
 0x1008f4	label	srv_close
 0x100918	label	srv_is_initialized
+0x10092c	label	srv_connect
+0x100988	label	SRV_RegisterService
 0x1009dc	label	SRV_UnregisterService
 0x100a20	label	SRV_EnableNotification
 0x100f8c	label	create_thread
@@ -27,6 +30,7 @@
 0x10104c	label	csnd_process_command_queue
 0x101504	label	csnd_hw_set_master_bit0
 0x101534	label	csnd_hw_set_master_bit14
+0x1015aa	label	light_event_signal
 0x10174c	label	SRV_GetServiceHandle
 0x101a70	label	make_result
 0x101a8c	label	csnd_hw_write_master_reg14
@@ -51,12 +55,14 @@
 0x102068	label	CDCCSN_cmd0003
 0x1020a6	label	CDCCSN_cmd0001
 0x1020d2	label	CDCCSN_GetEventHandle
+0x102264	label	light_event_init
 0x1022c6	label	break_process
 0x1022dc	label	errf_close
 0x102324	label	ERRF_Throw
 0x10235e	label	CDCCSN_cmd0005
 0x102396	label	CDCCSN_cmd0007
 0x10249e	label	lock_is_owner
+0x102a86	label	check_handle_descriptor
 0x102aa0	label	ipc_check_header
 0x102ac0	label	csnd_Shutdown
 0x102b5c	function	__aeabi_uidivmod
@@ -71,6 +77,10 @@
 0x1033c0	function	__ARM_common_switch8
 0x1034a8	function	svcWaitSynchronization1
 0x103574	label	csnd_hw_capture_set_bit15
+0x1036d4	label	light_event_wait
+0x103712	label	light_event_clear
+0x103748	label	lock_leave
+0x10375a	label	lock_enter
 0x103782	label	ipc_copy_to_words
 0x103796	label	sleep_thread
 0x103818	label	result_srv_not_initialized
@@ -81,6 +91,7 @@
 0x1038fe	label	lock_guard_enter
 0x103910	function	svcCloseHandle
 0x103964	function	svcControlMemory
+0x103988	label	close_handle_and_clear
 0x10399c	label	SRV_Subscribe
 0x1039e0	label	construct_array
 0x103cf0	label	destroy_array
@@ -104,7 +115,9 @@
 0x1050e4	function	svcCreateAddressArbiter
 0x1050fc	function	svcCreateEvent
 0x105114	function	svcWaitSynchronizationN
+0x105138	function	memclr_bytes
 0x105be8	function	svcGetProcessInfo
+0x105c08	function	memset_words
 0x105d90	function	svcCancelTimer
 0x105d98	function	svcCreateThread
 0x105dbc	function	svcCreateTimer

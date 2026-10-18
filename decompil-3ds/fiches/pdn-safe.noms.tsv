@@ -53,6 +53,7 @@
 0x1014b8	function	lock_arbitrate_wait
 0x10159c	function	heap_alloc_unlocked
 0x101984	function	svcDuplicateHandle
+0x101a84	function	handle_holder_dtor
 0x101b74	function	pdn_i_handle_command
 0x101bfc	function	pdn_s_handle_command
 0x101cb8	function	pdn_c_handle_command

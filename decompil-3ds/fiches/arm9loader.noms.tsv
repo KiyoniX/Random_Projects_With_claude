@@ -27,6 +27,7 @@
 0x808d3c0	function	aes_set_normal_key
 0x808d478	function	aes_set_key_x
 0x808d93c	function	memzero
+0x808d940	function	memset_words
 0x808d9e8	function	delay_us_thunk
 0x808d9f0	function	delay_us
 0x808f034	function	__aeabi_uldivmod

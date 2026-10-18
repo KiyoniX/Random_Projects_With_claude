@@ -173,6 +173,7 @@
 0x108660	function	svcCreateMutex
 0x108678	function	svcDuplicateHandle
 0x1086c0	function	shared_memory_dtor
+0x108980	function	handle_holder_dtor
 0x1089d0	function	thread_dtor
 0x108a50	function	session_slot_construct
 0x108a98	function	session_slot_destroy

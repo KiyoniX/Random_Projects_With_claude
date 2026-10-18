@@ -16,6 +16,8 @@
 0x100e70	label	report_fatal_error
 0x100fec	label	PTMSYSM_NotifySleepPreparationComplete
 0x1014d4	label	make_result_level1
+0x1014e8	label	light_event_init
+0x10150a	label	light_event_wait
 0x101634	label	errf_close
 0x10167c	label	ERRF_Throw
 0x101814	label	SRV_GetServiceHandle
@@ -54,6 +56,7 @@
 0x1041c4	function	__aeabi_ldivmod
 0x10499e	label	construct_array
 0x104a9c	function	memclr
+0x104be4	label	lock_leave
 0x104e08	function	svcCreateEvent
 0x104fa4	label	static_guard_acquire
 0x104fb8	function	__aeabi_memcpy
@@ -92,6 +95,7 @@
 0x106ce0	label	FSFILE_Write
 0x106d3c	label	FSFILE_GetSize
 0x106d78	label	FSFILE_SetSize
+0x106db4	label	light_event_signal
 0x1073d4	label	BOSSP_GetOptoutFlagPrivileged
 0x107418	label	BOSSP_SetOptoutFlagPrivileged
 0x107458	label	news_s_cmd_0005_GetTotalNotifications

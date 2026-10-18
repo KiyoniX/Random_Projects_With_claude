@@ -152,6 +152,7 @@
 0x800ebf4	function	dma_program_emit_addh
 0x800ec64	function	page_heap_count_free_pages
 0x800eccc	function	memzero
+0x800ecd0	function	memset_words
 0x800eea8	function	slab_heap_init
 0x800ef84	function	object_container_unregister
 0x800f188	function	dma_program_emit_wfp

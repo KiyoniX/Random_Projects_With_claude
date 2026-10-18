@@ -44,6 +44,7 @@
 0x1019d8	function	heap_alloc_unlocked
 0x101bd4	function	svcDuplicateHandle
 0x101bec	function	session_threads_dtor
+0x101cfc	function	handle_holder_dtor
 0x101d38	function	thread_dtor
 0x101d78	function	I2CMCU_DisableRegisterBits8
 0x101dc0	function	I2CMCU_SetRegisterBits8

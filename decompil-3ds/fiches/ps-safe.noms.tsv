@@ -48,6 +48,7 @@
 0x101ff4	function	copy_service_name
 0x102008	function	ps_lock_leave
 0x102028	function	ps_lock_enter
+0x102064	function	break_process
 0x1020b8	function	lock_init
 0x102104	function	fs_get_session
 0x102138	function	srv_get_service_handle_by_name
@@ -57,6 +58,7 @@
 0x102244	function	init_runtime_and_srv
 0x102254	function	srv_init
 0x102380	function	heap_alloc
+0x102438	function	handle_holder_dtor
 0x102ad8	function	ps_GetDeviceId
 0x102b44	function	ps_SeedRNG
 0x102c0c	function	ps_cmd000E
@@ -68,6 +70,7 @@
 0x102ecc	function	ps_EncryptSignDecryptVerifyAesCcm
 0x102f64	function	ps_GetRomId
 0x102fe0	function	ps_GetRomId2
+0x103060	function	block_pool_base_dtor
 0x1030f0	function	ps_relay_GetDeviceId
 0x1031a4	function	ps_relay_GenerateAmiiboHMAC
 0x1031e0	function	ps_relay_GetRomMakerCode

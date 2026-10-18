@@ -1,5 +1,6 @@
 0x100000	function	entry
 0x100024	function	clear_bss
+0x100110	label	rand
 0x100148	label	srand
 0x100190	label	destroy_array
 0x100234	label	run_static_initializers
@@ -50,9 +51,11 @@
 0x109914	function	heap_alloc
 0x109a64	function	svcCreateEvent
 0x10d754	function	light_lock_unlock
+0x10daa4	function	msg_queue_init
 0x10dc38	function	svcWaitSynchronizationN
 0x1121cc	function	light_event_signal
 0x112338	function	heap_split_block
+0x1125f0	function	msg_queue_try_send
 0x112684	function	svcGetSystemTick
 0x112690	function	__aeabi_ldivmod
 0x112a7e	label	static_guard_acquire
@@ -69,6 +72,7 @@
 0x116aa0	label	construct_array
 0x116ac4	function	svcArbitrateAddress
 0x1182b0	function	stack_copy_ip_address
+0x119324	function	memclr_bytes
 0x119504	function	socket_release
 0x1198c0	function	socket_find_by_fd
 0x119c80	function	stack_get_context
@@ -77,11 +81,14 @@
 0x11a388	function	light_event_wait
 0x11a450	function	light_event_init
 0x11a484	function	svcSetTimer
+0x11a644	function	msg_queue_send
 0x11aa68	function	socu_001F_GetResolverInfo
 0x11b16c	function	memcpy_unaligned
+0x11b4f4	function	memmove_unaligned
 0x11bc84	function	lock_leave_alt_11bc84
 0x11bca4	function	lock_enter_alt_11bca4
 0x11bd1c	function	__aeabi_uldivmod
+0x11c090	function	memset_words
 0x11c3f4	function	SRV_Subscribe
 0x11c42c	function	register_notification_handler
 0x11c5a0	function	memcpy_words
@@ -96,6 +103,7 @@
 0x11cdec	function	break_process
 0x11ce5c	function	strlen
 0x11f60c	function	handle_holder_dtor
+0x11f928	function	msg_queue_receive
 0x122b34	function	svcAcceptSession
 0x122b4c	function	svcDuplicateHandle
 0x122b64	function	svcGetThreadPriority
@@ -129,6 +137,7 @@
 0x12bd20	function	map_shared_memory
 0x12bdbc	function	unmap_shared_memory
 0x12be74	function	accept_session_on_port
+0x12bfe8	function	block_pool_base_dtor
 0x12c2b8	function	NWMSOC_cmd0004
 0x12c314	function	NWMSOC_cmd000C
 0x12c344	function	NWMSOC_cmd000B

@@ -63,6 +63,7 @@
 0x10197c	function	srv_init
 0x101aa8	function	heap_alloc
 0x101cac	function	svcDuplicateHandle
+0x101dac	function	handle_holder_dtor
 0x101dd8	function	gpio_handle_command
 0x101fe0	function	gpio_GetDirection
 0x10208c	function	gpio_SetDirection

@@ -1,4 +1,5 @@
 0x10010c	label	act_main
+0x1006b8	label	handle_srv_notification
 0x1006f4	label	srv_is_initialized
 0x100764	label	SRV_RegisterService
 0x1007b8	label	SRV_UnregisterService
@@ -15,6 +16,7 @@
 0x1026ec	label	SRV_GetServiceHandle
 0x10276c	label	HTTPC_Initialize
 0x1027ae	label	make_result
+0x102c98	label	rand
 0x102d44	label	srand
 0x102e88	label	FSUSER_InitializeWithSdkVersion
 0x10383c	label	CFGS_UpdateConfigNANDSavegame
@@ -51,6 +53,7 @@
 0x1069fc	label	destroy_array
 0x1075fc	label	FSUSER_GetProductInfo
 0x1076a0	label	FSUSER_GetProgramLaunchInfo
+0x107a06	label	light_event_clear
 0x108058	label	act_a_cmd_0412_UpdateMii
 0x108328	label	act_a_cmd_0413_UpdateMiiImage
 0x1084f8	label	act_a_cmd_041C_SyncAccountInfo
@@ -86,6 +89,7 @@
 0x10eabc	label	parse_hex_bytes
 0x10eca0	label	url_escape
 0x10f920	function	strncpy
+0x10fa50	label	sha256_final
 0x10fa94	label	sha256_init
 0x10fc52	label	ipc_is_read_buffer_desc
 0x10fc68	label	act_cmd_0022_GetCachedIndependentServiceTokenV2
@@ -99,6 +103,7 @@
 0x110468	label	act_cmd_0019_AcquireMii
 0x110568	label	act_cmd_0018_AcquirePrincipalIdByAccountId
 0x1106c8	label	act_cmd_0017_AcquireAccountIdByPrincipalId
+0x11082c	label	ipc_descriptor_buffer_size
 0x110860	label	act_cmd_0016_AcquireAccountInfo
 0x110934	label	act_cmd_0015_GetIndependentServiceToken
 0x110988	label	act_cmd_0014_AcquireIndependentServiceToken
@@ -115,6 +120,7 @@
 0x111640	label	act_cmd_0005_GetCommonInfo
 0x111874	label	act_cmd_0002_GetErrorCode
 0x1123f8	label	act_cmd_0001_Initialize
+0x11243c	label	check_handle_descriptor
 0x112476	label	bitfield_extract
 0x112830	label	strncasecmp
 0x112db8	function	__aeabi_uldivmod
@@ -125,13 +131,17 @@
 0x113f92	label	memcmp
 0x114310	label	snprintf
 0x114364	label	strlcpy
+0x114396	label	light_event_wait
 0x11445c	function	memclr_bytes
+0x114648	label	light_event_init
 0x114672	label	construct_array
 0x114698	function	memset_words
 0x114744	label	wcslcpy
 0x114964	function	__aeabi_idivmod
 0x114ae8	function	svcGetSystemTick
 0x114afc	function	__aeabi_memcpy
+0x114b8c	label	lock_leave
+0x114cd4	label	light_event_signal
 0x115374	function	svcSendSyncRequest
 0x11537c	label	ipc_copy_to_words
 0x115390	label	ipc_set_header
@@ -182,6 +192,7 @@
 0x125140	function	svcArbitrateAddress
 0x125158	function	svcExitThread
 0x12526c	function	memcpy_unaligned
+0x1255f4	function	memmove_unaligned
 0x125990	function	svcDuplicateHandle
 0x1259a8	function	svcMapMemoryBlock
 0x1259b0	function	svcSignalEvent

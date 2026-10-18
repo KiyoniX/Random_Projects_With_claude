@@ -71,6 +71,8 @@
 0x1029bc	label	get_service_handle_by_name_alt_1029bc
 0x102c38	label	secure_info_get_region
 0x102d76	label	memcmp
+0x102ec0	label	light_event_init
+0x102ee2	label	light_event_wait
 0x102f74	label	errf_close
 0x102f94	label	errf_connect
 0x102fbc	label	ERRF_Throw
@@ -217,6 +219,7 @@
 0x1060f8	label	FSFILE_Write
 0x106154	label	FSFILE_GetSize
 0x106190	label	FSFILE_SetSize
+0x1061cc	label	light_event_signal
 0x106344	label	ps_open_for_lfcs
 0x106358	label	verify_rsa_sha256
 0x106398	label	ps_get_local_friend_code_seed

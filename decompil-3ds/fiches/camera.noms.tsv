@@ -105,6 +105,7 @@
 0x107128	label	CSND_Initialize
 0x1071dc	label	cam_SetEffect_body
 0x1072e0	label	start_camera_receive
+0x107f28	function	memset_words
 0x108238	function	svcStoreProcessDataCache
 0x108240	label	check_handle_descriptor
 0x108266	label	destroy_array
@@ -153,12 +154,15 @@
 0x10b9c8	label	session_is_open
 0x10ba5c	label	get_session_camera_mask
 0x10ba7c	label	MCUCAM_WriteCameraLedState
+0x10bc18	label	light_event_clear
 0x10bc58	label	y2r_driver_finalize_impl
 0x10bcbc	label	construct_array
 0x10bd04	label	lock_leave
 0x10bd16	label	light_event_signal
 0x10bd5a	label	lock_enter
+0x10bda0	label	light_event_wait
 0x10be4c	label	get_shell_state
+0x10bed8	label	light_event_init
 0x10bf38	function	svcUnbindInterrupt
 0x10bf40	label	dma_stop_and_close
 0x10bf50	label	dma_stop
@@ -294,6 +298,7 @@
 0x113598	function	svcClearEvent
 0x1135a0	function	svcStopDma
 0x1135a8	function	svcWaitSynchronizationN
+0x1135cc	function	memclr_bytes
 0x1138dc	function	svcBreak
 0x1138e4	function	svcExitThread
 0x1138ec	function	svcInvalidateProcessDataCache

@@ -7,6 +7,7 @@
 0x10013e	label	srand_default
 0x10017c	label	destroy_array
 0x1001c8	function	call_ir_main
+0x10020c	function	init_program_args
 0x1009cc	function	svcAcceptSession
 0x1009e4	function	svcControlMemory
 0x100a08	function	svcReplyAndReceive
@@ -17,6 +18,8 @@
 0x100d08	function	init_heap_region
 0x100d48	function	init_runtime
 0x100d6c	function	create_comm_thread
+0x100e1c	function	init_vm_region_10000000
+0x100e30	function	store_thread_local_owner
 0x100e44	function	ptm_close
 0x100e98	function	ptm_open
 0x100f00	function	get_notification_semaphore
@@ -35,7 +38,9 @@
 0x1015d8	function	SRV_ReceiveNotification
 0x101648	function	svcCreateThread
 0x10166c	function	svcGetProcessInfo
+0x101688	function	clear_thread_local_storage
 0x1018dc	function	SRV_GetServiceHandle
+0x101c68	function	close_handle_ptr
 0x101c78	function	svcConnectToPort
 0x101c90	function	svcGetProcessId
 0x101cc0	function	ERRF_Throw
@@ -51,6 +56,7 @@
 0x102a00	function	svcDuplicateHandle
 0x102aec	function	svcWaitSynchronizationN
 0x102b10	function	__aeabi_ldivmod
+0x102b60	function	memclr
 0x102bb4	function	__aeabi_uldivmod
 0x103190	function	rst_cmd0005
 0x103380	function	rst_cmd0004
@@ -85,6 +91,7 @@
 0x1078e4	function	__aeabi_uidivmod
 0x107d8c	function	crc8_build_table
 0x107ddc	function	__aeabi_memcpy
+0x107e64	function	unmap_shared_memory_or_panic
 0x107ed0	label	construct_array
 0x107f60	function	gpioir_attach_interrupt
 0x107fb8	function	gpioir_detach_interrupt
@@ -166,13 +173,20 @@
 0x10cda0	function	iruser_destroy
 0x10cdac	function	ir_send_packet
 0x10cf4c	function	create_shared_memory_block
+0x10d064	function	shared_memory_dtor
 0x10d1cc	function	map_shared_memory
+0x10d3f8	function	handle_holder_dtor
 0x10d420	function	thread_dtor
 0x10d964	function	CFG_GetConfigInfoBlk2
+0x10d9b4	function	block_pool_base_dtor
 0x10dae4	function	I2CIR_cmd0011
 0x10db3c	function	I2CIR_cmd0012
 0x10db94	function	PTMSYSM_NotifySleepPreparationComplete
 0x10dbe4	function	GPIOIR_GetGPIOData
+0x10df58	function	init_circle_pad_direction_params
+0x10dfc0	function	add_circle_pad_directions
+0x10e378	function	convert_circle_pad
+0x10ed54	function	static_init_main_thread_handle
 0x10f45c	function	init_memory_pools
 0x10f7fc	function	on_terminate_notification
 0x10f938	function	invoke_notification_callback

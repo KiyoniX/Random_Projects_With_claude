@@ -161,3 +161,4 @@
 0x12d888	function	static_init_errf_port
 0x12d9ac	function	static_init_main_thread_handle
 0x12dfac	function	init_memory_pools
+0x115e24	function	block_pool_base_dtor

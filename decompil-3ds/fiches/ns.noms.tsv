@@ -198,7 +198,10 @@
 0x10bf04	function	FSUSER_IsSdmcWritable
 0x10bf3c	function	FSUSER_GetProgramLaunchInfo
 0x10c268	function	notification_handler_ctor
+0x10cb9c	function	unmap_shared_memory
+0x10cc08	function	file_get_handle
 0x10d008	label	destroy_array
+0x10d3c8	function	block_pool_base_dtor
 0x10d8f4	function	job_deliver_parameter
 0x10d9a0	function
 0x10de9c	function	slot_post_notification
@@ -386,6 +389,7 @@
 0x1177b0	function
 0x1177e4	function	release_address_range
 0x11784c	function	reserve_address_range
+0x1179fc	function	map_shared_memory
 0x117b54	function
 0x117b60	function	handle_holder_dtor
 0x117b88	function	handle_holder_dtor_alt_117b88

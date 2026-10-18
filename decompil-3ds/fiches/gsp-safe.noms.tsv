@@ -139,6 +139,7 @@
 0x107bb4	function	svcArbitrateAddress
 0x107bcc	function	lcd_update_force_black
 0x107c1c	function	pdn_gpu_control
+0x107ca8	function	msg_queue_send
 0x107d74	function	svcCreateEvent
 0x107d98	function	lcd_apply_config
 0x108264	function	gsplcd_DisableABL
@@ -229,6 +230,7 @@
 0x10cea8	function	gpu_hw_reset
 0x10d174	function	svcDuplicateHandle
 0x10d18c	function	session_threads_dtor
+0x10d2c0	function	handle_holder_dtor
 0x10d2fc	function	thread_dtor
 0x10d43c	function	shared_memory_dtor
 0x10d664	function	static_init_main_thread_handle

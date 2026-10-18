@@ -66,6 +66,8 @@
 0x1084b0	function	HIDQTM_GetGyroscopeLowRawToDpsCoefficient
 0x1084ec	function	I2CQTM_ReadRegisterBuffer8
 0x1098d8	function	svcDuplicateHandle
+0x1099c4	function	memclr_bytes
+0x10e230	function	memset_words
 0x10fe08	function	svcCreateEvent
 0x110080	function	__aeabi_idivmod
 0x111af0	function	__aeabi_uidivmod

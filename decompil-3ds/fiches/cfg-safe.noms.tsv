@@ -58,6 +58,8 @@
 0x10281c	label	report_fatal_error
 0x102b38	label	secure_info_get_region
 0x102cc6	label	memcmp
+0x102e10	label	light_event_init
+0x102e32	label	light_event_wait
 0x102ec4	label	errf_close
 0x102ee4	label	errf_connect
 0x102f0c	label	ERRF_Throw
@@ -165,6 +167,7 @@
 0x106134	label	FSFILE_Write
 0x106190	label	FSFILE_GetSize
 0x1061cc	label	FSFILE_SetSize
+0x106208	label	light_event_signal
 0x106394	label	verify_rsa_sha256
 0x1063dc	label	PS_VerifyRsaSha256
 0x106444	label	PS_GetLocalFriendCodeSeed

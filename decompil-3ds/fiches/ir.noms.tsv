@@ -159,6 +159,7 @@
 0x109754	function	cfg_init
 0x109808	function	lock_init
 0x109824	function	crc8_update
+0x10988c	function	unmap_shared_memory_or_panic
 0x1098f8	label	construct_array
 0x10991c	function	svcCreateEvent
 0x109934	function	join_thread
@@ -232,6 +233,7 @@
 0x10e650	function	handle_holder_dtor
 0x10e678	function	thread_dtor
 0x10eb8c	function	CFG_GetConfigInfoBlk2
+0x10ed38	function	block_pool_base_dtor
 0x10ee68	function	I2CIR_WriteRegisterBuffer_cmd11
 0x10eec0	function	I2CIR_ReadRegisterBuffer_cmd12
 0x10ef18	function	PTMSYSM_NotifySleepPreparationComplete

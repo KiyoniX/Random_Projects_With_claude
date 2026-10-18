@@ -29,6 +29,7 @@
 0x10105c	label	csnd_process_command_queue
 0x101514	label	csnd_hw_set_master_bit0
 0x101544	label	csnd_hw_set_master_bit14
+0x1015ba	label	light_event_signal
 0x10175c	label	SRV_GetServiceHandle
 0x101a80	label	make_result
 0x101a9c	label	csnd_hw_write_master_reg0
@@ -57,6 +58,7 @@
 0x102106	label	CDCCSN_GetEventHandle
 0x10213a	label	close_handle_ptr
 0x102144	label	get_service_handle_by_name_alt_102144
+0x102298	label	light_event_init
 0x102328	label	break_process
 0x10233c	label	errf_close
 0x10235c	label	errf_connect
@@ -66,6 +68,7 @@
 0x1024a4	label	lock_guard_leave_alt_1024a4
 0x1024fe	label	lock_is_owner
 0x102594	function	__aeabi_memcpy
+0x102ac2	label	check_handle_descriptor
 0x102adc	label	ipc_check_header
 0x102afc	label	csnd_Shutdown
 0x102bb0	function	__aeabi_uidivmod
@@ -81,6 +84,8 @@
 0x10342c	function	memcpy_words
 0x1034fc	function	svcWaitSynchronization1
 0x1035a8	label	csnd_hw_capture_set_bit15
+0x103708	label	light_event_wait
+0x103746	label	light_event_clear
 0x10377c	label	lock_leave
 0x10378e	label	lock_enter
 0x1037ae	label	ipc_get_word

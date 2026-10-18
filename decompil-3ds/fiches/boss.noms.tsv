@@ -5,6 +5,7 @@
 0x100500	label	make_result_level1
 0x10062c	label	SRV_RegisterClient
 0x100884	label	boss_service_main
+0x100c20	label	report_fatal_error
 0x101020	label	boss_ndm_server_new
 0x101100	label	boss_privileged_server_new
 0x1011d8	label	boss_user_server_new
@@ -46,6 +47,7 @@
 0x105f80	label	AC_GetConnectResult
 0x105fb8	label	AC_GetInfraPriority
 0x106004	label	AC_SetRequestEulaVersion
+0x1061e8	label	light_event_clear
 0x1070a4	label	HTTPC_CancelConnection
 0x1071ec	label	AC_AddDenyApType
 0x108730	label	copy_u32_range
@@ -78,6 +80,7 @@
 0x1108f2	label	HTTPC_CreateContext
 0x110944	label	HTTPC_GetRequestState
 0x11097e	label	HTTPC_NotifyFinishSendPostData
+0x1109d8	label	sha_md_update
 0x1113bc	label	CECDS_SprGetSendSlotsMetadata
 0x11140c	label	CECDS_GetCecdState
 0x111444	label	CECDS_SprGetSlot
@@ -137,6 +140,7 @@
 0x11a4e0	label	_ZNSsC1EPKcRKSaIcE
 0x11a61a	label	boss_user_get_session_program
 0x11b0ba	label	ipc_is_pid_desc
+0x11b0f4	label	check_handle_descriptor
 0x11b120	label	ipc_is_read_buffer_desc
 0x11b156	label	bitfield_extract
 0x11b16c	label	boss_p_cmd_0008_RegisterNewArrivalEvent
@@ -146,6 +150,7 @@
 0x11e4b0	label	destroy_array
 0x11e4d4	function	shift_left_64
 0x11f8f0	function	memcpy_unaligned
+0x11fc78	function	memmove_unaligned
 0x120168	function	__aeabi_memmove
 0x1201f4	function	strcmp
 0x120682	label	sha256_final
@@ -156,12 +161,14 @@
 0x122ada	label	static_guard_acquire
 0x1231a4	label	memcmp
 0x1233f4	function	__aeabi_uldivmod
+0x123f20	label	sprintf
 0x1243cc	function	__aeabi_idivmod
 0x124774	function	__aeabi_memcpy
 0x124b18	function	mul_s32_to_s64
 0x124b24	label	snprintf
 0x124ba4	function	mul_u32_to_u64
 0x124e3c	function	svcGetSystemTick
+0x124ef8	function	memclr_bytes
 0x125148	function	strncmp
 0x125460	function	svcSignalEvent
 0x125fb4	function	__aeabi_uidivmod
@@ -172,14 +179,20 @@
 0x126d30	label	FSUSER_CloseArchive
 0x126da0	label	FSUSER_OpenArchive
 0x126ef0	function	memclr
+0x126ef4	function	memset_words
 0x126f44	label	ipc_copy_to_words
 0x126f70	function	svcWaitSynchronization1
 0x126fb4	label	register_mount_point
+0x12716c	label	light_event_signal
 0x127330	label	create_thread
+0x1273a8	label	lock_leave
 0x1273ba	label	construct_array
 0x127598	label	boss_mount_archive
+0x1275cc	label	light_event_wait
+0x12760a	label	light_event_init
 0x12775c	function	strlen
 0x127808	function	svcCreateEvent
+0x127820	label	unregister_notification_handler
 0x127878	label	SRV_Subscribe
 0x1278b0	label	register_notification_handler
 0x1279e4	label	unmount_archive
@@ -366,6 +379,7 @@
 0x13a02a	label	HTTPC_SetPostDataTypeSize
 0x13a06a	label	HTTPC_ReceiveData
 0x13a424	label	sha1_init
+0x13a6a0	label	sha1_final
 0x13a8bc	label	FRDU_GetMyPassword
 0x13a918	label	FRDU_GetLastResponseResult
 0x13bf68	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE

@@ -167,6 +167,7 @@
 0x125480	function	SRV_GetServiceHandle
 0x1254f4	function	PXIFS_SetPriority
 0x125828	function	memcpy_unaligned
+0x125bb0	function	memmove_unaligned
 0x125f4c	function	svcCreateEvent
 0x125f64	function	svcDuplicateHandle
 0x125f7c	function	svcFlushProcessDataCache

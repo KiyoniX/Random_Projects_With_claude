@@ -116,6 +116,7 @@
 0x105160	label	set_default_daemon_mask
 0x1051e0	function	svcWaitSynchronization1
 0x105208	label	lock_leave
+0x105350	label	light_event_init
 0x105372	label	lock_enter
 0x1053e8	function	svcCloseHandle
 0x105426	label	construct_array
@@ -127,6 +128,8 @@
 0x105650	label	subscribe_notification
 0x105658	label	register_notification_handler
 0x1056b4	label	open_notification_services
+0x1057a2	label	light_event_wait
+0x105842	label	light_event_clear
 0x105878	function	strlen
 0x10592c	function	svcCreateEvent
 0x10595c	label	lock_guard_leave
@@ -138,6 +141,7 @@
 0x105bec	label	server_main_loop
 0x105cc0	label	scheduler_disable
 0x105cf4	label	scheduler_enable
+0x105d20	label	light_event_signal
 0x105d64	label	panic_on_failure
 0x105db0	label	static_guard_acquire
 0x105dc2	label	panic

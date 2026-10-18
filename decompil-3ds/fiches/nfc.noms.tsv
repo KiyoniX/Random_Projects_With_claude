@@ -3,6 +3,7 @@
 0x10010c	label	set_heap_size
 0x10017c	label	nfc_main
 0x1004d8	label	create_lock_arbiter_once
+0x1008f8	label	handle_srv_notification
 0x100934	label	srv_is_initialized
 0x1009a4	label	SRV_RegisterService
 0x1009f8	label	SRV_UnregisterService
@@ -17,6 +18,7 @@
 0x100fc0	label	SRV_ReceiveNotification
 0x100ff8	label	SRV_Subscribe
 0x101774	label	report_fatal_error
+0x1031bc	label	light_event_wait
 0x103310	label	CFG_GetConfigInfoBlk8
 0x103384	label	errf_close
 0x104454	label	break_process
@@ -27,6 +29,8 @@
 0x11269c	label	srand
 0x112714	label	destroy_array
 0x113620	function	__aeabi_ldivmod
+0x113694	label	rand
+0x1136cc	label	check_handle_descriptor
 0x113734	label	nfc_cmd_0020_SendTagCommand
 0x113794	label	nfc_cmd_001B_GetModelInfo
 0x1137b8	label	nfc_cmd_0019_GetAppDataInitStruct
@@ -35,6 +39,7 @@
 0x113824	label	nfc_cmd_0016_WriteAppData
 0x113850	label	nfc_cmd_0015_ReadAppData
 0x113878	label	nfc_cmd_0014_InitializeWriteAppData
+0x1138c4	label	ipc_descriptor_buffer_size
 0x1138f8	label	nfc_cmd_0013_OpenAppData
 0x11391c	label	nfc_cmd_0012_CommunicationGetResult
 0x113944	label	nfc_cmd_0011_GetTagInfo
@@ -51,10 +56,15 @@
 0x119a9c	function	strncpy
 0x11a008	function	svcWaitSynchronization1
 0x11a21c	label	memcmp
+0x11a7b0	function	memclr_bytes
 0x11acbc	function	svcSignalEvent
 0x11b5d8	function	__aeabi_idivmod
 0x11bb18	label	unmount_archive
+0x11bbb8	label	light_event_clear
+0x11bd04	label	light_event_signal
 0x11bf04	function	svcGetSystemTick
+0x11bf0c	label	lock_leave
+0x11cadc	label	light_event_init
 0x11cb0c	function	memcpy_words
 0x11d154	function	__aeabi_uidivmod
 0x11d214	label	GPIO_SetGPIOData
@@ -66,6 +76,7 @@
 0x11d9a8	function	svcSendSyncRequest
 0x11d9b0	label	ipc_copy_to_words
 0x11d9c4	label	ipc_set_header
+0x11db2c	function	memset_words
 0x11db90	function	svcCloseHandle
 0x11dba0	function	get_tls
 0x11dbb0	label	register_notification_handler
@@ -111,6 +122,9 @@
 0x12c1ec	label	nfc_p_dispatch_command
 0x12ca88	label	PTMS_NotifySleepPreparationComplete
 0x12cd54	label	sha256_init
+0x12cdac	label	sha256_final
+0x12cde8	label	sha256_hash
+0x12ce64	label	sha_md_update
 0x12d414	label	static_init_errf_port
 0x133930	function	svcExitProcess
 0x1339d4	function	svcAcceptSession
@@ -137,5 +151,6 @@
 0x1341b8	function	svcWaitSynchronizationN
 0x1341dc	function	strncmp
 0x1342cc	function	memcpy_unaligned
+0x134654	function	memmove_unaligned
 0x1349f0	function	svcDuplicateHandle
 0x134a08	function	svcMapMemoryBlock

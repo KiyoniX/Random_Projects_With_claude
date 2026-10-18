@@ -21,6 +21,7 @@
 0x101710	function	svcCreateSemaphore
 0x101728	function	server_start
 0x101cdc	function	PTMSYSM_CheckNew3DS
+0x101db4	function	handle_srv_notification
 0x101e70	function	register_notification_handler
 0x101ffc	label	SRV_GetServiceHandle
 0x102058	function	SRV_UnregisterService
@@ -36,6 +37,7 @@
 0x1036c4	function	socu_init
 0x10378c	function	svcAcceptSession
 0x1037a4	function	svcGetProcessId
+0x10460c	function	handle_holder_dtor
 0x104634	function	ERRF_Throw
 0x104864	function	ssl_init
 0x104948	function	SOCU_InitializeSockets
@@ -47,6 +49,8 @@
 0x105248	function	request_send_body
 0x105750	function	lock_arbitrate_wait
 0x105c90	function	SSLC_Initialize
+0x106204	function	msg_queue_receive
+0x1062ec	function	msg_queue_init
 0x1063d4	function	thread_trampoline
 0x10641c	function	strncmp
 0x10661c	function	socket_setup_and_connect
@@ -65,6 +69,7 @@
 0x109f3c	function	request_send_post_data
 0x10a5a8	function	result_from_internal_code
 0x10a6b0	function	request_wait_event
+0x10a788	function	block_pool_base_dtor
 0x10abf8	function	strncpy
 0x10ac64	function	client_find_context
 0x10b2b8	function	__aeabi_memcpy
@@ -78,6 +83,7 @@
 0x10cca0	function	unmap_shared_memory
 0x10cecc	function	heap_alloc_unlocked
 0x10d028	function	light_event_init
+0x10d160	function	memclr_bytes
 0x10d1a0	label	construct_array
 0x10d1c4	function	svcReplyAndReceive
 0x10d1dc	function	light_event_wait
@@ -92,8 +98,10 @@
 0x10e470	function	msg_queue_try_send
 0x10e5bc	function	context_core_from_id
 0x10e830	function	strcmp
+0x10e910	function	memset_words
 0x10e990	function	srv_get_service_handle
 0x10e9c4	function	strlen
+0x10eb44	function	break_process
 0x10eb98	function	panic_on_failure
 0x10ed64	function	heap_alloc
 0x110378	label	SSLC_StartConnection
@@ -122,11 +130,13 @@
 0x11360c	function	context_core_set_client_cert_default_impl
 0x113674	function	context_core_add_default_cert_impl
 0x113a58	function	map_shared_memory
+0x113af4	function	shared_memory_dtor
 0x113bb0	function	join_thread
 0x113bfc	function	thread_dtor
 0x113e20	function	SSLC_CreateRootCertChain
 0x113e54	function	SSLC_OpenClientCertContext
 0x113eb4	function	SSLC_AddTrustedRootCA
+0x113f04	function	SSLC_RootCertChainRemoveCert
 0x113f38	function	SSLC_OpenDefaultClientCertContext
 0x113f7c	function	SSLC_RootCertChainAddDefaultCert
 0x1154bc	function	client_init

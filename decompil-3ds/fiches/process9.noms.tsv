@@ -317,6 +317,7 @@
 0x8061c28	function	memcpy_words
 0x8061c8c	label	handle_table_lookup
 0x8061d68	function	memzero
+0x8061d6c	function	memset_words
 0x8061dbc	function	__aeabi_memcpy
 0x8061e90	function	__aeabi_uidivmod
 0x806642c	label	ncch_open_exefs_file

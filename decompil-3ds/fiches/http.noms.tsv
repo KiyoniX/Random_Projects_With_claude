@@ -20,6 +20,7 @@
 0x10177c	function	svcQueryMemory
 0x1017ac	function	server_start
 0x101d64	function	PTMSYSM_CheckNew3DS
+0x101e3c	function	handle_srv_notification
 0x101ef8	function	register_notification_handler
 0x102084	function	SRV_GetServiceHandle
 0x1020e0	function	SRV_UnregisterService
@@ -36,6 +37,7 @@
 0x10381c	function	svcAcceptSession
 0x103834	function	svcGetProcessId
 0x10384c	function	http_request_worker
+0x104698	function	handle_holder_dtor
 0x1046c0	function	ERRF_Throw
 0x1048f0	function	ssl_init
 0x1049d4	function	SOCU_InitializeSockets
@@ -50,6 +52,8 @@
 0x1054c4	function	request_write_head
 0x105858	function	lock_arbitrate_wait
 0x105d4c	function	SSLC_Initialize
+0x1062c0	function	msg_queue_receive
+0x1063a8	function	msg_queue_init
 0x106490	function	thread_trampoline
 0x1064d4	function	svcExitThread
 0x1064dc	function	strncmp
@@ -83,6 +87,7 @@
 0x10ae68	function	request_get_status_code
 0x10b178	function	result_from_internal_code
 0x10b280	function	request_wait_event
+0x10b358	function	block_pool_base_dtor
 0x10b84c	function	strncpy
 0x10b940	function	client_find_context
 0x10c10c	function	__aeabi_memcpy
@@ -97,6 +102,7 @@
 0x10ddb8	function	heap_alloc_unlocked
 0x10df14	function	light_event_init
 0x10df48	function	svcSleepThread
+0x10e04c	function	memclr_bytes
 0x10e08c	label	construct_array
 0x10e0b0	function	svcReplyAndReceive
 0x10e0c8	function	light_event_wait
@@ -113,6 +119,7 @@
 0x10f4a8	function	context_core_from_id
 0x10f684	function	context_core_set_state
 0x10f71c	function	strcmp
+0x10f7fc	function	memset_words
 0x10f87c	function	srv_get_service_handle
 0x10f8b0	function	strlen
 0x10fa30	function	break_process
@@ -149,6 +156,7 @@
 0x113d80	function	context_core_set_client_cert_default_impl
 0x113e78	function	context_core_add_default_cert_impl
 0x114264	function	map_shared_memory
+0x114300	function	shared_memory_dtor
 0x1143bc	function	join_thread
 0x114408	function	thread_dtor
 0x114764	function	SSLC_CreateCrlStore
