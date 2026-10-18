@@ -10,3 +10,4 @@ adresse	raison
 0x10c81a	PAS UNE FONCTION (fonction de Ghidra) : morceau de act_a_dispatch_command (0x10b20c-0x10c838) : atteint par bl@0x10b260 b@0x10c438 b@0x10c438 depuis l'aiguillage lui-même ; pas de push en tête, lit le
 0x112b9c	CODE MORT : Thumb, 76 octets, même code que fopen de cecd 0x10d8a8 ; aucune référence (allrefs.py)
 0x1255f4	CODE MORT : ARM, 924 octets, __aeabi_memmove (nommé ainsi dans act.noms.tsv) : aucune référence (b, bl, blx, mot, distance, adr : allrefs.py) ; même cas que 0x10e82c de cecd et 0x109c9c de dlp
+0x114990	PAS UNE FONCTION (entrée de couverture.py) : rang de la boucle de division de __aeabi_idivmod (0x114964), atteint par blo@0x1130c0 depuis __aeabi_uidivmod (0x1130a8) ; pas de cadre de pile, le corps s
