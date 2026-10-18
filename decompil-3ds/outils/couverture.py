@@ -44,12 +44,17 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
    Les entrées manquées (« entrees », find_entries) : toutes les cibles de b, bl et blx, les mots des réserves de
    littéraux et les mots de l'image qui visent le texte (ARM pair, Thumb impair), qui ne tombent pas sur un début de
    fonction de Ghidra, y compris au milieu d'une fonction de Ghidra (une taille trop grande avale l'enrobage suivant) ;
-   les veneers ARM vers Thumb (« add ip, pc, #1 ; bx ip », précédé ou non d'un « mov r0, r0 ») et leur corps Thumb,
-   même quand le veneer visé par un b ou un bl est dans la taille d'une fonction Thumb de Ghidra (ro 0x14000110) ; les
-   tables de distances des données qu'un module recopie au démarrage (RUNTIME_COPIES : les constructeurs statiques de
-   qtm), lues à l'adresse de la copie. Genres : cible de b (appel terminal),
-   cible de bl, veneer, corps de veneer, pointeur de réserve, pointeur seul, « au milieu de » la fonction qui la
-   couvre. Une case d'aiguillage ou un saut qui reste dans sa fonction n'en est pas une. Relevé à la main dans gpio
+   les veneers ARM vers Thumb (« add ip, pc, #N ; bx ip », précédé ou non d'un « mov r0, r0 ») et leur corps Thumb,
+   même quand le veneer visé par un b ou un bl est dans la taille d'une fonction Thumb de Ghidra (ro 0x14000110) ou que
+   N saute au milieu d'une fonction de Ghidra (news 0x105758, #0x17) ; les rappels Thumb dont l'adresse est calculée
+   depuis pc (« ldr rX, =distance ; add rX, pc », news 0x105790) ; les tables de distances des données qu'un module
+   recopie au démarrage (RUNTIME_COPIES : les constructeurs statiques de qtm), lues à l'adresse de la copie. Genres :
+   cible de b (appel terminal), cible de bl, veneer, corps de veneer, pointeur de réserve, pointeur seul, adresse
+   calculée, « au milieu de » la fonction qui la couvre. Une case d'aiguillage ou un saut qui reste dans sa fonction
+   n'en est pas une : les cases des aiguillages Thumb sans aide (« add pc, rA » après une table de demi-mots, nim
+   0x1055ae) et le code sans push entre l'aiguillage et le début de fonction qui suit sa dernière case sont des
+   morceaux de l'aiguillage, même atteints par un bl (ac 0x1057dc) ; la sortie liste à part les fonctions de Ghidra
+   qui sont des cases. Relevé à la main dans gpio
    (11) et codec (16, local/analyse/<m>/notes-100.md) : toutes retrouvées. Les entrées trouvées deviennent des
    fonctions pour l'empreinte et les noms, et coupent les tailles de Ghidra qui débordent (gpio 0x100c10 : 116 octets
    au lieu de 20, réserve comprise).
@@ -155,6 +160,7 @@ import name_pass
 import verifier
 
 sys.path.insert(0, os.path.join(ghidra_direct.ROOT, 'recomp'))
+import armdec  # noqa: E402
 import cro_recomp  # noqa: E402
 import recomp  # noqa: E402
 
@@ -339,8 +345,9 @@ def literal_token(binary, address, words=1):
 
 
 # L'empreinte d'une fonction, et ce qu'on en garde pour juger un nom : appelées (« bl ») et cibles des « b » dans
-# l'ordre, envoi IPC dans son code, chaînes citées par sa réserve, adresses des mots de sa réserve.
-Print = collections.namedtuple('Print', 'digest count calls ipc strings jumps pool')
+# l'ordre, envoi IPC dans son code, chaînes citées par sa réserve, adresses des mots de sa réserve, adresses calculées
+# depuis pc (« ldr rX, =distance ; add rX, pc » : un rappel passé en argument, news 0x105790).
+Print = collections.namedtuple('Print', 'digest count calls ipc strings jumps pool computed')
 
 
 def is_ipc(token):
@@ -382,9 +389,20 @@ def arm_token(binary, pos, w, literals, calls, jumps, window):
     return w
 
 
-def thumb_token(binary, pos, code, at, literals, calls, jumps, window):
+def thumb_token(binary, pos, code, at, literals, calls, jumps, window, computed):
     """(demi-mot Thumb masqué, octets lus, octets d'instruction comptés)."""
     h = struct.unpack_from('<H', code, at)[0]
+    if h & 0xFF78 == 0x4478 and h & 0x87 != 0x87:                       # add rX, pc (rX n'est pas pc)
+        register = h & 7 | (h >> 4) & 8
+        # La distance vient d'un « ldr rX, [pc, #imm] » d'au plus quatre demi-mots avant (ac 0x1142be : trois), lu dans
+        # l'image : il peut précéder le début de la fonction de Ghidra.
+        for back in range(pos - 2, pos - 10, -2):
+            ldr = binary.image.half(back)
+            if ldr is not None and ldr >> 11 == 0x09 and (ldr >> 8) & 7 == register:
+                value = binary.image.word(((back + 4) & ~3) + ((ldr & 0xFF) << 2))
+                if value is not None:
+                    computed.append((pos + 4 + value) & 0xFFFFFFFF)
+                break
     if h >> 11 == 0x1E and at + 4 <= len(code):
         h2 = struct.unpack_from('<H', code, at + 2)[0]
         if h2 >> 11 in (0x1F, 0x1D):                                    # bl, blx
@@ -418,7 +436,7 @@ def fingerprint(binary, start, mode, size, limit):
     """L'empreinte d'une fonction (Print). size : octets d'instructions selon Ghidra, ou None (jusqu'à `limit`, le début
     de la fonction suivante ou la fin du code)."""
     code = binary.image.read(start, limit - start) or b''
-    tokens, calls, jumps, literals = [], [], [], set()
+    tokens, calls, jumps, literals, computed = [], [], [], set(), []
     window = (start, start + len(code))
     at = used = 0
     thumb = mode == 'thumb'
@@ -428,7 +446,7 @@ def fingerprint(binary, start, mode, size, limit):
             at += 4
             continue
         if thumb:
-            token, step, counted = thumb_token(binary, pos, code, at, literals, calls, jumps, window)
+            token, step, counted = thumb_token(binary, pos, code, at, literals, calls, jumps, window, computed)
         elif pos in binary.jump_slots:
             token, step, counted = ('J',) + literal_token(binary, pos), 4, 0
         else:
@@ -442,7 +460,7 @@ def fingerprint(binary, start, mode, size, limit):
     count = sum(1 for t in tokens if not (isinstance(t, tuple) and t[0] == 'J'))
     digest = hashlib.blake2b(repr((mode, tokens)).encode(), digest_size=12).hexdigest()
     strings = {x[1] for t in tokens if isinstance(t, tuple) for x in t if isinstance(x, tuple) and x[0] == 'S'}
-    return Print(digest, count, calls, any(is_ipc(t) for t in tokens), strings, jumps, sorted(literals))
+    return Print(digest, count, calls, any(is_ipc(t) for t in tokens), strings, jumps, sorted(literals), computed)
 
 
 def code_end(binary, address):
@@ -464,17 +482,24 @@ def fingerprints(binary):
 
 # --- Les entrées que Ghidra n'a pas en début de fonction ---
 
+def is_add_ip_pc(word):
+    return word is not None and word & 0xFFFFF000 == 0xE28FC000
+
+
 def veneer_body(image, address):
-    """Le corps Thumb d'un veneer ARM vers Thumb (« add ip, pc, #1 ; bx ip », ou « ldr ip, [pc] ; bx ip ; .word »),
-    précédé ou non d'un « mov r0, r0 » où arrivent les appelants (fs 0x100194, corps en 0x1001a0)."""
+    """Le corps Thumb d'un veneer ARM vers Thumb (« add ip, pc, #N ; bx ip », ou « ldr ip, [pc] ; bx ip ; .word »),
+    précédé ou non d'un « mov r0, r0 » où arrivent les appelants (fs 0x100194, corps en 0x1001a0). Avec N = 1, le
+    corps suit le veneer ; un autre N impair saute plus loin, souvent au milieu d'une fonction de Ghidra (news 0x105758,
+    « add ip, pc, #0x17 », vers 0x105776 ; cecd 0x115d7c, « #0x7f », vers 0x115e02). N pair viserait de l'ARM : refusé."""
     first, second = image.word(address), image.word(address + 4)
-    if first == 0xE1A00000 and second == 0xE28FC001:
+    if first == 0xE1A00000 and is_add_ip_pc(second):
         address, first, second = address + 4, second, image.word(address + 8)
     if second != 0xE12FFF1C:
         return None
-    if first == 0xE28FC001:
-        return address + 8
-    target = image.word(address + 8) if first == 0xE59FC000 else None
+    if is_add_ip_pc(first):
+        target = address + 8 + armdec.ror(first & 0xFF, 2 * ((first >> 8) & 15))
+    else:
+        target = image.word(address + 8) if first == 0xE59FC000 else None
     return target - 1 if target is not None and target & 1 else None
 
 
@@ -517,6 +542,14 @@ def at_boundary(binary, address, mode, pools):
         before in (0xE12FFF1E, 0xE49DF004, 0xE1A00000, 0) or before >> 24 == 0xEA or before >> 16 == 0xE8BD and before & 0x8000)
 
 
+def thumb_cases(binary):
+    """Les cases des aiguillages Thumb sans aide (ghidra_direct.find_thumb_jump_cases) : {cible: adresse du add pc}."""
+    cases = {}
+    for low, high in binary.image.code_ranges:
+        cases.update(ghidra_direct.find_thumb_jump_cases(binary.image.read(low, high - low) or b'', low))
+    return cases
+
+
 def find_entries(binary):
     """Les entrées manquées : {adresse: (mode, genre, origine)}. Toutes les cibles de b, bl, blx, tous les mots des
     réserves de littéraux et tous les mots de l'image qui visent le texte (ghidra_direct.find_pointers, comme les
@@ -528,7 +561,9 @@ def find_entries(binary):
     saut au-delà, mais que la taille de Ghidra couvre, vise un autre morceau d'une fonction que Ghidra a vue en
     plusieurs morceaux (codec_init_hardware) : il est rendu avec le genre « morceau de ... », lu pour ses sauts, et
     n'est pas compté, sauf s'il ouvre un cadre de pile (« push {..., lr} ») : c'est alors une fonction que Ghidra a
-    avalée par une taille trop grande (errf_send_fatal_error dans gpio)."""
+    avalée par une taille trop grande (errf_send_fatal_error dans gpio). Les cases d'un aiguillage Thumb sans aide
+    (« add pc, rA » après une table de demi-mots, thumb_cases) sont des morceaux de la fonction de l'aiguillage, quel
+    que soit le chemin qui y mène : le cas par défaut est souvent atteint par un « bl » (nim 0x107f5e)."""
     ghidra = sorted((a, s or 0) for a, s, _ in binary.functions)
     starts = [a for a, _ in ghidra]
     longest = max([s for _, s in ghidra] + [0])
@@ -555,11 +590,32 @@ def find_entries(binary):
             return False
         return first in covering(target) or origin not in pools and first <= target < (end or target + 1)
 
+    # Les cases des aiguillages Thumb sans aide : {cible: (adresse du add pc, fonction de l'aiguillage)}, et l'étendue
+    # de chaque fonction d'aiguillage : jusqu'au début de fonction de Ghidra qui suit sa plus haute case. Ce code est le
+    # sien, même là où Ghidra s'arrête au « add pc » (nim_s_dispatch_command, 52 octets) : ses cases y reviennent par
+    # des « bl » qui servent de sauts longs (ac 0x1057dc), et une suite peut être après la dernière case (cecd 0x11ba02).
+    cases, highest = {}, {}
+    for target, site in thumb_cases(binary).items():
+        host = (covering(site) or [region(site)[0]])[0]
+        if host is not None:
+            cases[target] = (site, host)
+            highest[host] = max(highest.get(host, target), target)
+    extent = {h: (region(t)[1] or t + 1) - 1 for h, t in highest.items()}
+
+    def switch_host(hosts, target, mode):
+        """La fonction d'aiguillage d'où part ce code, si la cible est dans son étendue sans ouvrir de cadre : un
+        morceau d'elle (nim 0x1071aa, atteint par un bl depuis une case), pas une fonction."""
+        inner = [h for h in hosts if h <= target <= extent.get(h, -1) and modes[h] == mode]
+        return inner[0] if inner and not opens_frame(binary.image, target, mode) else None
+
     def note(target, mode, kind, origin):
         target = virtual(binary, target)
         if target in binary.starts or target in found or not binary.image.in_code(target) or mode == 'arm' and target & 3:
             return
         hosts = covering(target)
+        if target in cases and mode == 'thumb' and not kind.startswith(PIECE):
+            site, host = cases[target]
+            kind, origin = PIECE + '%#x' % host, "case de l'aiguillage à %#x" % site
         # Un veneer ARM visé par un b ou un bl peut être dans la taille d'une fonction Thumb de Ghidra, qui avale sa
         # réserve et le veneer qui suit (ro 0x14000110, après FUN_140000c0, visé par le b de 0x14002218).
         veneer = mode == 'arm' and kind.startswith(('cible de b', 'appel hors fonction')) \
@@ -579,6 +635,8 @@ def find_entries(binary):
 
     first = fingerprints(binary)        # le premier tour, gardé : il donne aussi les mots de réserve
     pools = {word for pr in first.values() for word in pr.pool}
+    for target in sorted(cases):        # lues pour leurs appels : Ghidra ne suit pas le « add pc »
+        note(target, 'thumb', 'case', '')
     for start, _, mode in binary.functions:
         body = veneer_body(binary.image, start) if mode == 'arm' else None
         if body is not None:
@@ -629,15 +687,21 @@ def find_entries(binary):
             limit = min(end, following.get(start, end))
             pr = first.pop(start, None) or fingerprint(binary, start, mode, size, limit)
             pools.update(pr.pool)
-            for target in pr.calls:
-                note(target & ~1, 'thumb' if target & 1 else 'arm', 'cible de bl', '%#x' % start)
             # Les fonctions de Ghidra d'où part ce code : elle-même, celle qui la couvre (entrée au milieu), ou celle
             # dont c'est un morceau. Un saut qui reste chez elles est interne, sauf vers un « push {..., lr} ».
             hosts = set(covering(start)) | ({start} if start not in found else set())
             if start in found and found[start][1].startswith(PIECE):
                 hosts.add(int(found[start][1][len(PIECE):], 16))
+            for target in pr.calls:
+                target, called = target & ~1, 'thumb' if target & 1 else 'arm'
+                host = switch_host(hosts, target, called)
+                note(target, called, PIECE + '%#x' % host if host else 'cible de bl', '%#x' % start)
             for target in pr.jumps:
                 if start <= target < limit:
+                    continue
+                host = switch_host(hosts, target, mode)
+                if host:
+                    note(target, mode, PIECE + '%#x' % host, '%#x' % start)
                     continue
                 covered = [h for h in hosts if h in covering(target)]
                 near = any(region(h)[0] == h and h <= target < (region(h)[1] or target + 1) for h in hosts)
@@ -651,6 +715,9 @@ def find_entries(binary):
                 value = binary.image.word(word)
                 if value is not None and not inside(word, value & ~1):
                     note(value & ~1, 'thumb' if value & 1 else 'arm', 'pointeur de réserve', 'réserve à %#x' % word)
+            for value in pr.computed:
+                if not inside(start, value & ~1):
+                    note(value & ~1, 'thumb' if value & 1 else 'arm', 'adresse calculée', '%#x' % start)
             body = veneer_body(binary.image, start) if start in found and mode == 'arm' else None
             if body is not None:
                 note(body, 'thumb', 'corps de veneer', '%#x' % start)
@@ -703,6 +770,11 @@ def print_entries(binary):
     if cut:
         print('Tailles de Ghidra qui débordent sur une entrée (coupées pour l\'empreinte) :')
         print('\n'.join('   %#10x  %d octets -> %d' % (a - binary.base, s, c) for a, s, c in cut))
+    split = sorted((a, site) for a, site in thumb_cases(binary).items() if a in binary.starts and a not in entries)
+    if split:
+        print('Fonctions de Ghidra qui sont des cases d\'aiguillage (des morceaux, pas des fonctions) :')
+        print('\n'.join('   %#10x  case de l\'aiguillage à %#x  %s' % (a - binary.base, site, binary.name_at(a) or '')
+                        for a, site in split))
 
 
 # --- Les grappes et les propositions ---
@@ -1627,6 +1699,45 @@ def test():
     check(not any(0x40 <= a - base <= 0xC0 for a in find_entries(rc)), 'données recopiées : rien sans la copie')
     rc.copies = [(base + 0x300, 0x1E000300, 0x10)]
     check(sorted(a - base for a in find_entries(rc)) == [0x40, 0x80, 0xC0], 'données recopiées : table lue à la copie')
+
+    def thumb_words(halves):
+        halves = list(halves) + [0] * (len(halves) & 1)
+        return list(struct.unpack('<%dI' % (len(halves) // 2), struct.pack('<%dH' % len(halves), *halves)))
+
+    def thumb_bl(at, target):
+        offset = target - (at + 4)
+        return [0xF000 | (offset >> 12) & 0x7FF, 0xF800 | (offset >> 1) & 0x7FF]
+
+    # Un veneer « add ip, pc, #0x17 ; bx ip » visé par le b de 0x300 (news 0x105758) : le corps est en 0x100 + 8 + 0x17 - 1, au
+    # milieu de la fonction Thumb de Ghidra qui suit (0x108, 0x20 octets). « #0x16 » viserait de l'ARM : pas un veneer.
+    vn = fake_binary('vn', base, [(0x300, [0xEAFFFF7E], 'arm', 4), (0x100, [0xE28FC017, 0xE12FFF1C], 'arm', 0),
+                                  (0x108, thumb_words([0x2000, 0x4770] * 8), 'thumb', 0x20),
+                                  (0x200, [0xE28FC016, 0xE12FFF1C], 'arm', 0)], {})
+    vn.functions = [f for f in vn.functions if f[1]]
+    vn.starts = {a for a, _, _ in vn.functions}
+    kinds = {a - base: (m, k) for a, (m, k, _) in find_entries(vn).items()}
+    check(kinds == {0x100: ('arm', 'veneer'), 0x11E: ('thumb', 'corps de veneer, au milieu de 0x100108')}
+          and veneer_body(vn.image, base + 0x200) is None, 'veneer « add ip, pc, #0x17 » : %r' % kinds)
+    # Un aiguillage Thumb sans aide (nim 0x1055ae) : la fonction de Ghidra (0x000, 0x10 octets) s'arrête au add pc.
+    # Les trois cases (0x18, 0x20, 0x30) sont des morceaux ; le bl de la case 0 vers 0x2a, dans l'aiguillage et sans
+    # push, en est un aussi (nim 0x1071aa) ; celui de la case 1 vers 0x100 (un push, au-delà) est une vraie entrée.
+    # 0x200 : ldr r1, =distance ; add r1, pc donne 0x1e1, le rappel Thumb 0x1e0 (news 0x105790), une entrée.
+    switch = ([0xB510, 0x2803, 0xD214, 0x0043, 0x447B, 0x889B, 0x005B, 0x449F, 3, 7, 0xF, 0]
+              + thumb_bl(0x18, 0x2A) + [0xBD10, 0] + thumb_bl(0x20, 0x100) + [0xBD10, 0, 0x2001, 0xBD10, 0, 0, 0x2002,
+                                                                                 0xBD10])
+    sw = fake_binary('swt', base, [(0x000, thumb_words(switch), 'thumb', 0x10),
+                                   (0x200, thumb_words([0xB500, 0x4901, 0x4479, 0xBD00]) + [-0x27 & 0xFFFFFFFF], 'thumb', 8)], {})
+    sw.image.data = (sw.image.data[:0xFC] + struct.pack('<4H', 0, 0x4770, 0xB510, 0xBD10) + sw.image.data[0x104:0x1DE]
+                     + struct.pack('<3H', 0x4770, 0x7808, 0x4770) + sw.image.data[0x1E4:])
+    check({a - base: s for a, s in thumb_cases(sw).items()} == {0x18: base + 0xE, 0x20: base + 0xE, 0x30: base + 0xE},
+          'aiguillage Thumb : cases lues dans la table')
+    found = add_entries(sw)
+    kinds = {a - base: (m, k) for a, (m, k, _) in found.items()}
+    check(kinds == {0x100: ('thumb', 'cible de bl'), 0x1E0: ('thumb', 'adresse calculée')}
+          and sorted(a - base for a in sw.pieces) == [0x18, 0x20, 0x2A, 0x30], 'aiguillage Thumb et adresse calculée : '
+          '%r, morceaux %r' % (kinds, sorted(hex(a - base) for a in sw.pieces)))
+    sw.image.data = sw.image.data[:2] + struct.pack('<H', 0x46C0) + sw.image.data[4:]
+    check(not thumb_cases(sw), 'aiguillage Thumb sans le cmp qui donne le nombre de cases : rien')
     # Sur les vrais binaires s'ils sont là : les entrées relevées à la main dans gpio et codec (notes-100.md), et les
     # main_thread_terminate_handler de dsp et hid (un « bl abort » seul, juste après la réserve qui le désigne)
     by_hand = {'gpio': [0x100134, 0x100160, 0x100168, 0x100db0, 0x100e30, 0x100f48, 0x1011e8, 0x101580, 0x10169c,
@@ -1646,17 +1757,36 @@ def test():
                # kernel11 (notes-100.md) : relais des vecteurs, veneer de destroy_array, code de lancement d'un FIRM
                # atteint par son alias physique. Pas la table des vecteurs (seul le processeur y va) ni les deux bouts
                # qui ne s'exécutent qu'une fois recopiés (0xffff09ac, 0xffff0a00).
+               # news, cecd, ac (noms-proposes.tsv) : corps des veneers « add ip, pc, #0x17 / #0x7f » et rappels Thumb
+               # dont l'adresse est calculée (« ldr rX, =distance ; add rX, pc »)
+               'news': [0x105776, 0x1057ee, 0x105790], 'cecd': [0x115e02, 0x116f0e, 0x116f46, 0x115284],
+               'ac': [0x112a76, 0x112478, 0x11b790],
                'kernel11': [0x1ffb1254, 0x1ffb125c, 0xfff00004, 0xfff0000c, 0xfff0060c, 0xfff00618, 0xfff00624,
                             0xfff00630, 0xfff0063c, 0xfff02e20, 0xfff02e60, 0xfff03174, 0xfff0355c, 0xfff03d48,
                             0xfff0ba5c, 0xfff12758, 0xfff15664, 0xfff15a0c, 0xfff16ec4, 0xfff18a54, 0xfff1eb64,
                             0xfff20258, 0xfff20c20, 0xfff25c34, 0xfff29124, 0xfff29e3c, 0xfff2a360, 0xfff2ba44,
                             0xffff0578, 0xffff05a0, 0xffff0994, 0xffff09e4, 0xffff0a78, 0xffff0ac4]}
+    # Les morceaux d'aiguillage que les lots ont marqués PAS UNE FONCTION (noms-proposes.tsv, hors-compte.tsv) : cases et
+    # suites atteintes par un b ou un bl qui sert de saut long, jusqu'au début de fonction qui suit la dernière case
+    by_hand_pieces = {'ac': [0x10217e, 0x1021e0, 0x1031b4, 0x103628, 0x1057dc], 'cecd': [0x11ba02],
+                      'nim': [0x107038, 0x1071aa, 0x105670]}
     for module, expected in by_hand.items():
         if os.path.isfile(os.path.join(ANALYSE, module, 'gh', 'funcs.tsv')):
             real = load_system(module, True)
             if real.image is not None:
                 missing = sorted(set(expected) - set(add_entries(real)))
                 check(not missing, '%s : entrées relevées à la main retrouvées (manquent %s)' % (module, [hex(a) for a in missing]))
+                wrong = sorted(set(by_hand_pieces.get(module, [])) - set(real.pieces))
+                check(not wrong, "%s : morceaux d'aiguillage pas comptés (manquent %s)" % (module, [hex(a) for a in wrong]))
+    for module, expected in by_hand_pieces.items():
+        if module not in by_hand and os.path.isfile(os.path.join(ANALYSE, module, 'gh', 'funcs.tsv')):
+            real = load_system(module, True)
+            if real.image is not None:
+                add_entries(real)
+                wrong = sorted(set(expected) - set(real.pieces))
+                check(not wrong, "%s : morceaux d'aiguillage pas comptés (manquent %s)" % (module, [hex(a) for a in wrong]))
+                check(thumb_cases(real).get(0x107f5e) == 0x1055ae if module == 'nim' else True,
+                      "nim : le cas par défaut 0x107f5e est une case de l'aiguillage 0x1055ae")
     # Le compteur
     a.names[a_base + 0x999] = ('function', 'not_a_start')
     row = measure_binary(a, {('mod_a', a_base + 0x40, 'nnosMutexLock'): 'rtti'}, {a_base + 0x80}, {a_base + 0x40})

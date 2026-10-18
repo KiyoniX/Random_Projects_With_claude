@@ -158,6 +158,32 @@ def find_arm_jump_slots(code, text_size):
     return slots
 
 
+def find_thumb_jump_cases(code, base):
+    """Les cases des aiguillages Thumb d'armcc qui n'appellent pas l'aide de switch : {cible: adresse du « add pc »}.
+        cmp rI, #n ; bhs défaut        (au plus huit demi-mots avant : des « b » vers des cases peuvent s'intercaler)
+        lsls rA, rI, #1 ; add rA, pc ; ldrh rA, [rA, #4] ; lsls rA, rA, #1 ; add pc, rA ; .hword × n
+    La table suit le « add pc » ; la case k vise « add pc » + 4 + 2 × demi-mot k (nim 0x1055ae, ac 0x10341e). Sans le
+    cmp qui donne n, rien : lire la table au jugé prendrait le code qui la suit pour des cases. Le processeur est un
+    ARMv6K : pas de tbb ni de tbh. Seule autre forme vue, une fois (skater 0x1f7f70) : une table de mots lue par ldr."""
+    cases = {}
+    for offset in range(0, len(code) - 11, 2):
+        h = struct.unpack_from('<5H', code, offset)
+        if h[0] & 0xFFC0 != 0x0040:
+            continue
+        a, i = h[0] & 7, (h[0] >> 3) & 7
+        if h[1:] != (0x4478 | a, 0x8880 | a << 3 | a, 0x0040 | a << 3 | a, 0x4487 | a << 3):
+            continue
+        count = next((p & 0xFF for p in (struct.unpack_from('<H', code, offset - 2 * k)[0]
+                                         for k in range(1, 9) if offset >= 2 * k) if p >> 8 == 0x28 | i), 0)
+        table = offset + 10
+        if table + 2 * count > len(code):
+            continue
+        site = base + offset + 8
+        for k in range(count):
+            cases.setdefault(site + 4 + 2 * struct.unpack_from('<H', code, table + 2 * k)[0], site)
+    return cases
+
+
 class Image:
     """Les octets d'un fichier vus à leurs adresses. segments : [(adresse, décalage dans le fichier, taille dans le
     fichier, taille en mémoire, drapeaux ELF)], la forme que rendent elfer.segments_depuis_exheader et
