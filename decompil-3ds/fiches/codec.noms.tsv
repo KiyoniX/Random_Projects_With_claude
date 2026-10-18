@@ -138,6 +138,7 @@
 0x10437c	function	heap_split_block
 0x104560	function	svcDuplicateHandle
 0x104578	function	__aeabi_idivmod
+0x104854	function	handle_holder_dtor
 0x1048b8	function	thread_dtor
 0x1048e4	function	PTMSYSM_NotifySleepPreparationComplete
 0x10492c	function	on_terminate_notification

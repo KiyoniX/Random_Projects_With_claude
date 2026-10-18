@@ -171,6 +171,8 @@
 0x800fda8	function	handle_table_get_thread
 0x800fec4	function	dma_event_interrupt_status
 0x800ffc8	function	start_thread
+0x800fff8	function	ncch_read_exheader_info
+0x801004c	function	memcpy_words
 0x80100b0	function	dma_program_reset
 0x80100f4	function	dma_clear_channel_interrupt
 0x801010c	function	handle_table_add

@@ -10,6 +10,7 @@
 0x100f90	function	svcAcceptSession
 0x100fa8	function	svcCreatePort
 0x101d50	function	NSS_ShutdownAsync
+0x101ddc	function	is_new_3ds
 0x101e38	function	init_runtime
 0x101e5c	function	init_vm_region_0e000000
 0x101e70	function	init_vm_region_10000000
@@ -88,6 +89,7 @@
 0x114f64	function	apt_close_lock_handle
 0x11d448	function	apt_lock_and_open_session
 0x11f168	function	svcWaitSynchronizationN
+0x1236bc	function	memmove_words
 0x12373c	function	file_read
 0x123ba4	function	light_lock_unlock
 0x123e94	function	heap_find_block
@@ -136,6 +138,8 @@
 0x12a040	function	FSFILE_Read
 0x12a098	function	FSFILE_Close
 0x12a124	function	FSFILE_GetSize
+0x12a194	function	shared_memory_dtor
+0x12a25c	function	handle_holder_dtor
 0x12a2ac	function	thread_dtor
 0x1143a8	function	service_open
 0x101da0	function	create_lock_arbiter_once

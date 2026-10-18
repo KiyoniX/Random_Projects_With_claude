@@ -25,6 +25,7 @@
 0x100ed8	label	ERRF_Throw
 0x100f6c	label	lock_is_owner
 0x10b36c	label	static_guard_acquire
+0x10b838	label	bitfield_extract
 0x10b99e	label	ipc_check_header
 0x10e9e8	function	__aeabi_idivmod
 0x10ec08	function	__ARM_common_switch8

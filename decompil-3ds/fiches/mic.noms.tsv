@@ -107,10 +107,12 @@
 0x103050	function	abort_process
 0x103230	function	get_eh_globals_slot
 0x10323c	function	svcBreak
+0x103244	function	heap_split_block
 0x103428	function	svcDuplicateHandle
 0x10347c	function	reserve_address_range
 0x10362c	function	map_shared_memory
 0x1036c8	function	shared_memory_dtor
+0x103750	function	handle_holder_dtor
 0x1037a0	function	thread_dtor
 0x1037cc	function	vm_region_alloc
 0x103810	function	mic_handle_command

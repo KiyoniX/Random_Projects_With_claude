@@ -190,6 +190,7 @@
 0x10bc88	function	svcBreak
 0x10bc90	function	thread_trampoline
 0x10bcd4	function	svcExitThread
+0x10bcdc	function	memmove_words
 0x10bd70	function	AM_GetProgramInfos
 0x10bddc	function	AM_GetProgramInfosIgnorePlatform
 0x10be94	function	FSUSER_GetCardType

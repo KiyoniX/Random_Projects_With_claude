@@ -113,6 +113,7 @@
 0x115a58	function	init_runtime_and_srv
 0x11829c	function	shared_memory_dtor
 0x11836c	function	thread_dtor
+0x118398	function	handle_holder_dtor
 0x119674	function	CAMQ_ClearBuffer
 0x119740	function	CAMQ_SetTrimming
 0x119788	function	CAMQ_StopCapture

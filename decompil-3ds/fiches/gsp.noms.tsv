@@ -312,6 +312,7 @@
 0x10d8a4	function
 0x10d930	function
 0x10d9c0	function
+0x10d9cc	function	handle_holder_dtor
 0x10d9f4	function
 0x10da08	function	thread_dtor
 0x10da5c	function

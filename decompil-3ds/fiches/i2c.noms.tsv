@@ -54,6 +54,7 @@
 0x101354	function	lock_arbitrate_wait
 0x101438	function	heap_alloc_unlocked
 0x10149c	function	heap_alloc
+0x101698	function	heap_split_block
 0x10187c	function	delay_loop
 0x10188c	function	svcBindInterrupt
 0x10189c	function	svcCreateEvent
@@ -62,6 +63,7 @@
 0x1018e4	function	svcReplyAndReceive
 0x101944	function	session_threads_dtor
 0x101ab8	function	reserve_address_range
+0x101dcc	function	handle_holder_dtor
 0x101df8	function	create_thread_on_heap_stack
 0x101ea8	function	thread_dtor
 0x101f28	function	i2c_handle_command

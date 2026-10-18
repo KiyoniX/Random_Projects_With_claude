@@ -104,6 +104,7 @@
 0x102f8c	function
 0x102f90	function	light_event_init
 0x102fc4	function
+0x103054	function	handle_holder_dtor
 0x1030fc	function	pxi11_publish_notification
 0x103134	function	pxi11_handle_command
 0x103184	function	SRV_PublishToSubscriber

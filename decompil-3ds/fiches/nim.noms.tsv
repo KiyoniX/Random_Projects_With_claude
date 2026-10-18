@@ -209,9 +209,11 @@
 0x12f570	function	__aeabi_uldivmod
 0x12f9ac	function	__aeabi_uidivmod
 0x12f9e2	label	ipc_is_read_buffer_desc
+0x12fa20	function	ipc_descriptor_buffer_size
 0x12fa74	label	bitfield_extract
 0x12fd54	function	svcReplyAndReceive
 0x12ffb8	function	svcCreateEvent
+0x12ffd0	function	__aeabi_memcpy
 0x130364	function	strncmp
 0x1307d0	function	svcWaitSynchronization1
 0x1309c4	function	svcArbitrateAddress
@@ -222,6 +224,7 @@
 0x130d78	label	ipc_copy_to_words
 0x130d8c	label	ipc_set_header
 0x130dba	label	static_guard_acquire
+0x130ec0	function	results_differ
 0x130ed0	function	get_tls
 0x130f4c	function	svcCloseHandle
 0x130f5c	function	strlen

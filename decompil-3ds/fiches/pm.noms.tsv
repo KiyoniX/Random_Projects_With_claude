@@ -145,6 +145,8 @@
 0x105510	function
 0x1055a0	function
 0x105658	function	join_thread
+0x1056e4	function	handle_holder_dtor
+0x10570c	function	block_pool_base_dtor
 0x10576c	function
 0x105770	function	pmdbg_handle_command
 0x105884	function	pmapp_handle_command

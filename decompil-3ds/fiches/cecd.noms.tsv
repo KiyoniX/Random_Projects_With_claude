@@ -5,10 +5,13 @@
 0x1000f0	label	init_heap
 0x100154	label	cecd_main
 0x100434	label	set_heap_size
+0x100480	label	create_address_arbiter
+0x1006e8	label	handle_srv_notification
 0x10072c	label	srv_is_initialized
 0x10079c	label	SRV_RegisterService
 0x1007f0	label	SRV_UnregisterService
 0x100aa4	label	make_result_level1
+0x100fdc	label	unregister_notification_handler
 0x101058	label	SRV_RegisterClient
 0x101090	label	SRV_EnableNotification
 0x1010cc	label	SRV_ReceiveNotification
@@ -71,6 +74,7 @@
 0x110858	label	delete_system_save
 0x110af8	label	cec_read_message
 0x1111d2	label	memcmp
+0x111248	function	__aeabi_memcpy
 0x111614	label	cec_open_and_write_msg
 0x111684	label	cec_write_message
 0x111868	function	svcCreateEvent

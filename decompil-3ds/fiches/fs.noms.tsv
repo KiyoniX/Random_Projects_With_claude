@@ -178,6 +178,7 @@
 0x1260e4	function	__aeabi_memset
 0x1262fc	function	fsreg_GetProgramInfo
 0x126334	function	wait_handle_forever
+0x1263f0	function	dma_close
 0x12645c	function
 0x1264e0	function	fsdir_Read
 0x126534	function	fsdir_Close

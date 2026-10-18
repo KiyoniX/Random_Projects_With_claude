@@ -5,6 +5,7 @@
 0x1000dc	label	init_heap
 0x100100	label	camera_main
 0x100378	label	set_heap_size
+0x1003c4	label	create_address_arbiter
 0x100490	label	ptm_s_close
 0x1004c4	label	ptm_s_open
 0x10054c	label	handle_srv_notification
@@ -105,6 +106,7 @@
 0x1071dc	label	cam_SetEffect_body
 0x1072e0	label	start_camera_receive
 0x108238	function	svcStoreProcessDataCache
+0x108240	label	check_handle_descriptor
 0x108266	label	destroy_array
 0x108288	label	I2CCAM_WriteRegisterBuffer16
 0x108bb0	function	svcReleaseMutex
@@ -124,8 +126,10 @@
 0x10a81c	label	cam_GetMaxBytes
 0x10a848	label	cam_GetMaxLines
 0x10a8c0	label	cam_ClearBuffer
+0x10a8e4	label	bitfield_extract
 0x10a938	label	get_port_record
 0x10afbc	label	get_session_cache
+0x10b174	function	__aeabi_memcpy
 0x10b220	label	y2r_set_transfer_end_interrupt_reg
 0x10b240	label	y2r_clear_error_flag_28
 0x10b25c	label	y2r_clear_error_flag_27

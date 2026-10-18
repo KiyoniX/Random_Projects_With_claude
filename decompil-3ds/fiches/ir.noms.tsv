@@ -228,6 +228,8 @@
 0x10e110	function	iruser_destroy
 0x10e11c	function	ir_send_packet
 0x10e424	function	map_shared_memory
+0x10e4c0	function	shared_memory_dtor
+0x10e650	function	handle_holder_dtor
 0x10e678	function	thread_dtor
 0x10eb8c	function	CFG_GetConfigInfoBlk2
 0x10ee68	function	I2CIR_WriteRegisterBuffer_cmd11

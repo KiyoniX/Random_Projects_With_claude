@@ -48,6 +48,7 @@
 0x1017e8	function	ps_relay_SeedRNG
 0x101838	function	MCUPLS_GetTickCounter
 0x10186c	function	MCUPLS_GetDatetime
+0x101adc	function	heap_split_block
 0x101cc0	function	memcpy_words
 0x101d34	function	svcArbitrateAddress
 0x101d4c	function	errf_report_error
@@ -70,6 +71,7 @@
 0x102258	function	srv_init
 0x10237c	function	svcExitProcess
 0x102384	function	heap_alloc
+0x10243c	function	handle_holder_dtor
 0x102464	function	ps_handle_command
 0x102aa4	function	ps_cmd0011
 0x102ae4	function	ps_GetDeviceId
@@ -87,6 +89,7 @@
 0x102ed8	function	ps_EncryptSignDecryptVerifyAesCcm
 0x102f70	function	ps_GetRomId
 0x102fec	function	ps_GetRomId2
+0x10306c	function	block_pool_base_dtor
 0x1030cc	function	ps_relay_AmiiboEncryptDecryptDev
 0x1030fc	function	ps_relay_GetDeviceId
 0x103134	function	ps_relay_GenerateAmiiboKeyData

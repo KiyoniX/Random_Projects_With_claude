@@ -2,6 +2,7 @@
 0x100024	function	clear_bss
 0x10010c	label	set_heap_size
 0x10017c	label	nfc_main
+0x1004d8	label	create_address_arbiter
 0x100934	label	srv_is_initialized
 0x1009a4	label	SRV_RegisterService
 0x1009f8	label	SRV_UnregisterService
@@ -22,6 +23,7 @@
 0x1060b2	label	thread_trampoline
 0x106240	label	I2C_ReadDeviceRaw
 0x109e88	label	I2C_WriteDeviceRaw
+0x1122c0	label	sha256_transform
 0x11269c	label	srand
 0x112714	label	destroy_array
 0x113620	function	__aeabi_ldivmod
@@ -59,6 +61,7 @@
 0x11d37c	label	static_guard_acquire
 0x11d408	function	svcCreateEvent
 0x11d484	label	GPIO_SetRegPart1
+0x11d74c	function	__aeabi_memcpy
 0x11d820	label	make_result
 0x11d9a8	function	svcSendSyncRequest
 0x11d9b0	label	ipc_copy_to_words
@@ -107,6 +110,7 @@
 0x12ae00	label	nfc_s_dispatch_command
 0x12c1ec	label	nfc_p_dispatch_command
 0x12ca88	label	PTMS_NotifySleepPreparationComplete
+0x12cd54	label	sha256_init
 0x12d414	label	static_init_errf_port
 0x133930	function	svcExitProcess
 0x1339d4	function	svcAcceptSession

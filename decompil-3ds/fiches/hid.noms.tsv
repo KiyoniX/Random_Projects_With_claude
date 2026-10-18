@@ -220,6 +220,7 @@
 0x1088bc	function
 0x1088c0	function	shared_memory_dtor
 0x1088ec	function
+0x108b80	function	handle_holder_dtor
 0x108bd0	function	thread_dtor
 0x108c50	function	session_slot_construct
 0x108c98	function	session_slot_destroy

@@ -55,6 +55,7 @@
 0x14001434	function	lock_arbitrate_wait
 0x14001518	function	heap_alloc_unlocked
 0x14001584	function	heap_alloc
+0x14001780	function	heap_split_block
 0x14001964	function	sha256_transform
 0x14001a9c	function	memcpy_unaligned
 0x14001e24	function	__aeabi_memmove

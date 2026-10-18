@@ -1,6 +1,7 @@
 0x8028000	function	process9_entry
 0x8028020	function	clear_bss
 0x8028044	label	storage_init_step
+0x80280a0	function	create_address_arbiter
 0x80280c4	label	start_interrupt_event_threads
 0x802816c	label	start_deferred_call_thread
 0x8028208	label	pxi_init

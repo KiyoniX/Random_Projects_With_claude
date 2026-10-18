@@ -76,6 +76,7 @@
 0x102bb8	function
 0x102bbc	function
 0x102cc0	function
+0x102ccc	function	handle_holder_dtor
 0x102cf4	function
 0x102d08	function	thread_dtor
 0x102d34	function	verify_rsa_sha256_signature

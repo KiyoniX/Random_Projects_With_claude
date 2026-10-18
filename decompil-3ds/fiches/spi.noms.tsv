@@ -49,6 +49,7 @@
 0x101510	function	spi_ReadWriteDevice
 0x10153c	function	spi_ReadWriteDevice2
 0x101568	function	atexit_stub
+0x101584	function	heap_split_block
 0x101768	function	svcArbitrateAddress
 0x101780	function	spi_transfer_write_read
 0x1018a4	function	spi_transfer_write_write

@@ -47,6 +47,7 @@
 0x1059a4	label	FSUSER_CreateSystemSaveData
 0x1059fc	label	FSUSER_DeleteSystemSaveData
 0x105cdc	label	FRDU_GetServerTypes
+0x1066b0	label	sha256_transform
 0x1069fc	label	destroy_array
 0x1075fc	label	FSUSER_GetProductInfo
 0x1076a0	label	FSUSER_GetProgramLaunchInfo
@@ -85,6 +86,7 @@
 0x10eabc	label	parse_hex_bytes
 0x10eca0	label	url_escape
 0x10f920	function	strncpy
+0x10fa94	label	sha256_init
 0x10fc52	label	ipc_is_read_buffer_desc
 0x10fc68	label	act_cmd_0022_GetCachedIndependentServiceTokenV2
 0x10fd6c	label	act_cmd_0021_GetIndependentServiceTokenV2
@@ -113,6 +115,7 @@
 0x111640	label	act_cmd_0005_GetCommonInfo
 0x111874	label	act_cmd_0002_GetErrorCode
 0x1123f8	label	act_cmd_0001_Initialize
+0x112476	label	bitfield_extract
 0x112830	label	strncasecmp
 0x112db8	function	__aeabi_uldivmod
 0x1130a8	function	__aeabi_uidivmod
@@ -128,6 +131,7 @@
 0x114744	label	wcslcpy
 0x114964	function	__aeabi_idivmod
 0x114ae8	function	svcGetSystemTick
+0x114afc	function	__aeabi_memcpy
 0x115374	function	svcSendSyncRequest
 0x11537c	label	ipc_copy_to_words
 0x115390	label	ipc_set_header
@@ -149,6 +153,7 @@
 0x12237e	label	crc16_ccitt
 0x122490	label	base64_decode_checked
 0x1224dc	label	sha256_hash
+0x122558	label	sha256_update_impl
 0x122600	label	FRDU_GetMyPassword
 0x12265c	label	FRDU_GetMyFriendKey
 0x12282c	label	uuid_to_string

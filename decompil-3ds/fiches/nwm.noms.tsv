@@ -3,6 +3,7 @@
 0x1002b8	label	init_heap
 0x100cb0	label	make_result_level1
 0x100cc4	label	set_heap_size
+0x100d10	label	create_address_arbiter
 0x10128c	label	srv_is_initialized
 0x1012fc	label	SRV_RegisterService
 0x101350	label	SRV_UnregisterService
@@ -77,6 +78,7 @@
 0x10ccf4	label	uds_unbind_impl
 0x10e3ac	label	uds_initialize_state
 0x10e768	label	uds_update_network_attribute_impl
+0x10ec1c	label	sha256_init
 0x10f074	label	PS_GenerateRandomBytes
 0x10f0b8	label	CFG_GetConfigInfoBlk2
 0x10f718	label	uds_eject_client_impl
@@ -87,6 +89,7 @@
 0x113b34	label	_ZNSsaSEPKc
 0x114186	label	_ZNSsaSERKSs
 0x1146e4	label	_ZNSs7replaceEjjPKcj
+0x114954	label	sha256_transform
 0x118408	label	rc4_skip
 0x118da0	label	md5_vector
 0x1197a4	function	strcmp
@@ -97,6 +100,7 @@
 0x11de20	label	_ZNSs9_C_getRepEjj
 0x11df40	label	_ZNSsC1ERKSs
 0x11df7c	label	_ZNSsC1EPKcRKSaIcE
+0x11e118	label	sha1_init
 0x11e374	label	create_thread_wrapper
 0x11e5b8	label	memcmp
 0x11ec40	function	memcpy_unaligned
@@ -111,8 +115,10 @@
 0x1213fc	function	svcGetSystemTick
 0x121560	label	nwm_make_result
 0x1215dc	label	soc_cmd_0008_GetMACAddress
+0x121804	function	__aeabi_memcpy
 0x1220a8	label	inf_cmd_0006_RecvBeaconBroadcastData_shared
 0x1223aa	label	ipc_is_read_buffer_desc
+0x1224ca	label	bitfield_extract
 0x12334c	label	nwm_service_handler_for_index
 0x123394	function	svcReplyAndReceive
 0x12353e	label	ipc_copy_to_words

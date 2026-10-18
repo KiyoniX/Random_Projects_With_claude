@@ -184,6 +184,7 @@
 0x1330f4	function	__aeabi_uidivmod
 0x1338f0	function	strncpy
 0x134070	function	svcGetProcessId
+0x1347e4	function	__aeabi_memcpy
 0x134988	function	__aeabi_idivmod
 0x134d06	label	result_is_success
 0x134d10	label	check_local_account_loaded

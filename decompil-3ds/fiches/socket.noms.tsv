@@ -49,8 +49,10 @@
 0x1098c0	function	NWMSOC_GetMACAddress
 0x109914	function	heap_alloc
 0x109a64	function	svcCreateEvent
+0x10d754	function	light_lock_unlock
 0x10dc38	function	svcWaitSynchronizationN
 0x1121cc	function	light_event_signal
+0x112338	function	heap_split_block
 0x112684	function	svcGetSystemTick
 0x112690	function	__aeabi_ldivmod
 0x112a7e	label	static_guard_acquire
@@ -93,11 +95,13 @@
 0x11cc7c	function	srv_init
 0x11cdec	function	break_process
 0x11ce5c	function	strlen
+0x11f60c	function	handle_holder_dtor
 0x122b34	function	svcAcceptSession
 0x122b4c	function	svcDuplicateHandle
 0x122b64	function	svcGetThreadPriority
 0x122b7c	function	svcReplyAndReceive
 0x122b94	function	__aeabi_memmove
+0x122c20	function	memmove_words
 0x124178	function	socu_0004_accept
 0x12488c	function	socu_0005_bind
 0x1249a8	function	socu_000B_close
@@ -121,6 +125,7 @@
 0x127998	function	socu_0015_sockatmark
 0x127a4c	function	socket_create
 0x12a050	function	stack_get_config_option
+0x12bc80	function	unmap_shared_memory_or_panic
 0x12bd20	function	map_shared_memory
 0x12bdbc	function	unmap_shared_memory
 0x12be74	function	accept_session_on_port

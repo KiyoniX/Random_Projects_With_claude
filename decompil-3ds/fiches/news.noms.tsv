@@ -2,6 +2,7 @@
 0x1000e8	label	init_heap
 0x10014c	label	news_main
 0x1004c0	label	set_heap_size
+0x10050c	label	create_address_arbiter
 0x100680	label	handle_srv_notification
 0x1006bc	label	srv_is_initialized
 0x10072c	label	SRV_RegisterService
@@ -52,8 +53,10 @@
 0x1039a4	function	__aeabi_idivmod
 0x1041c4	function	__aeabi_ldivmod
 0x10499e	label	construct_array
+0x104a9c	function	memclr
 0x104e08	function	svcCreateEvent
 0x104fa4	label	static_guard_acquire
+0x104fb8	function	__aeabi_memcpy
 0x105048	label	svcSendSyncRequest
 0x105050	label	ipc_copy_to_words
 0x1050b0	function	memcpy_words

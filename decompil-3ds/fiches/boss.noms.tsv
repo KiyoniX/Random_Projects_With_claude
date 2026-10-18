@@ -352,6 +352,7 @@
 0x139fe6	label	HTTPC_GetResponseStatusCodeTimeout
 0x13a02a	label	HTTPC_SetPostDataTypeSize
 0x13a06a	label	HTTPC_ReceiveData
+0x13a424	label	sha1_init
 0x13a8bc	label	FRDU_GetMyPassword
 0x13a918	label	FRDU_GetLastResponseResult
 0x13bf68	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE

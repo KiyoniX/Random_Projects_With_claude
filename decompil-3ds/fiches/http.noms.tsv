@@ -56,6 +56,7 @@
 0x1065cc	function	tls_start_connection
 0x1066fc	function	socket_setup_and_connect
 0x1069c0	function	socket_create_for_request
+0x1077cc	function	heap_split_block
 0x1079b0	function	SSLC_DestroyContext
 0x107a3c	function	SOCU_shutdown
 0x107b10	function	svcWaitSynchronizationN
@@ -100,6 +101,7 @@
 0x10e0b0	function	svcReplyAndReceive
 0x10e0c8	function	light_event_wait
 0x10e2b4	function	light_event_clear
+0x10e318	function	light_lock_unlock
 0x10e484	function	reserve_address_range
 0x10e6c0	function	svcReleaseSemaphore
 0x10e6d8	function	server_receive_loop
@@ -113,6 +115,7 @@
 0x10f71c	function	strcmp
 0x10f87c	function	srv_get_service_handle
 0x10f8b0	function	strlen
+0x10fa30	function	break_process
 0x10fa84	function	panic_on_failure
 0x10fc50	function	heap_alloc
 0x110988	function	SSLC_InitializeConnectionSession

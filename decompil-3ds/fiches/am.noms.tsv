@@ -212,6 +212,7 @@
 0x109596	label	am_pxi_send_14_InstallTmdWrite
 0x1095d8	label	am_pxi_send_13_InstallTmdBegin
 0x109604	label	am_pxi_send_10_InstallTitleBegin
+0x1096b8	label	results_differ
 0x1096c8	label	am_pxi_send_0C_InstallTikFinish
 0x109706	label	am_pxi_send_0A_InstallTikWrite
 0x109748	label	am_pxi_send_09_InstallTikBegin
@@ -225,6 +226,7 @@
 0x109e38	label	ipc_read_buffer_desc_size
 0x109e4a	label	ipc_is_write_buffer_desc
 0x109e60	label	ipc_is_read_buffer_desc
+0x109e76	label	ipc_descriptor_buffer_size
 0x109ea8	label	ipc_check_header
 0x109ec8	function	__ARM_common_switch8
 0x109ee0	label	bitfield_extract

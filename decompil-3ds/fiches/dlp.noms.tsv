@@ -172,6 +172,7 @@
 0x10ecac	label	UDS_Unbind
 0x10ece8	label	UDS_Finalize
 0x10ed14	label	UDS_StartScan
+0x10edc4	label	sha1_init
 0x10f37c	label	dlp_clnt_open_session
 0x10f444	label	dlp_srvr_open_session
 0x10f4a0	label	dlp_fkcl_open_session
