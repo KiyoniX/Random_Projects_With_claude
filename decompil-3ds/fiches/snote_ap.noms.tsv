@@ -1,5 +1,8 @@
+0x100000	function	entry
+0x100024	function	clear_bss
 0x1001a8	label	init_runtime
 0x100748	label	make_result_level1
+0x10082c	label	create_lock_arbiter_once
 0x1047b4	label	handle_srv_notification
 0x1047f0	label	unregister_notification_handler
 0x10879a	label	make_system_save_path
@@ -8,15 +11,20 @@
 0x108fb6	label	find_notification_handler
 0x10b09c	label	break_process
 0x10b0c4	label	errf_close
+0x10b0e4	label	errf_connect
+0x10da54	label	close_handle_and_clear
 0x10e450	label	make_result
 0x10fcfe	label	ipc_copy_to_words
 0x111224	label	light_event_clear
+0x111f50	label	ipc_set_read_buffer_desc
 0x1127e8	label	_ZNSt6localeC1Ev
+0x1128e6	label	snprintf_putc
 0x113194	label	_ZNSs11_C_allocateEjjj
 0x11403c	label	_ZNSsaSEPKc
 0x11421e	label	_ZNSs7replaceEjjPKcj
 0x114248	label	_ZNSsaSERKSs
 0x114aa8	label	memcmp
+0x116548	label	ipc_set_write_buffer_desc
 0x1216fc	label	_ZNSt6localeC1EPN4__rw15__rw_locale_impE
 0x122058	label	static_init_errf_port
 0x127404	label	_ZNKSt8messagesIcE6do_getEiiiRKSs
@@ -30,6 +38,7 @@
 0x134b34	function	shift_left_64
 0x134b5c	label	destroy_array
 0x134ffc	label	_ZNSs9_C_unlinkEv
+0x1350d4	function	udiv10_64
 0x135408	label	_ZNSsC1ERKSs
 0x135444	label	_ZNSsC1EPKcRKSaIcE
 0x135760	function	__aeabi_uidivmod
@@ -44,6 +53,8 @@
 0x13c6a0	label	construct_array
 0x13cc30	function	memset_words
 0x13cc80	function	strcmp
+0x13d8dc	function	__aeabi_memcpy
+0x13da84	label	close_handle_and_clear_alt_13da84
 0x13dac0	function	svcWaitSynchronization1
 0x13db74	function	strlen
 0x13dbe0	function	memcpy_words
@@ -67,4 +78,5 @@
 0x141ec4	function	__aeabi_uldivmod
 0x14264c	function	svcWaitSynchronizationN
 0x14283c	function	strncmp
+0x143370	function	fp_classify
 0x143fe4	function	svcDuplicateHandle
