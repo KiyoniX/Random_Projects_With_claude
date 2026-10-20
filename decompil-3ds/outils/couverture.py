@@ -5,6 +5,8 @@
     python couverture.py run   [--min N] [--min-moyenne N] [--out DOSSIER]   propositions de noms, ne touche à aucune fiche
     python couverture.py apply [--from proposals.tsv] [--exclusions exclusions.tsv]   verse les noms de confiance
                                haute d'un fichier de propositions RELU, sans refaire le calcul
+    python couverture.py revoir [--out DOSSIER]   les noms de fiches/noms-propages.tsv que les règles d'aujourd'hui ne
+                               verseraient plus (envoi IPC, nom de rôle, appelées d'autres noms) : propages-a-revoir.tsv
     python couverture.py test
 
 Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés par « apply » et les totaux d'etat.json) :
@@ -103,14 +105,26 @@ Ce qu'il lit (rien ne sort de local/ ni n'est versionné, sauf les noms versés 
              Un témoin (la copie nommée qui donne son nom, pour (a), le jumeau et les appelées) a au moins deux
              instructions, et sa grappe ne porte qu'un nom dans les fiches : un « mov r0, r0 » seul a une empreinte
              vide, et le constructeur statique « range 0 dans une globale » est à 77 adresses sous autant de noms.
+             Pour toutes ces règles, jumeau compris, au moins un témoin a les mêmes appelées que la copie : les bl,
+             blx et b vers un début de fonction, veneers traversés, portent dans l'ordre le même nom versé des deux
+             côtés (au suffixe « _alt_… » près), ou sont sans nom des deux côtés avec la même empreinte (callee_keys).
+             La clé de grappe compare le code des appelées, pas leur nom : deux shared_memory_dtor de même code
+             appellent unmap_shared_memory_or_panic ou unmap_shared_memory, deux appels par veneer ont le même veneer
+             (local/analyse/audit-alt/notes.md).
     moyenne  le reste : une seule origine ; moins de --min instructions ; un nom qui contient un mot de service
              (cfg, ptm, nwm... délimité par « _ » ; pas srv, errf, svc*, ni « ns » en dernier mot) sans que la
              fonction cite dans sa réserve la chaîne « xxx:yyy » de ce service ; un nom d'ouverture ou de fermeture de
              session (open, close, exit, init, connect avec un service, srv, session ou handle) ; un nom qui commence
              par le nom du binaire d'origine. Dans ces cas la fonction identique peut viser un autre service ou une
-             autre session, par un handle global que l'empreinte masque.
+             autre session, par un handle global que l'empreinte masque. Puis, sans exception (jumeau compris) :
+             des appelées qui n'ont pas les mêmes noms versés que chez un témoin ; un nom de rôle, qui désigne un
+             objet ou un service (préfixe de service en majuscules « IRUSER_ », « SRV_ », ou les mots session,
+             handle) : il n'est jamais reporté par empreinte, il reste proposé en moyenne pour un lot. Vérifier que
+             les globales lues sont les mêmes demanderait de suivre chaque globale jusqu'à son ouverture : on ne le
+             fait pas (menu 0x163b18, code d'IRUSER_Disconnect d'extrapad, envoie sur ns:s).
     basse    une fonction qui envoie une commande IPC (lecture du tampon de commande « mrc p15, 0, rX, c13, c0, 3 » ou
-             « svc 0x32 », dans son code ou dans une appelée de quatre instructions au plus) : la commande 8 à un
+             « svc 0x32 », dans son code ou dans une appelée de quatre instructions au plus, veneer traversé : les
+             émetteurs Thumb de snote_ap appellent par blx le talon 0x13da98 « svc 0x32 ; bx lr »), jumeau compris : la commande 8 à un
              paramètre d'octet de mic (mic_SetGain dans le jeu) a exactement le code d'une commande 8 d'un autre
              service dans errdisp
     rien     moins de --min-moyenne instructions (4) : « bx lr » ou « mov r0, #0 ; bx lr » existent partout sous dix noms
@@ -870,15 +884,70 @@ def svc_rule(binary, address, name):
     return 'moyenne', 'svc<Nom> : haute seulement par les octets (enrobage pur, bon numéro)'
 
 
-def twin_grade(binary, address, name):
-    """La confiance d'un nom de jumeau : haute, sauf un svc<Nom> que ses octets ne prouvent pas et la famille de memcpy
-    (le nom du module normal peut être celui de __aeabi_memcpy)."""
+ALT_SUFFIX = re.compile(r'_alt(?:_[0-9a-f]+|_entry)?$')
+# Un nom qui désigne un objet ou un service (IRUSER_Disconnect, gsp_lcd_get_session_handle) : la globale ou la poignée
+# qu'il vise est masquée dans l'empreinte, et le même code vise ailleurs autre chose (menu 0x163b18 envoie sur ns:s).
+ROLE_WORDS = {'session', 'sessions', 'handle', 'handles'}
+
+
+def role_name(name):
+    return bool(re.match(r'[A-Z][A-Z0-9]+_', name)) or bool(ROLE_WORDS & set(name_words(name)))
+
+
+def callee_keys(binary, own, address):
+    """Les appelées d'une fonction dans l'ordre (bl, blx, puis b vers un autre début de fonction), à travers les veneers
+    ARM vers Thumb : (nom versé sans « _alt_… » ou None, empreinte). own : les Print du binaire. L'empreinte masque les cibles : deux shared_memory_dtor de même code appellent l'un
+    unmap_shared_memory_or_panic, l'autre unmap_shared_memory (local/analyse/audit-alt/notes.md)."""
+    pr = own[address]
+    out = []
+    for target in [c & ~1 for c in pr.calls] + [j for j in pr.jumps if j in binary.starts and j != address]:
+        name = binary.name_at(target)
+        body = veneer_body(binary.image, target) if name is None and binary.image is not None else None
+        if body is not None:
+            target, name = body, binary.name_at(body)
+        name = ALT_SUFFIX.sub('', name) if name else None
+        out.append((name if usable(name) else None, own[target].digest if target in own else None))
+    return out
+
+
+def same_callees(mine, theirs, strict=True):
+    """Mêmes appelées (callee_keys) : même nom versé, ou sans nom des deux côtés et même empreinte. Non strict
+    (pour « revoir » seulement) : une appelée nommée d'un côté seulement suffit à la même empreinte."""
+    return len(mine) == len(theirs) and all(
+        n1 == n2 and (n1 is not None or d1 == d2) if strict or (n1 and n2) else d1 == d2
+        for (n1, d1), (n2, d2) in zip(mine, theirs))
+
+
+def sends_ipc(binary, own, address):
+    """Un envoi IPC dans la fonction ou dans une appelée de quatre instructions au plus, veneer traversé (lecture du
+    tampon de commande, talon « svc 0x32 ; bx lr » : snote_ap 0x13da98) : le service visé dépend d'un handle global,
+    masqué dans l'empreinte."""
+    def tiny_ipc(target):
+        target &= ~1
+        body = veneer_body(binary.image, target) if binary.image is not None else None
+        target = target if body is None else body
+        return target in own and own[target].ipc and own[target].count <= 4
+    return own[address].ipc or any(tiny_ipc(t) for t in own[address].calls)
+
+
+def blind_spot(name, ipc):
+    """Ce que l'empreinte ne voit pas et qui interdit la confiance haute (sauf un svc<Nom> prouvé par ses octets)."""
+    if ipc:
+        return 'basse', 'envoi IPC : le service dépend d\'un handle masqué'
+    if role_name(name):
+        return 'moyenne', 'nom de rôle (préfixe de service, session, handle) : jamais haute par empreinte'
+    return None
+
+
+def twin_grade(binary, address, name, ipc=False):
+    """La confiance d'un nom de jumeau : haute, sauf un svc<Nom> que ses octets ne prouvent pas, un envoi IPC ou un nom
+    de rôle (blind_spot) et la famille de memcpy (le nom du module normal peut être celui de __aeabi_memcpy)."""
     judged = svc_rule(binary, address, name)
     if judged:
         return ('haute', 'jumeau') if judged[0] == 'haute' else judged
     if name in MEM_FAMILY:
         return 'moyenne', 'memcpy, memmove, memset : peut-être __aeabi_memcpy, qui rend dest + n'
-    return 'haute', 'jumeau'
+    return blind_spot(name, ipc) or ('haute', 'jumeau')
 
 
 def grade(binary, address, print_, name, origins, ipc, min_high):
@@ -889,7 +958,7 @@ def grade(binary, address, print_, name, origins, ipc, min_high):
     if judged:
         return judged
     if ipc:
-        return 'basse', 'envoi IPC : le service dépend d\'un handle masqué'
+        return blind_spot(name, ipc)
     if print_.count < min_high:
         return 'moyenne', 'moins de %d instructions' % min_high
     rule = 'b:nom' if self_proving(name) else 'a' if len(origins) >= 2 else ''
@@ -905,7 +974,7 @@ def grade(binary, address, print_, name, origins, ipc, min_high):
             return 'moyenne', 'service %s : aucune chaîne « %s:… » dans la fonction' % ('/'.join(missing), missing[0])
         if any(name.startswith(o + '_') for o in origins if o != binary.name):
             return 'moyenne', 'nom propre au binaire d\'origine'
-    return 'haute', rule if rule != 'a' else 'a (%s)' % ', '.join(origins[:4])
+    return blind_spot(name, False) or ('haute', rule if rule != 'a' else 'a (%s)' % ', '.join(origins[:4]))
 
 
 def rule_kind(rule):
@@ -988,17 +1057,22 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
         if len({b.name_at(a) for b, a in members if usable(b.name_at(a))}) > 1:
             disputed.update((b.name, a) for b, a in members)
 
-    def sends_ipc(b, a):
-        """Un envoi IPC dans la fonction ou dans une appelée de quatre instructions au plus (lecture du tampon de
-        commande, enrobage de SendSyncRequest) : le service visé dépend d'un handle global, masqué dans l'empreinte."""
-        own = prints[b.name]
-        return own[a].ipc or any(t & ~1 in own and own[t & ~1].ipc and own[t & ~1].count <= 4 for t in own[a].calls)
-
-    def add(binary, address, name, source, origins, proof, judged=None):
-        """Une proposition, jugée (ou déjà jugée : judged = (confiance, règle)) ; la même (binaire, adresse, nom) venue
-        par deux chemins garde la confiance la plus haute."""
-        confidence, rule = judged or grade(binary, address, prints[binary.name][address], name, origins,
-                                           sends_ipc(binary, address), min_high)
+    def add(binary, address, name, source, witnesses, proof, twin=False):
+        """Une proposition jugée ; la même (binaire, adresse, nom) venue par deux chemins garde la confiance la plus
+        haute. witnesses : les (binaire, adresse, nom) qui donnent le nom ; seuls ceux dont les appelées portent les
+        mêmes noms versés (callee_keys) comptent, et sans aucun, pas de haute."""
+        own = prints[binary.name]
+        mine = callee_keys(binary, own, address)
+        agree = [w for w in witnesses if same_callees(mine, callee_keys(w[0], prints[w[0].name], w[1]))]
+        ipc = sends_ipc(binary, own, address)
+        if twin:
+            confidence, rule = twin_grade(binary, address, name, ipc)
+        else:
+            confidence, rule = grade(binary, address, own[address], name, independent(agree or witnesses), ipc, min_high)
+        if confidence == 'haute' and not agree:
+            w = witnesses[0]
+            confidence, rule = 'moyenne', 'appelées : pas les mêmes noms versés que chez %s@%#x' % (w[0].name,
+                                                                                                    w[1] - w[0].base)
         p = make_proposal(binary, address, name, source, confidence, proof, modes[(binary.name, address)], rule)
         key = (binary.name, address, name)
         if key not in seen:
@@ -1029,7 +1103,7 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
                 origins = sorted({b.name for b, _, _ in good})
                 witnesses = ', '.join('%s@%#x' % (b.name, a - b.base) for b, a, _ in good[:3])
                 for b, a in unnamed:
-                    add(b, a, name, 'empreinte:' + origins[0], independent(good),
+                    add(b, a, name, 'empreinte:' + origins[0], good,
                         'empreinte %s identique (%d instructions, %s) à %s « %s » ; grappe de %d copies dans %d binaires'
                         % (digest, count, modes[(b.name, a)], witnesses, name, len(members),
                            len({m.name for m, _ in members})))
@@ -1054,17 +1128,17 @@ def propose(binaries, prints, min_high=MIN_HIGH, min_low=MIN_LOW, propagated=fro
             witness = known[0]
             for b, a, t in callees:
                 if b.name_at(t) is None:
-                    add(b, t, name, 'appel:' + origins[0], independent([(kb, kt, kn) for kb, _, kt, kn in known]),
+                    add(b, t, name, 'appel:' + origins[0], [(kb, kt, kn) for kb, _, kt, kn in known],
                         'appelée au rang %d par %s@%#x, dont l\'empreinte %s (%d instructions) est celle de %s@%#x, qui '
                         'appelle à ce rang %s@%#x « %s »' % (rank, b.name, a - b.base, digest, count, witness[0].name,
                                                              witness[1] - witness[0].base, witness[0].name,
                                                              witness[2] - witness[0].base, name))
     for safe, there, name, normal, here in twins(binaries, prints, excluded, disputed):
-        add(safe, there, name, 'jumeau:' + normal.name, [normal.name],
+        add(safe, there, name, 'jumeau:' + normal.name, [(normal, here, name)],
             'jumeau : empreinte %s identique (%d instructions) à %s@%#x « %s », à la même place dans l\'alignement des '
             'fonctions de %s et %s' % (prints[safe.name][there].digest, prints[safe.name][there].count, normal.name,
                                        here - normal.base, name, normal.name, safe.name),
-            judged=twin_grade(safe, there, name))
+            twin=True)
         stats['jumeaux'] += 1
     stats['propositions brutes'] = len(proposals)
     return proposals, conflicts, stats
@@ -1090,12 +1164,13 @@ def reconcile_all(binaries, proposals):
     return kept, dropped
 
 
-def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
+def load_prints():
     binaries = load_all()
-    prints = {}
-    for b in binaries:
-        if b.image is not None:
-            prints[b.name] = fingerprints(b)
+    return binaries, {b.name: fingerprints(b) for b in binaries if b.image is not None}
+
+
+def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
+    binaries, prints = load_prints()
     print('%d binaires, %d avec leurs octets, %d fonctions empreintes' % (
         len(binaries), len(prints), sum(len(v) for v in prints.values())), flush=True)
     proposals, conflicts, stats = propose(binaries, prints, min_high, min_low, read_propagated(), read_excluded())
@@ -1134,6 +1209,51 @@ def run(min_high=MIN_HIGH, min_low=MIN_LOW, out_dir=OUT):
     print(text)
     print('-> %s' % out_dir)
     return kept
+
+
+def review(binaries, prints, provenance=PROVENANCE):
+    """Les noms qu'apply a versés (fiches/noms-propages.tsv), encore dans leur fiche, que les règles d'aujourd'hui ne
+    verseraient plus : [(fiche, adresse, nom, raison, origine)]. Raisons : envoi IPC, nom de rôle, ou aucune autre
+    fonction de même empreinte et de même nom n'a les mêmes appelées (same_callees), en distinguant des noms qui
+    diffèrent d'une appelée nommée d'un côté seulement (même code : souvent une appelée de la variante « -safe » que
+    rien n'a encore nommée)."""
+    def shown(keys):
+        return ', '.join(n or '?' + (d or '')[:6] for n, d in keys) or '-'
+
+    by_name = {b.name: b for b in binaries}
+    named = collections.defaultdict(list)
+    for b in binaries:
+        for address, pr in prints.get(b.name, {}).items():
+            if usable(b.name_at(address)):
+                named[(pr.digest, b.name_at(address))].append((b, address))
+    out = []
+    for row in read_rows(provenance):
+        b = by_name.get(row[0])
+        entry = b.names.get(int(row[1], 16)) if b else None
+        if entry is None or entry[1] != row[2] or b.name not in prints:
+            continue                    # renommé ou retiré depuis : relu
+        address = b.base + int(row[1], 16)
+        own, name = prints[b.name], b.name_at(address)
+        if address not in own:
+            out.append((b, row, 'plus un début de fonction empreinte'))
+            continue
+        spot = blind_spot(name, sends_ipc(b, own, address))
+        reasons = [spot[1]] if spot else []
+        others = [w for w in named[(own[address].digest, name)] if w != (b, address)]
+        mine = callee_keys(b, own, address)
+        if not others:
+            reasons.append('aucune autre fonction de même empreinte et de même nom')
+        else:
+            theirs = [(w, a, callee_keys(w, prints[w.name], a)) for w, a in others]
+            if not any(same_callees(mine, k) for _, _, k in theirs):
+                loose = [t for t in theirs if same_callees(mine, t[2], strict=False)]
+                w, a, k = (loose or theirs)[0]
+                reasons.append('appelées %s %s ; chez %s@%#x : %s' % (
+                    "nommées d'un côté seulement (même code) :" if loose else 'de noms ou de code différents :',
+                    shown(mine), w.name, a - w.base, shown(k)))
+        if reasons:
+            out.append((b, row, ' ; '.join(reasons)))
+    return [(fiche_stem(b.names_path), row[1], row[2], why, row[3]) for b, row, why in out]
 
 
 def read_rows(path):
@@ -1514,6 +1634,43 @@ def test():
     check(graded('cfg_read_block', literal_text=b'cfg:s\0') == [('haute', 'a')], 'mot de service avec « cfg:s » : haute')
     check(graded('srv_init_session_handles') == [('moyenne', 'ouverture')], 'ouverture de session : moyenne')
     check(graded('copy_ns') == [('haute', 'a')], '« ns » en dernier mot n\'est pas un service')
+    check(graded('IRUSER_Disconnect', literal_text=b'ir:USER\0')[0][0] == 'moyenne'
+          and graded('get_session_handle')[0][1] == 'nom', 'nom de rôle (préfixe de service, session, handle) : moyenne')
+
+    def callee_trio(callee, body, names3):
+        """r1, r2, r3 : « heap_walk » en 0, nommée dans r1 et r2, appelle en 0x200 un veneer (ou une fonction ARM)
+        vers `body` en 0x208, nommé « body_x » dans r1 et r2 ; les noms de r3 sont names3."""
+        made = []
+        for k, label in enumerate(('r1', 'r2', 'r3')):
+            base = 0x00500000 + k * 0x100000
+            names = {0: 'heap_walk', 0x208: 'body_x'} if label != 'r3' else names3
+            made.append(fake_binary(label, base, [(0, arm_function(base, base + 0x200, base + 0x300), 'arm', 36),
+                                                  (0x200, callee, 'arm', 4 * len(callee)), (0x208, [body], 'thumb', 4)],
+                                    names))
+        return made
+
+    def via_callee(callee, body, names3):
+        """La confiance proposée pour heap_walk dans r3@0 (callee_trio)."""
+        made = callee_trio(callee, body, names3)
+        props, _, _ = propose(made, {r.name: fingerprints(r) for r in made})
+        return [(p.confidence, p.rule.split(' ')[0]) for p in props if p.binary.name == 'r3' and p.address == 0x00700000]
+    veneer = [0xE28FC001, 0xE12FFF1C]                                    # add ip, pc, #1 ; bx ip -> corps Thumb en 0x208
+    check(via_callee(veneer, 0x47702001, {0x208: 'body_x'}) == [('haute', 'a')], 'appelée de même nom à travers le veneer')
+    check(via_callee(veneer, 0x47702001, {0x208: 'body_y'}) == [('moyenne', 'appelées')]
+          and via_callee(veneer, 0x47702001, {}) == [('moyenne', 'appelées')],
+          'appelée d\'un autre nom, ou sans nom d\'un côté : pas haute')
+    check(via_callee(veneer, 0x4770DF32, {0x208: 'body_x'}) == [('basse', 'envoi')],
+          'talon svc 0x32 partagé derrière un veneer : envoi IPC')
+    check(twin_grade(a, a_base, 'SRV_GetServiceHandle')[0] == 'moyenne'
+          and twin_grade(a, a_base, 'heap_walk', ipc=True)[0] == 'basse', 'jumeau : nom de rôle, envoi IPC')
+    # « revoir » : heap_walk propagé dans r2 (mêmes appelées que r1) et dans r3 (body_y) ; seul r3 est à revoir
+    made = callee_trio(veneer, 0x47702001, {0: 'heap_walk', 0x208: 'body_y'})
+    with tempfile.TemporaryDirectory() as folder:
+        provenance = os.path.join(folder, 'noms-propages.tsv')
+        record_propagated([('r2', '0x600000', 'heap_walk', 'empreinte:r1 ; a'),
+                           ('r3', '0x700000', 'heap_walk', 'empreinte:r1 ; a')], provenance)
+        rows = review(made, {r.name: fingerprints(r) for r in made}, provenance)
+    check([(r[1], ' '.join(r[3].split(' ')[:3])) for r in rows] == [('0x700000', 'appelées de noms')], 'revoir : appelée d\'un autre nom')
     # svc<Nom> : haute seulement si la fonction n'est que cet appel système, du bon numéro
     SVC_NAMES.update({0x23: 'CloseHandle'})
     svc = fake_binary('svc', 0x00500000, [(0, [0xEF000023, 0xE12FFF1E], 'arm', 8), (0x10, [0xEF000024, 0xE12FFF1E], 'arm', 8)], {})
@@ -1801,7 +1958,7 @@ def test():
 
 def main():
     args = sys.argv[1:]
-    if not args or args[0] not in ('mesure', 'entrees', 'run', 'apply', 'test'):
+    if not args or args[0] not in ('mesure', 'entrees', 'run', 'apply', 'revoir', 'test'):
         sys.exit(__doc__)
     if args[0] == 'test':
         sys.exit(1 if test() else 0)
@@ -1829,6 +1986,16 @@ def main():
         i += 2
     if args[0] == 'apply':
         apply(options['--from'], options['--exclusions'])
+    elif args[0] == 'revoir':
+        rows = review(*load_prints())
+        path = os.path.join(options['--out'], 'propages-a-revoir.tsv')
+        os.makedirs(options['--out'], exist_ok=True)
+        name_pass.write_tsv(path, [('fiche', 'adresse', 'nom', 'raison', 'origine')] + rows)
+        heads = ('envoi IPC', 'nom de rôle', 'appelées nommées', 'appelées de noms', 'aucune autre', 'plus un début')
+        for (kind, why), n in sorted(collections.Counter((r[4].split(':')[0], ' + '.join(h for h in heads if h in r[3]))
+                                                         for r in rows).items()):
+            print('   %-10s %-40s %5d' % (kind, why, n))
+        print('%d noms propagés à revoir -> %s' % (len(rows), path))
     else:
         run(options['--min'], options['--min-moyenne'], options['--out'])
 
