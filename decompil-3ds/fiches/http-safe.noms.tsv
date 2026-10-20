@@ -130,7 +130,7 @@
 0x11360c	function	context_core_set_client_cert_default_impl
 0x113674	function	context_core_add_default_cert_impl
 0x113a58	function	map_shared_memory
-0x113af4	function	shared_memory_dtor
+0x113af4	function	shared_memory_dtor_unchecked
 0x113bb0	function	join_thread
 0x113bfc	function	thread_dtor
 0x113e20	function	SSLC_CreateRootCertChain

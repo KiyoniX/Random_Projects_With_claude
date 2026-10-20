@@ -139,7 +139,7 @@
 0x14348c	function	IRUSER_GetConnectionStatusEvent
 0x1434c8	function	IRUSER_SendIrnop
 0x143650	function	shared_memory_dtor
-0x1436b0	function	shared_memory_dtor_alt_1436b0
+0x1436b0	function	shared_memory_dtor_unchecked
 0x1437b4	function	handle_holder_dtor
 0x1437dc	function	handle_holder_dtor_alt_1437dc
 0x143804	function	thread_dtor

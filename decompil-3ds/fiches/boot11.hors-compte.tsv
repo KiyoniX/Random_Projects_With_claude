@@ -10,7 +10,7 @@ adresse	raison
 0x11358	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : dcache_invalidate_range)
 0x113cc	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : preload_range)
 0x11458	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : icache_invalidate_range)
-0x11474	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : dcache_clean_range_alt)
+0x11474	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : icache_prefetch_range)
 0x1149c	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : mmu_and_dcache_enable)
 0x114f4	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : branch_predictor_invalidate_range)
 0x11768	code mort : ni b/bl/blx (ARM, Thumb), ni adr, ni mot des plages de code ne vise cette adresse (balayage de toute l'image, tables de SVC a demi-mots comprises) (nom : copy_words_to_port (propose))

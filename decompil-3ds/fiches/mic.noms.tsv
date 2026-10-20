@@ -111,7 +111,7 @@
 0x103428	function	svcDuplicateHandle
 0x10347c	function	reserve_address_range
 0x10362c	function	map_shared_memory
-0x1036c8	function	shared_memory_dtor
+0x1036c8	function	shared_memory_dtor_unchecked
 0x103750	function	handle_holder_dtor
 0x1037a0	function	thread_dtor
 0x1037cc	function	vm_region_alloc

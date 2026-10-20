@@ -5295,7 +5295,7 @@ http	0x1063a8	msg_queue_init	empreinte:fs ; a (fs, gsp)	2026-10-18
 http	0x10b358	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-10-18
 http	0x10e04c	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
 http	0x10f7fc	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
-http	0x114300	shared_memory_dtor	empreinte:ir ; a (ir, mic)	2026-10-18
+http	0x114300	shared_memory_dtor_unchecked	empreinte:ir ; a (ir, mic)	2026-10-18
 http-safe	0x101db4	handle_srv_notification	empreinte:codec ; a (codec, dsp, gpio, hid)	2026-10-18
 http-safe	0x10460c	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
 http-safe	0x106204	msg_queue_receive	empreinte:fs ; a (fs, gsp)	2026-10-18
@@ -5304,7 +5304,7 @@ http-safe	0x10a788	block_pool_base_dtor	empreinte:fs ; a (fs, pm, ps, ro)	2026-1
 http-safe	0x10d160	memclr_bytes	empreinte:ac ; a (ac, act, am, arm9loader)	2026-10-18
 http-safe	0x10e910	memset_words	empreinte:ac ; a (ac, act, am, cfg)	2026-10-18
 http-safe	0x10eb44	break_process	appel:errdisp ; a (errdisp, fs, http, ir)	2026-10-18
-http-safe	0x113af4	shared_memory_dtor	empreinte:ir ; a (ir, mic)	2026-10-18
+http-safe	0x113af4	shared_memory_dtor_unchecked	empreinte:ir ; a (ir, mic)	2026-10-18
 http-safe	0x113f04	SSLC_RootCertChainRemoveCert	jumeau:http ; jumeau	2026-10-18
 i2c-safe	0x101d74	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp, gpio)	2026-10-18
 i2c-safe	0x1034fc	break_process	empreinte:codec ; a (codec, dsp, errdisp, fs)	2026-10-18

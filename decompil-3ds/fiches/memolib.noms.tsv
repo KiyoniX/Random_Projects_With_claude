@@ -117,7 +117,7 @@
 0x146d88	function	file_read_impl
 0x146dc8	function	file_close_handle
 0x1470bc	function	shared_memory_dtor
-0x14711c	function	shared_memory_dtor_alt_14711c
+0x14711c	function	shared_memory_dtor_unchecked
 0x1471b0	function	handle_holder_dtor
 0x1471d8	function	handle_holder_dtor_alt_1471d8
 0x147200	function	thread_dtor

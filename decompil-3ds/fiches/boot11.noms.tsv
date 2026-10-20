@@ -24,7 +24,7 @@
 0x1140c	function	icache_disable
 0x1144c	function	icache_invalidate_all
 0x11458	function	icache_invalidate_range
-0x11474	function	dcache_clean_range_alt
+0x11474	function	icache_prefetch_range
 0x11490	function	flush_prefetch_buffer
 0x1149c	function	mmu_and_dcache_enable
 0x114b0	function	mmu_and_dcache_disable
