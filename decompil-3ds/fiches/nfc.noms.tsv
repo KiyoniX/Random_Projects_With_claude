@@ -21,6 +21,7 @@
 0x1031bc	label	light_event_wait
 0x103310	label	CFG_GetConfigInfoBlk8
 0x103384	label	errf_close
+0x1033cc	label	ERRF_Throw
 0x104454	label	break_process
 0x1060b2	label	thread_trampoline
 0x106240	label	I2C_ReadDeviceRaw
@@ -87,6 +88,11 @@
 0x11fa3e	label	delete_system_save_impl
 0x11fba0	label	register_mount_point
 0x11feec	label	open_system_save_archive
+0x120004	label	FSUSER_OpenArchive
+0x120060	label	FSUSER_SetPriority
+0x120138	label	FSUSER_CreateSystemSaveData
+0x120190	label	FSUSER_DeleteSystemSaveData
+0x1201cc	label	FSUSER_GetProgramLaunchInfo
 0x120858	label	PS_EncryptDecryptAes
 0x1208dc	label	PS_GenerateRandomBytes
 0x120b1c	label	CFG_GenHashConsoleUnique

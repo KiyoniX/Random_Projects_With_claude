@@ -28,6 +28,7 @@
 0x101a14	label	http_c_open
 0x101be0	label	soc_u_open
 0x101fc4	label	friend_manager_ctor
+0x102198	label	FSUSER_SetPriority
 0x102948	label	SRV_GetServiceHandle
 0x1029c8	label	HTTPC_Initialize
 0x102a0c	label	apt_choose_service_s
@@ -92,6 +93,11 @@
 0x10f48a	label	delete_system_save_impl
 0x10f5b8	label	register_mount_point
 0x10fa04	label	open_system_save_archive
+0x10fb00	label	FSUSER_OpenArchive
+0x10fbfc	label	FSUSER_GetProductInfo
+0x10fcfc	label	FSUSER_CreateSystemSaveData
+0x10fd54	label	FSUSER_DeleteSystemSaveData
+0x10fd90	label	FSUSER_GetProgramLaunchInfo
 0x11001c	label	unmount_archive
 0x110470	label	PS_GetRomMakerCode
 0x1104b0	label	PS_GetRomId

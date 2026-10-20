@@ -30,6 +30,8 @@
 0x1035c4	function	qtm_s_dispatch_command
 0x103918	function	qtm_c_dispatch_command
 0x1039f8	function	qtm_sp_dispatch_command
+0x10418c	function	CAMQ_DriverFinalize
+0x1041bc	function	CAMQ_DriverInitialize
 0x104628	function	thread_trampoline
 0x10466c	function	svcExitThread
 0x104674	function	svcGetProcessInfo
@@ -117,14 +119,17 @@
 0x11836c	function	thread_dtor
 0x118398	function	handle_holder_dtor
 0x119674	function	CAMQ_ClearBuffer
+0x1196b0	function	CAMQ_GetMaxBytes
 0x119740	function	CAMQ_SetTrimming
 0x119788	function	CAMQ_StopCapture
 0x119814	function	CAMQ_SetFrameRate
+0x11985c	function	CAMQ_SetReceiving
 0x1198c4	function	CAMQ_StartCapture
 0x119900	function	CAMQ_SetNoiseFilter
 0x119948	function	CAMQ_SetAutoExposure
 0x119990	function	CAMQ_SetTransferBytes
 0x1199e4	function	CAMQ_SetAutoWhiteBalance
 0x119abc	function	CAMQ_SetTrimmingParamsCenter
+0x119b1c	function	CAMQ_IsBusy
 0x119b68	function	CAMQ_SetSize
 0x119bb8	function	CAMQ_Activate

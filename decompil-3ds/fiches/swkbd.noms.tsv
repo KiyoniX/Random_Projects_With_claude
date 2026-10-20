@@ -43,6 +43,7 @@
 0x128730	function	svcGetSystemTick
 0x12873c	function	svcSleepThread
 0x128748	function	__aeabi_memmove
+0x128e88	function	FSUSER_OpenFileDirectly
 0x128f5c	function	file_read_all
 0x129044	function	light_event_clear
 0x1290fc	function	lock_arbitrate_wait
@@ -80,6 +81,7 @@
 0x134ccc	function	FSUSER_GetPriority
 0x134f90	function	CSND_AcquireSoundChannels
 0x134fcc	function	CSND_Initialize
+0x1352f8	function	GSPGPU_RegisterInterruptRelayQueue
 0x135348	function	GSPGPU_UnregisterInterruptRelayQueue
 0x135380	function	APT_SendCaptureBufferInfo
 0x138854	function	GSPGPU_FlushDataCache

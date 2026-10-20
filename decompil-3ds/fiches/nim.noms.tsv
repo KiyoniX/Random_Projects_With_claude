@@ -9,6 +9,7 @@
 0x101930	label	handle_srv_notification
 0x101990	label	SRV_RegisterClient
 0x1019c8	label	SRV_Subscribe
+0x101b74	label	FSUSER_SetPriority
 0x101dac	label	report_fatal_error
 0x102490	label	find_notification_handler
 0x1024d4	label	SRV_EnableNotification
@@ -30,7 +31,10 @@
 0x1033b6	label	delete_system_save_impl
 0x103400	label	register_mount_point
 0x1034a8	label	open_system_save_archive
+0x103548	label	FSUSER_CreateSystemSaveData
+0x1035a0	label	FSUSER_GetProgramLaunchInfo
 0x10368c	label	errf_close
+0x1036d4	label	ERRF_Throw
 0x103870	label	nim_aoc_setup_static_buffers
 0x103904	label	nim_s_setup_static_buffers
 0x1039c4	label	nim_aoc_dispatch_command
@@ -38,6 +42,8 @@
 0x105540	label	nim_u_setup_static_buffers
 0x10557c	label	nim_s_dispatch_command
 0x107f78	label	nim_u_dispatch_command
+0x1090f4	label	FSUSER_OpenArchive
+0x10918c	label	FSUSER_DeleteSystemSaveData
 0x1092bc	label	CFGS_GetConfigInfoBlk2
 0x1094fc	label	nim_u_cmd_0002_GetProgress
 0x109534	label	nim_u_cmd_002C_UpdateTickets
@@ -164,9 +170,13 @@
 0x1120e4	label	AM_ListTicketInfos
 0x112144	label	AM_ExportLicenseTicket
 0x1121a8	label	AM_CalculateContextRequiredSize
+0x112308	label	FSUSER_InitializeCtrFileSystem
+0x112338	label	FSUSER_ImportIntegrityVerificationSeed
 0x1140d4	label	PTMGETS_GetSystemTime
 0x11711c	label	AM_DeleteAllImportContextsFiltered
 0x11715c	label	AM_FindDLCContentInfos
+0x11721c	label	FSUSER_AddSeed
+0x117260	label	FSUSER_ExportIntegrityVerificationSeed
 0x11a028	label	AM_GetDeviceId
 0x11a068	label	AM_DeleteTicket
 0x11a0a4	label	AM_DeleteImportTitleContext
@@ -287,6 +297,13 @@
 0x13d5b4	label	AM_GetCurrentImportContentContexts
 0x13d610	label	AM_GetCurrentImportContentContextList
 0x13d660	label	AM_GetNumCurrentImportContentContexts
+0x13dcb4	label	FSUSER_GetTitleTag
+0x13dcfc	label	FSUSER_AddTitleTag
+0x13dd40	label	FSUSER_ListTitleTags
+0x13dd8c	label	FSUSER_IsSdmcDetected
+0x13ddc4	label	FSUSER_IsSdmcWritable
+0x13ddfc	label	FSUSER_GetSeed
+0x13de40	label	FSUSER_GetArchiveResource
 0x13e07a	label	light_event_clear
 0x13e1f8	label	CFGS_GetCountryCodeID
 0x13e2f4	label	NDMU_EnterExclusiveState

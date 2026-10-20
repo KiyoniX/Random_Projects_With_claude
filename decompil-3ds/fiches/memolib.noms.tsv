@@ -25,6 +25,7 @@
 0x1153e8	function	svcCreateThread
 0x11540c	function	svcGetProcessInfo
 0x1159f8	function	file_read
+0x115c50	function	FSUSER_OpenFileDirectly
 0x115cf0	function	fs_get_session
 0x115e78	function	clear_thread_local_storage
 0x115f7c	function	cfg_finalize
@@ -89,11 +90,14 @@
 0x1371a4	function	svcGetProcessId
 0x1371bc	function	svcSleepThread
 0x1371c8	function	strncmp
+0x1373a8	function	FSUSER_GetPriority
 0x137450	function	ERRF_Throw
 0x1374e8	function	heap_split_block
 0x1376cc	function	fill_words
 0x137ae0	function	CSND_ReleaseSoundChannels
 0x137b10	function	CSND_Shutdown
+0x137ca4	function	GSPGPU_AcquireRight
+0x137d24	function	GSPGPU_ImportDisplayCaptureInfo
 0x137e14	function	APT_SendParameter
 0x137e6c	function	APT_CancelParameter
 0x137ec8	function	APT_GlanceParameter
@@ -104,7 +108,10 @@
 0x13f4d0	function	CSND_Initialize
 0x143484	function	__aeabi_uldivmod
 0x143774	function	memmove_words
+0x1444e4	function	GSPGPU_WriteHWRegsWithMask
 0x14564c	function	CSND_ExecuteCommands
+0x1458c8	function	GSPGPU_RegisterInterruptRelayQueue
+0x145918	function	GSPGPU_UnregisterInterruptRelayQueue
 0x146684	function	svcDuplicateHandle
 0x146d18	function	file_close_and_free
 0x146d88	function	file_read_impl

@@ -44,6 +44,7 @@
 0x10547c	function	ERRF_Throw
 0x105684	function	NWMSOC_cmd0009
 0x1056d0	function	get_service_handle_by_name
+0x10571c	function	SRV_GetServiceHandle
 0x105810	function	thread_trampoline
 0x109708	function	lock_arbitrate_wait
 0x109890	function	NWMSOC_cmd0005

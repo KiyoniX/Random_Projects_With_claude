@@ -37,6 +37,7 @@
 0x102d00	label	BOSSP_GetAppNewFlag
 0x102d44	label	BOSSP_SetAppNewFlag
 0x102dcc	label	FRDU_GetMyPresence
+0x103028	label	CECDS_GetCecInfoBuffer
 0x1031d2	label	BOSSP_ReadNsData
 0x10322e	label	BOSSP_DeleteNsData
 0x103260	label	BOSSP_GetNsDataIdList

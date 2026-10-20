@@ -88,6 +88,7 @@
 0x131ce4	function	svcGetSystemTick
 0x131cf0	function	svcSleepThread
 0x131d24	function	memclr_bytes
+0x1325a8	function	FSUSER_OpenFileDirectly
 0x13267c	function	file_read_all
 0x132704	function	lock_arbitrate_wait
 0x1328e8	function	service_close
@@ -96,6 +97,7 @@
 0x132b30	function	ERRF_Throw
 0x132b68	function	heap_find_block
 0x133338	function	CSND_FlushDataCache
+0x133714	function	GSPGPU_AcquireRight
 0x1337a8	function	GSPGPU_SetLcdForceBlack
 0x133fd4	function	APT_NotifyToWait
 0x13400c	function	APT_SendParameter
@@ -113,11 +115,16 @@
 0x1389b4	function	heap_split_block
 0x139008	function	CSND_ReleaseSoundChannels
 0x139038	function	CSND_Shutdown
+0x1398c0	function	GSPGPU_WriteHWRegsWithMask
 0x13992c	function	APT_AppletUtility
 0x1399a8	function	APT_SendCaptureBufferInfo
 0x13cbd0	function	__aeabi_uldivmod
+0x13cffc	function	FSUSER_GetPriority
 0x13d748	function	CSND_AcquireSoundChannels
 0x13d784	function	CSND_Initialize
+0x13dc9c	function	GSPGPU_ImportDisplayCaptureInfo
+0x13dcec	function	GSPGPU_RegisterInterruptRelayQueue
+0x13dd3c	function	GSPGPU_UnregisterInterruptRelayQueue
 0x13f560	function	CSND_ExecuteCommands
 0x13fb5c	function	svcDuplicateHandle
 0x140a5c	function	file_close_and_free

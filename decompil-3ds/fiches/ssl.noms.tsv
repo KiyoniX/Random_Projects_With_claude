@@ -40,6 +40,8 @@
 0x1036d8	label	SOCU_close
 0x106430	label	sslc_lib_create_context
 0x110860	label	register_mount_point
+0x110bec	label	FSUSER_GetPriority
+0x110c24	label	FSUSER_OpenFileDirectly
 0x110f80	label	ipc_is_pid_desc
 0x111064	label	PS_SeedRNG
 0x111094	label	PS_EncryptDecryptAes

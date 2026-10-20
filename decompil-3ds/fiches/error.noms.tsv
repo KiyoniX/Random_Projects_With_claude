@@ -62,6 +62,7 @@
 0x12814c	label	construct_array
 0x128290	function	unmap_shared_memory_or_panic
 0x128614	function	pool_alloc
+0x128678	function	FSUSER_OpenFileDirectly
 0x128718	function	heap_alloc_unlocked
 0x129814	function	memclr
 0x129818	function	memset_words
@@ -126,6 +127,7 @@
 0x13c6a4	function	CSND_AcquireSoundChannels
 0x13c6e0	function	CSND_Initialize
 0x13cbf8	function	GSPGPU_ImportDisplayCaptureInfo
+0x13cc48	function	GSPGPU_RegisterInterruptRelayQueue
 0x13cc98	function	GSPGPU_UnregisterInterruptRelayQueue
 0x13daa0	function	GSPGPU_FlushDataCache
 0x13dadc	function	GSPGPU_TriggerCmdReqQueue
@@ -134,6 +136,9 @@
 0x13ec3c	function	udiv10_64
 0x140230	function	file_close_and_free
 0x1402a0	function	file_read_impl
+0x140764	function	FSUSER_OpenArchive
+0x1408b4	function	FSUSER_CreateSystemSaveData
+0x140904	function	FSUSER_DeleteSystemSaveData
 0x140dac	function	shared_memory_dtor
 0x140ea0	function	handle_holder_dtor
 0x140ef0	function	thread_dtor

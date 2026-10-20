@@ -97,6 +97,7 @@
 0x12556c	function	thread_functor_copy_alt_12556c
 0x12557c	function	thread_functor_invoke_alt_12557c
 0x125754	function	svcExitThread
+0x125814	function	FSUSER_OpenArchive
 0x125af0	function	heap_split_block
 0x125f9c	function	GSPGPU_FlushDataCache
 0x12638c	function	APT_SleepSystem

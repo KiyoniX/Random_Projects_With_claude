@@ -20,6 +20,7 @@
 0x10455c	label	SRV_Subscribe
 0x104710	label	thread_trampoline
 0x1047f8	label	errf_close
+0x104840	label	ERRF_Throw
 0x1049cc	label	cec_handle_command
 0x10508c	label	ext_handle_command
 0x1051e0	label	sap_handle_command
