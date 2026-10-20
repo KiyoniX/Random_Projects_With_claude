@@ -36,7 +36,7 @@
 0x100d14	function	light_event_init
 0x100d48	function	light_event_wait
 0x100e48	label	static_guard_acquire
-0x100e60	function	busy_delay
+0x100e60	function	delay_loop
 0x100e70	function	svcArbitrateAddress
 0x100ec0	function	panic_on_failure
 0x100fb0	function	break_process

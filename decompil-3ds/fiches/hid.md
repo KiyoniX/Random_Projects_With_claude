@@ -236,8 +236,8 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 | `cdc:HID` | `0x10c030` | `0x00010000` | `CDCHID_GetData` | `0x106a74` | Lire le tactile et le pad circulaire |
 | | | `0x00020000` | `CDCHID_Initialize` | `0x104ec8` | Au début de la lecture |
 | | | `0x00030000` | `CDCHID_Finalize` | `0x102784` | À l'arrêt de la lecture |
-| `mcu::HID` | `0x10c038` | `0x00010040` | `MCUHID_cmd0001` | `0x105468` | Envoyé avec 1 au démarrage, 0 à l'arrêt |
-| | | `0x00060000` | `MCUHID_cmd0006` | `0x10693c` | Lire les trois valeurs de l'accéléromètre |
+| `mcu::HID` | `0x10c038` | `0x00010040` | `MCUHID_cmd_0x0001` | `0x105468` | Envoyé avec 1 au démarrage, 0 à l'arrêt |
+| | | `0x00060000` | `MCUHID_cmd_0x0006` | `0x10693c` | Lire les trois valeurs de l'accéléromètre |
 | | | `0x00070000` | `MCUHID_GetRaw3DSliderPosition` | `0x1069a8` | Lire le curseur 3D |
 | | | `0x000C0000` | `MCUHID_GetMcuHidEventHandle` | `0x1017dc` | Obtenir le signal du microcontrôleur |
 | | | `0x000D0000` | `MCUHID_GetMcuHidEventReason` | `0x106974` | Savoir pourquoi il a sonné |
@@ -259,7 +259,7 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 
 Deux écarts avec la Carte des services, à vérifier :
 - Elle donne `0x00010042` et `0x00020042` pour les deux premières commandes de `cdc:HID` ; le code envoie `0x00010000` et `0x00020000`.
-- Elle nomme la commande `0x00060000` de `mcu::HID` « ReadGyroscopeValues » ; ici son résultat va dans la section de l'accéléromètre, et le gyroscope est lu par `i2c::HID`. Elle garde donc le nom neutre `MCUHID_cmd0006`.
+- Elle nomme la commande `0x00060000` de `mcu::HID` « ReadGyroscopeValues » ; ici son résultat va dans la section de l'accéléromètre, et le gyroscope est lu par `i2c::HID`. Elle garde donc le nom neutre `MCUHID_cmd_0x0006`.
 
 Les blocs de configuration lus au démarrage :
 

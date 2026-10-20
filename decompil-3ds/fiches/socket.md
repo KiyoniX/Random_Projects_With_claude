@@ -259,14 +259,14 @@ Chaque requête a sa petite fonction (un seul `svcSendSyncRequest`, `0x32`, dans
 | | `0x00090040` | `SRV_Subscribe` | `0x11c3f4` | s'abonner à trois notifications |
 | | `0x000B0000` | `SRV_ReceiveNotification` | `0x101e24` | lire le numéro de la notification |
 | `err:f` | `0x00010800` | `ERRF_Throw` | `0x10547c` | erreur fatale (`0x115568` l'appelle) |
-| `nwm::SOC` | `0x00040082` | `NWMSOC_cmd0004` | `0x12c2b8` | (3dbrew : `0x00040042`) deux mots et un tampon statique : envoi d'une trame |
-| | `0x00050040` | `NWMSOC_cmd0005` | `0x109890` | un mot |
+| `nwm::SOC` | `0x00040082` | `NWMSOC_cmd_0x0004` | `0x12c2b8` | (3dbrew : `0x00040042`) deux mots et un tampon statique : envoi d'une trame |
+| | `0x00050040` | `NWMSOC_cmd_0x0005` | `0x109890` | un mot |
 | | `0x00080040` | `NWMSOC_GetMACAddress` | `0x1098c0` | lire l'adresse MAC |
-| | `0x00090000` | `NWMSOC_cmd0009` | `0x105684` | rend la taille, la poignée de la mémoire partagée et celle d'un événement (3dbrew confirme) |
-| | `0x000A0040` | `NWMSOC_cmd000A` | `0x12c380` | un mot |
-| | `0x000B0040` | `NWMSOC_cmd000B` | `0x12c344` | un mot, rend un mot |
-| | `0x000C0040` | `NWMSOC_cmd000C` | `0x12c314` | un mot |
-| | `0x000D0002` | `NWMSOC_cmd000D` | `0x1032a4` | le numéro de processus (descripteur `0x20`) : 3dbrew dit que `socket` est le seul module à l'utiliser |
+| | `0x00090000` | `NWMSOC_cmd_0x0009` | `0x105684` | rend la taille, la poignée de la mémoire partagée et celle d'un événement (3dbrew confirme) |
+| | `0x000A0040` | `NWMSOC_cmd_0x000A` | `0x12c380` | un mot |
+| | `0x000B0040` | `NWMSOC_cmd_0x000B` | `0x12c344` | un mot, rend un mot |
+| | `0x000C0040` | `NWMSOC_cmd_0x000C` | `0x12c314` | un mot |
+| | `0x000D0002` | `NWMSOC_cmd_0x000D` | `0x1032a4` | le numéro de processus (descripteur `0x20`) : 3dbrew dit que `socket` est le seul module à l'utiliser |
 | `ptm:s` | `0x04030042` | `PTMS_NotifySleepPreparationComplete` | `0x1032d8` | dire à `ptm` que le module est prêt pour la veille |
 
 Les quatre commandes `0x00040082`, `0x000A0040`, `0x000B0040` et `0x000C0040` sont envoyées par `0x12c1b4` à `0x12c27c` avec la poignée `0x1330c4`, c'est-à-dire à `nwm::SOC` (interprété : les fonctions du dessus, qui forment la couche réseau de la pile, ne sont pas lues).

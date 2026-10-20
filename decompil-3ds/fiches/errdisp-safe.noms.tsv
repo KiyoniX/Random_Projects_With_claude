@@ -22,7 +22,7 @@
 0x101e84	function	store_thread_local_owner
 0x101f40	function	cfg_finalize
 0x102310	function	errf_session_receive_loop
-0x102470	function	srv_enable_notification
+0x102470	function	get_notification_semaphore
 0x1024a4	function	SRV_RegisterClient
 0x1024e0	function	SRV_ReceiveNotification
 0x103444	function	svcCreateAddressArbiter

@@ -12,7 +12,7 @@
 0x1092b0	function	svcCreateAddressArbiter
 0x1092c8	function	strcpy
 0x109818	function	file_read_all
-0x109d94	function	HID_GetIPCHandles
+0x109d94	function	HIDUSER_GetIPCHandles
 0x10a0c4	function	SRV_EnableNotification
 0x10a4e0	function	GSPGPU_SetLcdForceBlack
 0x10aa58	function	APT_Initialize

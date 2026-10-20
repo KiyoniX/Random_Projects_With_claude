@@ -12,7 +12,7 @@
 0x1005c8	function	svcAcceptSession
 0x1005e0	function	svcWaitSynchronizationN
 0x100610	function	strlen
-0x100670	function	set_heap_size
+0x100670	function	setup_heap
 0x100724	function	spi_init_buses
 0x1007c4	function	get_notification_semaphore
 0x1007f8	function	handle_srv_notification

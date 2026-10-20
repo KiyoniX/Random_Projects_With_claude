@@ -135,7 +135,7 @@
 0x10535c	function	create_thread_on_heap_stack
 0x1053f8	function	join_thread
 0x105430	function	lock_enter
-0x105468	function	MCUHID_cmd0001
+0x105468	function	MCUHID_cmd_0x0001
 0x1054a0	function	MCUHID_EnableAccelerometerInterrupt
 0x1054d8	function	start_sampling
 0x105784	function	create_event
@@ -170,7 +170,7 @@
 0x1067f0	function	mcu_get_sound_volume
 0x106800	function	hid_EnableGyroscopeLow
 0x106908	function	hid_EnableAccelerometer
-0x10693c	function	MCUHID_cmd0006
+0x10693c	function	MCUHID_cmd_0x0006
 0x106974	function	MCUHID_GetMcuHidEventReason
 0x1069a8	function	MCUHID_GetRaw3DSliderPosition
 0x106a74	function	CDCHID_GetData

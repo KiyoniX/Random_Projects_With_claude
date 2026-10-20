@@ -44,7 +44,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 9. Les minuteries d'un jour et de 10 secondes sont créées (celle d'une heure l'a été plus haut, par `start_hourly_timer`, `0x101720`), puis `sync_lgy_lcd_data`, `sync_friend_code_counter` et `sync_uuid_clock_sequence` comparent trois valeurs gardées à la fois dans `cfg` et dans le microcontrôleur.
 10. `refresh_adapter_state`, `refresh_charge_state` et `refresh_battery_level` écrivent l'état de la batterie dans la page partagée (partie 6).
 
-Les fils passent par `create_thread` (`0x102e5c`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x1039e4`), qui appelle la vraie fonction du fil puis `svcExitThread`.
+Les fils passent par `create_thread_impl` (`0x102e5c`), la seule fonction qui appelle `svcCreateThread`, et commencent dans `thread_trampoline` (`0x1039e4`), qui appelle la vraie fonction du fil puis `svcExitThread`.
 
 | Fil | Fonction | Adresse | Créé par | Ce qu'il fait |
 | --- | --- | --- | --- | --- |
@@ -254,9 +254,9 @@ Tout se passe dans l'objet « alimentation » à `0x10e898` et dans `sleep_seque
 5. **Le gel.** `svcKernelSetState(5, 1, 0, 0)`.
 6. **La préparation (étape 3).** La liste des réveils demandés est vidée (`+0x1D8`), puis la notification `0x104` est publiée. C'est à ce moment que `hid` arrête de lire les capteurs et que `gsp` éteint les écrans. Pendant qu'ils travaillent, `sleep_cb_going_to_sleep` (`0x101a1c`) règle la luminosité du voyant à `0x32`, met le voyant en mode 2 et arrête la minuterie d'un jour. Les modules peuvent aussi déclarer par SetWakeupTrigger ce qui doit réveiller la console : la commande n'est acceptée qu'aux étapes 3 et 7 (sinon `0xC8A0D405`).
 7. **Tout le monde est prêt (étape 4).** Quand chaque abonné a répondu (valeur 0), `sleep_cb_before_sleep_loop` (`0x101e10`) programme une alarme, `MCURTC_EnterExclusiveInterruptMode` est envoyé, et `MCURTC_GetPowerInterruptHistory` relève les événements déjà arrivés.
-8. **Les réveils.** S'il n'y a aucun événement en attente, `PXIMC_cmd0005(1)` est envoyé. La fonction réunit ensuite les masques de tous les réveils déclarés : un masque « réveil complet » et un masque « réveil partiel », chacun en deux moitiés de 32 bits, l'une pour `pdn`, l'autre pour le microcontrôleur. `PDNS_ConfigureWakeEvents` reçoit la moitié `pdn`, avec le bit 26 en plus si un événement du microcontrôleur est attendu. `check_events_already_true` (`0x107908`) regarde si un événement attendu est déjà vrai : couvercle, chargeur, charge.
-9. **Le sommeil (étape 5).** Si rien n'est en attente ni déjà vrai : sauvegarde du masque d'interruptions du microcontrôleur, nouveau masque réglé sur les réveils attendus, `MCURTC_cmd0035`, puis **`svcKernelSetState(2, 0, 0, 0)`**. C'est cet appel qui endort la console. Il ne revient qu'au réveil.
-10. **Le réveil (étape 6).** `pdn_get_wake_status` (`PDNS_GetWakeStatus`) dit ce qui a réveillé la machine. Le masque du microcontrôleur est remis. Si c'est le microcontrôleur (bit 26), `collect_mcu_wake_events` (`0x1053ac`) acquitte `pdn` et lit l'événement par `MCURTC_ReadInterrupt`. Si `PXIMC_cmd0005(1)` avait été envoyé, `PXIMC_cmd0005(0)` l'est maintenant.
+8. **Les réveils.** S'il n'y a aucun événement en attente, `PXIMC_Sleep(1)` est envoyé. La fonction réunit ensuite les masques de tous les réveils déclarés : un masque « réveil complet » et un masque « réveil partiel », chacun en deux moitiés de 32 bits, l'une pour `pdn`, l'autre pour le microcontrôleur. `PDNS_ConfigureWakeEvents` reçoit la moitié `pdn`, avec le bit 26 en plus si un événement du microcontrôleur est attendu. `check_events_already_true` (`0x107908`) regarde si un événement attendu est déjà vrai : couvercle, chargeur, charge.
+9. **Le sommeil (étape 5).** Si rien n'est en attente ni déjà vrai : sauvegarde du masque d'interruptions du microcontrôleur, nouveau masque réglé sur les réveils attendus, `MCURTC_cmd_0x0035`, puis **`svcKernelSetState(2, 0, 0, 0)`**. C'est cet appel qui endort la console. Il ne revient qu'au réveil.
+10. **Le réveil (étape 6).** `pdn_get_wake_status` (`PDNS_GetWakeStatus`) dit ce qui a réveillé la machine. Le masque du microcontrôleur est remis. Si c'est le microcontrôleur (bit 26), `collect_mcu_wake_events` (`0x1053ac`) acquitte `pdn` et lit l'événement par `MCURTC_ReadInterrupt`. Si `PXIMC_Sleep(1)` avait été envoyé, `PXIMC_Sleep(0)` l'est maintenant.
 11. **Le tri (étape 7).** Le premier événement qui tombe dans le masque « réveil complet » devient la raison du réveil (`+0x60`) et on passe à l'étape 13. Sinon, le premier qui tombe dans le masque « réveil partiel » est noté à `+0x68`. S'il n'y en a aucun, la console se rendort (retour à l'étape 8).
 12. **Le réveil partiel.** `sleep_cb_half_awake_begin`, puis la notification `0x107`, puis `sleep_cb_half_awake` (qui demande un réveil complet si c'est la batterie qui a réveillé la console et qu'elle est à 0 %). La fonction attend les réponses (valeur 2) par tranches de 50 millisecondes, en relisant à chaque fois ce qui a pu arriver. Si entre-temps quelqu'un a envoyé la commande Awake (octet `+0x0A`), ou si un événement de réveil complet arrive, on passe à l'étape 13. Sinon la console se rendort.
 13. **La sortie de veille (étape 8).** Les réveils de `pdn` sont remis à zéro, `MCURTC_ExitExclusiveInterruptMode`, `sleep_cb_leaving_sleep`, puis la notification `0x105` : `hid` relance ses capteurs, `gsp` remet les écrans en route. `sleep_cb_waking_up` (`0x101990`) remet la luminosité du voyant à `0xFF`, le voyant en mode 0, relance la minuterie d'un jour et relit la batterie.
@@ -343,7 +343,7 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 | `0x00200000` | `MCURTC_GetPedometerRecordingMode` | `0x1093f8` | Répondre à GetPedometerState |
 | `0x00210000` | `MCURTC_GetStepCount` | `0x103ea0` | Lire le nombre de pas |
 | `0x00220042` | `MCURTC_ReadRegister4Fh` | `0x103ed4` | Lire l'historique des pas |
-| `0x00230000` | `MCURTC_cmd0023` | `0x1030fe` | Envoyé avec les deux précédentes |
+| `0x00230000` | `MCURTC_cmd_0x0023` | `0x1030fe` | Envoyé avec les deux précédentes |
 | `0x00240000` | `MCURTC_GetPowerEventHandle` | `0x100fe6` | Obtenir le signal du rang 1 de la boucle |
 | `0x00250000` | `MCURTC_GetPowerInterruptHistory` | `0x1030ca` | Savoir pourquoi il a sonné |
 | `0x00260000`, `0x00280000` | `MCURTC_CheckRegister02hBit0`, `…Bit1` | `0x102354`, `0x102388` | Au démarrage |
@@ -355,7 +355,7 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 | `0x002E0040` | `MCURTC_SetPowerModeIndicatorState` | `0x1023f0` | Le voyant : 2 à l'endormissement, 0 au réveil |
 | `0x00300040` | `MCURTC_SetLEDBrightness` | `0x10255c` | `0x32` à l'endormissement, `0xFF` au réveil |
 | `0x00320000` | `MCURTC_PowerOff` | `0x107812` | Couper le courant |
-| `0x00350000` | `MCURTC_cmd0035` | `0x10775c` | Juste avant de dormir |
+| `0x00350000` | `MCURTC_cmd_0x0035` | `0x10775c` | Juste avant de dormir |
 | `0x00360040` | `MCURTC_SetWatchdogTimer` | `0x10231c` | Au démarrage |
 | `0x00380042` | `MCURTC_GetInfoRegisters` | `0x10101a` | Au démarrage, dix octets |
 | `0x00390082` | `MCURTC_SetPlayCountRegisters` | `0x1068e4` | Écrire dans les registres libres |
@@ -382,8 +382,8 @@ Chaque requête envoyée à un autre service a sa petite fonction, qui écrit un
 | `pdn:s` | `0x10e3c0` | `0x00010000` | `PDNS_GetWakeStatus` | `0x108250` | Ce qui a réveillé la console |
 | | | `0x00020080` | `PDNS_ConfigureWakeEvents` | `0x107888` | Ce qui a le droit de la réveiller |
 | | | `0x00030040` | `PDNS_Acknowledge` | `0x108290` | Acquitter un réveil |
-| `pxi:mc` | objet « alimentation », `+0x00` | `0x00050040` | `PXIMC_cmd0005` | `0x107ce2` | 1 avant de dormir, 0 après |
-| | | `0x000A00C0` | `PXIMC_cmd000A` | `0x1036b0` | Envoyer l'heure, au démarrage et toutes les heures |
+| `pxi:mc` | objet « alimentation », `+0x00` | `0x00050040` | `PXIMC_Sleep` | `0x107ce2` | 1 avant de dormir, 0 après |
+| | | `0x000A00C0` | `PXIMC_cmd_0x000A` | `0x1036b0` | Envoyer l'heure, au démarrage et toutes les heures |
 | `pm:app` | `0x10e40c` | `0x00060082` | `PMAPP_PrepareForReboot` | `0x1085dc` | Faire arrêter tous les processus |
 | `cfg:s` | `0x10e3f8` | `0x04010082` | `CFG_GetConfigInfoBlk8` | `0x102170` | Lire un bloc de configuration |
 | | | `0x04020082` | `CFG_SetConfigInfoBlk4` | `0x1021bc` | En écrire un |
@@ -474,7 +474,7 @@ Chaque appel système n'apparaît qu'une fois dans le code, dans sa petite envel
 | ControlMemory | `0x01` | `svcControlMemory` | `0x10bb9c` | `set_heap_size` |
 | QueryMemory | `0x02` | `svcQueryMemory` | `0x10bbd8` | `init_vm_region_0e000000` (`0x100498`) |
 | ExitProcess | `0x03` | `svcExitProcess` | `0x10ba28` | `entry` et `default_exit_handler` (`0x10af64`) |
-| CreateThread | `0x08` | `svcCreateThread` | `0x10bc8c` | `create_thread` |
+| CreateThread | `0x08` | `svcCreateThread` | `0x10bc8c` | `create_thread_impl` |
 | ExitThread | `0x09` | `svcExitThread` | `0x10be74` | `thread_trampoline` |
 | SleepThread | `0x0A` | `svcSleepThread` | `0x10bcb0` | `sleep_thread` |
 | CreateEvent | `0x17` | `svcCreateEvent` | `0x10bc14` | `ptm_initialize`, `power_manager_init` |

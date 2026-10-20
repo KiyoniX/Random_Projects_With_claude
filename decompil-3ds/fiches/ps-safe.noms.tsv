@@ -46,8 +46,8 @@
 0x101d80	function	panic_on_failure
 0x101e5c	function	svcConnectToPort
 0x101ff4	function	copy_service_name
-0x102008	function	ps_lock_leave
-0x102028	function	ps_lock_enter
+0x102008	function	lock_leave
+0x102028	function	lock_enter
 0x102064	function	break_process
 0x1020b8	function	lock_init
 0x102104	function	fs_get_session

@@ -147,7 +147,7 @@ Les noms et les en-têtes de requête viennent de 3dbrew quand la commande y est
 
 Les sept commandes dont l'émulation n'a pas retrouvé la fonction (`0x06`, `0x20`, `0x2A`, `0x2B`, `0x2E`, `0x3D`, `0x41`) ont leur appel dans le corps de l'aiguillage, deux tampons statiques de plus que ce que l'émulateur essaie ; les fonctions ont été lues dans le pseudo-code de `acu_handle_command`. Leurs en-têtes de réponse sont écrits à la fin du cas : `0x00060040` (`0x06`), `0x00200040` (`0x20`), `0x002E0042` (`0x2E`), `0x00410042` (`0x41`) ; pour `0x2A`, `0x2B` et `0x3D`, l'en-tête n'a pas été relevé.
 
-L'aiguillage lit l'en-tête dans le tampon du fil (`get_tls`, `0x110ce8`, puis `+0x80`), prend le numéro dans les 16 bits du haut, et saute par une table. Il compare ensuite l'en-tête et les descripteurs avec quatre petites fonctions : `check_header` (`0x10fb18`, numéro, nombre de mots ordinaires, nombre de mots de traduction), `check_pid_descriptor` (`0x10fa96`, le descripteur `0x20`), `check_handle_descriptor` (`0x10fa7c`, la poignée copiée) et `check_static_buffer_descriptor` (`0x10faf8`, le tampon statique). Un numéro inconnu rend l'en-tête de réponse `0x00000040` et le résultat `0xD900182F`, un en-tête qui ne va pas `0x00000040` et `0xD9001830`.
+L'aiguillage lit l'en-tête dans le tampon du fil (`get_tls`, `0x110ce8`, puis `+0x80`), prend le numéro dans les 16 bits du haut, et saute par une table. Il compare ensuite l'en-tête et les descripteurs avec quatre petites fonctions : `ipc_check_header` (`0x10fb18`, numéro, nombre de mots ordinaires, nombre de mots de traduction), `ipc_is_pid_desc` (`0x10fa96`, le descripteur `0x20`), `check_handle_descriptor` (`0x10fa7c`, la poignée copiée) et `check_static_buffer_descriptor` (`0x10faf8`, le tampon statique). Un numéro inconnu rend l'en-tête de réponse `0x00000040` et le résultat `0xD900182F`, un en-tête qui ne va pas `0x00000040` et `0xD9001830`.
 
 ### Ce que les commandes d'`ac:u` font de la configuration
 
@@ -205,7 +205,7 @@ Les commandes de réglage copient d'abord la configuration reçue dans la config
 | 0x0421 | `(0x04210000)` | GetNetworkWirelessMultiSsidSetting0SsidLength | `aci_0421_GetNetworkWirelessMultiSsidSetting0SsidLength` | `0x106b20` | numéro | `0x04210080` |
 | 0x0422 | `(0x04220040)` | (sans nom) | `aci_0422` | `0x106bb0` | numéro | `0x04220040` |
 | 0x0423 | numéro seul | (sans nom) | `aci_0423` | `0x106c4c` | numéro | `0x04230080` |
-| 0x0424 | `(0x04240040)` | (sans nom) | `aci_0424` | `0x106c98` | numéro | `0x04240040` |
+| 0x0424 | `(0x04240040)` | (sans nom) | `aci_0424_SetNetworkWirelessMultiSsidSetting0SecurityMode` | `0x106c98` | numéro | `0x04240040` |
 | 0x0425 | `(0x04250000)` | GetNetworkWirelessMultiSsidSetting0PassPhrase | `aci_0425_GetNetworkWirelessMultiSsidSetting0PassPhrase` | `0x106b0c` | numéro | `0x04250042` |
 | 0x0426 | `0x04260002` | (sans nom) | dans l'aiguillage | - | entier | - |
 | 0x0427 | `(0x04270000)` | GetNetworkWirelessMultiSsidSetting0Key | `aci_0427_GetNetworkWirelessMultiSsidSetting0Key` | `0x1068e4` | numéro | `0x04270042` |
@@ -213,9 +213,9 @@ Les commandes de réglage copient d'abord la configuration reçue dans la config
 | 0x0429 | `(0x04290000)` | GetNetworkMultiSsidSetting1Ssid | `aci_0429_GetNetworkMultiSsidSetting1Ssid` | `0x1069b4` | numéro | `0x04290042` |
 | 0x042A | `0x042A0002` | SetNetworkMultiSsidSetting1Ssid | `aci_042A_SetNetworkMultiSsidSetting1Ssid` | `0x106a10` | entier | `0x042A0040` |
 | 0x042B | `(0x042B0000)` | GetNetworkMultiSsidSetting1SsidLength | `aci_042B_GetNetworkMultiSsidSetting1SsidLength` | `0x106b44` | numéro | `0x042B0080` |
-| 0x042C | `(0x042C0040)` | (sans nom) | `aci_042C` | `0x106bd0` | numéro | `0x042C0040` |
+| 0x042C | `(0x042C0040)` | (sans nom) | `aci_042C_SetNetworkMultiSsidSetting1SsidLength` | `0x106bd0` | numéro | `0x042C0040` |
 | 0x042D | numéro seul | (sans nom) | `aci_042D` | `0x106c5c` | numéro | `0x042D0080` |
-| 0x042E | `(0x042E0040)` | (sans nom) | `aci_042E` | `0x106ca4` | numéro | `0x042E0040` |
+| 0x042E | `(0x042E0040)` | (sans nom) | `aci_042E_SetNetworkWirelessMultiSsidSetting1SecurityMode` | `0x106ca4` | numéro | `0x042E0040` |
 | 0x042F | numéro seul | GetNetworkWirelessMultiSsidSetting1PassPhrase | `aci_042F_GetNetworkWirelessMultiSsidSetting1PassPhrase` | `0x106b30` | numéro | `0x042F0042` |
 | 0x0430 | `0x04300002` | (sans nom) | dans l'aiguillage | - | entier | - |
 | 0x0431 | `(0x04310000)` | GetNetworkWirelessMultiSsidSetting1Key | `aci_0431_GetNetworkWirelessMultiSsidSetting1Key` | `0x1068f8` | numéro | `0x04310042` |
@@ -233,9 +233,9 @@ Les commandes de réglage copient d'abord la configuration reçue dans la config
 | 0x043D | `(0x043D0000)` | GetNetworkWirelessMultiSsidSetting3Ssid | `aci_043D_GetNetworkWirelessMultiSsidSetting3Ssid` | `0x1069dc` | numéro | `0x043D0042` |
 | 0x043E | `0x043E0002` | SetNetworkWirelessMultiSsidSetting3Ssid | `aci_043E_SetNetworkWirelessMultiSsidSetting3Ssid` | `0x106a38` | entier | `0x043E0040` |
 | 0x043F | numéro seul | (sans nom) | `aci_043F` | `0x106b8c` | numéro | `0x043F0080` |
-| 0x0440 | numéro seul | (sans nom) | `aci_0440` | `0x106c10` | numéro | `0x04400040` |
+| 0x0440 | numéro seul | (sans nom) | `aci_0440_SetNetworkWirelessMultiSsidSetting3SsidLength` | `0x106c10` | numéro | `0x04400040` |
 | 0x0441 | numéro seul | (sans nom) | `aci_0441` | `0x106c7c` | numéro | `0x04410080` |
-| 0x0442 | numéro seul | (sans nom) | `aci_0442` | `0x106cbc` | numéro | `0x04420040` |
+| 0x0442 | numéro seul | (sans nom) | `aci_0442_SetNetworkWirelessMultiSsidSetting3SecurityMode` | `0x106cbc` | numéro | `0x04420040` |
 | 0x0443 | numéro seul | (sans nom) | `aci_0443` | `0x106b78` | numéro | `0x04430042` |
 | 0x0444 | `0x04440002` | (sans nom) | dans l'aiguillage | - | entier | - |
 | 0x0445 | `(0x04450000)` | GetNetworkWirelessMultiSsidSetting3Key | `aci_0445_GetNetworkWirelessMultiSsidSetting3Key` | `0x106920` | numéro | `0x04450042` |
@@ -438,7 +438,7 @@ Le contexte d'une session (au bas de sa pile, `0x6F4` octets ; seuls les champs 
 | `ps:ps` | `0x125b78` | `0x00060040`, `0x00080040` | `PS_GetRomId`, `PS_GetRomMakerCode` | `0x116cd8`, `0x116c98` | Carte ps:ps |
 | `nwm::INF` | `0x125be4` | `0x00070742` | `NWMINF_ConnectToEncryptedAP` | `0x1175d0` | se connecter à un point d'accès chiffré |
 | | | `0x000603C4` | `NWMINF_RecvBeaconBroadcastData` | `0x1176a4` | balayage |
-| | | numéros 3, 4, 5, 9, 10, 11, 12, 14 | `NWMINF_cmd0003`, `0004`, `0005`, `0009`, `000A`, `000B`, `000C`, `000E` | `0x117644`, `0x117674`, `0x11751c`, `0x1174ec`, `0x1061e8`, `0x117598`, `0x11755c`, `0x107c28` | `?` dans 3dbrew (la 11 « rend un événement ») |
+| | | numéros 3, 4, 5, 9, 10, 11, 12, 14 | `NWMINF_cmd_0x0003`, `0004`, `0005`, `0009`, `000A`, `000B`, `000C`, `000E` | `0x117644`, `0x117674`, `0x11751c`, `0x1174ec`, `0x1061e8`, `0x117598`, `0x11755c`, `0x107c28` | `?` dans 3dbrew (la 11 « rend un événement ») |
 
 Pour `cfg:nor`, le nombre de mots de ReadData et WriteData envoyés par `ac` n'est pas relevé ; les en-têtes `…0082` sont ceux de la fiche `cfg`, avec les mêmes numéros. Deux autres fonctions d'envoi de `cfg:s` : `0x116e04`, en-tête `0x04080042` (`CFG_SecureInfoGetSerialNo`, sur [0x125ba4]), et `0x116e94`, en-tête `0x00010082` (`CFG_GetConfigInfoBlk2`, sur la copie [0x125ba8]).
 
@@ -502,7 +502,7 @@ Le balayage (`0x1dcb80`) est appelé depuis `0x420c18` (la fonction qui prépare
 ## Ce qui est sûr, ce qui est interprété, ce qui n'est pas lu
 
 **Vérifié par deux voies indépendantes**
-- Les 65 numéros de commande d'`ac:u`, leur fonction et leur en-tête de réponse : le pseudo-code de Ghidra de `acu_handle_command` d'un côté ; de l'autre `emulate_dispatch.py`, qui exécute l'aiguillage pour chaque numéro. Sur les 49 commandes dont l'émulation relève l'en-tête entier, 46 se retrouvent à l'identique dans les appels de `check_header` du pseudo-code (numéro, mots ordinaires, mots de traduction) ; les 3 autres (`0x02`, `0x06`, `0x2D`) n'ont pas la même forme d'appel et n'ont pas été comparées. Aucun écart sur les 46.
+- Les 65 numéros de commande d'`ac:u`, leur fonction et leur en-tête de réponse : le pseudo-code de Ghidra de `acu_handle_command` d'un côté ; de l'autre `emulate_dispatch.py`, qui exécute l'aiguillage pour chaque numéro. Sur les 49 commandes dont l'émulation relève l'en-tête entier, 46 se retrouvent à l'identique dans les appels de `ipc_check_header` du pseudo-code (numéro, mots ordinaires, mots de traduction) ; les 3 autres (`0x02`, `0x06`, `0x2D`) n'ont pas la même forme d'appel et n'ont pas été comparées. Aucun écart sur les 46.
 - Les noms des 65 commandes d'`ac:u` et les en-têtes : 3dbrew donne un nom aux 65 numéros ; 48 des 49 en-têtes complets sont identiques à ceux de 3dbrew (l'écart est la commande `0x15`, partie « désaccords »).
 - Les deux services du module : les chaînes `ac:u` et `ac:i` rangées dans la table `0x12165c`, les deux ports attendus par `server_main_loop`, et les deux aiguillages qu'atteignent les deux boucles de session (`0x1020b0` et `0x103330`, appelés l'un depuis `acu_session_loop`, l'autre depuis `aci_session_loop`). Vus dans l'assembleur et dans la table des références.
 - Le schéma des fils : `svcCreateThread` n'a qu'un appelant (`create_thread_impl`), qui n'en a qu'un (`create_thread`), appelé de trois endroits ; `svcReplyAndReceive` n'est appelé que depuis les boucles de session.
@@ -545,7 +545,7 @@ Le balayage (`0x1dcb80`) est appelé depuis `0x420c18` (la fonction qui prépare
 | Désassemblage de chaque fonction avec les mots de la table de constantes résolus, et les constantes remises dans le pseudo-code | un script Python avec capstone | immédiat |
 | Tables de commandes des deux aiguillages `0x1020b0` et `0x103330` | `python outils/emulate_dispatch.py ac 0x1020b0=ac:u 0x103330=ac:i` | quelques secondes |
 | Noms des commandes d'`ac:u` et d'`ac:i` | 3dbrew, par `web.archive.org` (AC Services, NWM Services, liste des titres) | |
-| Fonctions d'envoi vers les autres services | un script sur l'assembleur (arguments de `ipc_write_header`, poignée avant `svcSendSyncRequest`) joint au pseudo-code | |
+| Fonctions d'envoi vers les autres services | un script sur l'assembleur (arguments de `ipc_set_header`, poignée avant `svcSendSyncRequest`) joint au pseudo-code | |
 | Le côté du jeu | le pseudo-code de la mise à jour (`local/analyse/maj/gh/`) | |
 
 **Pièges rencontrés.**

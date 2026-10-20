@@ -162,8 +162,8 @@ Les huit dernières ne sont pas dans la Carte des services : l'aiguillage va jus
 
 | N° | En-tête de requête | Commande | Enveloppe | Fonction de travail | Ce que fait le code | En-tête vérifié | En-tête de réponse |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `0x0001` | `0x00010040` | Initialize | `0x1080b4` | `nor_initialize` (`0x108a48`) | `SPI_cmd0001` (périphérique 1, valeur 0), puis range l'octet reçu et règle le bus comme la commande 3 | numéro | `0x00010040` |
-| `0x0002` | `0x00020000` | Shutdown | `0x108194` | `nor_shutdown` (`0x108be4`) | `SPI_cmd0002` (périphérique 1) | numéro | `0x00020040` |
+| `0x0001` | `0x00010040` | Initialize | `0x1080b4` | `nor_initialize` (`0x108a48`) | `SPI_SetDeviceState` (périphérique 1, valeur 0), puis range l'octet reçu et règle le bus comme la commande 3 | numéro | `0x00010040` |
+| `0x0002` | `0x00020000` | Shutdown | `0x108194` | `nor_shutdown` (`0x108be4`) | `SPI_cmd_0x0002` (périphérique 1) | numéro | `0x00020040` |
 | `0x0003` | `0x00030040` | sans nom | `0x1081c4` | `nor_set_bus_state` (`0x108c1e`) | Range l'octet reçu à `+4` de l'objet et appelle `SPI_EnableSpiBus` | numéro | `0x00030040` |
 | `0x0004` | `0x00040000` | sans nom | `0x1081b4` | `nor_get_bus_state_locked` (`0x108788`) | Rend cet octet | numéro | `0x00040080` |
 | `0x0005` | `0x00050082` | ReadData | `0x108174` | `nor_read_data` (`0x108b00`) | Attend la fin d'écriture, envoie l'ordre `0x03` et l'adresse sur 3 octets, lit les données | entier | `0x00050042` |
@@ -415,10 +415,10 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `svcSend
 | `ps:ps` | `0x10d650` | `0x00020244` | `PS_VerifyRsaSha256` | `0x1063a0` | Vérifier les deux fichiers signés |
 | | | `0x000A0000` | `PS_GetLocalFriendCodeSeed` | `0x106408` | Redemander la graine (commande `0x080B`) |
 | | | `0x000D0042` | `PS_GenerateRandomBytes` | `0x101608` | Les octets au hasard des identifiants |
-| `SPI::NOR` | dans l'objet de `0x10d6fc` | `0x00010080` | `SPI_cmd0001` | `0x108c86` | À l'ouverture de `cfg:nor` |
-| | | `0x00020040` | `SPI_cmd0002` | `0x108e14` | À sa fermeture |
+| `SPI::NOR` | dans l'objet de `0x10d6fc` | `0x00010080` | `SPI_SetDeviceState` | `0x108c86` | À l'ouverture de `cfg:nor` |
+| | | `0x00020040` | `SPI_cmd_0x0002` | `0x108e14` | À sa fermeture |
 | | | `0x00030100` | `SPI_ReadWriteDevice` | `0x108db8` | Un ordre court et sa réponse |
-| | | `0x000500C0` | `SPI_cmd0005` | `0x103fee` | Un ordre sans réponse |
+| | | `0x000500C0` | `SPI_WriteDevice` | `0x103fee` | Un ordre sans réponse |
 | | | `0x00060102` | `SPI_ReadWriteDeviceArray` | `0x108d1c` | Lire des données |
 | | | `0x00070102` | `SPI_ReadWriteDevice2Array` | `0x108cc4` | Programmer une page |
 | | | `0x000800C0` | `SPI_EnableSpiBus` | `0x108d74` | Allumer ou éteindre le bus |

@@ -97,7 +97,7 @@
 0x1032a4	function	codec_select_bank
 0x103308	function	cdclgy_cmd0002
 0x103558	function	errf_report_error
-0x103590	function	SPI_cmd0002
+0x103590	function	SPI_cmd_0x0002
 0x1035c8	function	codec_power_down
 0x1037a8	function	SPI_SetDeviceState
 0x1037e8	function	cdcdsp_GetHeadphoneStatus

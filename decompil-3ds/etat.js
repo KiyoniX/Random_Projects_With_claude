@@ -2226,5 +2226,5 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "20/10/2026 à 19:30"
+ "mise_a_jour_heure": "20/10/2026 à 19:57"
 };

@@ -4,7 +4,7 @@
 0x100438	label	am_create_work_queue
 0x100494	label	am_start_service_worker
 0x100534	label	am_connect_pxi_am9
-0x1005d8	label	am_init_fs
+0x1005d8	label	fs_init
 0x100654	label	init_heap
 0x100698	label	get_notification_semaphore
 0x1006b4	label	handle_srv_notification

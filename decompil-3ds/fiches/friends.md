@@ -167,7 +167,7 @@ Ce que fait chaque commande (lu dans le pseudo-code) :
 - 3 pose `+0x5B8` à (octet de la requête) xor 1 ; si l'état de connexion est 2, arrête la connexion (`0x125b74`) ; sinon, si l'ancien état demandé était 2, signale l'événement ;
 - 4 rend un octet de 0 à 3 : 2 si l'état demandé est 0 ou 1 et que la connexion existe (états 1 à 3), 1 si l'état demandé est 2 et la connexion absente, 0 si l'état demandé est 2 et la connexion existe, 3 sinon.
 
-Ces quatre commandes sont celles que `ndm` envoie à `frd:n` (`FRDN_cmd0001` à `FRDN_cmd0004` dans `ndm.noms.tsv` : mêmes en-têtes). Le sens des états est interprété.
+Ces quatre commandes sont celles que `ndm` envoie à `frd:n` (`FRDN_GetHandleOfNdmStatusChangedEvent` à `FRDN_QueryStatus` dans `ndm.noms.tsv` : mêmes en-têtes). Le sens des états est interprété.
 
 ## Partie 4 : GetFriendKeyList, pas à pas
 
@@ -332,7 +332,7 @@ Ce qu'on n'a pas vérifié : la réaction de Pokémon X à un identifiant princi
 | --- | --- | --- | --- |
 | GetMyScreenName (`0x00090000`), mots de réponse | « 2-9 », huit mots de nom (donc une réponse `0x00090240`) | la réponse est `0x000901C0` : six mots (`0x12784c` copie 11 caractères = 22 octets) ; confirmé par l'émulation et par le pseudo-code de l'aiguillage (`ipc_set_header` avec `9` et `7`) | partie 3 (tableau, ligne `0x09`) et partie 9 |
 | `frd:n`, les quatre commandes | 3dbrew les nomme sans détail ; la Carte les marque « non lues » | `0x00010042` (un événement), `0x00020040`, `0x00030040` (un octet), `0x00040080` (un octet de 0 à 3) | partie 3, `frd:n` |
-| `ndm.md` partie 7 et `ndm.noms.tsv` | `FRDN_cmd0001` à `FRDN_cmd0004` « non nommées sur 3dbrew » | ce sont GetHandleOfNdmStatusChangedEvent, Resume, SuspendAsync et QueryStatus (3dbrew les nomme) | partie 3, `frd:n` |
+| `ndm.md` partie 7 et `ndm.noms.tsv` | `FRDN_GetHandleOfNdmStatusChangedEvent` à `FRDN_QueryStatus` « non nommées sur 3dbrew » | ce sont GetHandleOfNdmStatusChangedEvent, Resume, SuspendAsync et QueryStatus (3dbrew les nomme) | partie 3, `frd:n` |
 | `frd:a` `0x401` à `0x410` | 3dbrew donne les en-têtes de requête sans détail | les arguments des 16 commandes sont lus (partie 3) ; les réponses sont toutes un résultat seul (`0x040X0040`) | partie 3, `frd:a` seul |
 | GetFriendPresence, GetFriendInfo, GetFriendPlayingGame, GetFriendScreenName | 3dbrew ne donne pas la taille d'une entrée de réponse | présence : `0x30` octets par ami (la présence de `0x2C` plus trois octets, dont « trouvé ») ; informations : `0xE0` ; jeu en cours : `0x110` ; Mii : `0x60` ; jeu favori : `0x10` ; profil : `8` ; nom d'écran : 11 caractères (`0x16` octets) ; code d'ami décodé : 8 octets (pour 12 octets de code brouillé) | partie 3 (pseudo-code des cas `0x12`, `0x14`, `0x18`, `0x19`, `0x1A`) |
 | Services de l'exheader | `frd:u`, `frd:a`, `frd:n` ne sont pas dans la liste des services appelés | normal : ce sont des services offerts. Mais `ndm:u`, que le code ouvre (`ndm_u_open`, `0x1107f8`), n'est pas non plus dans la liste (comme `ac:u` pour `ac`) : sm refuserait ; à relire | carte d'identité et partie 7 |

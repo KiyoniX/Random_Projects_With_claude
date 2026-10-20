@@ -63,7 +63,7 @@
 0x101f96	label	delete_system_save_impl
 0x101fb4	label	FSUSER_SendInitializeInfoTo9
 0x101ff0	label	unmount_archive
-0x102070	label	start_thread
+0x102070	label	create_thread
 0x1020bc	label	cfg_exit
 0x102110	label	cfg_init
 0x102170	label	CFG_GetConfigInfoBlk8
@@ -101,14 +101,14 @@
 0x102d4c	label	FSUSER_CreateSystemSaveData
 0x102da4	label	FSUSER_DeleteSystemSaveData
 0x102e00	label	light_event_clear
-0x102e5c	label	create_thread
+0x102e5c	label	create_thread_impl
 0x102fec	label	CFG_SetUUIDClockSequence
 0x10302c	label	report_fatal_error
 0x1030ca	label	MCURTC_GetPowerInterruptHistory
-0x1030fe	label	MCURTC_cmd0023
+0x1030fe	label	MCURTC_cmd_0x0023
 0x10312a	label	MCURTC_GetPlayCountRegisters
 0x103190	label	power_thread_loop
-0x1036b0	label	PXIMC_cmd000A
+0x1036b0	label	PXIMC_cmd_0x000A
 0x10375c	label	make_result
 0x1038f0	label	FSUSER_OpenArchive
 0x10394c	label	FSUSER_CloseArchive
@@ -132,7 +132,7 @@
 0x104afc	label	static_guard_acquire
 0x104b84	label	signal_if_all_replied
 0x104b9e	label	remove_pending_subscriber
-0x104bfe	label	ipc_is_pid_descriptor
+0x104bfe	label	ipc_is_pid_desc
 0x104c10	label	ptm_GetStepHistoryAll
 0x104c24	label	ptm_GetPedometerRecordingMode
 0x104c2c	label	ptm_GetTotalStepCount
@@ -234,7 +234,7 @@
 0x1075f4	label	break_process
 0x107608	label	fatal_error_unless_minor
 0x107728	label	MCURTC_GetInterruptMask
-0x10775c	label	MCURTC_cmd0035
+0x10775c	label	MCURTC_cmd_0x0035
 0x107788	label	MCURTC_SetInterruptMask
 0x1077ba	label	MCURTC_ExitExclusiveInterruptMode
 0x1077e6	label	MCURTC_EnterExclusiveInterruptMode
@@ -242,7 +242,7 @@
 0x10783e	label	MCURTC_GetRTC
 0x107888	label	PDNS_ConfigureWakeEvents
 0x107908	label	check_events_already_true
-0x107ce2	label	PXIMC_cmd0005
+0x107ce2	label	PXIMC_Sleep
 0x107e78	label	FSUSER_ControlArchive
 0x108106	label	MCURTC_TriggerInterrupt
 0x108138	label	MCURTC_GetRTCAlarm

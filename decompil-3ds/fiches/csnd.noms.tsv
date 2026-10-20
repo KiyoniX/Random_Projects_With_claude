@@ -52,9 +52,9 @@
 0x101eb4	label	thread_trampoline
 0x101f14	label	report_fatal_error
 0x101fa0	label	srv_get_service_handle
-0x10205c	label	CDCCSN_cmd0004
-0x10209c	label	CDCCSN_cmd0003
-0x1020da	label	CDCCSN_cmd0001
+0x10205c	label	CDCCSN_cmd_0x0004
+0x10209c	label	CDCCSN_cmd_0x0003
+0x1020da	label	CDCCSN_cmd_0x0001
 0x102106	label	CDCCSN_GetEventHandle
 0x10213a	label	close_handle_ptr
 0x102144	label	get_service_handle_by_name_alt_102144
@@ -63,7 +63,7 @@
 0x10233c	label	errf_close
 0x10235c	label	errf_connect
 0x102384	label	ERRF_Throw
-0x1023be	label	CDCCSN_cmd0005
+0x1023be	label	CDCCSN_cmd_0x0005
 0x1023f6	label	CDCCSN_cmd_0x0007
 0x1024a4	label	lock_guard_leave_alt_1024a4
 0x1024fe	label	lock_is_owner
@@ -75,7 +75,7 @@
 0x102be8	function	__aeabi_idivmod
 0x102e14	label	make_ipc_header
 0x102eac	function	svcReleaseMutex
-0x103090	label	CDCCSN_cmd0002
+0x103090	label	CDCCSN_cmd_0x0002
 0x10311c	label	csnd_hw_channel_start_psg
 0x10316c	label	csnd_hw_channel_get_regs_4_6
 0x1031ac	label	csnd_hw_channel_start_sample

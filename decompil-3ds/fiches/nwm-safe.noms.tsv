@@ -222,7 +222,7 @@
 0x123ee4	label	light_event_init
 0x123f0c	function	memset_words
 0x123f9c	function	svcSendSyncRequest
-0x123fa4	label	ipc_write_header
+0x123fa4	label	ipc_set_header
 0x12400e	label	destroy_array
 0x124084	function	svcWaitSynchronization1
 0x12781c	label	PS_SeedRNG

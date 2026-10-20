@@ -400,7 +400,7 @@ Il n'y a donc jamais plus de quatre requêtes en cours chez Process9, et une seu
 
 La table d'archive de PxiArchive a 34 cases (jusqu'à +0x84, dont deux mots nuls à +0x44 et +0x48 dans toutes les tables d'archive) et celle de fichier 14 ; le rôle de chaque case est dans `local/analyse/fs/notes-100.md` (interfaces fichier, archive, dossier).
 
-**Toutes les requêtes.** Chaque requête envoyée à Process9 a sa petite fonction en ARM, qui écrit un en-tête et appelle `svcSendSyncRequest`. Il y en a 83. Une fonction porte le nom d'une commande quand la preuve est dans le code (colonne « Nom donné d'après ») : soit sa seule appelante est la fonction d'une commande de `fs:USER`, dont elle reprend le nom, soit elle est appelée par une méthode du tableau précédent ou par `pxi_open_archive`. Les autres portent le nom de 3dbrew pour leur numéro, recoupé par le gestionnaire de Process9 du même numéro (fiche process9, table de `pxifs_dispatch_command`) ; seule `PXIFS_cmd0056` garde son numéro (« Inconnue » des deux côtés).
+**Toutes les requêtes.** Chaque requête envoyée à Process9 a sa petite fonction en ARM, qui écrit un en-tête et appelle `svcSendSyncRequest`. Il y en a 83. Une fonction porte le nom d'une commande quand la preuve est dans le code (colonne « Nom donné d'après ») : soit sa seule appelante est la fonction d'une commande de `fs:USER`, dont elle reprend le nom, soit elle est appelée par une méthode du tableau précédent ou par `pxi_open_archive`. Les autres portent le nom de 3dbrew pour leur numéro, recoupé par le gestionnaire de Process9 du même numéro (fiche process9, table de `pxifs_dispatch_command`) ; seule `PXIFS_cmd_0x0056` garde son numéro (« Inconnue » des deux côtés).
 
 | N° | En-tête | Fonction | Adresse | Appelée par | Nom donné d'après |
 | --- | --- | --- | --- | --- | --- |
@@ -486,7 +486,7 @@ La table d'archive de PxiArchive a 34 cases (jusqu'à +0x84, dont deux mots nuls
 | `0x0051` | `0x00510040` | `PXIFS_SwitchCleanupInvalidSaveData` | `0x1306d4` | `fsuser_SwitchCleanupInvalidSaveData` (`0x12a138`) | la commande de `fs:USER` |
 | `0x0052` | `0x00520042` | `PXIFS_EnumerateSystemSaveData` | `0x13051c` | `pxi_enumerate_system_save_data` (`0x10c698`) | le gestionnaire de Process9 `pxifs_enumerate_system_save_data` |
 | `0x0055` | `0x00550082` | `PXIFS_ReadNandReport` | `0x12fa84` | `fsuser_ReadNandReport` (`0x127d7c`) | la commande de `fs:USER` |
-| `0x0056` | `0x00560102` | `PXIFS_cmd0056` | `0x130764` | `PxiArchive_Control` (`0x105f2c`) |  |
+| `0x0056` | `0x00560102` | `PXIFS_cmd_0x0056` | `0x130764` | `PxiArchive_Control` (`0x105f2c`) |  |
 
 Trois requêtes vont à `sm` et non à Process9 : `SRV_RegisterClient` (`0x1242b0`, en-tête `0x00010002`), `SRV_RegisterService` (`0x115904`, `0x00030100`) et `SRV_GetServiceHandle` (`0x125480`, `0x00050100`, atteinte par le b de `srv_get_service_handle` `0x1251a8`).
 

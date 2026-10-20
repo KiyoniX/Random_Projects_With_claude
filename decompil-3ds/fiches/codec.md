@@ -200,7 +200,7 @@ Le reste passe par d'autres services : les registres du codec par SPI, l'horloge
 | | `0x00040500` | `SPI_ReadWriteDevice2` | `0x10274c` | écrire (deux écritures sous la même sélection : l'adresse du registre, puis les données) |
 | | `0x00010080` | `SPI_SetDeviceState` | `0x1037a8` | régler l'état d'un appareil |
 | | `0x000800C0` | `SPI_EnableSpiBus` | `0x1017e0` | choisir l'interface du bus |
-| | `0x00020040` | `SPI_cmd0002` | `0x103590` | la commande neutre |
+| | `0x00020040` | `SPI_cmd_0x0002` | `0x103590` | la commande neutre |
 | `gpio:CDC` | `0x00090082`, `0x000A0042`, `0x00040080`, `0x00060080`, `0x00080080`, `0x00020080`, `0x00070040` | `GPIOCDC_*` | `0x10231c`, `0x101884`, `0x102360`, `0x102398`, `0x10281c`, `0x102f04`, `0x1030f4` | la broche casque et la broche `0x40` (partie 5) |
 | `mcu::CDC` | `0x00010000` | `MCUCDC_SetRegister26hBit4` | `0x101210` | un bit du microcontrôleur |
 | `cfg:s` | `0x04010082` | `CFG_GetConfigInfoBlk8` | `0x101750` | le bloc d'étalonnage |

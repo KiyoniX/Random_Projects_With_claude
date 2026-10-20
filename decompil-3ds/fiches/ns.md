@@ -16,7 +16,7 @@ Fiche du 13 octobre 2026, produite avec REA et Ghidra sur le module dumpé de la
 | Services appelés | `srv:`, `pm:app`, `am:u`, `fs:USER`, `ptm:sysm`, `cfg:s`, `ps:ps`, `cam:s`, `qtm:sp`, `nwm::EXT`, et le port `err:f` |
 | Dépendances déclarées | `ptm` (`0004013000002202`) et `cfg` (`0004013000001702`) |
 | Fils | le fil principal, plus six qu'il crée ou fait créer (partie 1) |
-| Code Thumb | presque rien, toujours de la bibliothèque : le début du fichier de `0x100078` à `0x10022c` (`0x100048` et `0x100070` sont des veneers ARM, et `0x10021C`–`0x100223` (`atexit_stub_veneer`, `add ip,pc,#1 ; bx ip`) est en ARM à l'intérieur de la plage Thumb), `utf16_strlen` (`0x110b44`), `mbrlen` (`0x111290`), `mbsinit` (`0x1112ae`), `mbrtowc` (`0x11295c`), `static_guard_acquire` (`0x10E8E4`) et `construct_array` (`0x1119B8`) en Thumb, et les corps de veneers `destroy_array` (`0x10d008`) et `atexit_stub_thumb` (`0x100224`) |
+| Code Thumb | presque rien, toujours de la bibliothèque : le début du fichier de `0x100078` à `0x10022c` (`0x100048` et `0x100070` sont des veneers ARM, et `0x10021C`–`0x100223` (`atexit_stub_veneer`, `add ip,pc,#1 ; bx ip`) est en ARM à l'intérieur de la plage Thumb), `wcslen` (`0x110b44`), `mbrlen` (`0x111290`), `mbsinit` (`0x1112ae`), `mbrtowc` (`0x11295c`), `static_guard_acquire` (`0x10E8E4`) et `construct_array` (`0x1119B8`) en Thumb, et les corps de veneers `destroy_array` (`0x10d008`) et `atexit_stub_thumb` (`0x100224`) |
 
 ## Partie 1 : le démarrage et les fils
 

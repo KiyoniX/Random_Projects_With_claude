@@ -92,7 +92,7 @@
 0x103d18	label	FSUSER_OpenFile
 0x103d90	function	__aeabi_idivmod
 0x103f7c	label	static_guard_acquire
-0x103fee	label	SPI_cmd0005
+0x103fee	label	SPI_WriteDevice
 0x10403a	label	nor_wait_write_done
 0x10404a	label	nor_read_data_thunk
 0x104052	label	nor_read_status_register
@@ -412,12 +412,12 @@
 0x108bf0	label	nor_erase_db
 0x108c1e	label	nor_set_bus_state
 0x108c3e	label	nor_page_program
-0x108c86	label	SPI_cmd0001
+0x108c86	label	SPI_SetDeviceState
 0x108cc4	label	SPI_ReadWriteDevice2Array
 0x108d1c	label	SPI_ReadWriteDeviceArray
 0x108d74	label	SPI_EnableSpiBus
 0x108db8	label	SPI_ReadWriteDevice
-0x108e14	label	SPI_cmd0002
+0x108e14	label	SPI_cmd_0x0002
 0x109140	label	rsa_key_context_clear
 0x109164	label	rsa_key_context_init
 0x1091f8	label	secure_info_get_serial

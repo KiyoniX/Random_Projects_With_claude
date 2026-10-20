@@ -139,7 +139,7 @@
 0x10681c	function	I2CLCD_ReadRegisterBuffer8
 0x106888	function	I2CLCD_WriteRegister8
 0x1069c0	function	qtm_notify_top_lcd_power_on
-0x1069f4	function	throw_error
+0x1069f4	function	throw_fatal_error
 0x106b50	function	mcugpu_open
 0x106c18	function	delay_loop
 0x106c28	function	perf_log_record

@@ -196,7 +196,7 @@
 0x110538	label	construct_array
 0x1105ac	function	lock_leave
 0x1105cc	function	lock_enter
-0x110604	function	get_service_handle
+0x110604	function	srv_get_service_handle
 0x110638	function	create_thread
 0x110728	function	join_thread
 0x110760	function	fs_get_session

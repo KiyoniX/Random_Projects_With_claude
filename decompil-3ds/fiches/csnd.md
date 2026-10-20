@@ -98,11 +98,11 @@ La routine ARM de 2 236 octets à `0x1052fc`, pleine de calculs en virgule flott
 | Service | En-tête | Fonction | Adresse | Pour quoi faire |
 | --- | --- | --- | --- | --- |
 | `srv:` | `0x00010002`, `0x00020000`, `0x00030100`, `0x000400C0`, `0x00050100`, `0x00090040`, `0x000B0000` | les sept de [sm](sm.md) | `0x100fbc` et suivants | se déclarer, créer `csnd:SND`, notifications, ouvrir `cdc:CSN` et `ptm` |
-| `cdc:CSN` | cmd 1 (sans paramètre) | `CDCCSN_cmd0001` | `0x1020da` | allumer la sortie du codec |
-| | cmd 2 | `CDCCSN_cmd0002` | `0x103090` | l'éteindre |
-| | cmd 3 (deux paramètres) | `CDCCSN_cmd0003` | `0x10209c` | régler une voie (volume, d'après le codec) |
-| | cmd 4 (un paramètre) | `CDCCSN_cmd0004` | `0x10205c` | relire ce réglage |
-| | cmd 5, 7 (un paramètre) | `CDCCSN_cmd0005`, `0007` | `0x1023be`, `0x1023f6` | bits de la sortie du codec |
+| `cdc:CSN` | cmd 1 (sans paramètre) | `CDCCSN_cmd_0x0001` | `0x1020da` | allumer la sortie du codec |
+| | cmd 2 | `CDCCSN_cmd_0x0002` | `0x103090` | l'éteindre |
+| | cmd 3 (deux paramètres) | `CDCCSN_cmd_0x0003` | `0x10209c` | régler une voie (volume, d'après le codec) |
+| | cmd 4 (un paramètre) | `CDCCSN_cmd_0x0004` | `0x10205c` | relire ce réglage |
+| | cmd 5, 7 (un paramètre) | `CDCCSN_cmd_0x0005`, `0007` | `0x1023be`, `0x1023f6` | bits de la sortie du codec |
 | | cmd 9 | `CDCCSN_GetEventHandle` | `0x102106` | l'événement de réveil du codec |
 | `ptm` | `0x04030042` | `PTMSYSM_NotifySleepPreparationComplete` | `0x10086c` | accuser réception de la veille |
 | `err:f` (port) | `0x00010800` | `ERRF_Throw` | `0x102384` | erreur fatale |

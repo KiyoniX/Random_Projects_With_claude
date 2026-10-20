@@ -74,7 +74,7 @@
 0x103bf8	label	FSUSER_RenameFile
 0x103c78	label	FSUSER_CreateDirectory
 0x103ed0	label	static_guard_acquire
-0x103f42	label	SPI_cmd0005
+0x103f42	label	SPI_WriteDevice
 0x103f8e	label	nor_wait_write_done
 0x103fa6	label	nor_read_status_register
 0x103fcc	label	nor_wait_write_enabled
@@ -204,12 +204,12 @@
 0x108bf4	label	nor_erase_db
 0x108c22	label	nor_set_bus_state
 0x108c42	label	nor_page_program
-0x108c8a	label	SPI_cmd0001
+0x108c8a	label	SPI_SetDeviceState
 0x108cc8	label	SPI_ReadWriteDevice2Array
 0x108d20	label	SPI_ReadWriteDeviceArray
 0x108d78	label	SPI_EnableSpiBus
 0x108dbc	label	SPI_ReadWriteDevice
-0x108e18	label	SPI_cmd0002
+0x108e18	label	SPI_cmd_0x0002
 0x109144	label	rsa_key_context_clear
 0x109168	label	rsa_key_context_init
 0x1091fc	label	secure_info_get_serial

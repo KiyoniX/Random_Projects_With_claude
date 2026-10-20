@@ -133,8 +133,8 @@
 0x104240	function	srv_get_service_handle_by_name
 0x10426c	function	srv_get_service_handle
 0x1042a0	function	lock_leave
-0x1042c0	function	CDCDSP_cmd0008
-0x1042f8	function	CDCDSP_cmd0007
+0x1042c0	function	CDCDSP_cmd_0x0008
+0x1042f8	function	CDCDSP_cmd_0x0007
 0x104330	function	component_unload
 0x1043d0	function	lock_enter
 0x104408	function	lock_init
@@ -197,12 +197,12 @@
 0x106b7c	function	PTMSYSM_NotifySleepPreparationComplete
 0x106bbc	function	on_terminate_notification
 0x106bc8	function
-0x106bcc	function	CDCDSP_cmd0003
-0x106c18	function	CDCDSP_cmd0004
-0x106c80	function	CDCDSP_cmd0001
-0x106cc0	function	CDCDSP_cmd0002
-0x106d00	function	CDCDSP_cmd0005
-0x106d5c	function	CDCDSP_cmd0006
+0x106bcc	function	CDCDSP_cmd_0x0003
+0x106c18	function	CDCDSP_cmd_0x0004
+0x106c80	function	CDCDSP_cmd_0x0001
+0x106cc0	function	CDCDSP_cmd_0x0002
+0x106d00	function	CDCDSP_cmd_0x0005
+0x106d5c	function	CDCDSP_cmd_0x0006
 0x106d90	function	sha256_init
 0x106dfc	function	sha256_final
 0x106e70	function	sha256_digest

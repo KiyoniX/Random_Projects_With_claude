@@ -179,7 +179,7 @@ C'est la première commande utile qu'envoie un jeu : `0x001100C2`. Elle porte la
     - si le bit 0 des drapeaux de l'en-tête est levé, le code lit les registres de réponse 0, 1 et 2, chacun jusqu'à y trouver la valeur 1 ;
     - un premier tour du tri des sources de la partie 7, recopié sur place dans `dsp_boot`.
 14. **L'écoute.** `process_set_irq_hook` (`0x10410c`) branche `pipe_interrupt_hook` sur les sources `0x48000` : le bit 15 du sémaphore et le registre de réponse 2. Dans le matériel, cela lève le bit 11 de `0x1ED03008` et baisse le bit 15 de `0x1ED03014`.
-15. **Le codec.** `CDCDSP_cmd0007` avec 1, puis `CDCDSP_cmd0008` avec 1.
+15. **Le codec.** `CDCDSP_cmd_0x0007` avec 1, puis `CDCDSP_cmd_0x0008` avec 1.
 16. **Les rappels des tuyaux 1 à 7** deviennent `pipe_signal_client_event` (partie 7). Les octets `0x109000` et `0x109001` passent à 1.
 17. **Le propriétaire.** Le numéro du fil est rangé à `0x10900c`, que le chargement ait réussi ou non.
 18. **La réponse.** En-tête `0x00110082`, le résultat, l'octet « chargé » (1), puis la zone rendue au jeu.
@@ -238,7 +238,7 @@ Son segment spécial est de type 2, à l'adresse `0xEF29` mots.
 
 **Les deux masques envoyés par le jeu** sont rangés dans le contexte (`+0x18` et `+0x1A`), et le code y efface les bits des blocs qu'il prend. Dans ce que j'ai lu, rien ne s'en sert pour choisir les blocs : c'est le mot `+0x108` du composant qui décide.
 
-**UnloadComponent** (`0x1060f4`) défait tout par `component_unload` (`0x104330`) : l'écoute est retirée, `0x8000` est écrit dans le registre de commande 2 et le code attend une réponse dans le registre 2, puis le DSP est remis à l'arrêt (bit 0 de `0x1ED03008`) et deux requêtes partent à `pdn:d`. Ensuite `CDCDSP_cmd0007` avec 0 et `CDCDSP_cmd0008` avec 1.
+**UnloadComponent** (`0x1060f4`) défait tout par `component_unload` (`0x104330`) : l'écoute est retirée, `0x8000` est écrit dans le registre de commande 2 et le code attend une réponse dans le registre 2, puis le DSP est remis à l'arrêt (bit 0 de `0x1ED03008`) et deux requêtes partent à `pdn:d`. Ensuite `CDCDSP_cmd_0x0007` avec 0 et `CDCDSP_cmd_0x0008` avec 1.
 
 ## Partie 5 : la mémoire du DSP vue depuis l'ARM11
 
@@ -432,14 +432,14 @@ Chaque requête a sa petite fonction, qui écrit un en-tête et appelle `SendSyn
 | | | `0x00090040` | `SRV_Subscribe` | `0x1045e0` | S'abonner à `0x104` et `0x105` |
 | | | `0x000B0000` | `SRV_ReceiveNotification` | `0x100ee0` | Lire le numéro de la notification arrivée |
 | `pdn:d` | `0x1090a0` | `0x000100C0` | `PDND_Control` | `0x103ef0` | Trois octets ; voir plus bas |
-| `cdc:DSP` | `0x109004` | `0x00010042` | `CDCDSP_cmd0001` | `0x106c80` | Relais de SetIirFilterI2S1 |
-| | | `0x00020042` | `CDCDSP_cmd0002` | `0x106cc0` | Relais de SetIirFilterI2S2 |
-| | | `0x00030082` | `CDCDSP_cmd0003` | `0x106bcc` | Relais de SetIirFilterEQ |
-| | | `0x000400C0` | `CDCDSP_cmd0004` | `0x106c18` | Relais de ReadMultiEx_SPI2 (`0x40` octets au plus) |
-| | | `0x000500C2` | `CDCDSP_cmd0005` | `0x106d00` | Relais de WriteMultiEx_SPI2 |
-| | | `0x00060000` | `CDCDSP_cmd0006` | `0x106d5c` | Relais de GetHeadphoneStatus |
-| | | `0x00070040` | `CDCDSP_cmd0007` | `0x1042f8` | 1 au chargement du composant, 0 au déchargement |
-| | | `0x00080040` | `CDCDSP_cmd0008` | `0x1042c0` | Relais de ForceHeadphoneOut ; 1 au chargement et au déchargement |
+| `cdc:DSP` | `0x109004` | `0x00010042` | `CDCDSP_cmd_0x0001` | `0x106c80` | Relais de SetIirFilterI2S1 |
+| | | `0x00020042` | `CDCDSP_cmd_0x0002` | `0x106cc0` | Relais de SetIirFilterI2S2 |
+| | | `0x00030082` | `CDCDSP_cmd_0x0003` | `0x106bcc` | Relais de SetIirFilterEQ |
+| | | `0x000400C0` | `CDCDSP_cmd_0x0004` | `0x106c18` | Relais de ReadMultiEx_SPI2 (`0x40` octets au plus) |
+| | | `0x000500C2` | `CDCDSP_cmd_0x0005` | `0x106d00` | Relais de WriteMultiEx_SPI2 |
+| | | `0x00060000` | `CDCDSP_cmd_0x0006` | `0x106d5c` | Relais de GetHeadphoneStatus |
+| | | `0x00070040` | `CDCDSP_cmd_0x0007` | `0x1042f8` | 1 au chargement du composant, 0 au déchargement |
+| | | `0x00080040` | `CDCDSP_cmd_0x0008` | `0x1042c0` | Relais de ForceHeadphoneOut ; 1 au chargement et au déchargement |
 | `ptm:s` | `0x10910c` | `0x040A0000` | `PTMSYSM_CheckNew3DS` | `0x1016e4` | Savoir si la console est une New 3DS |
 | | | `0x04030042` | `PTMSYSM_NotifySleepPreparationComplete` | `0x106b7c` | Dire à `ptm` que `dsp` est prêt pour la veille ou réveillé |
 | `cfg:s` | `0x1090cc` | `0x04010082` | `CFG_GetConfigInfoBlk8` | `0x1048cc` | Lire le bloc `0x00070000` pour le segment spécial |

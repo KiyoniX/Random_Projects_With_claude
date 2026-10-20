@@ -401,7 +401,7 @@
 0x13068c	function	PXIFS_StartDeviceMoveAsDestination
 0x1306d4	function	PXIFS_SwitchCleanupInvalidSaveData
 0x13070c	function	PXIFS_CardNorDirectWriteWithAddress
-0x130764	function	PXIFS_cmd0056
+0x130764	function	PXIFS_cmd_0x0056
 0x1307d0	function	PXIFS_CardNorDirectCommandWithAddress
 0x13080c	function	PXIFS_ExportIntegrityVerificationSeed
 0x130848	function	PXIFS_ImportIntegrityVerificationSeed

@@ -200,7 +200,7 @@ Comment lire les colonnes :
 - **Avec la fiche `fs`** : `fs` envoie 83 requêtes à Process9 (fiche `fs`, partie 7). Les 83 existent dans la table, et pour les 41 dont Process9 vérifie l'en-tête, il est identique à celui que `fs` écrit. Trois commandes de Process9 ne sont jamais envoyées par `fs` : `0x3D` (FormatCardNorDevice), `0x53` et `0x54`.
 - **Avec la fiche `loader`** : les trois en-têtes `PxiPM` que `loader` envoie (`0x00010082`, `0x00020200`, `0x00030080`) sont les trois commandes de `pxipm_dispatch_command`.
 - **Avec la fiche `pxi`** : les commandes 1 (`ShutdownPxi`) et 5 (`Sleep`) de `pxi:mc`, les deux que `pxi` surveille au passage, sont bien celles qui arrêtent Process9 et règlent la veille.
-- Les noms des commandes de fichiers sans nom dans la fiche `fs` (`PXIFS_cmd000A`, `PXIFS_cmd0015`…) peuvent maintenant être posés d'après 3dbrew, puisque les numéros concordent : par exemple `0x0A` CalculateFileHashSHA256, `0x15` CommitSaveData, `0x48` GetFileLastModified.
+- Les noms des commandes de fichiers sans nom dans la fiche `fs` (`PXIFS_CalculateFileHashSHA256`, `PXIFS_CommitSaveData`…) peuvent maintenant être posés d'après 3dbrew, puisque les numéros concordent : par exemple `0x0A` CalculateFileHashSHA256, `0x15` CommitSaveData, `0x48` GetFileLastModified.
 
 ### `PxiFS0`, `PxiFS1`, `PxiFSB`, `PxiFSR` : `pxifs_dispatch_command` (`0x08087798`)
 
@@ -217,20 +217,20 @@ Une seule fonction ARM, de `0x08087798` à `0x0808A270` (environ 11 000 octets) 
 | `0x0007` | `0x00070244` | RenameDirectory | `0x08088010` | `pxifs_rename_directory` (`0x0807448C`) | `PXIFS_RenameDirectory` (`0x12fc00`) |
 | `0x0008` | `0x00080102` | OpenDirectory | `0x080881C4` | `pxifs_open_directory` (`0x08073F7C`) | `PXIFS_OpenDirectory` (`0x12f86c`) |
 | `0x0009` | `0x00090142` | ReadFile | `0x080882CC` | `pxifs_read_file` (`0x08053B08`) | `PXIFS_ReadFile` (`0x1309cc`) |
-| `0x000A` | `0x000A00C2` | CalculateFileHashSHA256 | `0x08088378` | `pxifs_calculate_file_hash_sha256` (`0x080746C8`) | `PXIFS_cmd000A` (`0x12fd28`) |
+| `0x000A` | `0x000A00C2` | CalculateFileHashSHA256 | `0x08088378` | `pxifs_calculate_file_hash_sha256` (`0x080746C8`) | `PXIFS_CalculateFileHashSHA256` (`0x12fd28`) |
 | `0x000B` | `0x000B0182` | WriteFile | `0x08088404` | `pxifs_write_file` (`0x08053048`) | `PXIFS_WriteFile` (`0x130a5c`) |
-| `0x000C` | `0x000C0104` | CalcSavegameMAC | `0x080884D8` | `pxifs_calc_savegame_mac` (`0x08074504`) | `PXIFS_cmd000C` (`0x12fe08`) |
+| `0x000C` | `0x000C0104` | CalcSavegameMAC | `0x080884D8` | `pxifs_calc_savegame_mac` (`0x08074504`) | `PXIFS_CalcSavegameMAC` (`0x12fe08`) |
 | `0x000D` |  | GetFileSize | `0x080885DC` | `pxifs_get_file_size` (`0x0805ABC4`) | `PXIFS_GetFileSize` (`0x12f6b4`) |
 | `0x000E` |  | SetFileSize | `0x08088610` | `pxifs_set_file_size` (`0x08031EB8`) | `PXIFS_SetFileSize` (`0x12f6f0`) |
 | `0x000F` |  | CloseFile | `0x0808864C` | `pxifs_close_file` (`0x0805D984`) | `PXIFS_CloseFile` (`0x130a2c`) |
 | `0x0010` | `0x001000C2` | ReadDirectory | `0x08088680` | `pxifs_read_directory` (`0x08074600`) | `PXIFS_ReadDirectory` (`0x12f8cc`) |
 | `0x0011` |  | CloseDirectory | `0x08088724` | `pxifs_close_directory` (`0x08074064`) | `PXIFS_CloseDirectory` (`0x12f930`) |
 | `0x0012` | `0x001200C2` | OpenArchive | `0x08088758` | `archive_manager_open` (`0x0805AD1C`) | `PXIFS_OpenArchive` (`0x12514c`) |
-| `0x0013` | `0x00130102` | HasFile | `0x080888E8` | `pxifs_has_file` (`0x0807454C`) | `PXIFS_cmd0013` (`0x1308f8`) |
-| `0x0014` | `0x00140102` | HasDirectory | `0x080889EC` | `pxifs_has_directory` (`0x080743C8`) | `PXIFS_cmd0014` (`0x12f80c`) |
-| `0x0015` |  | CommitSaveData | `0x08088AF8` | `archive_control` (`0x0804CEB4`) | `PXIFS_cmd0015` (`0x12f960`) |
+| `0x0013` | `0x00130102` | HasFile | `0x080888E8` | `pxifs_has_file` (`0x0807454C`) | `PXIFS_HasFile` (`0x1308f8`) |
+| `0x0014` | `0x00140102` | HasDirectory | `0x080889EC` | `pxifs_has_directory` (`0x080743C8`) | `PXIFS_HasDirectory` (`0x12f80c`) |
+| `0x0015` |  | CommitSaveData | `0x08088AF8` | `archive_control` (`0x0804CEB4`) | `PXIFS_CommitSaveData` (`0x12f960`) |
 | `0x0016` |  | CloseArchive | `0x08088B44` | `pxifs_close_archive` (`0x08059B88`) | `PXIFS_CloseArchive` (`0x12f780`) |
-| `0x0017` |  | LockArchive | `0x08088B70` |  | `PXIFS_cmd0017` (`0x1300c8`) |
+| `0x0017` |  | LockArchive | `0x08088B70` |  | `PXIFS_LockArchive` (`0x1300c8`) |
 | `0x0018` |  | GetCardType | `0x08088C1C` | `pxifs_get_card_type` (`0x08075EF4`) | `PXIFS_GetCardType` (`0x12f680`) |
 | `0x0019` |  | GetSdmcArchiveResource | `0x08088C48` | `pxifs_get_sdmc_archive_resource` (`0x08076514`) | `PXIFS_GetSdmcArchiveResource` (`0x130480`) |
 | `0x001A` |  | GetNandArchiveResource | `0x08088C78` | `pxifs_get_nand_archive_resource` (`0x08076506`) | `PXIFS_GetNandArchiveResource` (`0x130440`) |
@@ -258,19 +258,19 @@ Une seule fonction ARM, de `0x08087798` à `0x0808A270` (environ 11 000 octets) 
 | `0x0030` | `0x003000C2` | CardNorDirectRead_4xIO | `0x0808924C` | `pxifs_card_nor_direct_read_4x_io` (`0x0807B592`) | `PXIFS_CardNorDirectRead_4xIO` (`0x130388`) |
 | `0x0031` | `0x00310082` | CardNorDirectCpuWriteWithoutVerify | `0x080892C8` | `pxifs_card_nor_direct_cpu_write_without_verify` (`0x0807B2A4`) | `PXIFS_CardNorDirectCpuWriteWithoutVerify` (`0x130884`) |
 | `0x0032` |  | CardNorDirectSectorEraseWithoutVerify | `0x08089354` | `pxifs_card_nor_direct_sector_erase_without_verify` (`0x08052A70`) | `PXIFS_CardNorDirectSectorEraseWithoutVerify` (`0x1308c8`) |
-| `0x0033` |  | GetProductInfo | `0x08089374` | `pxifs_get_product_info` (`0x08076934`) | `PXIFS_cmd0033` (`0x12f9c0`) |
+| `0x0033` |  | GetProductInfo | `0x08089374` | `pxifs_get_product_info` (`0x08076934`) | `PXIFS_GetProductInfo` (`0x12f9c0`) |
 | `0x0034` |  | SetCardSpiBaudrate | `0x080893AC` | `pxifs_set_card_spi_baudrate` (`0x0807A25C`) | `PXIFS_SetCardSpiBaudRate` (`0x130228`) |
 | `0x0035` |  | SetCardSpiBusMode | `0x080893C8` | `pxifs_set_card_spi_bus_mode` (`0x0807A22C`) | `PXIFS_SetCardSpiBusMode` (`0x12ff70`) |
 | `0x0036` |  | SendInitializeInfoTo9 | `0x080893E4` | `pxifs_send_initialize_info_to9` (`0x0807B3C0`) | `PXIFS_SendInitializeInfoTo9` (`0x130358`) |
-| `0x0037` |  | CreateExtSaveData | `0x08089404` | `pxifs_create_ext_save_data` (`0x08077454`) | `PXIFS_cmd0037` (`0x12fec4`) |
-| `0x0038` |  | DeleteExtSaveData | `0x08089450` | `pxifs_delete_ext_save_data` (`0x08077474`) | `PXIFS_cmd0038` (`0x12ff00`) |
-| `0x0039` | `0x00390102` | EnumerateExtSaveData | `0x0808949C` | `pxifs_enumerate_ext_save_data` (`0x0807748C`) | `PXIFS_cmd0039` (`0x1302f0`) |
-| `0x003A` |  | GetSpecialContentIndex | `0x08089528` | `pxifs_get_special_content_index` (`0x08042094`) | `PXIFS_cmd003A` (`0x1304c0`) |
-| `0x003B` | `0x003B00C2` | GetLegacyRomHeader | `0x08089560` | `pxifs_get_legacy_rom_header` (`0x08074F8C`) | `PXIFS_cmd003B` (`0x130154`) |
-| `0x003C` | `0x003C0102` | GetLegacyBannerData | `0x080895C8` | `pxifs_get_legacy_banner_data` (`0x08075000`) | `PXIFS_cmd003C` (`0x130260`) |
+| `0x0037` |  | CreateExtSaveData | `0x08089404` | `pxifs_create_ext_save_data` (`0x08077454`) | `PXIFS_CreateExtSaveData` (`0x12fec4`) |
+| `0x0038` |  | DeleteExtSaveData | `0x08089450` | `pxifs_delete_ext_save_data` (`0x08077474`) | `PXIFS_DeleteExtSaveData` (`0x12ff00`) |
+| `0x0039` | `0x00390102` | EnumerateExtSaveData | `0x0808949C` | `pxifs_enumerate_ext_save_data` (`0x0807748C`) | `PXIFS_EnumerateExtSaveData` (`0x1302f0`) |
+| `0x003A` |  | GetSpecialContentIndex | `0x08089528` | `pxifs_get_special_content_index` (`0x08042094`) | `PXIFS_GetSpecialContentIndex` (`0x1304c0`) |
+| `0x003B` | `0x003B00C2` | GetLegacyRomHeader | `0x08089560` | `pxifs_get_legacy_rom_header` (`0x08074F8C`) | `PXIFS_GetLegacyRomHeader` (`0x130154`) |
+| `0x003C` | `0x003C0102` | GetLegacyBannerData | `0x080895C8` | `pxifs_get_legacy_banner_data` (`0x08075000`) | `PXIFS_GetLegacyBannerData` (`0x130260`) |
 | `0x003D` |  | FormatCardNorDevice | `0x08089628` | `pxifs_format_card_nor_device` (`0x0807643C`) | non |
 | `0x003E` |  | DeleteSdmcRoot | `0x08089750` | `pxifs_delete_sdmc_root` (`0x0807562C`) | `PXIFS_DeleteSdmcRoot` (`0x12f998`) |
-| `0x003F` |  | DeleteAllExtSaveDataOnNand | `0x08089774` | `pxifs_delete_all_ext_save_data_on_nand` (`0x08077710`) | `PXIFS_cmd003F` (`0x1305a8`) |
+| `0x003F` |  | DeleteAllExtSaveDataOnNand | `0x08089774` | `pxifs_delete_all_ext_save_data_on_nand` (`0x08077710`) | `PXIFS_DeleteAllExtSaveDataOnNand` (`0x1305a8`) |
 | `0x0040` |  | InitializeCtrFilesystem | `0x08089798` | `pxifs_initialize_ctr_filesystem` (`0x08074C78`) | `PXIFS_InitializeCtrFileSystem` (`0x1305d8`) |
 | `0x0041` |  | CreateSeed | `0x080897B8` | `pxifs_create_seed` (`0x08075994`) | `PXIFS_CreateSeed` (`0x12f46c`) |
 | `0x0042` | `0x00420042` | GetSdmcCtrRootPath | `0x080897DC` | `pxifs_get_sdmc_ctr_root_path` (`0x08075850`) | `PXIFS_GetSdmcCtrRootPath` (`0x1301a4`) |
@@ -278,22 +278,22 @@ Une seule fonction ARM, de `0x08087798` à `0x0808A270` (environ 11 000 octets) 
 | `0x0044` | `0x00440002` | ExportIntegrityVerificationSeed | `0x08089878` | `pxifs_export_integrity_verification_seed` (`0x08075A70`) | `PXIFS_ExportIntegrityVerificationSeed` (`0x13080c`) |
 | `0x0045` | `0x00450002` | ImportIntegrityVerificationSeed | `0x080898FC` | `pxifs_import_integrity_verification_seed` (`0x08075AD0`) | `PXIFS_ImportIntegrityVerificationSeed` (`0x130848`) |
 | `0x0046` | `0x00460102` | GetLegacySubBannerData | `0x08089A9C` | `pxifs_get_legacy_sub_banner_data` (`0x080750CC`) | `PXIFS_GetLegacySubBannerData` (`0x1303e0`) |
-| `0x0047` | `0x00470042` | GenerateRandomBytes | `0x08089B0C` | `pxifs_generate_random_bytes` (`0x0804D0CC`) | `PXIFS_cmd0047` (`0x124ce4`) |
-| `0x0048` | `0x004800C2` | GetFileLastModified | `0x08089B58` | `archive_control` (`0x0804CEB4`) | `PXIFS_cmd0048` (`0x12f7b0`) |
-| `0x0049` | `0x00490102` | ReadSpecialFile | `0x08089C18` | `pxifs_read_special_file` (`0x0807469C`) | `PXIFS_cmd0049` (`0x12fba0`) |
-| `0x004A` |  | GetSpecialFileSize | `0x08089CA8` | `pxifs_get_special_file_size` (`0x08074B80`) | `PXIFS_cmd004A` (`0x1301e8`) |
+| `0x0047` | `0x00470042` | GenerateRandomBytes | `0x08089B0C` | `pxifs_generate_random_bytes` (`0x0804D0CC`) | `PXIFS_GenerateRandomBytes` (`0x124ce4`) |
+| `0x0048` | `0x004800C2` | GetFileLastModified | `0x08089B58` | `archive_control` (`0x0804CEB4`) | `PXIFS_GetFileLastModified` (`0x12f7b0`) |
+| `0x0049` | `0x00490102` | ReadSpecialFile | `0x08089C18` | `pxifs_read_special_file` (`0x0807469C`) | `PXIFS_ReadSpecialFile` (`0x12fba0`) |
+| `0x004A` |  | GetSpecialFileSize | `0x08089CA8` | `pxifs_get_special_file_size` (`0x08074B80`) | `PXIFS_GetSpecialFileSize` (`0x1301e8`) |
 | `0x004B` |  | StartDeviceMoveAsSource | `0x08089CD8` | `pxifs_start_device_move_as_source` (`0x080751DC`) | `PXIFS_StartDeviceMoveAsSource` (`0x13056c`) |
 | `0x004C` |  | StartDeviceMoveAsDestination | `0x08089D10` | `pxifs_start_device_move_as_destination` (`0x080753A4`) | `PXIFS_StartDeviceMoveAsDestination` (`0x13068c`) |
-| `0x004D` | `0x004D01C4` | ReadFileSHA256 | `0x08089D58` | `pxifs_read_file_sha256` (`0x08074738`) | `PXIFS_cmd004D` (`0x12fd78`) |
-| `0x004E` | `0x004E0204` | WriteFileSHA256 | `0x08089E58` | `pxifs_write_file_sha256` (`0x08074A00`) | `PXIFS_cmd004E` (`0x12ffa8`) |
-| `0x004F` |  | SetCtrCardLatencyParameter | `0x08089F7C` | `pxifs_set_ctr_card_latency_parameter` (`0x08076524`) | `PXIFS_cmd004F` (`0x125450`) |
+| `0x004D` | `0x004D01C4` | ReadFileSHA256 | `0x08089D58` | `pxifs_read_file_sha256` (`0x08074738`) | `PXIFS_ReadFileSHA256` (`0x12fd78`) |
+| `0x004E` | `0x004E0204` | WriteFileSHA256 | `0x08089E58` | `pxifs_write_file_sha256` (`0x08074A00`) | `PXIFS_WriteFileSHA256` (`0x12ffa8`) |
+| `0x004F` |  | SetCtrCardLatencyParameter | `0x08089F7C` | `pxifs_set_ctr_card_latency_parameter` (`0x08076524`) | `PXIFS_SetCtrCardLatencyParameter` (`0x125450`) |
 | `0x0050` |  | SetPriority | `0x08089FA0` |  | `PXIFS_SetPriority` (`0x1254f4`) |
 | `0x0051` |  | SwitchCleanupInvalidSaveData | `0x08089FB4` | `pxifs_switch_cleanup_invalid_save_data` (`0x080754D0`) | `PXIFS_SwitchCleanupInvalidSaveData` (`0x1306d4`) |
-| `0x0052` | `0x00520042` | EnumerateSystemSaveData | `0x08089FD4` | `pxifs_enumerate_system_save_data` (`0x08077218`) | `PXIFS_cmd0052` (`0x13051c`) |
+| `0x0052` | `0x00520042` | EnumerateSystemSaveData | `0x08089FD4` | `pxifs_enumerate_system_save_data` (`0x08077218`) | `PXIFS_EnumerateSystemSaveData` (`0x13051c`) |
 | `0x0053` |  | (sans nom) | `0x0808A04C` |  | non |
 | `0x0054` |  | (sans nom) | `0x0808A078` |  | non |
 | `0x0055` | `0x00550082` | ReadNandReport | `0x0808A098` | `pxifs_read_nand_report` (`0x08074F50`) | `PXIFS_ReadNandReport` (`0x12fa84`) |
-| `0x0056` | `0x00560102` | (sans nom) | `0x0808A100` | `archive_control` (`0x0804CEB4`) | `PXIFS_cmd0056` (`0x130764`) |
+| `0x0056` | `0x00560102` | (sans nom) | `0x0808A100` | `archive_control` (`0x0804CEB4`) | `PXIFS_cmd_0x0056` (`0x130764`) |
 
 ### `PxiPM` : `pxipm_dispatch_command` (`0x0808A42C`)
 

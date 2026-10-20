@@ -81,7 +81,7 @@ Le générateur et son état sont chez Process9 : `ps_rng_seed` et `ps_rng_gener
 | --- | --- |
 | [cfg](cfg.md) | 2 (VerifyRsaSha256) pour les deux fichiers signés ; 10 (graine du code ami) |
 | [dsp](dsp.md) | 2 : la signature RSA du composant chargé |
-| [ac](ac.md) | 6 et 8 (identifiants de la carte, nommés `PSPS_cmd0006`, `PSPS_cmd0008` dans sa fiche) |
+| [ac](ac.md) | 6 et 8 (identifiants de la carte, nommés `PS_GetRomId`, `PS_GetRomMakerCode` dans sa fiche) |
 | [ssl](ssl.md) | 12 et 13 : l'aléa de TLS |
 | [cecd](cecd.md), [boss](boss.md), [nwm](nwm.md), [friends](friends.md) | déclarent `ps:ps` (non détaillé) |
 
