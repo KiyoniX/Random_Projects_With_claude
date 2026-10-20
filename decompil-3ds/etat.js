@@ -4,7 +4,7 @@ window.ETAT = {
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
  "mise_a_jour": "2026-10-20",
- "prochaine_action": "Valider outils/ipc_trace.py et promouvoir les envois de requêtes suivis jusqu'au service ; appliquer les décisions de nommage relues des applets (REPRISE.md §5) ; verser les fiches des applets error, swkbd, extrapad, memolib puis traiter les 16 autres ; finir le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu.",
+ "prochaine_action": "Finir la passe ipc_trace (13 modules sur 54 refaits), puis relire et verser les envois IPC des six lots d'applets (menu, mint, friend, snote_ap, newslist, cherry) et corriger leurs fautes systématiques ; traiter les propagés à revoir ; les 13 autres applets ; finir le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu (REPRISE.md §5).",
  "fonctions": {
   "total": 254501,
   "identifiees": 254501,
@@ -2226,5 +2226,5 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "20/10/2026 à 21:54"
+ "mise_a_jour_heure": "20/10/2026 à 22:39"
 };

@@ -53,18 +53,18 @@ Vérification rapide que tout marche :
 
 ## 5. Où on en est, et quoi faire ensuite
 
-La source de vérité est **`etat.json`** (et la fenêtre `python outils/tableau.py --suivre`). Au soir du 18/10/2026 :
-- **Décompilation** : 19 281 fonctions nommées et relues sur 254 499 (7,6 %) ; noyau ARM11 89 %, démarrage et ARM9 23 %, modules système 21 %, applets 1,5 %, jeu 2,4 %. Seuls les noms haute (deux voies) entrent dans `fiches/*.noms.tsv` ; environ 20 000 noms moyens attendent leur seconde voie dans `local/analyse/<m>/noms-proposes*.tsv`.
-- **Tous les modules système** ont eu leur première passe relue et versée ; secondes passes versées pour nim, act, nwm, boss et cecd. Règles de nommage ajoutées les 17 et 18/10 : `fiches/README.md`, « Ce qui est un nom ».
-- **Applets** : fiches de noms créées par propagation ; premiers lots relus et versés pour error, swkbd, extrapad et memolib (brouillons de fiche dans `local/analyse/<m>/fiche-brouillon.md`, pas encore versés).
-- **Outils du 18/10** : `couverture.py entrees` voit les veneers, les aiguillages Thumb et les adresses calculées depuis pc ; `outils/tableau.py` ; `outils/ipc_trace.py` (seconde voie des envois de requêtes, en cours d'écriture le 18/10 au soir).
+La source de vérité est **`etat.json`** (page `avancement.html`, ou `python outils/tableau.py --suivre`). Au soir du 20/10/2026 :
+- **Décompilation** : 19 439 fonctions nommées et relues sur 254 501 (7,6 %) ; noyau ARM11 89 %, démarrage et ARM9 23 %, modules système 21 %, applets ~1,5 %, jeu 2,4 %. Seuls les noms haute (deux voies) entrent dans `fiches/*.noms.tsv` ; versement par `python outils/verser.py <decision.json>` (option `promote` quand la relecture apporte la seconde voie, liste d'objets par module pour plusieurs fichiers).
+- **Fait le 20/10** : 61 envois IPC promus après relecture d'ipc_trace ; 341 renommages relus (format `_cmd_0xNNNN`, jumeaux -safe, harmonisations, `wcs*`, SPI::NOR et pxi:mc nommés par la Carte) ; fiches .md de error, swkbd, extrapad, memolib ; premiers lots des applets menu, mint, friend, snote_ap, newslist, cherry (`local/analyse/<m>/noms-proposes.tsv`, notes-100.md, fiche-brouillon.md) dont 97 haute non-IPC versées ; audit des `_alt_` (`shared_memory_dtor_unchecked`) ; `couverture.py` refuse la haute si les appelées n'ont pas les mêmes noms versés, sur un émetteur IPC ou sur un nom de rôle (`couverture.py revoir` → `local/analyse/audit-alt/propages-a-revoir.tsv`, 1 745 lignes).
+- **ipc_trace.py corrigé** (8 fautes de la relecture + 4 de snote_ap ; surtout : le code du module était réécrit entre deux passages par des écritures fausses, ce qui faussait tous les résultats d'avant). Tests verts. **La passe `all` n'a été refaite que pour 13 modules sur 54 (ac à error)** : `local/analyse/ipc_trace/resultats.tsv` mélange lignes neuves et anciennes.
 
 Prochains chantiers, dans l'ordre :
-1. finir et valider `ipc_trace.py`, puis promouvoir les envois de requêtes TRACED (relecture d'abord) ;
-2. décisions de nommage relues et pas encore appliquées (rapports des relecteurs des applets) : `gl_delete_all_*` et `gl_context_init_*` dans error, swkbd, extrapad, memolib ; style `apt_<action>` (abandon de `applet_` et `_locked`) ; `cfg_get_debug_flag` (et `fiches/ir.noms.tsv` 0x108750 `cfg_check_cstick_present`, à décider) ; `errf_report_error` / `report_fatal_error` / `fatal_error_unless_minor` dans error et swkbd ; noms `utf16_*` → `wcs*` ; style `nngx*` ; les `CDCCSN_cmdNNNN` et ~140 autres noms au vieux format `_cmdNNNN` → `_cmd_0xNNNN` ;
-3. verser les fiches .md des quatre applets à partir des brouillons corrigés, puis les 16 autres applets ;
-4. finir le noyau, l'ARM9 et les mémoires de démarrage ;
-5. ensuite seulement le jeu, en lui reportant par empreinte les noms de la console.
+1. finir la passe ipc_trace (`cd outils ; for m in extrapad friends fs gpio gsp hid http i2c ir loader mcu memolib mic mp mvd ndm news nfc nim ns nwm pdn pm ps ptm pxi qtm ro sm socket spi ssl swkbd snote_ap friend cherry newslist mint menu; do python ipc_trace.py all --only $m; done`, menu > 25 min), comparer à `resultats-avant.tsv` (scratchpad compare.py perdu : refaire), vérifier que les 61 versés tiennent (attendu : news 0x103028 et 2 CAMQ_ changent de verdict, voir le rapport dans le commit) ;
+2. relire puis verser les envois IPC haute des six lots d'applets (repassés avec l'outil final), et corriger dans ces lots les fautes systématiques de `local/analyse/relecture-applets-5/relecture.md` (jumeaux comptés sur des appelées non versées, faux `_alt_`, rôles reportés par empreinte, preuves qui citent les adresses du module d'origine) ;
+3. traiter `propages-a-revoir.tsv` ; décider si les jumeaux alignés (-safe) échappent aux règles « émetteur IPC » et « nom de rôle » (une ligne dans `twin_grade`) ;
+4. les 13 autres applets, puis le noyau, l'ARM9 et les mémoires de démarrage ; ensuite seulement le jeu.
+
+Décisions en attente de l'utilisateur : `cfg_get_debug_flag` pour ir 0x108750 (et le sens du bit d'ENVINFO dans ir.md) ; noms de fichiers du romfs dans les fiches (retirés en attendant) ; `GPIOIR_GetData` ou `GetGPIOData` ; les 53 gestionnaires nommés par leur seul numéro (`local/analyse/renommages/gestionnaires.tsv`) ; verser en haute les 37 envois par numéro (`local/analyse/ipc_trace/decision-cmd.json`) ; cam:q et cecd:s prouvés par la table d'aiguillage de la fiche plutôt que la Carte ; `icache_prefetch_range` (boot11, sens de c7,c13,1 à relire dans le manuel ARM) ; réécrire l'historique pour les anciens Co-Authored-By.
 
 ## 6. Les directives de l'utilisateur (elles étaient dans la mémoire du portable)
 

@@ -192,11 +192,20 @@ class Module:
         return {target: len(callers) for target, callers in sites.items()}
 
 
-def iter_calls(code, base, size):
+def iter_calls(code, base, size, entries=()):
     """(site, cible) de chaque appel par un balayage brut de .text : « bl » ARM tous les 4 octets, paires « bl / blx »
-    Thumb tous les 2 octets. Seules les cibles qui tombent dans .text sont rendues."""
+    Thumb tous les 2 octets. Seules les cibles qui tombent dans .text sont rendues. Avec entries (des débuts de
+    fonctions), un branchement terminal vers l'une d'elles compte aussi : « b » ARM, « b.w » Thumb (sans condition)."""
     for offset in range(0, size - 3, 2):
         first, second = struct.unpack_from('<HH', code, offset)
+        if entries and first >> 11 == 0x1E and second & 0xD000 == 0x9000:
+            sign = first >> 10 & 1
+            i1, i2 = 1 ^ (second >> 13 & 1) ^ sign, 1 ^ (second >> 11 & 1) ^ sign
+            distance = sign << 24 | i1 << 23 | i2 << 22 | (first & 0x3FF) << 12 | (second & 0x7FF) << 1
+            if sign:
+                distance -= 1 << 25
+            if base + offset + 4 + distance in entries:
+                yield base + offset, base + offset + 4 + distance
         if first >> 11 == 0x1E and second >> 11 in (0x1F, 0x1D):
             distance = (first & 0x7FF) << 12 | (second & 0x7FF) << 1
             if distance & 0x400000:
@@ -215,6 +224,12 @@ def iter_calls(code, base, size):
                 target = base + offset + 8 + distance + (word >> 23 & 2 if word >> 28 == 0xF else 0)
                 if base <= target < base + size:
                     yield base + offset, target
+            elif entries and word & 0x0F000000 == 0x0A000000 and word >> 28 != 0xF:
+                distance = (word & 0xFFFFFF) << 2
+                if distance & 0x2000000:
+                    distance -= 0x4000000
+                if base + offset + 8 + distance in entries:
+                    yield base + offset, base + offset + 8 + distance
 
 
 def load_names(path):

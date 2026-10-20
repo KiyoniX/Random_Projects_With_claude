@@ -18,30 +18,37 @@ service ouvert (« cfg:s »). La troisième se faisait à la main ; ici elle est
    quatre premiers mots de la pile en reçoivent une aussi. Au « svc », r0 est la poignée : sa marque dit où elle était
    (une globale, le champ +N d'un objet désigné par une globale, le champ +N d'un argument, l'argument lui-même), et
    le mot 0 du tampon du fil est l'en-tête. Si l'envoi n'est pas atteint (une marque prise pour une taille fait
-   sortir la fonction), on recommence arguments à zéro, puis globales à zéro aussi (ATTEMPTS).
-2. Les appelants, quand la poignée vient d'un argument. Chaque fonction qui appelle l'émetteur (« bl », « blx ») tourne
-   jusqu'à l'appel, et le registre de l'argument (plus le décalage du champ) dit la place de la poignée chez elle ;
-   si le mot qui y est porte une marque (la poignée recopiée sur la pile depuis une globale), c'est sa place d'origine.
-   Un seul niveau : un argument de l'appelant reste un argument.
+   sortir la fonction), on recommence arguments à zéro, puis globales à zéro aussi (ATTEMPTS). Un svc atteint après
+   une autre entrée connue (un début de gh/funcs.tsv ou une adresse nommée dans la fiche) est celui de cette entrée,
+   où le corps tombe : refusé.
+2. Les appelants, quand la poignée vient d'un argument. Chaque fonction qui appelle l'émetteur (« bl », « blx », ou
+   un « b » / « b.w » terminal vers son entrée) tourne jusqu'à l'appel, et le registre de l'argument (plus le décalage
+   du champ) dit la place de la poignée chez elle ; si le mot qui y est porte une marque (la poignée recopiée sur la
+   pile depuis une globale), c'est sa place d'origine. Un seul niveau : un argument de l'appelant reste un argument.
+   Un appelant qui n'atteint pas l'appel est dit dans la note : le verdict ne tient qu'aux autres.
 3. Les ouvertures, une fois par module. Chaque fonction de gh/funcs.tsv tourne deux fois : mémoire à zéro (l'état du
    démarrage, pour qu'un compteur d'ouverture laisse passer l'ouverture) puis avec les marques (pour voir les copies).
    Une requête srv:GetServiceHandle (en-tête 0x00050100) lit le nom aux mots 1 et 2 et sa longueur au mot 3, et rend
    au mot 3 une poignée factice propre à ce nom ; svcConnectToPort (0x2D) de même avec la chaîne en r1. Toute
-   écriture d'une de ces poignées dit « cette place tient la session de ce service » ; toute écriture dans une globale
-   d'une marque lue dans une autre globale dit « celle-ci est la copie de celle-là ».
+   écriture d'une de ces poignées dit « cette place tient la session de ce service » (la note distingue la fonction
+   qui envoie l'ouverture de celle qui range la poignée) ; toute écriture dans une globale d'une marque lue dans une
+   autre globale dit « celle-ci est la copie de celle-là ».
 
-Verdict, par émetteur :
-    TRACED     un service ouvert à cette place (ou à l'original dont elle est la copie), et le nom de la Carte pour cet
-               en-tête dans ce service est le nom proposé ; plusieurs services possibles (la session cfg commune à
-               cfg:u, cfg:s et cfg:i) seulement si la Carte leur donne à tous ce même nom, c'est dit dans la note. Un
-               service sans cet en-tête dans la Carte prend le nom de ses frères du même module s'ils s'accordent
-               (am:net reçoit les 0x10xx d'am:app), c'est dit aussi. Un nom <SERVICE>_cmd_0xNNNN va avec un en-tête
-               que la Carte ne nomme pas (ou dit « Inconnue ») : la voie est prouvée, le nom reste moyen.
-    MISMATCH   le service est trouvé, mais la Carte nomme cet en-tête autrement que la proposition
+Verdict, par émetteur. Le nom proposé est <PRÉFIXE>_<commande>, le préfixe étant celui du service (prefixes) :
+    TRACED     un service ouvert à cette place (ou à l'original dont elle est la copie), le préfixe est le sien, et le
+               nom de la Carte pour cet en-tête dans ce service est le nom proposé ; plusieurs services possibles (la
+               session cfg commune à cfg:u, cfg:s et cfg:i) seulement si la Carte leur donne à tous ce même nom, c'est
+               dit dans la note. Un service sans cet en-tête dans la Carte prend le nom des services dont il reprend
+               l'aiguillage (SHARED_DISPATCH, INCLUDES : cecd:s reçoit les commandes de cecd:u), c'est dit aussi. Un nom
+               <PRÉFIXE>_cmd_0xNNNN va avec un en-tête que la Carte ne nomme pas (ou dit « Inconnue ») : la voie est
+               prouvée, le nom reste moyen ; l'ancien format cmdNNNN aussi, avec « à réécrire » dans la note.
+    MISMATCH   le service est trouvé, mais la Carte nomme cet en-tête autrement, ou le préfixe n'est pas le sien
+    UNNAMED    le service est trouvé, la Carte ne nomme pas cet en-tête dans ce service : rien ne contredit le nom
     AMBIGUOUS  plusieurs services possibles, que la Carte nomme différemment ; ou la poignée est le champ +N d'un objet
                que l'appelant reçoit lui-même, et le service vient du même champ ouvert dans une autre fonction (même
                classe supposée : le nom de la Carte s'accorde, la place n'est pas prouvée)
-    UNTRACED   pas de « svc 0x32 » atteint, poignée sans marque, ou aucune ouverture trouvée pour sa place
+    UNTRACED   pas de « svc 0x32 » atteint (ou celui d'une autre entrée), poignée sans marque, ou aucune ouverture
+               trouvée pour sa place
 
 Ce que l'exécution suppose. La mémoire est celle du démarrage, marques en plus : un chemin choisi d'après l'état
 (poignée nulle, drapeau d'initialisation) est celui que donnent les marques non nulles. Les appels système rendent 0,
@@ -92,39 +99,109 @@ ATTEMPTS = [(True, True), (True, False), (False, False)]
 # --- La Carte ---
 
 def load_carte(carte=None, corrections=CORRECTIONS_PXI):
-    """({service: {en-tête: nom}}, {service: module}) d'après donnees.js, corrections-pxi.json par-dessus."""
+    """{service: {en-tête: nom}} d'après donnees.js, corrections-pxi.json par-dessus."""
     data = name_pass.load_carte() if carte is None else carte
-    names, modules = {}, {}
-    for service in data.get('services', []):
-        modules[service['id']] = service.get('module', '')
-        names[service['id']] = {int(c['h'], 16): c['n'] for c in service.get('commandes', [])}
+    names = {s['id']: {int(c['h'], 16): c['n'] for c in s.get('commandes', [])} for s in data.get('services', [])}
     if corrections and os.path.isfile(corrections):
         for table in json.load(open(corrections, encoding='utf-8')).get('tables', []):
             for service in table['services']:
                 names.setdefault(service, {}).update({int(c['h'], 16): c['n'] for c in table['commandes']})
-    return names, modules
+    return names
+
+
+# Les services dont l'aiguillage reçoit aussi les commandes d'un autre : un en-tête que la Carte ne donne pas au
+# premier prend le nom qu'elle donne au second. Seulement ce que les fiches ont lu dans le code ; « même module » ne
+# suffit pas (y2r:u et cam:q sont dans camera, cam:q est décalé par rapport à cam:u).
+SHARED_DISPATCH = [
+    ('cam:u', 'cam:s', 'cam:c'),                    # camera.md, partie 3 : un seul aiguillage, cam_handle_command
+    ('APT:A', 'APT:U', 'APT:S'),                    # ns.md : « ni table à part ni aiguillage à part »
+    ('hid:USER', 'hid:SPVR', 'hid:QTM', 'hid:NFC'), # hid.md : un aiguillage de 24 commandes pour les quatre
+    ('fs:USER', 'fs:LDR'),                          # fs.md : « même objet, même aiguillage, mêmes 136 commandes »
+    ('l2b:u', 'l2b2:u'),                            # mvd.md : même fonction
+]
+INCLUDES = {                                        # service : ceux dont il reprend les commandes, au même numéro
+    'cecd:s': ('cecd:u',),                          # cecd.md : « cecd:s a ses propres copies des 22 commandes »
+    'boss:P': ('boss:U',),                          # boss.md : « ses propres copies des 55 commandes de boss:U »
+    'nfc:m': ('nfc:u',),                            # nfc.md : tous les gestionnaires de nfc:u sont ceux de nfc:m
+    'cfg:s': ('cfg:u',),                            # cfg.md : cfg:s a les 11 de cfg:u plus 15,
+    'cfg:i': ('cfg:s', 'cfg:u'),                    # cfg:i celles de cfg:s plus 32
+    'am:sys': ('am:app',),                          # am.md : « chaque service contient les commandes du précédent »
+    'am:u': ('am:sys', 'am:app'),                   # (aiguillages exécutés, mêmes gestionnaires)
+    'am:net': ('am:u', 'am:sys', 'am:app'),
+}
+
+# Le préfixe d'un nom de requête est le nom du service sans ponctuation, en capitales (fs:USER → FSUSER_, cecd:s →
+# CECDS_, gsp::Gpu → GSPGPU_) ; les fiches (fiches/*.noms.tsv) en gardent aussi un plus court pour ceux-ci (CFG_ 94
+# fois, AM_ 116, APT_ 155, AC_ 86, PS_ 44, CSND_ 41, PXIFS_ 83 au 20/10). CECD_ pour cecd:u est la convention de la
+# relecture d'ipc_trace : aucune requête vers cecd:u n'est encore nommée dans les fiches.
+EXTRA_PREFIXES = {
+    'cecd:u': ('CECD',),
+    'cfg:u': ('CFG',), 'cfg:s': ('CFG',), 'cfg:i': ('CFG',),
+    'am:app': ('AM',), 'am:sys': ('AM',), 'am:u': ('AM',), 'am:net': ('AM',),
+    'APT:A': ('APT',), 'APT:U': ('APT',), 'APT:S': ('APT',),
+    'ac:u': ('AC',), 'ac:i': ('AC',),
+    'cam:u': ('CAM',), 'cam:s': ('CAM',), 'cam:c': ('CAM',),
+    'ps:ps': ('PS',), 'dsp::DSP': ('DSP',), 'csnd:SND': ('CSND',), 'nwm::UDS': ('UDS',),
+    'PxiFS0': ('PXIFS',), 'PxiFS1': ('PXIFS',), 'PxiFSB': ('PXIFS',), 'PxiFSR': ('PXIFS',),
+}
+
+
+# Les ports qu'un programme rejoint par svcConnectToPort : jamais dans la liste de services de l'exheader.
+PORTS = ('srv:', 'err:f')
+# La liste des services permis (ARM11 Local System Capabilities, 3dbrew « NCCH/Extended Header ») : 32 + 2 noms de 8
+# octets à partir de 0x250 ; vu sur snote_ap (cfg:u, fs:USER, gsp::Gpu… APT:U) et nim (fs:USER, am:net… ptm:gets).
+# Le srv factice ouvre tout, comme il le faut pour qu'une fonction lancée seule range sa poignée : snote_ap, fonction
+# par fonction, ouvre APT:A alors que son exheader ne permet qu'APT:U. Un service ouvert hors de cette liste est dit.
+EXHEADER_SERVICES, EXHEADER_SERVICE_COUNT = 0x250, 34
+
+
+def exheader_services(exheader):
+    names = (exheader[EXHEADER_SERVICES + 8 * i:EXHEADER_SERVICES + 8 * i + 8].split(b'\0')[0]
+             for i in range(EXHEADER_SERVICE_COUNT))
+    return {n.decode('ascii', 'replace') for n in names if n}
+
+
+def name_sources(service):
+    """Les services dont celui-ci reprend les commandes (SHARED_DISPATCH, INCLUDES)."""
+    shared = [s for group in SHARED_DISPATCH if service in group for s in group if s != service]
+    return shared + list(INCLUDES.get(service, ()))
+
+
+def prefixes(service):
+    return {re.sub(r'[^0-9A-Za-z]', '', service).upper()} | set(EXTRA_PREFIXES.get(service, ()))
 
 
 # --- Le module ---
 
 class Module:
-    """Les octets du module à leurs adresses, ses fonctions (gh/funcs.tsv) et ses appels (iter_calls)."""
+    """Les octets du module à leurs adresses, ses fonctions (gh/funcs.tsv), ses entrées connues (ces fonctions et les
+    adresses nommées dans sa fiche), ses appels (iter_calls, branchements terminaux vers une entrée compris) et les
+    services que son exheader lui permet d'ouvrir (vide : tous)."""
 
-    def __init__(self, name, code, segments, functions):
+    def __init__(self, name, code, segments, functions, named=(), services=()):
         self.name, self.code, self.segments = name, code, segments
+        self.services = set(services)
         self.funcs = {a: (size, mode) for a, size, mode in functions}
         self.starts = sorted(self.funcs)
+        self.entries = sorted(set(self.starts) | set(named))
         self.text_base, _, self.text_size = segments[0][0], segments[0][1], segments[0][2]
         self.callers = collections.defaultdict(set)
-        for site, target in emulate_dispatch.iter_calls(code, self.text_base, self.text_size):
+        for site, target in emulate_dispatch.iter_calls(code, self.text_base, self.text_size, set(self.entries)):
             self.callers[target].add(site)
         self.wrapper_calls = None          # les sites qui appellent un enrobage de « svc 0x32 », triés
 
     @classmethod
     def load(cls, name):
-        _, code, segments = ghidra_direct.load_module(name)
+        folder, code, segments = ghidra_direct.load_module(name)
         functions = [(a, s, m) for a, s, m, _ in ghidra_direct.read_functions(os.path.join(ANALYSE, name, 'gh', 'funcs.tsv'))]
-        return cls(name, code, segments, functions)
+        with open(os.path.join(folder, 'exheader.bin'), 'rb') as f:
+            services = exheader_services(f.read())
+        return cls(name, code, segments, functions, fiche_names(name), services)
+
+    def entry_between(self, start, end):
+        """La première entrée connue strictement entre start et end, ou None."""
+        index = bisect.bisect_right(self.entries, start)
+        return self.entries[index] if index < len(self.entries) and self.entries[index] < end else None
 
     def owner(self, address):
         """Le début de la fonction qui couvre l'adresse, ou None."""
@@ -184,6 +261,12 @@ class Machine:
             uc.mem_write(base, module.code[offset:offset + file_size])
             if flags & elfer.PF_W:
                 self.pristine.append((base, module.code[offset:offset + file_size] + bytes(mem_size - file_size)))
+            else:
+                # Le code et les constantes ne sont remis en place à aucun passage : une écriture par un pointeur
+                # faux (une marque prise pour une adresse) les changerait pour tous les passages suivants (snote_ap :
+                # l'aide d'en-tête réécrite, 0x00090040 lu 0x00090000). Protégés comme dans le vrai processus.
+                prot = u.UC_PROT_READ | (u.UC_PROT_EXEC if flags & elfer.PF_X else 0)
+                uc.mem_protect(base & ~0xFFF, (base + mem_size - (base & ~0xFFF) + 0xFFF) & ~0xFFF, prot)
         # Les données qu'un module recopie ailleurs au démarrage (la mémoire QTM de qtm) : vues à l'adresse de la copie.
         for source, copy, size in couverture.RUNTIME_COPIES.get(module.name, []):
             for base, offset, file_size, _, _ in module.segments:
@@ -267,11 +350,19 @@ class Machine:
             reply = [0, 0]
             if header == GET_SERVICE_HANDLE:
                 length = min(self.word(COMMAND_BUFFER + 12), 8)
-                reply = [0x00050042, 0, 0, self.handle(bytes(uc.mem_read(COMMAND_BUFFER + 4, length)))]
+                name = bytes(uc.mem_read(COMMAND_BUFFER + 4, length))
+                reply = [0x00050042, 0, 0, self.handle(name, self.call_site(at))]
             uc.mem_write(COMMAND_BUFFER, struct.pack('<%dI' % len(reply), *reply))
         elif svc == SVC_CONNECT_TO_PORT:
-            uc.reg_write(a.UC_ARM_REG_R1, self.handle(self.string(uc.reg_read(a.UC_ARM_REG_R1))))
+            uc.reg_write(a.UC_ARM_REG_R1, self.handle(self.string(uc.reg_read(a.UC_ARM_REG_R1)), self.call_site(at)))
         uc.reg_write(a.UC_ARM_REG_R0, 0)
+
+    def call_site(self, at):
+        """Où l'ouverture est envoyée : le svc, ou l'appel de l'enrobage pur qui le contient (lr)."""
+        owner = self.module.owner(at)
+        if owner is not None and self.module.is_svc_wrapper(owner):
+            return self.uc.reg_read(self.a.UC_ARM_REG_LR) & ~1
+        return at
 
     # Les marques et les poignées factices
 
@@ -279,18 +370,20 @@ class Machine:
         self.tags.append(source)
         return TAG_BASE + TAG_STRIDE * (len(self.tags) - 1)
 
-    def handle(self, name):
-        """La poignée factice d'un service : son nom s'il se lit (« cfg:s »), sinon None (un nom venu d'un argument)."""
+    def handle(self, name, at):
+        """La poignée factice d'un service ouvert par le svc à at : son nom s'il se lit (« cfg:s »), sinon None (un nom
+        venu d'un argument)."""
         text = name.split(b'\0')[0]
         readable = text.decode('ascii') if text and all(0x20 < c < 0x7F for c in text) else None
-        self.handles.append(readable)
+        self.handles.append((readable, at))
         return HANDLE_BASE + 4 * (len(self.handles) - 1)
 
     def handle_name(self, value):
+        """(nom ou None, adresse du svc d'ouverture) si la valeur est une poignée factice, sinon None."""
         index = (value - HANDLE_BASE) // 4
         if value & 3 or not 0 <= index < len(self.handles):
-            return False, None
-        return True, self.handles[index]
+            return None
+        return self.handles[index]
 
     def word(self, address):
         return struct.unpack('<I', self.uc.mem_read(address, 4))[0]
@@ -419,6 +512,9 @@ def trace_sender(machine, address, mode):
                 return False
             seen['at'], seen['header'] = at, header
             seen['place'] = machine.origin(machine.uc.reg_read(machine.a.UC_ARM_REG_R0))
+            # Le point du corps d'où part l'envoi : le svc, ou l'appel de l'enrobage (lr) s'il est dans le corps.
+            lr = machine.uc.reg_read(machine.a.UC_ARM_REG_LR) & ~1
+            seen['end'] = at if address <= at < address + size else lr if address <= lr < address + size else address
             return True
         return False
 
@@ -428,6 +524,10 @@ def trace_sender(machine, address, mode):
             break
     if 'at' not in seen:
         return None, 'pas de svc 0x32 atteint (%s)' % end, None
+    # Un corps qui tombe dans une autre fonction (mp 0x11e7c0 dans 0x11e7c8) enverrait la requête de celle-ci.
+    inner = module.entry_between(address, seen['end'])
+    if inner is not None:
+        return None, 'svc à %#x après l\'entrée connue %#x : la requête est la sienne' % (seen['at'], inner), None
     return seen['header'], seen['place'], seen['at']
 
 
@@ -435,7 +535,8 @@ def caller_places(machine, address, place):
     """[(appelant, place)] : la place de la poignée chez chaque appelant d'une poignée reçue en argument."""
     module = machine.module
     out = []
-    callers = sorted({module.owner(s) for s in module.callers.get(address, ()) if module.owner(s) is not None})
+    callers = sorted({module.owner(s) for s in module.callers.get(address, ()) if module.owner(s) is not None} - {address})
+    out += [(caller, ('other', 0), 'non essayé, plus de %d appelants' % MAX_CALLERS) for caller in callers[MAX_CALLERS:]]
     for caller in callers[:MAX_CALLERS]:
         for marks in ATTEMPTS:
             end = machine.run(caller, module.funcs[caller][1] == 'thumb', marks[0], SENDER_LIMIT, stop_at=address,
@@ -465,7 +566,7 @@ class Stores:
     """Les ouvertures et les copies d'un module, en faisant tourner chacune de ses fonctions (troisième temps)."""
 
     def __init__(self, machine):
-        self.opens = collections.defaultdict(set)     # place -> {(service, fonction)}
+        self.opens = collections.defaultdict(set)     # place -> {(service, svc d'ouverture, fonction qui range)}
         self.copies = collections.defaultdict(set)    # globale -> {(globale d'origine, fonction)}
         module = self.module = machine.module
         for address in module.starts:
@@ -474,10 +575,10 @@ class Stores:
                 machine.run(address, mode == 'thumb', marked, STORE_LIMIT)
                 for at, value, pc in machine.writes:
                     writer = module.owner(pc) or address     # la fonction qui écrit, pas celle qu'on a lancée
-                    is_handle, name = machine.handle_name(value)
-                    if is_handle:
-                        if name:
-                            self.opens[machine.place(at)].add((name, writer))
+                    opened = machine.handle_name(value)
+                    if opened is not None:
+                        if opened[0]:
+                            self.opens[machine.place(at)].add((opened[0], opened[1], writer))
                         continue
                     if marked:
                         source, target = machine.origin(value), machine.place(at)
@@ -495,13 +596,22 @@ class Stores:
             start = code.find(needle, start + 1)
         return '/'.join('%#x' % a for a in found) or 'chaîne absente'
 
+    def opened(self, place):
+        """[(service, preuve)] des ouvertures rangées à cette place : qui envoie l'ouverture, qui range la poignée."""
+        out = []
+        for service, at, writer in sorted(self.opens.get(place, ())):
+            sender = self.module.owner(at) or at
+            out.append((service, 'ouverte par %#x (envoi à %#x) avec « %s » (%s), rangée par %#x' % (
+                sender, at, service, self.literal(service), writer)))
+        return out
+
     def services(self, place):
         """[(service, preuve)] des ouvertures à cette place, ou à la globale dont elle est la copie."""
-        out = [(s, 'ouverte par %#x avec « %s » (%s)' % (f, s, self.literal(s))) for s, f in sorted(self.opens.get(place, ()))]
+        out = self.opened(place)
         if place[0] == 'global':
             for source, function in sorted(self.copies.get(place[1], ())):
-                out += [(s, 'copie de [%#x] par %#x, ouverte par %#x avec « %s » (%s)' % (source, function, f, s, self.literal(s)))
-                        for s, f in sorted(self.opens.get(('global', source), ()))]
+                out += [(s, 'copie de [%#x] par %#x, %s' % (source, function, proof))
+                        for s, proof in self.opened(('global', source))]
         return out
 
 
@@ -511,17 +621,17 @@ def normalise(text):
     return re.sub(r'[^a-z0-9]', '', text.lower())
 
 
-def carte_name(carte, modules, service, header):
-    """(nom, note) : le nom de la Carte dans ce service, sinon celui que ses frères du même module s'accordent à donner."""
-    names, _ = carte
-    name = names.get(service, {}).get(header)
-    if name:
+def carte_name(carte, service, header):
+    """(nom, note) : le nom de la Carte dans ce service, sinon celui que les services dont il reprend les commandes
+    (name_sources) s'accordent à donner. « Inconnue » compte comme muette."""
+    name = carte.get(service, {}).get(header)
+    if name and name != 'Inconnue':
         return name, ''
-    siblings = {s: n[header] for s, n in names.items() if header in n and modules.get(s) and
-                modules.get(s) == modules.get(service) and s != service}
-    if siblings and len(set(siblings.values())) == 1:
-        return next(iter(siblings.values())), '%s n\'a pas %#010x dans la Carte ; %s : même nom' % (
-            service, header, '/'.join(sorted(siblings)))
+    sources = {s: carte[s][header] for s in name_sources(service)
+               if carte.get(s, {}).get(header) not in (None, 'Inconnue')}
+    if sources and len(set(sources.values())) == 1:
+        return next(iter(sources.values())), '%s n\'a pas %#010x dans la Carte ; %s, même aiguillage : même nom' % (
+            service, header, '/'.join(sorted(sources)))
     return None, ''
 
 
@@ -529,37 +639,45 @@ def judge(name, header, services, carte):
     """(verdict, noms de la Carte par service, note)."""
     if header is None or not services:
         return 'UNTRACED', '', ''
-    names, modules = carte
     found, notes = {}, []
     for service in sorted({s for s, _ in services}):
-        carte_n, note = carte_name(carte, modules, service, header)
+        carte_n, note = carte_name(carte, service, header)
         found[service] = carte_n
         if note:
             notes.append(note)
     shown = ', '.join('%s %s' % (s, n or '—') for s, n in found.items())
-
-    def agrees(carte_n):
-        if carte_n and carte_n != 'Inconnue':
-            return normalise(name).endswith(normalise(carte_n))
-        return bool(re.search(r'cmd_0x0*%x$' % (header >> 16), name, re.I))
-
-    values = set(found.values())
-    if len(values) == 1 and agrees(next(iter(values))):
-        if None in values or 'Inconnue' in values:
-            notes.append('la Carte ne nomme pas cet en-tête : voie prouvée, le nom par numéro reste moyen')
-        if len(found) > 1:
-            notes.append('session commune à %s, même nom partout' % '/'.join(found))
-        return 'TRACED', shown, ' ; '.join(notes)
     if len(found) > 1:
-        return 'AMBIGUOUS', shown, ' ; '.join(notes)
-    return 'MISMATCH', shown, ' ; '.join(notes)
+        notes.append('session commune à %s' % '/'.join(found))
+
+    def verdict(v, *more):
+        return v, shown, ' ; '.join(notes + list(more))
+
+    prefix = next((p for s in found for p in sorted(prefixes(s)) if name.startswith(p + '_')), None)
+    if prefix is None:
+        return verdict('MISMATCH', 'préfixe étranger à %s (attendu %s)' % (
+            '/'.join(found), ', '.join(sorted({p + '_' for s in found for p in prefixes(s)}))))
+    rest, number = name[len(prefix) + 1:], header >> 16
+    values = set(found.values())
+    by_number = re.fullmatch(r'cmd(_0x)?([0-9][0-9a-f]*)', rest, re.I)       # cmd_0xNNNN, ou l'ancien cmdNNNN
+    if by_number:
+        if int(by_number.group(2), 16) != number:
+            return verdict('MISMATCH', 'nom par numéro %#x, en-tête de la commande %#x' % (int(by_number.group(2), 16), number))
+        if values != {None}:
+            return verdict('AMBIGUOUS' if len(found) > 1 else 'MISMATCH', 'nom par numéro, mais la Carte nomme cet en-tête')
+        old = [] if by_number.group(1) else ['vieux format cmdNNNN, à réécrire %s_cmd_0x%04X' % (prefix, number)]
+        return verdict('TRACED', 'la Carte ne nomme pas cet en-tête : voie prouvée, le nom par numéro reste moyen', *old)
+    if values == {None}:
+        return verdict('UNNAMED', 'la Carte ne nomme pas cet en-tête dans ce service : rien ne confirme ni ne contredit')
+    if len(values) == 1 and normalise(rest) == normalise(next(iter(values))):
+        return verdict('TRACED')
+    return verdict('AMBIGUOUS' if len(found) > 1 else 'MISMATCH')
 
 
 def all_carte_names(carte, header):
     if header is None:
         return ''
     out = collections.defaultdict(list)
-    for service, commands in carte[0].items():
+    for service, commands in carte.items():
         if header in commands:
             out[commands[header]].append(service)
     return ' | '.join('%s (%s)' % (n, ', '.join(sorted(s))) for n, s in sorted(out.items()))
@@ -590,6 +708,22 @@ def analyse(machine, stores, carte, address, mode, name):
         # champ d'un objet reçu par une autre fonction. Même classe supposée, pas prouvée.
         verdict = 'AMBIGUOUS'
         note = ' ; '.join(x for x in [note, 'objet reçu par l\'appelant : même champ ouvert ailleurs, classe supposée'] if x)
+    declared = machine.module.services
+    for service in sorted({s for s, _ in services} - declared - set(PORTS) if declared else ()):
+        # Ouvert sans être permis : srv l'aurait refusé. Le nom ne tient que si la Carte donne le même dans un service
+        # permis de même famille (APT:A → APT:U), celui que le vrai programme a dû ouvrir à cette place (supposé).
+        family = [d for d in sorted(declared) if d.split(':')[0].lower() == service.split(':')[0].lower()]
+        names = {d: carte_name(carte, d, header)[0] for d in family}
+        same = ', '.join('%s %s' % (d, n or '—') for d, n in names.items()) or 'aucun de même famille'
+        note = ' ; '.join(x for x in [note, '%s absent des services de l\'exheader (permis : %s)' % (service, same)] if x)
+        if verdict == 'TRACED' and carte_name(carte, service, header)[0] not in names.values():
+            verdict = 'AMBIGUOUS'
+    missed = ['%#x' % c for c, _, why in places if why]
+    if place[0] == 'arg' and not places:
+        note = ' ; '.join(x for x in [note, 'aucun appelant connu'] if x)
+    elif missed and services:
+        # Le verdict ne tient qu'aux appelants atteints : un appelant non atteint pourrait passer une autre poignée.
+        note = ' ; '.join(x for x in [note, 'appelant(s) %s non atteint(s) : verdict sur les autres seuls' % ', '.join(missed)] if x)
     row['verdict'] = verdict
     row['note'] = ' ; '.join(x for x in ['svc à %#x' % at] + sorted(set(proofs)) + [note] if x)
     if not services:
@@ -610,6 +744,11 @@ def proposal_rows(module):
                 if len(p) >= 5 and p[0].startswith('0x') and p[3] == 'moyenne':
                     out.append((int(p[0], 16), p[1], p[2], p[4]))
     return out
+
+
+def fiche_names(module):
+    """{adresse: nom} de fiches/<module>.noms.tsv."""
+    return emulate_dispatch.load_names(os.path.join(ROOT, 'fiches', ghidra_direct.NAME_FILES.get(module, module) + '.noms.tsv'))
 
 
 def traceable_modules():
@@ -635,7 +774,7 @@ def trace_module(name, addresses=None, carte=None):
             if module.sends_request(address, module.extent(address), mode):
                 targets.append((address, mode, proposed))
     else:
-        names = emulate_dispatch.load_names(os.path.join(ROOT, 'fiches', ghidra_direct.NAME_FILES.get(name, name) + '.noms.tsv'))
+        names = fiche_names(name)
         targets = [(a, module.funcs.get(a, (0, 'thumb' if proposals.get(a, ('',))[0] == 'label' else 'arm'))[1],
                     proposals.get(a, ('', names.get(a, '')))[1]) for a in addresses]
     if not targets:
@@ -676,7 +815,7 @@ def run_all(only=None, out=OUT):
     counts = collections.defaultdict(collections.Counter)
     for r in rows:
         counts[r[0]][r[7]] += 1
-    verdicts = ['TRACED', 'MISMATCH', 'AMBIGUOUS', 'UNTRACED']
+    verdicts = ['TRACED', 'MISMATCH', 'UNNAMED', 'AMBIGUOUS', 'UNTRACED']
     summary = ['module\t' + '\t'.join(verdicts) + '\ttotal']
     total = collections.Counter()
     for name, count in sorted(counts.items()):
@@ -692,10 +831,12 @@ def run_all(only=None, out=OUT):
 
 def fake_module(carte_services):
     """Un module ARM écrit à la main : une ouverture de « foo:s » dans G, une copie de G dans G+4, un émetteur qui
-    lit G, un émetteur qui lit *r0 et son appelant qui passe G+4, un émetteur dont la poignée vient de nulle part,
-    une session commune ouverte deux fois (« bar:u », « bar:s ») dans H."""
+    lit G, un émetteur qui lit *r0 et ses trois appelants (« bl » avec G+4, « b » terminal avec G+4, un qui n'atteint
+    pas l'appel), un émetteur dont la poignée vient de nulle part, une session commune ouverte deux fois (« bar:u »,
+    « bar:s ») dans H, un corps qui tombe dans une entrée nommée qui envoie, une ouverture par une aide rangée dans K
+    par son appelant."""
     text, ro, data = 0x100000, 0x110000, 0x120000
-    G, H = data + 0x10, data + 0x20
+    G, H, K = data + 0x10, data + 0x20, data + 0x30
     words, literals = {}, {}
 
     def ldr_literal(at, rd, value):
@@ -710,23 +851,34 @@ def fake_module(carte_services):
     def ldr(rd, value):
         return lambda at: ldr_literal(at, rd, value)
 
-    def bl(target):
-        return lambda at: 0xEB000000 | ((target - at - 8) >> 2 & 0xFFFFFF)
+    def branch(target, link=True):
+        return lambda at: (0xEB000000 if link else 0xEA000000) | ((target - at - 8) >> 2 & 0xFFFFFF)
 
     mrc0, svc, ret, push, pop = 0xEE1D0F70, 0xEF000032, 0xE12FFF1E, 0xE52DE004, 0xE49DF004
 
-    def opener(name_at, place):
+    def ask(name_at):
+        """srv:GetServiceHandle avec le nom à name_at ; la poignée reste au mot 3 du tampon (r0 = tampon)."""
         return [mrc0, ldr(1, GET_SERVICE_HANDLE), 0xE5801080, ldr(2, name_at), 0xE5923000, 0xE5803084, 0xE5923004,
-                0xE5803088, 0xE3A03005, 0xE580308C, svc, mrc0, 0xE590108C, ldr(2, place), 0xE5821000, ret]
+                0xE5803088, 0xE3A03005, 0xE580308C, svc, mrc0]
+
+    def opener(name_at, place):
+        return ask(name_at) + [0xE590108C, ldr(2, place), 0xE5821000, ret]
     emit(text + 0x000, opener(ro, G))                                         # ouvre « foo:s » dans G
     emit(text + 0x100, [ldr(2, G), 0xE5921000, 0xE5821004, ret])              # copie G dans G+4
     emit(text + 0x200, [mrc0, ldr(1, 0x00050000), 0xE5801080, ldr(2, G), 0xE5920000, svc, ret])
     emit(text + 0x300, [0xEE1D1F70, ldr(2, 0x00140082), 0xE5812080, 0xE5900000, svc, ret])   # poignée = *r0
-    emit(text + 0x400, [push, ldr(0, G + 4), bl(text + 0x300), pop])
+    emit(text + 0x400, [push, ldr(0, G + 4), branch(text + 0x300), pop])
     emit(text + 0x500, [mrc0, ldr(1, 0x00050000), 0xE5801080, 0xE3A00007, svc, ret])          # poignée constante
     emit(text + 0x600, opener(ro + 8, H))
     emit(text + 0x700, opener(ro + 16, H))
     emit(text + 0x800, [mrc0, ldr(1, 0x00060000), 0xE5801080, ldr(2, H), 0xE5920000, svc, ret])
+    # 0x900 pose r0 puis tombe dans 0x904, entrée nommée (absente des fonctions) qui envoie sur G.
+    emit(text + 0x900, [0xE3A00001, mrc0, ldr(1, 0x00050000), 0xE5801080, ldr(2, G), 0xE5920000, svc, ret])
+    emit(text + 0xA00, [ldr(0, G + 4), branch(text + 0x300, link=False)])    # appel terminal
+    emit(text + 0xB00, [push, branch(text + 0xC00), ldr(2, K), 0xE5820000, pop])   # range dans K la poignée de 0xC00
+    emit(text + 0xC00, ask(ro) + [0xE590008C, ret])                           # ouvre « foo:s », la rend en r0
+    emit(text + 0xD00, [ret, branch(text + 0x300)])                           # n'atteint jamais son appel
+    emit(text + 0xE00, [ldr(2, text + 0x204), 0xE3A01000, 0xE5821000, ret])  # écrit dans le code de 0x200
     for value, pool in literals.items():
         words[pool] = value
     code = bytearray(0x1000)
@@ -736,10 +888,10 @@ def fake_module(carte_services):
     segments = [(text, 0, 0x1000, 0x1000, elfer.PF_R | elfer.PF_X), (ro, 0x1000, 0x1000, 0x1000, elfer.PF_R),
                 (data, 0x2000, 0x100, 0x1000, elfer.PF_R | elfer.PF_W)]
     sizes = {0x000: 0x40, 0x100: 0x10, 0x200: 0x1C, 0x300: 0x18, 0x400: 0x10, 0x500: 0x18, 0x600: 0x40, 0x700: 0x40,
-             0x800: 0x1C}
-    module = Module('essai', bytes(code), segments, [(text + o, s, 'arm') for o, s in sizes.items()])
+             0x800: 0x1C, 0x900: 0x20, 0xA00: 0x8, 0xB00: 0x14, 0xC00: 0x38, 0xD00: 0x8, 0xE00: 0x10}
+    module = Module('essai', bytes(code), segments, [(text + o, s, 'arm') for o, s in sizes.items()], [text + 0x904])
     carte = load_carte({'services': carte_services}, corrections=None)
-    return module, carte, G, H
+    return module, carte, G, H, K
 
 
 def test():
@@ -750,41 +902,89 @@ def test():
         if not condition:
             failures.append(text)
 
-    services = [{'id': 'foo:s', 'module': 'foo', 'commandes': [{'h': '0x00050000', 'n': 'GetThing'},
-                                                               {'h': '0x00140082', 'n': 'WriteRaw'}]},
-                {'id': 'foo:u', 'module': 'foo', 'commandes': [{'h': '0x00090000', 'n': 'Only'}]},
-                {'id': 'bar:u', 'module': 'bar', 'commandes': [{'h': '0x00060000', 'n': 'GetModel'}]},
-                {'id': 'bar:s', 'module': 'bar', 'commandes': [{'h': '0x00060000', 'n': 'GetModel'}]}]
+    def command(header, name):
+        return {'h': '%#010x' % header, 'n': name}
+
+    services = [{'id': 'foo:s', 'commandes': [command(0x00050000, 'GetThing'), command(0x00140082, 'WriteRaw')]},
+                {'id': 'bar:u', 'commandes': [command(0x00060000, 'GetModel')]},
+                {'id': 'bar:s', 'commandes': [command(0x00060000, 'GetModel')]},
+                {'id': 'cecd:u', 'commandes': [command(0x000D0082, 'GetCecInfoBuffer')]},
+                {'id': 'cecd:s', 'commandes': []},
+                {'id': 'cam:u', 'commandes': [command(0x00030040, 'IsBusy')]},
+                {'id': 'y2r:u', 'commandes': [command(0x00030040, 'SetOutputFormat')]},
+                {'id': 'cam:q', 'commandes': [command(0x003C0080, 'Inconnue')]}]
     carte = load_carte({'services': services}, corrections=None)
-    check(judge('FOO_GetThing', 0x00050000, [('foo:s', '')], carte)[0] == 'TRACED', 'verdict : un service, même nom')
-    check(judge('FOO_Other', 0x00050000, [('foo:s', '')], carte)[0] == 'MISMATCH', 'verdict : nom différent')
-    check(judge('FOO_GetThing', 0x00050000, [('foo:s', ''), ('bar:u', '')], carte)[0] == 'AMBIGUOUS',
-          'verdict : deux services de noms différents')
-    check(judge('FOO_Only', 0x00090000, [('foo:s', '')], carte)[0] == 'TRACED', 'verdict : nom d\'un frère du module')
-    check(judge('FOO_cmd_0x0007', 0x00070000, [('foo:s', '')], carte)[0] == 'TRACED', 'verdict : nom par numéro')
-    check(judge('FOO_GetThing', 0x00050000, [], carte)[0] == 'UNTRACED', 'verdict : rien d\'ouvert')
+
+    def verdict(name, header, *opened):
+        return judge(name, header, [(s, '') for s in opened], carte)[0]
+    check(verdict('FOOS_GetThing', 0x00050000, 'foo:s') == 'TRACED', 'verdict : un service, même nom')
+    check(verdict('FOOS_Other', 0x00050000, 'foo:s') == 'MISMATCH', 'verdict : nom différent')
+    check(verdict('FOOS_GetThing', 0x00050000, 'foo:s', 'bar:u') == 'AMBIGUOUS', 'verdict : deux services de noms différents')
+    check(verdict('FOOS_cmd_0x0007', 0x00070000, 'foo:s') == 'TRACED', 'verdict : nom par numéro')
+    check(verdict('FOOS_cmd_0x0008', 0x00070000, 'foo:s') == 'MISMATCH', 'verdict : nom par un autre numéro')
+    check(verdict('FOOS_GetThing', 0x00050000) == 'UNTRACED', 'verdict : rien d\'ouvert')
+    # Le préfixe est celui du service.
+    check(verdict('FOO_GetThing', 0x00050000, 'foo:s') == 'MISMATCH', 'préfixe : FOO_ sur foo:s')
+    check(verdict('foos_get_thing', 0x00050000, 'foo:s') == 'MISMATCH', 'préfixe : nom en minuscules')
+    check(verdict('CECD_GetCecInfoBuffer', 0x000D0082, 'cecd:s') == 'MISMATCH', 'préfixe : CECD_ sur cecd:s')
+    check(verdict('CECD_GetCecInfoBuffer', 0x000D0082, 'cecd:u') == 'TRACED', 'préfixe : CECD_ sur cecd:u')
+    # Les noms d'un autre service : seulement ceux d'un aiguillage repris (cecd:s ⊇ cecd:u), pas « même module ».
+    check(verdict('CECDS_GetCecInfoBuffer', 0x000D0082, 'cecd:s') == 'TRACED', 'cecd:s reprend les noms de cecd:u')
+    check(verdict('CECDU_Foo', 0x000E0000, 'cecd:u') == 'UNNAMED', 'cecd:u ne reprend pas ceux de cecd:s')
+    check(verdict('CAMQ_IsBusy', 0x00030040, 'cam:q') == 'UNNAMED', 'cam:q ne reprend ni cam:u ni y2r:u')
+    check(verdict('CAMS_IsBusy', 0x00030040, 'cam:s') == 'TRACED', 'cam:s partage l\'aiguillage de cam:u')
+    # Carte muette, vieux format.
+    check(verdict('FOOS_Something', 0x00070000, 'foo:s') == 'UNNAMED', 'Carte muette : UNNAMED, pas MISMATCH')
+    check(verdict('CAMQ_Something', 0x003C0080, 'cam:q') == 'UNNAMED', 'Carte « Inconnue » : UNNAMED')
+    old = judge('CAMQ_cmd003C', 0x003C0080, [('cam:q', '')], carte)
+    check(old[0] == 'TRACED' and 'à réécrire CAMQ_cmd_0x003C' in old[2], 'vieux format cmdNNNN : %r' % (old,))
+    # Le branchement terminal Thumb « b.w » vers une entrée est un appel ; sans entrées, il ne l'est pas.
+    thumb = struct.pack('<HH', 0xF000, 0xB87E) + bytes(0x100)
+    check(list(emulate_dispatch.iter_calls(thumb, 0x1000, len(thumb), {0x1100})) == [(0x1000, 0x1100)] and
+          not list(emulate_dispatch.iter_calls(thumb, 0x1000, len(thumb))), 'b.w Thumb terminal vers une entrée')
     try:
         name_pass.import_unicorn()
     except ImportError:
         print('unicorn manque : essais d\'exécution sautés')
         return failures
-    module, carte, G, H = fake_module(services)
+    module, carte, G, H, K = fake_module(services)
     machine = Machine(module)
     stores = Stores(machine)
-    check(('foo:s', 0x100000) in stores.opens[('global', G)], 'ouverture de « foo:s » dans G')
+    check(('foo:s', 0x100028, 0x100000) in stores.opens[('global', G)], 'ouverture de « foo:s » dans G')
     check((G, 0x100100) in stores.copies[G + 4], 'G+4 est une copie de G')
-    row = analyse(machine, stores, carte, 0x100200, 'arm', 'FOO_GetThing')
+    proof = stores.services(('global', K))
+    check(proof and 'ouverte par 0x100c00 (envoi à 0x100c28)' in proof[0][1] and 'rangée par 0x100b00' in proof[0][1],
+          'ouverture par une aide, rangée par l\'appelant : %r' % proof)
+    row = analyse(machine, stores, carte, 0x100200, 'arm', 'FOOS_GetThing')
     check((row['header'], row['place'], row['service'], row['verdict']) == (0x00050000, '[%#x]' % G, 'foo:s', 'TRACED'),
           'poignée globale : %r' % row)
-    row = analyse(machine, stores, carte, 0x100300, 'arm', 'FOO_WriteRaw')
+    row = analyse(machine, stores, carte, 0x100300, 'arm', 'FOOS_WriteRaw')
     check(row['verdict'] == 'TRACED' and row['place'].startswith('[r0+0x0] ; appelants : 0x100400 [%#x]' % (G + 4))
           and 'copie de' in row['note'], 'poignée en argument, copie d\'une globale : %r' % row)
-    row = analyse(machine, stores, carte, 0x100500, 'arm', 'FOO_GetThing')
+    check('0x100a00 [%#x]' % (G + 4) in row['place'], 'appelant par « b » terminal : %r' % row['place'])
+    check('0x100d00 non atteint' in row['note'], 'appelant non atteint dit dans la note : %r' % row['note'])
+    row = analyse(machine, stores, carte, 0x100500, 'arm', 'FOOS_GetThing')
     check(row['verdict'] == 'UNTRACED' and row['place'] == 'const 0x7', 'poignée sans marque : %r' % row)
-    row = analyse(machine, stores, carte, 0x100800, 'arm', 'BAR_GetModel')
+    row = analyse(machine, stores, carte, 0x100800, 'arm', 'BARU_GetModel')
     check(row['verdict'] == 'TRACED' and row['service'] == 'bar:s, bar:u' and 'session commune' in row['note'],
           'session commune, même nom : %r' % row)
     check(row['carte'] == 'GetModel (bar:s, bar:u)', 'noms de la Carte pour l\'en-tête : %r' % row['carte'])
+    row = analyse(machine, stores, carte, 0x100900, 'arm', 'FOOS_GetThing')
+    check(row['verdict'] == 'UNTRACED' and 'entrée connue 0x100904' in row['note'],
+          'corps qui tombe dans une entrée nommée : %r' % row)
+    row = analyse(machine, stores, carte, 0x100904, 'arm', 'FOOS_GetThing')
+    check(row['verdict'] == 'TRACED', 'l\'entrée nommée elle-même : %r' % row)
+    check(bytes(machine.uc.mem_read(0x100000, 0x1000)) == module.code[:0x1000], 'le code n\'est pas réécrit par 0xE00')
+    # Les services de l'exheader : un service ouvert hors liste est dit ; sans service permis de même nom, plus TRACED.
+    exheader = bytearray(0x400)
+    exheader[EXHEADER_SERVICES:EXHEADER_SERVICES + 8] = b'bar:u\0\0\0'
+    module.services = exheader_services(bytes(exheader))
+    check(module.services == {'bar:u'}, 'liste de services de l\'exheader')
+    row = analyse(machine, stores, carte, 0x100800, 'arm', 'BARU_GetModel')
+    check(row['verdict'] == 'TRACED' and 'bar:s absent des services de l\'exheader (permis : bar:u GetModel)' in row['note'],
+          'service hors exheader, même nom dans le permis : %r' % row)
+    row = analyse(machine, stores, carte, 0x100200, 'arm', 'FOOS_GetThing')
+    check(row['verdict'] == 'AMBIGUOUS' and 'foo:s absent' in row['note'], 'service hors exheader, rien de permis : %r' % row)
     print('%d échec(s)' % len(failures))
     return failures
 
