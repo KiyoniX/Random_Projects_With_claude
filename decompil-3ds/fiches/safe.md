@@ -127,3 +127,7 @@ Aiguillages rejoués dans le safe (adresse du safe trouvée par le code) et comp
 | Lecture, rédaction | Claude | le gros du temps |
 
 Les scripts et le brut sont dans `local/analyse/safe/` (non versionné).
+
+## Les applets -safe
+
+`swkbd-safe` a le **même `code.bin` que `swkbd`**, octet pour octet (770 048 octets, même SHA-256, vérifié le 24/10/2026) ; les exheaders ne diffèrent que par la version, les identifiants (dépendances, saut, programme) et la signature de l'ACI. Une fonction de l'un est donc la même fonction, à la même adresse, dans l'autre : `fiches/swkbd-safe.noms.tsv` et `swkbd-safe.hors-compte.tsv` sont la copie de ceux de `swkbd`, et tout nom versé dans `swkbd` se recopie tel quel. `error-safe` est une autre version d'`error` (texte plus court de 0x3c4 octets) : la règle « jumeau » de `couverture.py` s'y applique comme aux modules.

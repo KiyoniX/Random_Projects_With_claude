@@ -1,0 +1,8 @@
+adresse	raison
+0x10031e	CODE MORT : aucune référence (allrefs.py, xref.py, prel31.py) ; même code qu'error 0x100132 (tampon de secours des exceptions, allocation)
+0x100338	CODE MORT : aucune référence (allrefs.py, xref.py, prel31.py) ; même code qu'error 0x10014c (tampon de secours des exceptions, libération)
+0x12da28	PAS UNE FONCTION : entrée de couverture.py (« pointeur seul au milieu de 0x12d558 depuis case 0x1330d8 », mot 0xFFFFA950) ; la seule référence réelle est le b 0x12d9e8 de 0x12d558, dont c'est la suite
+0x130e6c	PAS UNE FONCTION : entrée de couverture.py (« pointeur seul depuis case 0x13603c ») ; le mot 0x13603c vaut 0xFFFFAE31, un nombre négatif dont la distance tombe ici par hasard ; les octets de 0x130e60 
+0x1464d0	CODE MORT : aucune référence (allrefs.py, xref.py, prel31.py) ; Thumb : blx 0x16a4b8 puis ldr r0,[r0] (lecture d'errno), même code qu'error 0x12497e
+0x1985dc	PAS UNE FONCTION : entrée de couverture.py (« pointeur seul depuis case 0x19d740 », mot 0xFFFFAE9C) ; les mots de 0x1985dc se lisent andseq / mulseq, des données ; aucune autre référence (xref.py)
+0x198694	PAS UNE FONCTION : entrée de couverture.py (« pointeur seul depuis case 0x19cc58 », mot 0xFFFFBA3D) ; deux demi-mots de données (strb, movs r3,r3) au milieu d'un constructeur statique ; aucune autre r

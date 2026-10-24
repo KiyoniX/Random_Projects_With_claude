@@ -281,7 +281,9 @@ def find_pointers(image, sources=None, thumb_pointers=True, relative_tables=True
             # Un mot nul « viserait » sa propre case : le bourrage de zéros n'est pas une table.
             if address is not None and address not in jump_slots and image.word(address):
                 target = (image.word(address) + address) & 0xFFFFFFFF
-            if target is not None and image.in_code(target) and (target & 1 or target % 4 == 0):
+            # Une cible ARM passe le même garde-fou qu'un pointeur : une table de caractères ou de constantes posée
+            # dans le texte (olv 0x26f74c, 0x2867c0) donnait sinon des « entrées » au milieu des fonctions.
+            if target is not None and image.in_code(target) and (target & 1 or looks_like_arm_entry(target)):
                 run.append((address, target))
                 continue
             if len(run) >= minimum and len({target for _, target in run}) >= minimum:
