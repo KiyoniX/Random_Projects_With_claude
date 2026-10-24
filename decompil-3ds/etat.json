@@ -2,12 +2,12 @@
   "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
-  "mise_a_jour": "2026-10-20",
+  "mise_a_jour": "2026-10-24",
   "prochaine_action": "Finir la passe ipc_trace (13 modules sur 54 refaits), puis relire et verser les envois IPC des six lots d'applets (menu, mint, friend, snote_ap, newslist, cherry) et corriger leurs fautes systématiques ; traiter les propagés à revoir ; les 13 autres applets ; finir le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu (REPRISE.md §5).",
   "fonctions": {
     "total": 254501,
     "identifiees": 254501,
-    "nommees": 19439,
+    "nommees": 19474,
     "reimplementees": 0,
     "typees": 0,
     "citees": 7909,
@@ -95,9 +95,9 @@
         "fiche_seule": 0,
         "hors_compte": 0,
         "trouvees": 3018,
-        "nommees": 64,
-        "proposees_haute": 7,
-        "proposees_moyenne": 65,
+        "nommees": 82,
+        "proposees_haute": 1,
+        "proposees_moyenne": 320,
         "typees": 0,
         "citees": 0,
         "recompilees": 0,
@@ -605,9 +605,9 @@
         "fiche_seule": 0,
         "hors_compte": 0,
         "trouvees": 5190,
-        "nommees": 58,
-        "proposees_haute": 6,
-        "proposees_moyenne": 88,
+        "nommees": 75,
+        "proposees_haute": 1,
+        "proposees_moyenne": 288,
         "typees": 0,
         "citees": 0,
         "recompilees": 0,
@@ -2225,5 +2225,5 @@
     "present": true,
     "code_octets": 5156864
   },
-  "mise_a_jour_heure": "20/10/2026 à 22:39"
+  "mise_a_jour_heure": "24/10/2026 à 12:32"
 }

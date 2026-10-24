@@ -794,21 +794,27 @@ def tsv_line(module, address, proposed, row):
 
 
 def run_all(only=None, out=OUT):
-    """Écrit resultats.tsv et compte.tsv. Avec only, seules les lignes de ces modules sont refaites : les autres
-    lignes du resultats.tsv déjà là sont gardées."""
+    """Écrit resultats.tsv et compte.tsv après chaque module : une passe interrompue garde ce qu'elle a fait. Avec
+    only, seules les lignes de ces modules sont refaites : les autres lignes du resultats.tsv déjà là sont gardées, et
+    celles d'un module de only jusqu'à ce qu'il soit refait."""
     os.makedirs(out, exist_ok=True)
     path = os.path.join(out, 'resultats.tsv')
     carte = load_carte()
     rows = []
     if only and os.path.isfile(path):
         rows = [line.rstrip('\n').split('\t') for line in open(path, encoding='utf-8')][1:]
-        rows = [r for r in rows if r[0] not in only]
     for name in traceable_modules():
         if only and name not in only:
             continue
         print('%s...' % name, flush=True)
+        rows = [r for r in rows if r[0] != name]
         for address, proposed, row in trace_module(name, carte=carte):
             rows.append(tsv_line(name, address, proposed, row).split('\t'))
+        write_results(rows, out, path)
+    print(write_results(rows, out, path))
+
+
+def write_results(rows, out, path):
     rows.sort(key=lambda r: (r[0], int(r[1], 16)))
     with open(path, 'w', encoding='utf-8', newline='\n') as f:
         f.write('\t'.join(COLUMNS) + '\n' + ''.join('\t'.join(r) + '\n' for r in rows))
@@ -824,7 +830,7 @@ def run_all(only=None, out=OUT):
     summary.append('\t'.join(['total'] + [str(total[v]) for v in verdicts] + [str(sum(total.values()))]))
     with open(os.path.join(out, 'compte.tsv'), 'w', encoding='utf-8', newline='\n') as f:
         f.write('\n'.join(summary) + '\n')
-    print('\n'.join(summary))
+    return '\n'.join(summary)
 
 
 # --- L'essai sur un module fabriqué ---

@@ -1237,7 +1237,10 @@ def review(binaries, prints, provenance=PROVENANCE):
         if address not in own:
             out.append((b, row, 'plus un début de fonction empreinte'))
             continue
-        spot = blind_spot(name, sends_ipc(b, own, address))
+        judged = svc_rule(b, address, name)
+        if judged and judged[0] == 'haute':
+            continue                    # enrobage nu prouvé par ses octets, comme dans grade et twin_grade
+        spot = judged or blind_spot(name, sends_ipc(b, own, address))
         reasons = [spot[1]] if spot else []
         others = [w for w in named[(own[address].digest, name)] if w != (b, address)]
         mine = callee_keys(b, own, address)
