@@ -1,3 +1,4 @@
+0x100000	function	entry
 0x100024	function	clear_bss
 0x100288	label	strstr
 0x10087c	label	memcmp
@@ -38,7 +39,9 @@
 0x11591c	function	APT_CancelLibraryApplet
 0x115958	function	APT_InquireNotification
 0x11599c	function	APT_PrepareToStartSystemApplet
+0x1286c8	function	svcBreak
 0x1286d0	function	thread_trampoline
+0x128710	function	svcExitThread
 0x128718	function	svcGetProcessId
 0x128730	function	svcGetSystemTick
 0x12873c	function	svcSleepThread
