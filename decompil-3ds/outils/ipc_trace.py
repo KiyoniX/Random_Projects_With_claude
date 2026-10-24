@@ -4,6 +4,7 @@
     python ipc_trace.py all [--only M1,M2,...]                    tous les noms de confiance moyenne des
                                                                   local/analyse/<module>/noms-proposes*.tsv qui
                                                                   envoient une requête ; écrit local/analyse/ipc_trace/
+    (run et all) --full                                           les ouvertures cherchées dans toutes les fonctions
     python ipc_trace.py test
 
 Un nom de requête (CFG_GetSystemModel) est haut quand trois choses se recoupent : l'en-tête que l'émetteur écrit dans
@@ -26,8 +27,11 @@ service ouvert (« cfg:s »). La troisième se faisait à la main ; ici elle est
    du champ) dit la place de la poignée chez elle ; si le mot qui y est porte une marque (la poignée recopiée sur la
    pile depuis une globale), c'est sa place d'origine. Un seul niveau : un argument de l'appelant reste un argument.
    Un appelant qui n'atteint pas l'appel est dit dans la note : le verdict ne tient qu'aux autres.
-3. Les ouvertures, une fois par module. Chaque fonction de gh/funcs.tsv tourne deux fois : mémoire à zéro (l'état du
-   démarrage, pour qu'un compteur d'ouverture laisse passer l'ouverture) puis avec les marques (pour voir les copies).
+3. Les ouvertures, une fois par module. Chaque fonction qui peut écrire une des places trouvées aux temps 1 et 2 tourne
+   deux fois : mémoire à zéro (l'état du démarrage, pour qu'un compteur d'ouverture laisse passer l'ouverture) puis
+   avec les marques (pour voir les copies). Peut l'écrire : sa réserve ou un « adr » cite une base à 0x40 octets au
+   plus sous la place, ou une chaîne de service ; plus les appelants directs de celles-là (Module.sweep_starts). Mêmes
+   résultats que toutes les fonctions de gh/funcs.tsv (--full) sur nim et cecd, en une seconde au lieu de 16 et 4 min.
    Une requête srv:GetServiceHandle (en-tête 0x00050100) lit le nom aux mots 1 et 2 et sa longueur au mot 3, et rend
    au mot 3 une poignée factice propre à ce nom ; svcConnectToPort (0x2D) de même avec la chaîne en r1. Toute
    écriture d'une de ces poignées dit « cette place tient la session de ce service » (la note distingue la fonction
@@ -197,6 +201,56 @@ class Module:
         with open(os.path.join(folder, 'exheader.bin'), 'rb') as f:
             services = exheader_services(f.read())
         return cls(name, code, segments, functions, fiche_names(name), services)
+
+    def string_addresses(self, text):
+        """Les adresses de la chaîne text suivie d'un zéro dans le module."""
+        found, needle = [], text.encode() + bytes(1)
+        start = self.code.find(needle)
+        while start >= 0:
+            found += [base + start - offset for base, offset, size, _, _ in self.segments if offset <= start < offset + size]
+            start = self.code.find(needle, start + 1)
+        return found
+
+    def sweep_starts(self, places, services):
+        """Les fonctions que Stores doit faire tourner pour ces places de poignée : celles dont la réserve cite une base
+        à 0x40 octets au plus sous une place (pour l'écrire, une fonction charge son adresse), ou cite ou contient une
+        chaîne de service (nfc:m de cabinet est prise par « add r0, pc »), et leurs appelants directs (le nom ou la
+        place passés en argument). Les copies d'une globale dans une autre sont vues si la fonction cite l'une d'elles."""
+        places, strings = sorted(places), {a for s in services for a in self.string_addresses(s)}
+
+        def wanted(value):
+            k = bisect.bisect_left(places, value)
+            return value in strings or (k < len(places) and places[k] - value <= 0x40)
+        starts = {s for s in self.starts if any(wanted(v) for v in self.pc_values(s))}
+        callers = {self.owner(site) for s in starts for site in self.callers.get(s, ())}
+        return sorted(starts | (callers - {None}))
+
+    def pc_values(self, start):
+        """Les valeurs que la fonction tire de pc : mot lu par « ldr rX, [pc, #n] » et adresse calculée par
+        « add rX, pc, #n » (adr), en ARM et en Thumb ; la réserve peut être partagée, loin de la fonction."""
+        size, mode = self.funcs[start]
+        offset, out = start - self.text_base, []
+        body = self.code[offset:offset + size]
+
+        def word(address):
+            at = address - self.text_base
+            return struct.unpack_from('<I', self.code, at)[0] if 0 <= at <= len(self.code) - 4 else None
+        if mode == 'arm':
+            for i, w in enumerate(struct.unpack_from('<%dI' % (len(body) // 4), body)):
+                pc = start + 4 * i + 8
+                if w & 0x0F7F0000 == 0x051F0000:                       # ldr rX, [pc, #±n]
+                    out.append(word(pc + (w & 0xFFF if w & 0x00800000 else -(w & 0xFFF))))
+                elif w & 0x0FFF0000 == 0x028F0000:                     # add rX, pc, #n (adr)
+                    rot = (w >> 8 & 0xF) * 2
+                    out.append(pc + ((w & 0xFF) >> rot | (w & 0xFF) << (32 - rot)) % (1 << 32))
+        else:
+            for i, h in enumerate(struct.unpack_from('<%dH' % (len(body) // 2), body)):
+                pc = (start + 2 * i + 4) & ~3
+                if h >> 11 == 0x09:                                    # ldr rX, [pc, #n]
+                    out.append(word(pc + (h & 0xFF) * 4))
+                elif h >> 11 == 0x14:                                  # add rX, pc, #n (adr)
+                    out.append(pc + (h & 0xFF) * 4)
+        return [v for v in out if v is not None]
 
     def entry_between(self, start, end):
         """La première entrée connue strictement entre start et end, ou None."""
@@ -572,11 +626,11 @@ def caller_places(machine, address, place):
 class Stores:
     """Les ouvertures et les copies d'un module, en faisant tourner chacune de ses fonctions (troisième temps)."""
 
-    def __init__(self, machine):
+    def __init__(self, machine, starts=None):
         self.opens = collections.defaultdict(set)     # place -> {(service, svc d'ouverture, fonction qui range)}
         self.copies = collections.defaultdict(set)    # globale -> {(globale d'origine, fonction)}
         module = self.module = machine.module
-        for address in module.starts:
+        for address in module.starts if starts is None else starts:
             mode = module.funcs[address][1]
             for marked in (False, True):
                 machine.run(address, mode == 'thumb', marked, STORE_LIMIT)
@@ -594,14 +648,7 @@ class Stores:
 
     def literal(self, service):
         """Les adresses de la chaîne du service dans le module (« cfg:s » suivi d'un zéro)."""
-        found, code, needle = [], self.module.code, service.encode() + bytes(1)
-        start = code.find(needle)
-        while start >= 0 and len(found) < 3:
-            for base, offset, size, _, _ in self.module.segments:
-                if offset <= start < offset + size:
-                    found.append(base + start - offset)
-            start = code.find(needle, start + 1)
-        return '/'.join('%#x' % a for a in found) or 'chaîne absente'
+        return '/'.join('%#x' % a for a in self.module.string_addresses(service)[:3]) or 'chaîne absente'
 
     def opened(self, place):
         """[(service, preuve)] des ouvertures rangées à cette place : qui envoie l'ouverture, qui range la poignée."""
@@ -769,7 +816,7 @@ def traceable_modules():
     return names
 
 
-def trace_module(name, addresses=None, carte=None):
+def trace_module(name, addresses=None, carte=None, full=False):
     """[(adresse, nom proposé, ligne)] des émetteurs du module (ses propositions moyennes, ou ces adresses)."""
     module = Module.load(name)
     carte = carte or load_carte()
@@ -787,7 +834,19 @@ def trace_module(name, addresses=None, carte=None):
     if not targets:
         return []
     machine = Machine(module)
-    stores = Stores(machine)
+    starts = None
+    if not full:
+        # Les places des poignées d'abord (émetteurs et appelants, sans les ouvertures), puis Stores sur les seules
+        # fonctions qui peuvent les écrire : une heure de moins sur une grosse applet, mêmes verdicts (essai sur nim).
+        places = set()
+        for address, mode, _ in targets:
+            header, place, _ = trace_sender(machine, address, mode)
+            if header is None:
+                continue
+            found = [p for _, p, _ in caller_places(machine, address, place)] if place[0] == 'arg' else [place]
+            places |= {p[1] for p in found if p and p[0] in ('global', 'ptr')}
+        starts = module.sweep_starts(places, set(carte) | set(PORTS))
+    stores = Stores(machine, starts)
     return [(a, proposed, analyse(machine, stores, carte, a, mode, proposed)) for a, mode, proposed in targets]
 
 
@@ -800,7 +859,7 @@ def tsv_line(module, address, proposed, row):
                       row['verdict'], row['note']])
 
 
-def run_all(only=None, out=OUT):
+def run_all(only=None, out=OUT, full=False):
     """Écrit resultats.tsv et compte.tsv après chaque module : une passe interrompue garde ce qu'elle a fait. Avec
     only, seules les lignes de ces modules sont refaites : les autres lignes du resultats.tsv déjà là sont gardées, et
     celles d'un module de only jusqu'à ce qu'il soit refait."""
@@ -815,7 +874,7 @@ def run_all(only=None, out=OUT):
             continue
         print('%s...' % name, flush=True)
         rows = [r for r in rows if r[0] != name]
-        for address, proposed, row in trace_module(name, carte=carte):
+        for address, proposed, row in trace_module(name, carte=carte, full=full):
             rows.append(tsv_line(name, address, proposed, row).split('\t'))
         write_results(rows, out, path)
     print(write_results(rows, out, path))
@@ -968,6 +1027,11 @@ def test():
     proof = stores.services(('global', K))
     check(proof and 'ouverte par 0x100c00 (envoi à 0x100c28)' in proof[0][1] and 'rangée par 0x100b00' in proof[0][1],
           'ouverture par une aide, rangée par l\'appelant : %r' % proof)
+    # Stores restreint aux fonctions qui citent une place ou un nom de service : mêmes ouvertures et mêmes copies.
+    small = Stores(machine, module.sweep_starts({G + 4, H, K}, {'foo:s', 'bar:u', 'bar:s'}))
+    check(len(small.module.starts) > len(module.sweep_starts({G + 4, H, K}, {'foo:s', 'bar:u', 'bar:s'})) and
+          dict(small.opens) == dict(stores.opens) and (G, 0x100100) in small.copies[G + 4],
+          'Stores restreint : mêmes ouvertures, copie vue')
     row = analyse(machine, stores, carte, 0x100200, 'arm', 'FOOS_GetThing')
     check((row['header'], row['place'], row['service'], row['verdict']) == (0x00050000, '[%#x]' % G, 'foo:s', 'TRACED'),
           'poignée globale : %r' % row)
@@ -1007,11 +1071,11 @@ def main():
     if not args or args[0] == 'test':
         sys.exit(1 if test() else 0)
     if args[0] == 'run' and len(args) >= 3:
-        for address, proposed, row in trace_module(args[1], [int(a, 16) for a in args[2:]]):
+        for address, proposed, row in trace_module(args[1], [int(a, 16) for a in args[2:] if a != '--full'], full='--full' in args):
             print(tsv_line(args[1], address, proposed, row))
     elif args[0] == 'all':
         only = set(args[args.index('--only') + 1].split(',')) if '--only' in args else None
-        run_all(only)
+        run_all(only, full='--full' in args)
     else:
         sys.exit(__doc__)
 
