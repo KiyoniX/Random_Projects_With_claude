@@ -2226,5 +2226,443 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "24/10/2026 à 14:49"
+ "mise_a_jour_heure": "24/10/2026 à 14:49",
+ "commits": [
+  [
+   "2026-10-24",
+   "Décompil 3DS : skater (29), error-safe (15), swkbd et swkbd-safe (3 chacune, mêmes octets) : noms relus versés ; sha256_init par ses huit constantes"
+  ],
+  [
+   "2026-10-24",
+   "Décompil 3DS : olv, 25 noms relus versés ; swkbd-safe reçoit les noms de swkbd (même code.bin) ; find_pointers ne prend plus une table de données pour une table de distances"
+  ],
+  [
+   "2026-10-24",
+   "Décompil 3DS : applets cabinet et ctrapp, 39 noms relus versés ; ipc_trace répond à svcQueryMemory (page libre), la recherche de pile du démarrage ne tourne plus sans fin"
+  ],
+  [
+   "2026-10-24",
+   "Décompil 3DS : applets solv3 et pnote_ap, 36 noms relus versés (jumeaux, svc prouvés par les octets, entry et clear_bss)"
+  ],
+  [
+   "2026-10-24",
+   "Décompil 3DS : page avancement sobre (carte des fonctions par binaire, tableaux) ; appleted et hmvp, 35 noms relus versés"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : ipc_trace corrigé (code protégé entre deux passages, préfixe du service, groupes d'aiguillage explicites, UNNAMED, appels terminaux, services hors exheader signalés) ; REPRISE et prochaine action au 20/10"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : couverture.py ne reporte plus en haute un nom dont les appelées n'ont pas les mêmes noms versés, ni un émetteur IPC, ni un nom de rôle ; sous-commande revoir (propagés à revoir)"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : audit des _alt_ et des noms reportés par empreinte ; shared_memory_dtor_unchecked (appelle unmap_shared_memory sans test) dans 6 fiches, boot11 icache_prefetch_range"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : 97 noms relus (jumeaux versés, entry, clear_bss) versés pour menu, mint, friend, snote_ap, newslist et cherry"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : fiches des applets error, swkbd, extrapad et memolib (relues contre le désassemblage ; noms proposés marqués †)"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : renommages relus appliqués (format _cmd_0xNNNN des émetteurs, jumeaux -safe, harmonisations, wcs*, noms de la Carte pour SPI::NOR et pxi:mc) ; mentions périmées des fiches .md réécrites"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : 61 envois de requêtes promus après relecture d'ipc_trace (13 modules) ; verser.py accepte « promote » et plusieurs fichiers par module"
+  ],
+  [
+   "2026-10-20",
+   "Décompil 3DS : outils/verser.py, le versement des noms relus (repris du dossier temporaire de la session)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : page avancement.html (pourcentages par groupe, paliers, portage, modules et applets ; se recharge chaque minute) ; mesure note l'heure"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : le tableau d'avancement affiche l'heure de la dernière mise à jour d'etat.json"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : ipc_trace, la seconde voie des envois de requêtes"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : REPRISE et prochaine action à jour (état du 18/10, décisions de nommage en attente)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : applets extrapad et memolib, premiers noms relus versés (136 haute : requêtes ir:USER, APT, gsp, hid… suivies jusqu'au service, jumeaux versés)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : applets error et swkbd, premiers noms relus versés (140 haute : requêtes suivies jusqu'au service, bibliothèque C prouvée par vecteurs)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : cecd.md à jour (fils du protocole, accès, filtres, dénominateur 1 757)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : cecd, seconde passe relue versée (bibliothèque C et HMAC prouvés par vecteurs) ; README : deux cases de tables au même code gardent leur rôle"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : propagation par empreinte relue versée, les applets ont leurs premières fiches de noms"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : noms harmonisés entre fiches (un code, un nom)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : boss.md à jour (commandes de boss:M, enregistrement de stockage, dénominateur)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : boss, seconde passe relue versée (svc nus, crc32, bibliothèque C prouvée par vecteurs, panic_on_failure)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : 92 noms moyens passent en haute par une seconde voie relue"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : mesure date etat.json ; prochaine action à jour (tous les modules système ont leur première passe)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : nwm.md à jour (modes du gestionnaire Wi-Fi, piles Atheros et wpa_supplicant, dénominateur)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : nwm, seconde passe relue versée (HMAC-MD5, HMAC-SHA1, PRF 802.11i, AES key unwrap, RC4, MD5 prouvés par vecteurs publiés)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : act.md à jour (commandes nommées par leur effet, notifications, en-têtes du serveur de comptes, dénominateur)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : nim, deux corrections moyennes de noms proposés ressortent de la fiche (seuls les noms haute y entrent)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : act, seconde passe relue versée"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : nim.md à jour (les 32 gestionnaires localisés, serveurs npns et kagiya, dénominateur)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : nim, seconde passe relue versée (svc nus, SHA-1, mémoire, gestionnaires montés en haute par la case et l'en-tête)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : ssl.md et friends.md à jour (démarrage, tables du gestionnaire, ouverture d'APT) ; noms alignés dans ac, news et ptm"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : ssl et friends, les noms relus versés ; noms alignés entre fiches"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : nwm.md, nfc.md, camera.md, http.md et ac.md à jour (dénominateurs, tâches de TST, Broadcom, requêtes à leur vraie adresse)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : camera et http, les noms relus versés ; http-safe aligné"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : nwm et nfc, les noms relus versés ; 260 noms de case retirés"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : entrees voit les veneers « add ip,pc,#N », les aiguillages Thumb et les adresses calculées depuis pc"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : cecd.md et act.md à jour (fils, table des états, session cfg commune, commandes 0x20 à 0x22)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : ac.md, boss.md, ndm.md et nim.md à jour (dénominateurs, services ouverts, gestionnaires localisés, noms de case retirés)"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : cecd et act, les noms relus versés"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : ndm et nim, les noms relus versés"
+  ],
+  [
+   "2026-10-18",
+   "Décompil 3DS : ac et boss, les noms relus versés ; 354 fausses fonctions sorties du compte"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : dlp.md et mvd.md à jour (dénominateurs, unités L2B, noms canoniques des svc)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : prochaine action, la console à 100 % avant le jeu"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : dlp et mvd, les noms relus versés ; noms alignés entre lots"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : tableau d'avancement dans la console (paliers, décompilation par groupe et par module, portage)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : news.md et mp.md à jour (notifications, requêtes nommées, pilote Wi-Fi, comptes)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : news et mp, les noms relus versés ; règle des noms par numéro"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : am.md à jour (dénominateur 904, am:pipe et chemin CIA lus, fatal_if_failed, Carte)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : am, les noms relus versés et 252 fausses fonctions sorties du compte"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : fs.md à jour (requêtes PXIFS nommées, tables de méthodes, enveloppes, dénominateur)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : fs, les noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : entrees voit les veneers précédés de mov r0,r0 et les tables recopiées en mémoire à l'exécution"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : ns.md à jour (couvercle ouvert = 0x213, requêtes à leur entrée, break_process, Thumb et veneers)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : règle de nommage pour les méthodes de classes sans nom (famille, adresse de la table, méthode)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : ns, les noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : qtm.md, socket.md, gsp.md et hid.md à jour (image de la mémoire QTM, fils de session, srv_init, unmap_shared_memory_or_panic)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : qtm et socket, les noms relus versés ; unmap_shared_memory_or_panic"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : ir.md, errdisp.md, hid.md et codec.md à jour (registres du pont série supposés, requêtes GPIO, svcCloseHandle, verrou d'APT)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : ir et errdisp, les noms relus versés, et deux noms faux de errdisp corrigés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : Process9, seconde passe relue (20 noms haute, propositions refaites)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : Process9, 90 noms relus versés, et ce qui compte comme un nom"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : 515 noms propagés depuis les premiers modules Thumb relus"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : ptm.md et csnd.md à jour (dénominateurs, mixer_tick, files de commandes, appelants des appels système, lock_*)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : ptm et csnd, les noms relus versés, et trois conflits de noms tranchés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : l'oracle suit l'alignement réel des processeurs, et la propagation ignore les témoins triviaux"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : mic.md, ro.md, ps.md et loader.md à jour (l'aléa relayé à Process9, FSUSER_, dénominateurs, enveloppes)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : mic, ro et ps, les noms relus versés ; mic 0x102e90 est memcpy_words"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : boot9-boot11.md à jour (dénominateurs, pilote SD corrigé, offsets de la cartouche, svc_handler, initialisation de l'ARM11)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : boot9 et boot11, les noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : oracles.py rejoue sous unicorn chaque nom de bibliothèque des fiches"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : la famille LightEvent sous ses noms de bibliothèque, et les fiches des pilotes à jour"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : pdn, spi, i2c et mcu, les noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : sm.md, pm.md, loader.md et pxi.md à jour (dénominateurs, enveloppes, requêtes, noms canoniques)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : sm, pm, loader et pxi, les noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : le compteur inclut les entrées trouvées à la main, même nommées en moyenne"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : process9.md à jour (fils du noyau de kernel9, démarrage, chargeur du New 3DS)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : kernel9 et le chargeur ARM9, les noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : 126 noms propagés depuis les derniers lots, et apply lit toutes les exclusions"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : gsp.md et cfg.md à jour (dénominateurs, enveloppes d'appels système, requêtes, __ARM_common_switch8)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : cfg et gsp, les noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : kernel11, seconde passe (126 noms, 14 corrections)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : les binaires bruts comptés juste, et kernel11.md corrigé"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : kernel11, 432 noms relus versés"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : les variantes safe reçoivent les noms de leurs jumeaux, et des noms canoniques communs"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : dsp et hid, les noms relus versés (79 haute, 20 corrections)"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : règle des jumeaux pour les variantes safe, appels système prouvés par leurs octets seulement, entrées pointées depuis une réserve"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : 693 noms propagés d'un module à l'autre, et dix noms faux corrigés à la source"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : les noms propagés sont tracés (fiches/noms-propages.tsv) et ne comptent plus comme témoins indépendants"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : couverture.py compte les entrées que Ghidra manque, et une règle haute à deux voies"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : gpio et codec nommés à 100 %, et la définition d'un module terminé"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : le compteur de la décompilation à 100 %, et la propagation des noms par empreinte"
+  ],
+  [
+   "2026-10-17",
+   "Portage Rust : touches ZQSD, A et B à la souris, X/C pour X/Y, A/E pour L/R"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : le portage natif entre dans le palais, et la Carte reçoit neuf fiches"
+  ],
+  [
+   "2026-10-17",
+   "Portage Rust : transferts du GPU au plus près du banc, et cache des pipelines"
+  ],
+  [
+   "2026-10-17",
+   "Décompil 3DS : Pokémon X en direct dans une fenêtre, jusqu'au terrain"
+  ],
+  [
+   "2026-10-16",
+   "Décompil 3DS : instructions de reprise sur une autre machine"
+  ],
+  [
+   "2026-10-16",
+   "Décompil 3DS : toute la console lue, le terrain à l'écran, le portage Rust et le moteur de mods"
+  ],
+  [
+   "2026-10-14",
+   "Décompil 3DS : première image du jeu sur PC, et le code ARM recompilé en C"
+  ],
+  [
+   "2026-10-14",
+   "Décompil 3DS : Pokémon X démarre sur PC jusqu'au terrain, au banc d'essai"
+  ],
+  [
+   "2026-10-13",
+   "Décompil 3DS : onze fiches de reverse des modules de la console"
+  ],
+  [
+   "2026-10-13",
+   "Décompil 3DS : fiches de reverse de sm et hid, pont REA et premier passage automatique"
+  ],
+  [
+   "2026-10-13",
+   "Décompil 3DS : Pokémon X dumpé et extrait, devkitPro et REA sous WSL en place"
+  ],
+  [
+   "2026-10-13",
+   "Ouvre la 3DS : explorateur de romfs, visionneuse BCH, carte des services, et le programme du 14 octobre"
+  ],
+  [
+   "2026-10-13",
+   "Décompil 3DS : on part de la copie numérique de Pokémon X, pas de la cartouche"
+  ],
+  [
+   "2026-10-13",
+   "Ajoute Décompil 3DS, le carnet de rétro-ingénierie vers Pokémon X natif sur PC"
+  ]
+ ]
 };

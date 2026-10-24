@@ -141,9 +141,14 @@ def ecrire(etat):
     with open(ETAT_JSON, 'w', encoding='utf-8') as f:
         json.dump(etat, f, ensure_ascii=False, indent=2)
         f.write('\n')
+    # La page montre aussi le journal brut : les commits du dossier, tirés de git à chaque écriture (pas dans
+    # etat.json, que git suit déjà).
+    log = subprocess.run(['git', 'log', '--date=short', '--format=%ad%x09%s', '--', '.'], cwd=RACINE,
+                         capture_output=True, text=True, encoding='utf-8')
+    commits = [line.split('\t', 1) for line in log.stdout.splitlines() if '\t' in line] if log.returncode == 0 else []
     with open(ETAT_JS, 'w', encoding='utf-8') as f:
         f.write('// Écrit par outils/verifier.py. Éditer etat.json, pas ce fichier.\nwindow.ETAT = ')
-        json.dump(etat, f, ensure_ascii=False, indent=1)
+        json.dump(dict(etat, commits=commits), f, ensure_ascii=False, indent=1)
         f.write(';\n')
 
 

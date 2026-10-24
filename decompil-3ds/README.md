@@ -2,7 +2,7 @@
 
 Un carnet de rétro-ingénierie. La console : une New 3DS XL avec Luma3DS. Le but, à long terme : faire tourner Pokémon X nativement sur PC, sans émulateur.
 
-Ouvre `index.html` : la page montre la feuille de route en sept paliers, l'avancement, les outils présents ou absents, la carte du système et les exercices. Les scripts Python sont dans `outils/` et n'ont besoin que de Python 3.
+Ouvre `index.html` : l'avancement brut (une carte des fonctions par binaire, les tableaux par groupe, par binaire, par palier) et le journal des commits, lus dans `etat.js`. Les scripts Python sont dans `outils/` et n'ont besoin que de Python 3.
 
 ## Mise en garde
 
@@ -55,7 +55,7 @@ Chaque lecteur de format a une sous-commande `test` (par exemple `python outils/
 
 ```
 decompil-3ds/
-  index.html, style.css, app.js   la page du carnet
+  index.html                     la page : avancement et journal, lus dans etat.js
   etat.json                       l'état du carnet, à éditer à la main
   etat.js                         écrit par verifier.py, à ne pas éditer
   outils/                         les scripts Python, et les procédures REA.md et GHIDRA.md
