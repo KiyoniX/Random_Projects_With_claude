@@ -88,7 +88,7 @@ SENTINEL = 0x0DEAD000
 TAG_BASE, TAG_STRIDE, TAG_COUNT = 0x40000000, 0x4000, 0x1000    # une marque est aussi un faux objet de 16 Kio
 HANDLE_BASE = 0x7E000000                                        # les poignées factices des ouvertures
 GET_SERVICE_HANDLE = 0x00050100
-SVC_CONNECT_TO_PORT, SVC_SEND_SYNC_REQUEST = 0x2D, 0x32
+SVC_QUERY_MEMORY, SVC_CONNECT_TO_PORT, SVC_SEND_SYNC_REQUEST = 0x02, 0x2D, 0x32
 SENDER_LIMIT, STORE_LIMIT = 20000, 40000
 MAX_CALLERS = 8
 # Les passages essayés tour à tour (globales marquées, arguments marqués) : une marque prise pour une taille ou un
@@ -355,6 +355,13 @@ class Machine:
             uc.mem_write(COMMAND_BUFFER, struct.pack('<%dI' % len(reply), *reply))
         elif svc == SVC_CONNECT_TO_PORT:
             uc.reg_write(a.UC_ARM_REG_R1, self.handle(self.string(uc.reg_read(a.UC_ARM_REG_R1)), self.call_site(at)))
+        elif svc == SVC_QUERY_MEMORY:
+            # Toute page est libre (état 0) : la recherche de la pile au démarrage (cabinet 0x1007fc) s'arrête au
+            # premier tour au lieu de redemander sans fin la même réponse.
+            page = uc.reg_read(a.UC_ARM_REG_R2) & ~0xFFF
+            for reg, value in ((a.UC_ARM_REG_R1, page), (a.UC_ARM_REG_R2, 0x1000), (a.UC_ARM_REG_R3, 0),
+                               (a.UC_ARM_REG_R4, 0), (a.UC_ARM_REG_R5, 0)):
+                uc.reg_write(reg, value)
         uc.reg_write(a.UC_ARM_REG_R0, 0)
 
     def call_site(self, at):
