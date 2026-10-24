@@ -8,7 +8,7 @@ window.ETAT = {
  "fonctions": {
   "total": 254369,
   "identifiees": 254369,
-  "nommees": 19687,
+  "nommees": 19839,
   "reimplementees": 0,
   "typees": 0,
   "citees": 7907,
@@ -111,9 +111,9 @@ window.ETAT = {
     "fiche_seule": 5,
     "hors_compte": 5,
     "trouvees": 193,
-    "nommees": 34,
-    "proposees_haute": 7,
-    "proposees_moyenne": 152,
+    "nommees": 135,
+    "proposees_haute": 0,
+    "proposees_moyenne": 58,
     "typees": 0,
     "citees": 0,
     "recompilees": 0,
@@ -726,9 +726,9 @@ window.ETAT = {
     "fiche_seule": 16,
     "hors_compte": 34,
     "trouvees": 516,
-    "nommees": 379,
-    "proposees_haute": 5,
-    "proposees_moyenne": 132,
+    "nommees": 430,
+    "proposees_haute": 2,
+    "proposees_moyenne": 84,
     "typees": 0,
     "citees": 0,
     "recompilees": 0,
@@ -2226,8 +2226,12 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "24/10/2026 à 14:49",
+ "mise_a_jour_heure": "24/10/2026 à 15:31",
  "commits": [
+  [
+   "2026-10-24",
+   "Décompil 3DS : la page du site ne montre plus que l'avancement brut et le journal"
+  ],
   [
    "2026-10-24",
    "Décompil 3DS : skater (29), error-safe (15), swkbd et swkbd-safe (3 chacune, mêmes octets) : noms relus versés ; sha256_init par ses huit constantes"

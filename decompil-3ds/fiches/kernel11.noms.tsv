@@ -432,7 +432,7 @@
 0xfff15160	function	object_container_count_owned_by
 0xfff15200	function	start_thread
 0xfff15254	function	kthread_initialize
-0xfff15660	function	memzero
+0xfff15660	function	memclr
 0xfff15664	function	memset_words
 0xfff156b4	function	copy_from_user
 0xfff156e4	function	copy_words_from_user
