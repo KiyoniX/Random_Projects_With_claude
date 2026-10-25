@@ -3,7 +3,7 @@
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-10-24",
-  "prochaine_action": "Finir la passe ipc_trace (13 modules sur 54 refaits), puis relire et verser les envois IPC des six lots d'applets (menu, mint, friend, snote_ap, newslist, cherry) et corriger leurs fautes systématiques ; traiter les propagés à revoir ; les 13 autres applets ; finir le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu (REPRISE.md §5).",
+  "prochaine_action": "Changement de cap du 25/10 : la décompilation de la console est mise en pause, après avoir fini les travaux en cours (passe ipc_trace, relecture de boot9/boot11, seconde passe de process9). Ensuite, Pokémon X seul : son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher.",
   "fonctions": {
     "total": 254369,
     "identifiees": 254369,
@@ -2207,6 +2207,10 @@
     {
       "date": "2026-10-17",
       "texte": "Le portage natif joue : avec un scénario de 180 s (Start, Continuer, marcher vers le palais, A, ressortir), le runtime Rust va sans faute du menu au palais Chaydeuvre, entre dans la salle de la statue (dialogue, PNJ) et ressort, en 91 s de PC dessin compris. Un tour du cycle des trous (banc hybride sur le même scénario : 57 adresses, dont 0x3bf924 qu'un .cro appelle par un pointeur que l'analyse statique ne voit pas) : 26 241 fonctions. Carte des services : les écarts des neuf dernières fiches (am, news, act, dlp, mp, nfc, mvd, nim, qtm) sont reportés, 145 corrections, 11 commandes ajoutées ; fiche news corrigée."
+    },
+    {
+      "date": "2026-10-25",
+      "texte": "Changement de cap du 25/10 : la décompilation de la console est mise en pause, après avoir fini les travaux en cours (passe ipc_trace, relecture de boot9/boot11, seconde passe de process9). Ensuite, Pokémon X seul : son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher."
     }
   ],
   "dump": {

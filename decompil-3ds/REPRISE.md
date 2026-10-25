@@ -53,16 +53,17 @@ Vérification rapide que tout marche :
 
 ## 5. Où on en est, et quoi faire ensuite
 
-La source de vérité est **`etat.json`** (page `index.html`, ou `python outils/tableau.py --suivre`). Au soir du 20/10/2026 :
-- **Décompilation** : 19 439 fonctions nommées et relues sur 254 501 (7,6 %) ; noyau ARM11 89 %, démarrage et ARM9 23 %, modules système 21 %, applets ~1,5 %, jeu 2,4 %. Seuls les noms haute (deux voies) entrent dans `fiches/*.noms.tsv` ; versement par `python outils/verser.py <decision.json>` (option `promote` quand la relecture apporte la seconde voie, liste d'objets par module pour plusieurs fichiers).
-- **Fait le 20/10** : 61 envois IPC promus après relecture d'ipc_trace ; 341 renommages relus (format `_cmd_0xNNNN`, jumeaux -safe, harmonisations, `wcs*`, SPI::NOR et pxi:mc nommés par la Carte) ; fiches .md de error, swkbd, extrapad, memolib ; premiers lots des applets menu, mint, friend, snote_ap, newslist, cherry (`local/analyse/<m>/noms-proposes.tsv`, notes-100.md, fiche-brouillon.md) dont 97 haute non-IPC versées ; audit des `_alt_` (`shared_memory_dtor_unchecked`) ; `couverture.py` refuse la haute si les appelées n'ont pas les mêmes noms versés, sur un émetteur IPC ou sur un nom de rôle (`couverture.py revoir` → `local/analyse/audit-alt/propages-a-revoir.tsv`, 1 745 lignes).
-- **ipc_trace.py corrigé** (8 fautes de la relecture + 4 de snote_ap ; surtout : le code du module était réécrit entre deux passages par des écritures fausses, ce qui faussait tous les résultats d'avant). Tests verts. **La passe `all` n'a été refaite que pour 13 modules sur 54 (ac à error)** : `local/analyse/ipc_trace/resultats.tsv` mélange lignes neuves et anciennes.
+La source de vérité est **`etat.json`** (page `index.html`, ou `python outils/tableau.py --suivre`).
 
-Prochains chantiers, dans l'ordre :
-1. finir la passe ipc_trace (`cd outils ; for m in extrapad friends fs gpio gsp hid http i2c ir loader mcu memolib mic mp mvd ndm news nfc nim ns nwm pdn pm ps ptm pxi qtm ro sm socket spi ssl swkbd snote_ap friend cherry newslist mint menu; do python ipc_trace.py all --only $m; done`, menu > 25 min), comparer à `resultats-avant.tsv` (scratchpad compare.py perdu : refaire), vérifier que les 61 versés tiennent (attendu : news 0x103028 et 2 CAMQ_ changent de verdict, voir le rapport dans le commit) ;
-2. relire puis verser les envois IPC haute des six lots d'applets (repassés avec l'outil final), et corriger dans ces lots les fautes systématiques de `local/analyse/relecture-applets-5/relecture.md` (jumeaux comptés sur des appelées non versées, faux `_alt_`, rôles reportés par empreinte, preuves qui citent les adresses du module d'origine) ;
-3. traiter `propages-a-revoir.tsv` ; décider si les jumeaux alignés (-safe) échappent aux règles « émetteur IPC » et « nom de rôle » (une ligne dans `twin_grade`) ;
-4. les 13 autres applets, puis le noyau, l'ARM9 et les mémoires de démarrage ; ensuite seulement le jeu.
+**Changement de cap du 25/10/2026 : la décompilation de la console est en pause.** On finit les trois travaux en cours (passe `ipc_trace` sur tous les modules, relecture de la seconde passe de boot9/boot11, seconde passe de process9), puis tout le travail porte sur **Pokémon X seul** :
+1. le reverse du jeu (`code.bin` de la mise à jour et les 133 `.cro`), en lui reportant par empreinte les noms relus de la console ;
+2. le portage natif sur PC (runtime Rust + wgpu déjà jouable jusqu'au palais) ;
+3. un launcher, sur le modèle de Dusklight (le launcher de Zelda Twilight Princess) : réglages, choix d'interface, mods ;
+4. la montée en résolution, les mods, Archipelago, de nouveaux Pokémon.
+
+Idées d'interface de l'utilisateur, à développer avec lui avant de coder : Échap ouvre le menu de l'écran tactile ; les écrans interactifs (le mini-jeu des ballons…) reçoivent des calques pour jouer à la souris ; en combat, interface moderne (menus sur les côtés) ou à l'ancienne (menus en bas), au choix dans le launcher.
+
+État de la console à la pause (24/10) : 19 839 fonctions nommées et relues sur 254 369. Toutes les applets ont un premier lot relu ; secondes passes relues et versées pour kernel9 et arm9loader. Outils du 21 au 24/10 : `ipc_trace` écrit après chaque module et ne cherche les ouvertures que dans les fonctions qui peuvent écrire les places (1 s au lieu d'une heure, `--full` garde l'ancien balayage ; lancer un processus par module, la passe complète dans un seul processus finit par planter dans unicorn) ; `ghidra_direct.find_pointers` filtre les cibles ARM des tables de distances ; swkbd-safe a le même code.bin que swkbd (`fiches/safe.md`).
 
 Décidé par l'utilisateur le 24/10 : `hardware_timer_unregister_event` (kernel9) et `hardware_timer_cancel_event` (kernel11) gardent chacun leur nom, pas d'unification.
 
@@ -70,7 +71,7 @@ Décisions en attente de l'utilisateur : `fs_close_archive` et `httpc_close_cont
 
 ## 6. Les directives de l'utilisateur (elles étaient dans la mémoire du portable)
 
-- **Le but, en trois parties** : la 3DS décompilée à 100 % ; Pokémon X porté nativement sur PC, mieux rendu et plus rapide ; un moteur de mods pour des romhacks et des fangames. Chaque mod doit tourner à la fois sur la console (LayeredFS de Luma) et sur le PC.
+- **Le but, en trois parties** (la première est en pause depuis le 25/10, voir §5) : la 3DS décompilée à 100 % ; Pokémon X porté nativement sur PC, mieux rendu et plus rapide ; un moteur de mods pour des romhacks et des fangames. Chaque mod doit tourner à la fois sur la console (LayeredFS de Luma) et sur le PC.
 - **Le portage PC est en Rust + wgpu sous Vulkan.** Le banc Python reste l'outil d'enquête et la référence : chaque morceau Rust est vérifié contre lui. Le portage ne lit les mods que par la sortie `mods/build.py --pc` (`overlay.json`, format 1).
 - **Identifiants en anglais** (variables, fonctions, noms donnés en reverse, nouveaux fichiers de code). **Textes pour l'utilisateur en français** (commentaires, fiches, messages, commits).
 - **Sous-agents** (directive du 16/10 au soir, qui remplace l'ancienne « sonnet par défaut ») : Opus à l'effort maximal par défaut, Sonnet pour la recherche documentaire, Haiku pour les tâches mécaniques bien cadrées, Fable seulement si la tâche l'exige. Les agents sont définis dans `.claude/agents/` et les règles de qualité (KISS, pas de répétition, « comment un pro ferait ») dans `CLAUDE.md` à la racine. Peu d'agents à la fois. Préparer soi-même ce qui est partagé, donner à chacun un périmètre de fichiers, et vérifier ses résultats dans les octets avant de les intégrer : rejouer une table par `emulate_dispatch.py`, regarder les images, relancer les tests. Les briefs donnés le 16/10 reprenaient les règles de ce fichier.
