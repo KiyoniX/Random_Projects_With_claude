@@ -3,7 +3,7 @@
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-10-25",
-  "prochaine_action": "Changement de cap du 25/10 : la décompilation de la console est mise en pause, après avoir fini les travaux en cours (passe ipc_trace, relecture de boot9/boot11, seconde passe de process9). Ensuite, Pokémon X seul : son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher.",
+  "prochaine_action": "Console en pause depuis le 25/10 ; ses travaux en cours sont finis (passe ipc_trace sur tous les modules, boot9/boot11, process9). Prochain chantier : Pokémon X seul. Son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur avant de coder : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher.",
   "fonctions": {
     "total": 254369,
     "identifiees": 254369,
@@ -2211,6 +2211,10 @@
     {
       "date": "2026-10-25",
       "texte": "Changement de cap du 25/10 : la décompilation de la console est mise en pause, après avoir fini les travaux en cours (passe ipc_trace, relecture de boot9/boot11, seconde passe de process9). Ensuite, Pokémon X seul : son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher."
+    },
+    {
+      "date": "2026-10-25",
+      "texte": "Passe ipc_trace finie sur tous les modules, un processus par module : 2 955 envois, 1 317 TRACED, 41 MISMATCH, 11 UNNAMED, 106 AMBIGUOUS, 1 480 UNTRACED (avant : 92 TRACED sur 373). Mêmes poignées et mêmes services ouverts que la passe d'avant. Sur les 61 envois versés, 56 restent TRACED. Les 5 autres tombent sous les règles devenues plus strictes depuis : cecd:s, préfixe étranger, et cam:q, dont l'aiguillage frère n'est pas prouvé. C'est la décision déjà en attente (table d'aiguillage de la fiche ou Carte). Les nouveaux TRACED ne sont pas versés, la console est en pause."
     }
   ],
   "dump": {
