@@ -8,7 +8,7 @@ window.ETAT = {
  "fonctions": {
   "total": 254369,
   "identifiees": 254369,
-  "nommees": 20052,
+  "nommees": 20112,
   "reimplementees": 0,
   "typees": 0,
   "citees": 7907,
@@ -1116,9 +1116,9 @@ window.ETAT = {
     "fiche_seule": 2,
     "hors_compte": 15,
     "trouvees": 4811,
-    "nommees": 504,
+    "nommees": 564,
     "proposees_haute": 0,
-    "proposees_moyenne": 1509,
+    "proposees_moyenne": 1454,
     "typees": 0,
     "citees": 336,
     "recompilees": 0,
@@ -2230,8 +2230,12 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "25/10/2026 à 19:13",
+ "mise_a_jour_heure": "25/10/2026 à 19:22",
  "commits": [
+  [
+   "2026-10-25",
+   "Décompil 3DS : seconde passe relue de boot9 (169) et boot11 (46) versée ; mêmes octets, même nom ; genre corrigé de 18 lignes Thumb"
+  ],
   [
    "2026-10-25",
    "Décompil 3DS : changement de cap du 25/10, la console en pause après les travaux en cours, Pokémon X seul ensuite (REPRISE, etat.json)"

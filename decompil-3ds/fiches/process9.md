@@ -405,9 +405,9 @@ Table de saut à `0x0808AA9C`, 110 cases. Les numéros `0x2B` à `0x38`, `0x3A` 
 | `0x0040` |  | DoCleanup | `0x0808BB28` | `pxiam_do_cleanup` (`0x08057420`) |
 | `0x0041` |  | DeleteAllTemporaryPrograms | `0x0808BB48` | `pxiam_delete_all_temporary_programs` (`0x080424F0`) |
 | `0x0042` | `0x00420142` | InstallTitlesFinishFIRM | `0x0808BB6C` | `pxiam_install_titles_finish_firm` (`0x08048C64`) |
-| `0x0043` | `0x004301C8` | VerifyDSiWareFooter | `0x0808BBD0` | `pxiam_verify_d_si_ware_footer` (`0x08044574`) |
+| `0x0043` | `0x004301C8` | VerifyDSiWareFooter | `0x0808BBD0` | `pxiam_verify_dsiware_footer` (`0x08044574`) |
 | `0x0044` | `0x004400C4` | (sans nom) | `0x0808BC8C` | `0x08045704` |
-| `0x0045` | `0x00450108` | DecryptDSiWareData | `0x0808BD00` | `pxiam_decrypt_d_si_ware_data` (`0x08045728`) |
+| `0x0045` | `0x00450108` | DecryptDSiWareData | `0x0808BD00` | `pxiam_decrypt_dsiware_data` (`0x08045728`) |
 | `0x0046` | `0x00460182` | WriteTWLSavedata | `0x0808BDBC` | `pxiam_write_twl_savedata` (`0x08045104`) |
 | `0x0047` |  | InitializeTitleDatabase | `0x0808BE2C` | `pxiam_initialize_title_database` (`0x0803F894`) |
 | `0x0048` |  | ReloadDBS | `0x0808BE58` | `pxiam_reload_dbs` (`0x0803FB7C`) |
@@ -415,15 +415,15 @@ Table de saut à `0x0808AA9C`, 110 cases. Les numéros `0x2B` à `0x38`, `0x3A` 
 | `0x004A` | `0x004A0102` | GetTicketIdList | `0x0808BEBC` | `pxiam_get_ticket_id_list` (`0x08040F7C`) |
 | `0x004B` |  | DeleteTicketId | `0x0808BF24` | `pxiam_delete_ticket_id` (`0x08040E8C`) |
 | `0x004C` | `0x004C0042` | GetPersonalizedTicketInfoList | `0x0808BF5C` | `pxiam_get_personalized_ticket_info_list` (`0x080413EC`) |
-| `0x004D` | `0x004D0144` | ExportDSiWare | `0x0808BFC8` | `pxiam_export_d_si_ware` (`0x080447C4`) |
-| `0x004E` |  | BeginInstallDSiWareExport | `0x0808C04C` | `pxiam_begin_install_d_si_ware_export` (`0x080455FC`) |
-| `0x004F` |  | GetDSiWareExportSize | `0x0808C080` | `pxiam_get_d_si_ware_export_size` (`0x080449F0`) |
+| `0x004D` | `0x004D0144` | ExportDSiWare | `0x0808BFC8` | `pxiam_export_dsiware` (`0x080447C4`) |
+| `0x004E` |  | BeginInstallDSiWareExport | `0x0808C04C` | `pxiam_begin_install_dsiware_export` (`0x080455FC`) |
+| `0x004F` |  | GetDSiWareExportSize | `0x0808C080` | `pxiam_get_dsiware_export_size` (`0x080449F0`) |
 | `0x0050` | `0x00500044` | GetTwlProgramListForReboot | `0x0808C0B8` | `pxiam_get_twl_program_list_for_reboot` (`0x0804255C`) |
 | `0x0051` |  | DeleteAllTwlUserPrograms | `0x0808C134` | `pxiam_delete_all_twl_user_programs` (`0x08042188`) |
 | `0x0052` |  | DeleteAllExpiredUserPrograms | `0x0808C158` | `pxiam_delete_all_expired_user_programs` (`0x0804258C`) |
-| `0x0053` | `0x00530084` | ValidateDSiWareMovableSedHash | `0x0808C180` | `pxiam_validate_d_si_ware_movable_sed_hash` (`0x08044A58`) |
+| `0x0053` | `0x00530084` | ValidateDSiWareMovableSedHash | `0x0808C180` | `pxiam_validate_dsiware_movable_sed_hash` (`0x08044A58`) |
 | `0x0054` |  | GetTWLPartitionInfo | `0x0808C1F0` | `pxiam_get_twl_partition_info` (`0x08042384`) |
-| `0x0055` | `0x005500C4` | ValidateDSiWareSectionMAC | `0x0808C234` | `pxiam_validate_d_si_ware_section_mac` (`0x0804568C`) |
+| `0x0055` | `0x005500C4` | ValidateDSiWareSectionMAC | `0x0808C234` | `pxiam_validate_dsiware_section_mac` (`0x0804568C`) |
 | `0x0056` |  | CheckContentRights | `0x0808C2A8` | `pxiam_check_content_rights` (`0x0804125C`) |
 | `0x0057` | `0x00570042` | CreateImportContentContexts | `0x0808C2E0` | `pxiam_create_import_content_contexts` (`0x080486A0`) |
 | `0x0058` |  | GetNumContentInfos | `0x0808C324` | `pxiam_get_num_content_infos` (`0x0804374E`) |
@@ -439,7 +439,7 @@ Table de saut à `0x0808AA9C`, 110 cases. Les numéros `0x2B` à `0x38`, `0x3A` 
 | `0x0062` | `0x00620044` | GetTicketLimitInfos | `0x0808C778` | `pxiam_get_ticket_limit_infos` (`0x080412D0`) |
 | `0x0063` | `0x00630042` | UpdateImportContentContexts | `0x0808C7E4` | `pxiam_update_import_content_contexts` (`0x0808778C`) |
 | `0x0064` |  | GetInternalTitleLocationInfo | `0x0808C928` |  |
-| `0x0065` |  | MigrateAGBtoSAV | `0x0808C97C` | `pxiam_migrate_ag_bto_sav` (`0x08048668`) |
+| `0x0065` |  | MigrateAGBtoSAV | `0x0808C97C` | `pxiam_migrate_agb_to_sav` (`0x08048668`) |
 | `0x0067` | `0x00670082` | DeleteProgramsAtomically | `0x0808C994` | `pxiam_delete_programs_atomically` (`0x0804222C`) |
 | `0x0068` | `0x006801C2` | GetItemRights | `0x0808C9E4` | `pxiam_get_item_rights` (`0x08040DE4`) |
 | `0x0069` |  | IsDataTitleInUse | `0x0808CAD4` | `pxiam_is_data_title_in_use` (`0x08043404`) |
