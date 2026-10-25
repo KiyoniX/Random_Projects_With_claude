@@ -154,7 +154,7 @@
 0x105c50	function	init_runtime_and_srv
 0x105c60	function	srv_init
 0x105d84	function	construct_array
-0x105da6	function	static_guard_acquire
+0x105da6	label	static_guard_acquire
 0x105db8	function	update_accelerometer
 0x105f20	function	I2CHID_ReadRegisterBuffer
 0x10625c	function	svcGetProcessId

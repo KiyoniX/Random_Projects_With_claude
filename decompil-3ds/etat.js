@@ -3,12 +3,12 @@ window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-10-24",
- "prochaine_action": "Finir la passe ipc_trace (13 modules sur 54 refaits), puis relire et verser les envois IPC des six lots d'applets (menu, mint, friend, snote_ap, newslist, cherry) et corriger leurs fautes systématiques ; traiter les propagés à revoir ; les 13 autres applets ; finir le noyau, l'ARM9 et les mémoires de démarrage. Ensuite seulement le jeu (REPRISE.md §5).",
+ "mise_a_jour": "2026-10-25",
+ "prochaine_action": "Changement de cap du 25/10 : la décompilation de la console est mise en pause, après avoir fini les travaux en cours (passe ipc_trace, relecture de boot9/boot11, seconde passe de process9). Ensuite, Pokémon X seul : son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher.",
  "fonctions": {
   "total": 254369,
   "identifiees": 254369,
-  "nommees": 19839,
+  "nommees": 20052,
   "reimplementees": 0,
   "typees": 0,
   "citees": 7907,
@@ -126,9 +126,9 @@ window.ETAT = {
     "fiche_seule": 2,
     "hors_compte": 25,
     "trouvees": 217,
-    "nommees": 164,
+    "nommees": 208,
     "proposees_haute": 0,
-    "proposees_moyenne": 53,
+    "proposees_moyenne": 9,
     "typees": 0,
     "citees": 41,
     "recompilees": 0,
@@ -141,9 +141,9 @@ window.ETAT = {
     "fiche_seule": 3,
     "hors_compte": 30,
     "trouvees": 546,
-    "nommees": 367,
-    "proposees_haute": 3,
-    "proposees_moyenne": 176,
+    "nommees": 536,
+    "proposees_haute": 1,
+    "proposees_moyenne": 9,
     "typees": 0,
     "citees": 102,
     "recompilees": 0,
@@ -2208,6 +2208,10 @@ window.ETAT = {
   {
    "date": "2026-10-17",
    "texte": "Le portage natif joue : avec un scénario de 180 s (Start, Continuer, marcher vers le palais, A, ressortir), le runtime Rust va sans faute du menu au palais Chaydeuvre, entre dans la salle de la statue (dialogue, PNJ) et ressort, en 91 s de PC dessin compris. Un tour du cycle des trous (banc hybride sur le même scénario : 57 adresses, dont 0x3bf924 qu'un .cro appelle par un pointeur que l'analyse statique ne voit pas) : 26 241 fonctions. Carte des services : les écarts des neuf dernières fiches (am, news, act, dlp, mp, nfc, mvd, nim, qtm) sont reportés, 145 corrections, 11 commandes ajoutées ; fiche news corrigée."
+  },
+  {
+   "date": "2026-10-25",
+   "texte": "Changement de cap du 25/10 : la décompilation de la console est mise en pause, après avoir fini les travaux en cours (passe ipc_trace, relecture de boot9/boot11, seconde passe de process9). Ensuite, Pokémon X seul : son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher."
   }
  ],
  "dump": {
@@ -2226,8 +2230,20 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "24/10/2026 à 15:31",
+ "mise_a_jour_heure": "25/10/2026 à 19:13",
  "commits": [
+  [
+   "2026-10-25",
+   "Décompil 3DS : changement de cap du 25/10, la console en pause après les travaux en cours, Pokémon X seul ensuite (REPRISE, etat.json)"
+  ],
+  [
+   "2026-10-24",
+   "Décompil 3DS : ipc_trace ne cherche les ouvertures que dans les fonctions qui peuvent écrire les places des poignées (mêmes verdicts que le balayage complet sur nim et cecd, 1 s au lieu de 16 et 4 min ; --full le garde)"
+  ],
+  [
+   "2026-10-24",
+   "Décompil 3DS : seconde passe relue de kernel9 (51) et arm9loader (101) versée ; memzero devient memclr partout"
+  ],
   [
    "2026-10-24",
    "Décompil 3DS : la page du site ne montre plus que l'avancement brut et le journal"
