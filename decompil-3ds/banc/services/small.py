@@ -121,7 +121,7 @@ class Hid(Service):
     name = 'hid:USER'
     carte = 'hid:USER'
     kind = 'simplifié'
-    commands = {0x000A: 'get_ipc_handles', 0x0011: 'ok', 0x0012: 'ok', 0x0013: 'ok', 0x0014: 'ok',
+    commands = {0x000A: 'get_ipc_handles', 0x0011: 'sensor_on', 0x0012: 'sensor_off', 0x0013: 'sensor_on', 0x0014: 'sensor_off',
                 0x0015: 'get_gyro_coefficient', 0x0016: 'get_gyro_calibration'}
 
     def __init__(self, bench):
@@ -132,7 +132,8 @@ class Hid(Service):
         for offset in HID_SECTIONS.values():
             for word in range(5):
                 self.shared.w32(offset + 4 * word, 0xFFFFFFFF)
-        self.index = {'pad': -1, 'touch': -1}
+        self.index = {'pad': -1, 'touch': -1, 'accel': -1, 'gyro': -1}
+        self.sensors = [0, 0]   # combien de fois le jeu a allumé chaque capteur : accel, gyro
         self.buttons = 0
         self.updates = 0
 
@@ -141,6 +142,15 @@ class Hid(Service):
 
     def get_ipc_handles(self, req):
         return Reply(0).copy_handles(self.shared, *self.events)
+
+    def sensor_on(self, req):
+        self.sensors[req.command == 0x0013] += 1
+        return Reply(0)
+
+    def sensor_off(self, req):
+        which = req.command == 0x0014
+        self.sensors[which] = max(0, self.sensors[which] - 1)
+        return Reply(0)
 
     def get_gyro_coefficient(self, req):
         return Reply(0, [0x41660000])
@@ -170,6 +180,12 @@ class Hid(Service):
         held = self.buttons
         self._push('pad', 0x28, 0x10, 8, struct.pack('<IIIhh', held, 0, 0, 0, 0))
         self._push('touch', 0x20, 8, 8, struct.pack('<HHI', 0, 0, 0))
+        # La console posée à plat, immobile : la pesanteur sur Y (512 pour 1 g), aucune rotation. Otto Focus attend ces
+        # entrées pour afficher son viseur.
+        if self.sensors[0]:
+            self._push('accel', 0x20, 6, 8, struct.pack('<hhh', 0, -512, 0))
+        if self.sensors[1]:
+            self._push('gyro', 0x20, 6, 32, bytes(6))
 
 
 class ErrF(Service):

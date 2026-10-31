@@ -175,8 +175,10 @@ pub const HID_SECTIONS: [(&str, usize); 5] = [("pad", 0x000), ("touch", 0x0A8), 
 pub struct Hid {
     pub shared: ObjId,
     pub events: Vec<ObjId>,
-    /// Dernier indice écrit : pad, touch (-1 au départ).
-    index: [i32; 2],
+    /// Dernier indice écrit : pad, touch, accel, gyro (-1 au départ).
+    index: [i32; 4],
+    /// Combien de fois le jeu a allumé chaque capteur : accel, gyro.
+    sensors: [u32; 2],
     pub buttons: u32,
     /// Le stylet posé : X et Y sur l'écran du bas.
     pub touch: Option<(u16, u16)>,
@@ -196,7 +198,7 @@ impl Hid {
                 k.shared(shared).w32(offset + 4 * word, 0xFFFF_FFFF);
             }
         }
-        Hid { shared, events, index: [-1, -1], buttons: 0, touch: None, updates: 0 }
+        Hid { shared, events, index: [-1; 4], sensors: [0; 2], buttons: 0, touch: None, updates: 0 }
     }
 
     fn push(&mut self, k: &Kernel, section: usize, entry_offset: usize, entry_size: usize, count: i32, entry: &[u8]) {
@@ -232,6 +234,16 @@ impl Hid {
         touch[2..4].copy_from_slice(&y.to_le_bytes());
         touch[4] = self.touch.is_some() as u8;
         self.push(k, 1, 0x20, 8, 8, &touch);
+        // La console posée à plat, immobile : la pesanteur sur Y (512 pour 1 g), aucune rotation. Otto Focus attend ces
+        // entrées pour afficher son viseur.
+        if self.sensors[0] > 0 {
+            let mut accel = [0u8; 6];
+            accel[2..4].copy_from_slice(&(-512i16).to_le_bytes());
+            self.push(k, 2, 0x20, 6, 8, &accel);
+        }
+        if self.sensors[1] > 0 {
+            self.push(k, 3, 0x20, 6, 32, &[0u8; 6]);
+        }
     }
 }
 
@@ -251,7 +263,15 @@ impl Service for Hid {
                 objects.extend_from_slice(&self.events);
                 Reply::new(0).copy_handles(&objects)
             }
-            0x0011..=0x0014 => Reply::new(0),
+            0x0011 | 0x0013 => {
+                self.sensors[(req.command == 0x0013) as usize] += 1;
+                Reply::new(0)
+            }
+            0x0012 | 0x0014 => {
+                let count = &mut self.sensors[(req.command == 0x0014) as usize];
+                *count = count.saturating_sub(1);
+                Reply::new(0)
+            }
             0x0015 => Reply::with_words(0, &[0x41660000]),
             0x0016 => {
                 // Zéro à 0, références ±6700 sur chaque axe : deux valeurs différentes, le jeu ne divise pas par zéro.
@@ -494,17 +514,25 @@ mod tests {
         assert_eq!(word(&k, 0x28), 0);
         assert_eq!(word(&k, 0xA8), t2 as u32);
         assert_eq!(word(&k, 0xA8 + 0x10), 1);
+        // un capteur n'écrit que s'il est allumé
+        assert_eq!(word(&k, 0x108 + 0x10), 0xFFFF_FFFF);
+        hid.sensors = [1, 1];
+        hid.update(&k);
+        assert_eq!(word(&k, 0x108 + 0x10), 0);
+        assert_eq!(word(&k, 0x108 + 0x20), (-512i16 as u16 as u32) << 16);
+        assert_eq!(word(&k, 0x158 + 0x10), 0);
+        hid.sensors = [0, 0];
         // le stylet posé : X, Y et l'octet « touché » dans l'entrée du tactile, puis levé
         hid.touch = Some((319, 7));
         hid.update(&k);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 2 * 8), 319 | 7 << 16);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 2 * 8 + 4), 1);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8), 319 | 7 << 16);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8 + 4), 1);
         hid.touch = None;
         hid.update(&k);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8), 0);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8 + 4), 0);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 4 * 8), 0);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 4 * 8 + 4), 0);
         // le tampon circulaire revient à 0 au 9e et recopie la date précédente
-        for _ in 0..4 {
+        for _ in 0..3 {
             k.now += 1_000_000_000;
             hid.update(&k);
         }
@@ -514,8 +542,8 @@ mod tests {
         assert_eq!(word(&k, 0x10), 0);
         assert_eq!(word(&k, 8), before as u32);
         assert_eq!(word(&k, 0), k.ticks() as u32);
-        // les sections accéléromètre, gyroscope, débogage ne bougent pas
-        assert_eq!(word(&k, 0x108), 0xFFFF_FFFF);
+        // la section de débogage ne bouge pas
+        assert_eq!(word(&k, 0x238), 0xFFFF_FFFF);
     }
 
     #[test]
