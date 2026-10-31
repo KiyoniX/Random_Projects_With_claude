@@ -51,6 +51,14 @@ pub struct Shared {
     pub gpu: pica::render::Gpu,
 }
 
+/// Ce que le rendu fait des textures du jeu.
+#[derive(Clone, Default)]
+pub struct TextureOptions {
+    pub filter: pica::upscale::TextureFilter,
+    pub pack: Option<PathBuf>,
+    pub dump: Option<PathBuf>,
+}
+
 pub struct PicaBackend {
     pica: Pica,
     /// Où écrire les PNG ; `None` pour l'affichage en direct (ni PNG ni relecture des images).
@@ -78,7 +86,7 @@ fn screen_from_kernel(k: &Kernel, screen: usize, address: u32, format: u32, stri
 impl PicaBackend {
     /// `folder` : où écrire les PNG (vidé de ses anciens PNG, comme le banc), ou `None` pour l'affichage en direct ;
     /// `pipeline_cache` : le dossier du cache des pipelines sur disque (voir `Renderer::load_pipeline_cache`).
-    pub fn new(k: &Kernel, scale: u32, folder: Option<PathBuf>, pipeline_cache: Option<&Path>) -> Result<PicaBackend, String> {
+    pub fn new(k: &Kernel, scale: u32, folder: Option<PathBuf>, pipeline_cache: Option<&Path>, textures: &TextureOptions) -> Result<PicaBackend, String> {
         let linear = k.linear_backing.clone();
         let vram = k.memory.find(VRAM).ok_or("pas de mémoire vidéo projetée")?;
         let mut memory = Memory::default();
@@ -98,6 +106,12 @@ impl PicaBackend {
         }
         let mut pica = Pica::live(memory, scale)?;
         pica.readback = folder.is_some();
+        pica.renderer.texture_filter = textures.filter;
+        pica.renderer.texture_pack = textures.pack.clone();
+        if let Some(folder) = &textures.dump {
+            std::fs::create_dir_all(folder).map_err(|e| format!("{} : {e}", folder.display()))?;
+        }
+        pica.renderer.texture_dump = textures.dump.clone();
         if let Some(cache) = pipeline_cache {
             pica.renderer.load_pipeline_cache(cache);
         }
@@ -227,7 +241,7 @@ mod tests {
         let linear = k.linear_backing.clone();
         k.memory.map(LINEAR, 0x20_0000, PERM_RW, "tas linéaire", Some((&linear, 0))).unwrap();
         k.memory.map(VRAM, 0x1_0000, PERM_RW, "mémoire vidéo", None).unwrap();
-        match PicaBackend::new(&k, 1, folder, None) {
+        match PicaBackend::new(&k, 1, folder, None, &TextureOptions::default()) {
             Ok(gpu) => Some((k, gpu)),
             Err(e) => {
                 eprintln!("test sauté, pas de GPU : {e}");

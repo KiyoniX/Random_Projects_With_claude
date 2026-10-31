@@ -36,11 +36,20 @@ struct Settings {
     game_mod: Option<String>,
     /// De 0 (pas de son) à 100.
     volume: u32,
+    /// Le nom du filtre de texture pour `portage play`.
+    texture_filter: String,
+    /// L'image lissée en s'agrandissant à la fenêtre.
+    smooth: bool,
+    /// Le pack de textures : un dossier de `local/mods-build/textures`.
+    texture_pack: Option<String>,
 }
+
+/// Les filtres de texture : (nom pour `portage play`, ce qu'on affiche).
+const TEXTURE_FILTERS: [(&str, &str); 4] = [("aucun", "Aucun"), ("scale2x", "Scale2x"), ("mmpx", "MMPX"), ("bicubique", "Bicubique")];
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100 }
+        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100, texture_filter: "aucun".to_string(), smooth: false, texture_pack: None }
     }
 }
 
@@ -50,8 +59,15 @@ impl Settings {
         let mut out = vec!["play".to_string(), "--scale".to_string(), self.scale.to_string()];
         out.extend(["--combat".to_string(), if self.combat == CombatUi::Corner { "coin" } else { "menu" }.to_string()]);
         out.extend(["--volume".to_string(), self.volume.to_string()]);
+        out.extend(["--filtre-texture".to_string(), self.texture_filter.clone()]);
+        if self.smooth {
+            out.push("--lissage".to_string());
+        }
         if self.screens == Screens::Both {
             out.extend(["--ecrans".to_string(), "deux".to_string()]);
+        }
+        if let Some(name) = &self.texture_pack {
+            out.extend(["--textures".to_string(), root.join("local/mods-build/textures").join(name).display().to_string()]);
         }
         if let Some(name) = &self.game_mod {
             out.extend(["--mod".to_string(), root.join("local/mods-build").join(name).display().to_string()]);
@@ -65,6 +81,14 @@ fn find_root() -> PathBuf {
     let start = std::env::current_exe().unwrap_or_default();
     let found = start.ancestors().find(|dir| dir.join("etat.json").is_file() && dir.join("banc").is_dir());
     found.map(Path::to_path_buf).unwrap_or_else(|| PathBuf::from("."))
+}
+
+/// Les packs de textures : les dossiers de `local/mods-build/textures`.
+fn list_texture_packs(root: &Path) -> Vec<String> {
+    let Ok(entries) = std::fs::read_dir(root.join("local/mods-build/textures")) else { return Vec::new() };
+    let mut names: Vec<String> = entries.flatten().filter(|e| e.path().is_dir()).map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    names.sort();
+    names
 }
 
 /// Les mods construits : les dossiers de `local/mods-build` qui ont un `overlay.json`.
@@ -94,6 +118,7 @@ struct Launcher {
     root: PathBuf,
     settings: Settings,
     mods: Vec<String>,
+    texture_packs: Vec<String>,
     game: Option<Child>,
     status: String,
 }
@@ -143,6 +168,25 @@ impl eframe::App for Launcher {
                     }
                 });
                 ui.end_row();
+                ui.label("Filtre de texture");
+                ui.horizontal(|ui| {
+                    for (name, label) in TEXTURE_FILTERS {
+                        ui.radio_value(&mut self.settings.texture_filter, name.to_string(), label);
+                    }
+                });
+                ui.end_row();
+                ui.label("Pack de textures");
+                let current = self.settings.texture_pack.clone().unwrap_or_else(|| "Aucun".to_string());
+                egui::ComboBox::from_id_salt("textures").selected_text(current).show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.settings.texture_pack, None, "Aucun");
+                    for name in &self.texture_packs {
+                        ui.selectable_value(&mut self.settings.texture_pack, Some(name.clone()), name);
+                    }
+                });
+                ui.end_row();
+                ui.label("Affichage");
+                ui.checkbox(&mut self.settings.smooth, "Lissé");
+                ui.end_row();
                 ui.label("Écrans");
                 ui.horizontal(|ui| {
                     ui.radio_value(&mut self.settings.screens, Screens::Top, "Haut seul (Échap : écran du bas)");
@@ -187,9 +231,10 @@ fn main() -> eframe::Result {
     let root = find_root();
     let settings = load(&root.join("local/portage/reglages.json"));
     let mods = list_mods(&root);
-    let app = Launcher { root, settings, mods, game: None, status: String::new() };
+    let texture_packs = list_texture_packs(&root);
+    let app = Launcher { root, settings, mods, texture_packs, game: None, status: String::new() };
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([520.0, 300.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([560.0, 390.0]),
         ..Default::default()
     };
     eframe::run_native("Pokémon X", options, Box::new(|_| Ok(Box::new(app))))
@@ -202,18 +247,18 @@ mod tests {
     #[test]
     fn arguments_follow_the_settings() {
         let root = Path::new("R");
-        assert_eq!(Settings::default().arguments(root), ["play", "--scale", "2", "--combat", "coin", "--volume", "100"]);
-        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()), volume: 30 };
+        assert_eq!(Settings::default().arguments(root), ["play", "--scale", "2", "--combat", "coin", "--volume", "100", "--filtre-texture", "aucun"]);
+        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()), volume: 30, texture_filter: "mmpx".into(), smooth: true, texture_pack: None };
         let arguments = settings.arguments(root);
-        assert_eq!(&arguments[..9], ["play", "--scale", "4", "--combat", "menu", "--volume", "30", "--ecrans", "deux"]);
-        assert_eq!(arguments[9], "--mod");
-        assert!(arguments[10].ends_with("pc"));
+        assert_eq!(&arguments[..12], ["play", "--scale", "4", "--combat", "menu", "--volume", "30", "--filtre-texture", "mmpx", "--lissage", "--ecrans", "deux"]);
+        assert_eq!(arguments[12], "--mod");
+        assert!(arguments[13].ends_with("pc"));
     }
 
     #[test]
     fn settings_survive_a_file_and_a_missing_field() {
         let path = std::env::temp_dir().join(format!("reglages-{}/r.json", std::process::id()));
-        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()), volume: 7 };
+        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()), volume: 7, texture_filter: "mmpx".into(), smooth: true, texture_pack: Some("hd".into()) };
         save(&path, &settings).unwrap();
         assert_eq!(load(&path), settings);
         std::fs::write(&path, r#"{"scale": 1}"#).unwrap();

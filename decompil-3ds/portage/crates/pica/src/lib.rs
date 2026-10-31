@@ -13,6 +13,7 @@ pub mod render;
 pub mod shader;
 pub mod state;
 pub mod transfer;
+pub mod upscale;
 pub mod vertex;
 
 use capture::{Capture, Command};

@@ -145,6 +145,7 @@ class Mutex(KObject):
         super().__init__(kernel, name)
         self.owner = owner
         self.depth = 1 if owner else 0
+        kernel.mutexes.append(self)
 
     def is_free(self, thread):
         return self.owner is None or self.owner is thread
@@ -340,6 +341,7 @@ class Kernel:
         self.current = None                           # le fil qui tourne
         self.ready_order = itertools.count()
         self.tls_used = set()
+        self.mutexes = []       # pour rendre ceux d'un fil qui meurt
         self.ports = {}                               # nom -> fabrique de session
         self.services = {}                            # nom -> service
         self.heap_backing = Backing(HEAP_END - HEAP_BASE, 'tas')
@@ -709,6 +711,11 @@ class Kernel:
         thread.state = DEAD
         self.tls_used.discard((thread.tls - TLS_BASE) // TLS_SLOT)
         self.journal.svc(self, thread, 9, self.cpu.get('pc') - 4, self.cpu.get('lr'), 'ExitThread')
+        # thread_exit (kernel11 0xFFF132A0) rend les mutex du fil qui meurt : le jeu compte dessus, 0x199ee4 n'en rend aucun.
+        for mutex in self.mutexes:
+            if mutex.owner is thread:
+                mutex.owner = None
+                mutex.depth = 0
         self.wake_waiters()
         return False
 

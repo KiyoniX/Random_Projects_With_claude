@@ -1,7 +1,7 @@
 //! `runtime` : le noyau, les services et le processeur recompilé du portage, en ligne de commande.
 //!
 //!   runtime run [--seconds S] [--turns N] [--minutes-pc M] [--out DOSSIER] [--dll CHEMIN] [--mod DOSSIER]
-//!               [--appuis "12:A,14:START"] [--rejouer JOURNAL] [--garder-sauvegarde] [--son WAV] [--root DOSSIER] [--appels-systeme-rares] [--dessiner [--scale N]]
+//!               [--appuis "12:A,14:START"] [--rejouer JOURNAL] [--garder-sauvegarde] [--son WAV] [--filtre-texture NOM] [--textures DOSSIER] [--extraire-textures DOSSIER] [--root DOSSIER] [--appels-systeme-rares] [--dessiner [--scale N]]
 //!   runtime compare JOURNAL_GAUCHE JOURNAL_DROITE      (ex. le journal du banc Python et celui du runtime)
 
 use std::path::PathBuf;
@@ -54,6 +54,11 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             "--dll" => options.dll = PathBuf::from(value),
             "--mod" => options.mod_dir = Some(PathBuf::from(value)),
             "--appuis" => options.presses = parse_presses(&value)?,
+            "--filtre-texture" => {
+                options.textures.filter = pica::upscale::TextureFilter::from_name(&value).ok_or_else(|| format!("filtre inconnu : {value}"))?;
+            }
+            "--textures" => options.textures.pack = Some(PathBuf::from(value)),
+            "--extraire-textures" => options.textures.dump = Some(PathBuf::from(value)),
             "--son" => {
                 wav = Some(value);
                 options.audio = Some(Default::default());

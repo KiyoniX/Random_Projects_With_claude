@@ -95,6 +95,7 @@ struct Play {
     /// L'écran du bas montre les capacités : elles passent en colonne à droite.
     moves_shown: bool,
     frames_shown: u64,
+    smooth: bool,
 }
 
 /// Ce que `portage play` reçoit de la ligne de commande (les réglages du launcher).
@@ -108,6 +109,8 @@ pub struct Settings {
     pub both_screens: bool,
     pub game_mod: Option<std::path::PathBuf>,
     pub volume: u32,
+    pub textures: runtime::gpu::TextureOptions,
+    pub smooth: bool,
 }
 
 impl Play {
@@ -242,7 +245,7 @@ impl Play {
                 }
             }
         }
-        screens.draw([textures[0].as_ref(), if shown { textures[1].as_ref() } else { None }], false, layout);
+        screens.draw([textures[0].as_ref(), if shown { textures[1].as_ref() } else { None }], self.smooth, layout);
         self.second.presented += 1;
         let elapsed = self.second_start.elapsed().as_secs_f64();
         if elapsed >= 1.0 {
@@ -339,7 +342,7 @@ impl ApplicationHandler for Play {
 }
 
 pub fn run(settings: Settings) -> Result<(), String> {
-    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod, volume } = settings;
+    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod, volume, textures, smooth } = settings;
     let root = find_root();
     let mut options = Options::new(&root);
     options.out = root.join("local/analyse/runtime/play");
@@ -353,6 +356,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         options.clock_milliseconds = Some((local + 2_208_988_800_000) as u64);
     }
     options.mod_dir = game_mod;
+    options.textures = textures;
     let audio: std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>> = Default::default();
     // un volume nul ne décode rien du tout : le son reste éteint comme sur le banc
     let _output = if volume > 0 { crate::sound::start(audio.clone(), volume.min(100) as f32 / 100.0) } else { None };
@@ -393,6 +397,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         both_screens,
         moves_shown: false,
         frames_shown: 0,
+        smooth,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());

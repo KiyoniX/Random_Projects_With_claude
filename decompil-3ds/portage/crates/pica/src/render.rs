@@ -193,6 +193,8 @@ struct MeshEntry {
 }
 
 struct TextureEntry {
+    /// Sa taille sur le GPU, plus grande que dans le jeu avec un filtre ou un pack.
+    stored: [f32; 2],
     id: u64,
     crc: u32,
     /// Horloge de la mémoire quand le contenu a été vérifié pour la dernière fois.
@@ -239,6 +241,12 @@ pub struct Renderer {
     scale: u32,
     /// Vrai (par défaut) : un tampon de rendu vivant qui est lu comme texture sert directement, sans passer par la mémoire.
     pub live_textures: bool,
+    /// Le filtre qui agrandit les textures du jeu.
+    pub texture_filter: crate::upscale::TextureFilter,
+    /// Un pack de textures : `<crc32 de la texture en mémoire, 8 chiffres>.png` remplace la texture, à toute définition.
+    pub texture_pack: Option<std::path::PathBuf>,
+    /// Écrit chaque texture décodée dans ce dossier, sous le nom qu'un pack attend.
+    pub texture_dump: Option<std::path::PathBuf>,
     layout: wgpu::BindGroupLayout,
     pipeline_layout: wgpu::PipelineLayout,
     vs_by_version: HashMap<(u64, u32, u32, [u32; 7]), Option<u64>>,
@@ -438,6 +446,9 @@ impl Renderer {
             adapter,
             scale: scale.max(1),
             live_textures: true,
+            texture_filter: crate::upscale::TextureFilter::None,
+            texture_pack: None,
+            texture_dump: None,
             layout,
             pipeline_layout,
             vs_by_version: HashMap::new(),
@@ -1181,6 +1192,19 @@ struct Out { @builtin(frag_depth) d: f32 }
                 }
             };
             self.stats.textures_decoded += 1;
+            if let Some(folder) = &self.texture_dump {
+                let path = folder.join(format!("{new_crc:08x}.png"));
+                if !path.exists() {
+                    let _ = crate::images::save_png(&path, width, height, &pixels);
+                }
+            }
+            // assez petite pour en valoir la peine : les grandes textures sont des images déjà détaillées
+            let upscale = self.texture_filter != crate::upscale::TextureFilter::None && width <= 512 && height <= 512;
+            let (mut stored_width, mut stored_height) = if upscale { (width * 2, height * 2) } else { (width, height) };
+            let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height) } else { pixels };
+            if let Some(replacement) = self.texture_pack.as_ref().and_then(|folder| crate::images::load_png(&folder.join(format!("{new_crc:08x}.png")))) {
+                (stored_width, stored_height, pixels) = replacement;
+            }
             if self.textures.len() > 200 {
                 self.textures.clear();
                 self.bind_groups.clear();
@@ -1191,7 +1215,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 &self.queue,
                 &wgpu::TextureDescriptor {
                     label: Some("texture du jeu"),
-                    size: wgpu::Extent3d { width: width as u32, height: height as u32, depth_or_array_layers: 1 },
+                    size: wgpu::Extent3d { width: stored_width as u32, height: stored_height as u32, depth_or_array_layers: 1 },
                     mip_level_count: 1,
                     sample_count: 1,
                     dimension: wgpu::TextureDimension::D2,
@@ -1203,14 +1227,14 @@ struct Out { @builtin(frag_depth) d: f32 }
                 &pixels,
             );
             let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-            self.textures.insert(key, TextureEntry { id, crc: new_crc, checked: clock, texture, view });
+            self.textures.insert(key, TextureEntry { stored: [stored_width as f32, stored_height as f32], id, crc: new_crc, checked: clock, texture, view });
         }
         let entry = &self.textures[&key];
         let _ = &entry.texture;
         Some((
             entry.view.clone(),
             entry.id,
-            [width as f32, height as f32, linear, 2.0],
+            [entry.stored[0], entry.stored[1], linear, 2.0],
             [(config >> 12) & 7, (config >> 8) & 7, 0, 0],
             byte_color(regs[border_reg]),
         ))

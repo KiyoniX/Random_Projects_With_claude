@@ -66,6 +66,7 @@ pub struct Options {
     pub live: bool,
     /// Garder la copie de travail de la sauvegarde d'un lancement à l'autre : c'est la partie de celui qui joue.
     pub keep_archives: bool,
+    pub textures: crate::gpu::TextureOptions,
     /// L'heure de la console au démarrage (`portage play` : l'heure locale du PC).
     pub clock_milliseconds: Option<u64>,
     /// La sortie du son : le DSP y range ce qu'il mixe.
@@ -98,6 +99,7 @@ impl Options {
             scale: 1,
             live: false,
             keep_archives: false,
+            textures: Default::default(),
             clock_milliseconds: None,
             audio: None,
         }
@@ -286,7 +288,7 @@ impl Bench {
         let backend: Box<dyn GpuBackend> = if self.options.draw {
             let folder = (!self.options.live).then(|| self.options.out.join("images"));
             let cache = self.options.root.join("local/portage/cache");
-            let backend = PicaBackend::new(k, self.options.scale, folder, Some(&cache))?;
+            let backend = PicaBackend::new(k, self.options.scale, folder, Some(&cache), &self.options.textures)?;
             self.drawing = Some(backend.shared());
             Box::new(backend)
         } else {

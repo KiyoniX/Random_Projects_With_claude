@@ -2,6 +2,12 @@
 
 use std::path::Path;
 
+/// Une image PNG en RGBA8 : (largeur, hauteur, points), ou rien si le fichier manque ou se lit mal.
+pub fn load_png(path: &Path) -> Option<(usize, usize, Vec<u8>)> {
+    let image = image::open(path).ok()?.into_rgba8();
+    Some((image.width() as usize, image.height() as usize, image.into_raw()))
+}
+
 pub fn save_png(path: &Path, width: usize, height: usize, rgba: &[u8]) -> Result<(), String> {
     image::save_buffer(path, rgba, width as u32, height as u32, image::ColorType::Rgba8).map_err(|e| e.to_string())
 }

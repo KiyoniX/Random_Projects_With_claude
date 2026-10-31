@@ -7,6 +7,7 @@
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
 //!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL]
 //!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER] [--volume 0 à 100]
+//!                [--filtre-texture aucun|scale2x|mmpx|bicubique] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
 //!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
@@ -48,11 +49,15 @@ struct Options {
     game_mod: Option<PathBuf>,
     /// `play` : le volume, de 0 (pas de sortie du tout) à 100.
     volume: u32,
+    /// `play` : le filtre qui agrandit les textures.
+    textures: runtime::gpu::TextureOptions,
+    /// `play` : l'image est lissée en s'agrandissant à la fenêtre, au lieu d'être au plus proche.
+    smooth: bool,
     positional: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, combat_in_corner: true, both_screens: false, game_mod: None, volume: 100, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, combat_in_corner: true, both_screens: false, game_mod: None, volume: 100, textures: Default::default(), smooth: false, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -68,6 +73,19 @@ fn parse(args: &[String]) -> Options {
             "--ecrans" => {
                 i += 1;
                 o.both_screens = args.get(i).map(String::as_str) == Some("deux");
+            }
+            "--lissage" => o.smooth = true,
+            "--filtre-texture" => {
+                i += 1;
+                o.textures.filter = args.get(i).and_then(|s| pica::upscale::TextureFilter::from_name(s)).unwrap_or_else(|| usage());
+            }
+            "--textures" => {
+                i += 1;
+                o.textures.pack = Some(PathBuf::from(args.get(i).unwrap_or_else(|| usage())));
+            }
+            "--extraire-textures" => {
+                i += 1;
+                o.textures.dump = Some(PathBuf::from(args.get(i).unwrap_or_else(|| usage())));
             }
             "--volume" => {
                 i += 1;
@@ -393,6 +411,8 @@ fn main() {
             both_screens: options.both_screens,
             game_mod: options.game_mod,
             volume: options.volume,
+            textures: options.textures,
+            smooth: options.smooth,
         }),
         "overlay" => cmd_overlay(options),
         "bench" => cmd_bench(options),

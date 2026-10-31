@@ -267,6 +267,15 @@ impl Kernel {
         self.tls_used.remove(&((tls - TLS_BASE) / TLS_SLOT));
         let (pc, lr, now, id) = (self.cpu.get(Reg::Pc).wrapping_sub(4), self.cpu.get(Reg::Lr), self.now, self.thread(thread).thread_id);
         self.journal.svc(now, id, 9, pc, lr, "ExitThread");
+        // thread_exit (kernel11 0xFFF132A0) rend les mutex du fil qui meurt : le jeu compte dessus, FUN_00199ee4 n'en rend aucun.
+        for object in &mut self.objects {
+            if let Obj::Mutex(m) = &mut object.data {
+                if m.owner == Some(thread) {
+                    m.owner = None;
+                    m.depth = 0;
+                }
+            }
+        }
         self.wake_waiters();
         Ok(Summary::Skip)
     }

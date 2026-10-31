@@ -442,3 +442,20 @@ fn connect_to_port_and_send_sync_request_through_svcs() {
     let text = lines(&k).join("\n");
     assert!(text.contains("ConnectToPort(\"echo\") -> h=0x8000"), "{text}");
 }
+
+#[test]
+fn exit_thread_releases_held_mutexes() {
+    let (mut k, _script) = test_kernel();
+    let dying = test_main_thread(&mut k);
+    let waiter = k.create_thread(0x10_0000, 0, 0x0FFF_0000, 0x31, 0, "");
+    let mutex = k.create_mutex(Some(dying), "");
+    let mut wait = Wait::new(WaitKind::Sync);
+    wait.objects = vec![mutex];
+    k.block(waiter, wait);
+
+    k.handle_svc(dying, 0x09).unwrap();
+
+    assert_eq!(k.thread(waiter).state, ThreadState::Ready, "le fil qui attend prend le mutex rendu");
+    assert!(!k.is_free(mutex, dying), "le mutex est à son nouveau propriétaire");
+    assert!(k.is_free(mutex, waiter));
+}
