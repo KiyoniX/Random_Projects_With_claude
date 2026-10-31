@@ -624,7 +624,7 @@ def cmd_gen(args):
     if limit:
         functions = functions[:limit]
     results = translate_all(image, functions, comments=disassembler() if asm else None, progress=True, hooks=hooks, holes=True,
-                             seeds=load_seeds() if use_seeds else ())
+                             seeds=sorted(set(load_seeds()) | set(load_import_seeds(image))) if use_seeds else ())
     files = write_build(out, results, by_address=True)
     import shutil
     shutil.copy(os.path.join(HERE, 'runtime', 'rt.h'), os.path.join(out, 'rt.h'))
@@ -642,6 +642,21 @@ def load_seeds():
         return sorted(set(int(line, 16) for line in open(SEEDS_FILE) if line.strip()))
     except OSError:
         return []
+
+def load_import_seeds(image, code_path=DEFAULT_CODE):
+    """Les adresses du code que les modules .cro reçoivent par leurs imports, tous liés (bit 0 à 1 pour Thumb) : rien
+    dans code.bin ne les cite, Ghidra ne peut pas toutes les voir, et sans elles le jeu tombe sur un trou en entrant dans
+    un écran que le banc n'a pas encore joué."""
+    sys.path.insert(0, os.path.join(ROOT, 'outils'))
+    import cro_loader as cl
+    try:
+        crs, cros, _ = cl.read_romfs(cl.DEFAULT_ROMFS)
+    except OSError:
+        return []
+    linker, _ = cl.link_set(crs, cros, open(code_path, 'rb').read())
+    start, end = image.text.address, image.text.address + image.text.size
+    return sorted({a for targets in linker.module_targets.values() for a in targets if start <= a & ~1 < end})
+
 
 # Les repères du banc qui ne sont pas une entrée de fonction (banc/bench.py : MAIN_LOOP_TURN, au milieu de main_loop).
 DEFAULT_HOOKS = [0x106710]
