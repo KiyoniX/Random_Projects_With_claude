@@ -82,6 +82,60 @@ class Assembler:
         return struct.pack('<%dI' % (len(self.words) + len(values)), *(self.words + values))
 
 
+def test_dsp_voices():
+    """Mêmes valeurs que les tests de `Voice` dans portage/crates/services/src/dsp.rs."""
+    from services.dsp import Voice, CONFIG_SIZE, dsp32
+
+    def config(length, rate):
+        c = bytearray(CONFIG_SIZE)
+        dsp = lambda v: struct.pack('<HH', v >> 16, v & 0xFFFF)
+        c[0:4] = struct.pack('<I', 1 << 16 | 1 << 18 | 1 << 19 | 1 << 28 | 1 << 30)
+        c[0x34:0x38] = struct.pack('<f', rate)
+        c[0x4A] = 0b10
+        c[0x4C + 20 + 4:0x4C + 20 + 8] = dsp(200)
+        c[0x4C + 20 + 0x10] = 8
+        c[0xA0] = 1
+        c[0xA2] = 5
+        c[0xB0:0xB4] = dsp(length)
+        c[0xBE] = 7
+        return c
+
+    def read(s):
+        return s[0], s[1], struct.unpack_from('<H', s, 2)[0], dsp32(s, 4), struct.unpack_from('<H', s, 8)[0], struct.unpack_from('<H', s, 10)[0]
+
+    v = Voice()
+    v.configure(config(320, 1.0))
+    v.advance()
+    assert read(v.status())[:5] == (1, 0, 5, 0, 7)
+    v.advance()
+    assert read(v.status())[3] == 160
+    v.advance()
+    v.advance()
+    s = read(v.status())
+    assert (s[1], s[3], s[4]) == (1, 0, 8), s
+    assert read(v.status())[1] == 0
+    v.advance()
+    v.advance()
+    assert read(v.status())[3] == 200
+    v.advance()
+    s = read(v.status())
+    assert (s[0], s[1], s[4], s[5]) == (0, 1, 0, 8), s
+    v = Voice()
+    c = config(1000, 0.5)
+    c[0xBC] = 2
+    v.configure(c)
+    v.advance()
+    v.advance()
+    assert read(v.status())[3] == 80
+    v = Voice()
+    c = config(0, 1.0)
+    c[0xBC] = 2
+    v.configure(c)
+    for _ in range(4):
+        v.advance()
+    print('  voix du DSP : mêmes valeurs que le portage')
+
+
 def test_program():
     a = Assembler(CODE_BASE)
     a.ldr_label(1, 'srv_name')
@@ -1258,6 +1312,7 @@ def test_real_game():
 
 def test():
     test_pieces()
+    test_dsp_voices()
     test_pica()
     test_synthetic()
     test_list_jumps()

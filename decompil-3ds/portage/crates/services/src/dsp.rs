@@ -3,8 +3,8 @@
 //! Réel pour le démarrage : LoadComponent rend l'octet 1 ; le tuyau 2 reçoit « démarre » et rend aussitôt la liste des
 //! 15 adresses du composant, puis le signal du canal 2 est levé ; ConvertProcessAddressFromDspDram applique la
 //! formule du module (0x1FF40000 + adresse × 2) ; « arrête » fait rendre 1 au registre de réponse 0.
-//! Simplifié : la trame. À chaque fois que le jeu lève le signal du sémaphore, le banc attend une trame (5 ms du banc)
-//! et lève le signal du canal 2, sans rien mixer : l'état des voix reste à zéro. Le décodeur AAC (canal 3) répond
+//! Simplifié : la trame. À chaque fois que le jeu lève le signal du sémaphore, le banc attend une trame (5 ms du banc),
+//! fait avancer les voix ([`Voice`]) et lève le signal du canal 2, sans rien mixer. Le décodeur AAC (canal 3) répond
 //! « réussi » à chaque message, sans décoder.
 
 use std::cell::RefCell;
@@ -20,6 +20,162 @@ pub const ADDRESSES: [u16; 15] = [0xBFFF, 0x9E92, 0x8680, 0xA792, 0x9430, 0x8400
                                   0xAA12, 0xAAD2, 0xAC52, 0xAC5C];
 pub const FRAME_NS: u64 = 4_888_000;
 
+const VOICES: usize = 24;
+const COUNTER_A: u32 = 0x1FF5_7FFE;
+const CONFIG_A: u32 = 0x1FF5_3D24;
+const STATUS_A: u32 = 0x1FF5_0D00;
+const ZONE_B: u32 = 0x2_0000;
+const CONFIG_SIZE: usize = 0xC0;
+const STATUS_SIZE: usize = 0x0C;
+const SAMPLES_PER_FRAME: f64 = 160.0;
+
+/// Un mot de 32 bits du DSP : la moitié haute d'abord (le jeu le fait tourner de 16 bits, `0x18f6dc`).
+fn dsp32(data: &[u8], at: usize) -> u32 {
+    u32::from_le_bytes([data[at + 2], data[at + 3], data[at], data[at + 1]])
+}
+
+fn le16(data: &[u8], at: usize) -> u16 {
+    u16::from_le_bytes([data[at], data[at + 1]])
+}
+
+struct Buffer {
+    length: u32,
+    start: u32,
+    id: u16,
+    looping: bool,
+    from_queue: bool,
+    played: bool,
+}
+
+/// Une voix qui avance sans produire de son : le jeu attend la fin de certains sons (la fanfare de « CT activée ! »).
+/// Les champs viennent d'Azahar (`audio_core/hle/shared_memory.h`) ; ceux de l'état sont recoupés par la lecture du jeu
+/// (`0x18f6b8`) : compteur à +2, position à +4, drapeau à +1, identifiants à +8 et +0xA.
+#[derive(Default)]
+struct Voice {
+    enabled: bool,
+    rate: f64,
+    sync: u16,
+    queue: Vec<Buffer>,
+    /// La taille du tampon en cours, en échantillons.
+    current: Option<u32>,
+    position: f64,
+    current_id: u16,
+    last_id: u16,
+    update: bool,
+}
+
+impl Voice {
+    /// Prend les réglages que le jeu a marqués « à relire ».
+    fn configure(&mut self, config: &[u8]) {
+        let dirty = u32::from_le_bytes([config[0], config[1], config[2], config[3]]);
+        if dirty & 1 << 29 != 0 {
+            *self = Voice::default();
+        }
+        if dirty & 1 << 4 != 0 {
+            self.queue.clear();
+        }
+        if dirty & 1 << 16 != 0 {
+            self.enabled = config[0xA0] != 0;
+        }
+        if dirty & 1 << 28 != 0 {
+            self.sync = le16(config, 0xA2);
+        }
+        if dirty & 1 << 18 != 0 {
+            self.rate = f32::from_le_bytes([config[0x34], config[0x35], config[0x36], config[0x37]]) as f64;
+        }
+        if dirty & 1 << 30 != 0 && dsp32(config, 0xB0) as i32 >= 0 {
+            self.queue.push(Buffer {
+                length: dsp32(config, 0xB0),
+                start: if dirty & 1 << 21 != 0 { dsp32(config, 0xA4) } else { 0 },
+                id: le16(config, 0xBE),
+                looping: config[0xBC] & 2 != 0,
+                from_queue: false,
+                played: false,
+            });
+        }
+        if dirty & 1 << 19 != 0 {
+            let marked = le16(config, 0x4A);
+            for slot in (0..4).filter(|i| marked & 1 << i != 0) {
+                let at = 0x4C + 20 * slot;
+                if dsp32(config, at + 4) as i32 >= 0 {
+                    self.queue.push(Buffer {
+                        length: dsp32(config, at + 4),
+                        start: 0,
+                        id: le16(config, at + 0x10),
+                        looping: config[at + 0xF] != 0,
+                        from_queue: true,
+                        played: false,
+                    });
+                }
+            }
+        }
+    }
+
+    /// Passe au tampon suivant : le plus petit identifiant d'abord. Un tampon en boucle retourne dans la file.
+    fn dequeue(&mut self) -> bool {
+        let Some(next) = (0..self.queue.len()).min_by_key(|&i| self.queue[i].id) else { return false };
+        let mut buffer = self.queue.remove(next);
+        self.position = if buffer.played { 0.0 } else { buffer.start as f64 };
+        self.current = Some(buffer.length);
+        self.current_id = buffer.id;
+        self.last_id = 0;
+        self.update = buffer.from_queue && !buffer.played;
+        if buffer.looping {
+            buffer.played = true;
+            self.queue.push(buffer);
+        }
+        true
+    }
+
+    /// Une trame : 160 échantillons de sortie, soit 160 fois la vitesse de lecture de la voix.
+    fn advance(&mut self) {
+        if !self.enabled {
+            return;
+        }
+        if self.current.is_none() {
+            if !self.dequeue() {
+                self.enabled = false;
+                self.update = true;
+                self.last_id = self.current_id;
+                self.current_id = 0;
+            }
+            return;
+        }
+        let mut left = SAMPLES_PER_FRAME * if self.rate > 0.0 { self.rate } else { 1.0 };
+        while left > 0.0 {
+            if self.current.is_none() && !self.dequeue() {
+                break;
+            }
+            let length = self.current.unwrap_or(0) as f64;
+            let used = left.min(length - self.position);
+            if used <= 0.0 {
+                self.current = None; // un tampon vide, ou déjà lu : ne pas tourner sans fin sur une boucle vide
+                break;
+            }
+            self.position += used;
+            left -= used;
+            if self.position >= length {
+                self.current = None;
+            }
+        }
+    }
+
+    /// L'état que lit le jeu ; le drapeau « l'identifiant a changé » n'est vu qu'une fois.
+    fn status(&mut self) -> [u8; STATUS_SIZE] {
+        let mut out = [0u8; STATUS_SIZE];
+        out[0] = self.enabled as u8;
+        out[1] = self.update as u8;
+        out[2..4].copy_from_slice(&self.sync.to_le_bytes());
+        let position = self.position as u32;
+        out[4..6].copy_from_slice(&((position >> 16) as u16).to_le_bytes());
+        out[6..8].copy_from_slice(&(position as u16).to_le_bytes());
+        out[8..10].copy_from_slice(&self.current_id.to_le_bytes());
+        out[10..12].copy_from_slice(&self.last_id.to_le_bytes());
+        self.update = false;
+        out
+    }
+}
+
 pub struct Dsp {
     me: Weak<RefCell<Dsp>>,
     pub loaded: bool,
@@ -31,6 +187,7 @@ pub struct Dsp {
     pub frame_pending: bool,
     pub running: bool,
     pub component_size: u32,
+    voices: Vec<Voice>,
 }
 
 impl Dsp {
@@ -51,6 +208,7 @@ impl Dsp {
             frame_pending: false,
             running: false,
             component_size: 0,
+            voices: (0..VOICES).map(|_| Voice::default()).collect(),
         }
     }
 
@@ -182,7 +340,37 @@ impl Dsp {
             return;
         }
         self.frames += 1;
+        self.advance_voices(k);
         self.signal(k, 2);
+    }
+
+    /// Les ordres viennent de la zone au compteur le plus haut, l'état va dans l'autre (contrat de dsp, partie 3).
+    fn advance_voices(&mut self, k: &mut Kernel) {
+        let counter = |k: &Kernel, zone: u32| k.memory.read(COUNTER_A + zone, 2).map(|d| le16(&d, 0)).unwrap_or(0);
+        let (a, b) = (counter(k, 0), counter(k, ZONE_B));
+        if a == 0 && b == 0 {
+            return;
+        }
+        let zone_b_newer = match (a, b) {
+            (0xFFFF, b) if b != 0xFFFE => true, // le compteur a fait le tour
+            (a, 0xFFFF) if a != 0xFFFE => false,
+            _ => b > a,
+        };
+        let (orders, answers) = if zone_b_newer { (ZONE_B, 0) } else { (0, ZONE_B) };
+        let Ok(configs) = k.memory.read(CONFIG_A + orders, (VOICES * CONFIG_SIZE) as u32) else { return };
+        let mut status = Vec::with_capacity(VOICES * STATUS_SIZE);
+        for (i, voice) in self.voices.iter_mut().enumerate() {
+            let config = &configs[i * CONFIG_SIZE..(i + 1) * CONFIG_SIZE];
+            voice.configure(config);
+            voice.advance();
+            status.extend_from_slice(&voice.status());
+            if config[..4] != [0; 4] {
+                let place = CONFIG_A + orders + (i * CONFIG_SIZE) as u32;
+                let _ = k.memory.write(place, &[0; 4]); // le DSP efface les marques
+                let _ = k.memory.write(place + 0x4A, &[0; 2]);
+            }
+        }
+        let _ = k.memory.write(STATUS_A + answers, &status);
     }
 }
 
@@ -223,6 +411,62 @@ mod tests {
     use kernel::testing::{call, header, test_kernel, test_main_thread};
 
     const BUFFERS: u32 = 0x0200_0000;
+
+    /// Une voix réglée : tampon intégré de `length` échantillons à `rate`, deux tampons dans la file.
+    fn config(length: u32, rate: f32) -> Vec<u8> {
+        let mut c = vec![0u8; CONFIG_SIZE];
+        let dsp = |v: u32| [(v >> 16) as u8, (v >> 24) as u8, v as u8, (v >> 8) as u8];
+        c[0..4].copy_from_slice(&(1u32 << 16 | 1 << 18 | 1 << 19 | 1 << 28 | 1 << 30).to_le_bytes());
+        c[0x34..0x38].copy_from_slice(&rate.to_le_bytes());
+        c[0x4A] = 0b10;
+        c[0x4C + 20 + 4..0x4C + 20 + 8].copy_from_slice(&dsp(200));
+        c[0x4C + 20 + 0x10] = 8;
+        c[0xA0] = 1;
+        c[0xA2] = 5;
+        c[0xB0..0xB4].copy_from_slice(&dsp(length));
+        c[0xBE] = 7;
+        c
+    }
+
+    #[test]
+    fn voice_plays_its_buffers_then_stops() {
+        let mut v = Voice::default();
+        v.configure(&config(320, 1.0));
+        v.advance(); // première trame : le tampon 7 est pris
+        let s = v.status();
+        assert_eq!((s[0], s[1], le16(&s, 2), dsp32(&s, 4), le16(&s, 8)), (1, 0, 5, 0, 7));
+        v.advance();
+        assert_eq!(dsp32(&v.status(), 4), 160);
+        v.advance(); // le tampon 7 finit juste : le suivant n'est pris qu'à la trame d'après
+        v.advance();
+        let s = v.status();
+        assert_eq!((s[1], dsp32(&s, 4), le16(&s, 8)), (1, 0, 8), "le tampon 8, de la file : drapeau levé");
+        assert_eq!(v.status()[1], 0, "le drapeau n'est vu qu'une fois");
+        v.advance();
+        v.advance(); // 200 atteint : plus rien
+        assert_eq!(dsp32(&v.status(), 4), 200);
+        v.advance();
+        let s = v.status();
+        assert_eq!((s[0], s[1], le16(&s, 8), le16(&s, 10)), (0, 1, 0, 8), "éteinte, le dernier identifiant rendu");
+    }
+
+    #[test]
+    fn voice_rate_and_empty_loop() {
+        let mut v = Voice::default();
+        let mut c = config(1000, 0.5);
+        c[0xBC] = 2; // en boucle
+        v.configure(&c);
+        v.advance();
+        v.advance();
+        assert_eq!(dsp32(&v.status(), 4), 80, "à demi-vitesse");
+        let mut v = Voice::default();
+        let mut c = config(0, 1.0);
+        c[0xBC] = 2;
+        v.configure(&c);
+        for _ in 0..4 {
+            v.advance(); // un tampon vide en boucle ne bloque pas la trame
+        }
+    }
 
     struct Rig {
         k: Kernel,

@@ -39,6 +39,8 @@ pub struct BenchState {
     pub paths: Paths,
     /// (début en s, durée en s, masque de boutons)
     pub presses: Vec<(f64, f64, u32)>,
+    /// (début en s, durée en s, X, Y) : le stylet programmé
+    pub touches: Vec<(f64, f64, u16, u16)>,
     pub region: u32,
     pub gsp_first_result: u32,
     pub apt_answers: Vec<String>,
@@ -141,6 +143,13 @@ impl Kernel {
             }
         }
         mask
+    }
+
+    pub fn touch_now(&self) -> Option<(u16, u16)> {
+        let seconds = self.now as f64 / 1e9;
+        self.bench.touch.or_else(|| {
+            self.bench.touches.iter().find(|t| t.0 <= seconds && seconds < t.0 + t.1).map(|t| (t.2, t.3))
+        })
     }
 
     pub fn reached(&mut self, key: &str, text: &str) {

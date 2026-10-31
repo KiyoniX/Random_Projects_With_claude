@@ -3,19 +3,124 @@
 Réel pour le démarrage : LoadComponent rend l'octet 1 ; le tuyau 2 reçoit « démarre » et rend aussitôt la liste des
 15 adresses du composant, puis le signal du canal 2 est levé ; ConvertProcessAddressFromDspDram applique la
 formule du module (0x1FF40000 + adresse × 2) ; « arrête » fait rendre 1 au registre de réponse 0.
-Simplifié : la trame. À chaque fois que le jeu lève le signal du sémaphore, le banc attend une trame (5 ms du banc)
-et lève le signal du canal 2, sans rien mixer : l'état des voix reste à zéro. Le décodeur AAC (canal 3) répond
+Simplifié : la trame. À chaque fois que le jeu lève le signal du sémaphore, le banc attend une trame (5 ms du banc),
+fait avancer les voix (`Voice`) et lève le signal du canal 2, sans rien mixer. Le décodeur AAC (canal 3) répond
 « réussi » à chaque message, sans décoder.
 """
 import struct
 
 from ipc import Reply, Service
 from kernel import Event
+from memory import MemoryError3ds
 
 DSP_BASE = 0x1FF40000
 ADDRESSES = [0xBFFF, 0x9E92, 0x8680, 0xA792, 0x9430, 0x8400, 0x8540, 0x9492, 0x8710, 0x8410, 0xA912, 0xAA12,
              0xAAD2, 0xAC52, 0xAC5C]
 FRAME_NS = 4_888_000
+
+VOICES = 24
+COUNTER_A = 0x1FF57FFE
+CONFIG_A = 0x1FF53D24
+STATUS_A = 0x1FF50D00
+ZONE_B = 0x20000
+CONFIG_SIZE = 0xC0
+SAMPLES_PER_FRAME = 160.0
+
+
+def dsp32(data, at):
+    """Un mot de 32 bits du DSP : la moitié haute d'abord (le jeu le fait tourner de 16 bits, 0x18f6dc)."""
+    high, low = struct.unpack_from('<HH', data, at)
+    return high << 16 | low
+
+
+class Voice:
+    """Une voix qui avance sans produire de son : le jeu attend la fin de certains sons (la fanfare de « CT activée ! »).
+    Les champs viennent d'Azahar (audio_core/hle/shared_memory.h) ; ceux de l'état sont recoupés par la lecture du jeu
+    (0x18f6b8) : compteur à +2, position à +4, drapeau à +1, identifiants à +8 et +0xA."""
+
+    def __init__(self):
+        self.enabled = False
+        self.rate = 0.0
+        self.sync = 0
+        self.queue = []         # [taille, début, identifiant, boucle, de la file, déjà joué]
+        self.current = None     # la taille du tampon en cours, en échantillons
+        self.position = 0.0
+        self.current_id = 0
+        self.last_id = 0
+        self.update = False
+
+    def configure(self, config):
+        """Prend les réglages que le jeu a marqués « à relire »."""
+        dirty = struct.unpack_from('<I', config, 0)[0]
+        if dirty & 1 << 29:
+            self.__init__()
+        if dirty & 1 << 4:
+            self.queue.clear()
+        if dirty & 1 << 16:
+            self.enabled = config[0xA0] != 0
+        if dirty & 1 << 28:
+            self.sync = struct.unpack_from('<H', config, 0xA2)[0]
+        if dirty & 1 << 18:
+            self.rate = struct.unpack_from('<f', config, 0x34)[0]
+        if dirty & 1 << 30 and dsp32(config, 0xB0) < 0x80000000:
+            self.queue.append([dsp32(config, 0xB0), dsp32(config, 0xA4) if dirty & 1 << 21 else 0,
+                               struct.unpack_from('<H', config, 0xBE)[0], config[0xBC] & 2 != 0, False, False])
+        if dirty & 1 << 19:
+            marked = struct.unpack_from('<H', config, 0x4A)[0]
+            for slot in range(4):
+                at = 0x4C + 20 * slot
+                if marked & 1 << slot and dsp32(config, at + 4) < 0x80000000:
+                    self.queue.append([dsp32(config, at + 4), 0, struct.unpack_from('<H', config, at + 0x10)[0],
+                                       config[at + 0xF] != 0, True, False])
+
+    def dequeue(self):
+        """Passe au tampon suivant : le plus petit identifiant d'abord. Un tampon en boucle retourne dans la file."""
+        if not self.queue:
+            return False
+        buffer = min(self.queue, key=lambda b: b[2])
+        self.queue.remove(buffer)
+        length, start, buffer_id, looping, from_queue, played = buffer
+        self.position = 0.0 if played else float(start)
+        self.current = length
+        self.current_id = buffer_id
+        self.last_id = 0
+        self.update = from_queue and not played
+        if looping:
+            buffer[5] = True
+            self.queue.append(buffer)
+        return True
+
+    def advance(self):
+        """Une trame : 160 échantillons de sortie, soit 160 fois la vitesse de lecture de la voix."""
+        if not self.enabled:
+            return
+        if self.current is None:
+            if not self.dequeue():
+                self.enabled = False
+                self.update = True
+                self.last_id = self.current_id
+                self.current_id = 0
+            return
+        left = SAMPLES_PER_FRAME * (self.rate if self.rate > 0.0 else 1.0)
+        while left > 0.0:
+            if self.current is None and not self.dequeue():
+                break
+            used = min(left, self.current - self.position)
+            if used <= 0.0:
+                self.current = None     # un tampon vide, ou déjà lu : ne pas tourner sans fin sur une boucle vide
+                break
+            self.position += used
+            left -= used
+            if self.position >= self.current:
+                self.current = None
+
+    def status(self):
+        """L'état que lit le jeu ; le drapeau « l'identifiant a changé » n'est vu qu'une fois."""
+        position = int(self.position) & 0xFFFFFFFF
+        out = struct.pack('<BBHHHHH', self.enabled, self.update, self.sync, position >> 16, position & 0xFFFF,
+                          self.current_id, self.last_id)
+        self.update = False
+        return out
 
 
 class Dsp(Service):
@@ -39,6 +144,7 @@ class Dsp(Service):
         self.frame_pending = False
         self.running = False
         self.component_size = 0
+        self.voices = [Voice() for _ in range(VOICES)]
 
     def ok(self, req):
         return Reply(0)
@@ -134,4 +240,40 @@ class Dsp(Service):
         if not self.running:
             return
         self.frames += 1
+        self.advance_voices()
         self.signal(2)
+
+    def advance_voices(self):
+        """Les ordres viennent de la zone au compteur le plus haut, l'état va dans l'autre (contrat de dsp, partie 3)."""
+        memory = self.kernel.memory
+
+        def counter(zone):
+            try:
+                return struct.unpack('<H', memory.read(COUNTER_A + zone, 2))[0]
+            except MemoryError3ds:
+                return 0
+        a, b = counter(0), counter(ZONE_B)
+        if a == 0 and b == 0:
+            return
+        if a == 0xFFFF and b != 0xFFFE:     # le compteur a fait le tour
+            zone_b_newer = True
+        elif b == 0xFFFF and a != 0xFFFE:
+            zone_b_newer = False
+        else:
+            zone_b_newer = b > a
+        orders, answers = (ZONE_B, 0) if zone_b_newer else (0, ZONE_B)
+        try:
+            configs = memory.read(CONFIG_A + orders, VOICES * CONFIG_SIZE)
+        except MemoryError3ds:
+            return
+        status = bytearray()
+        for i, voice in enumerate(self.voices):
+            config = configs[i * CONFIG_SIZE:(i + 1) * CONFIG_SIZE]
+            voice.configure(config)
+            voice.advance()
+            status += voice.status()
+            if config[:4] != bytes(4):
+                place = CONFIG_A + orders + i * CONFIG_SIZE
+                memory.write(place, bytes(4))       # le DSP efface les marques
+                memory.write(place + 0x4A, bytes(2))
+        memory.write(STATUS_A + answers, bytes(status))

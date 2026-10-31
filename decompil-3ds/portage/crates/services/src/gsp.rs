@@ -552,10 +552,11 @@ pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
         k.journal.write(k.now, &format!("hid : boutons tenus {buttons:#x}"));
     }
     hid.buttons = buttons;
-    if k.bench.touch.is_some() != hid.touch.is_some() {
-        k.journal.write(k.now, &format!("hid : stylet {:?}", k.bench.touch));
+    let touch = k.touch_now();
+    if touch.is_some() != hid.touch.is_some() {
+        k.journal.write(k.now, &format!("hid : stylet {touch:?}"));
     }
-    hid.touch = k.bench.touch;
+    hid.touch = touch;
     hid.update(k);
     // L'heure de la page partagée suit l'horloge du banc.
     let milliseconds = k.bench.start_milliseconds + k.now / 1_000_000;
