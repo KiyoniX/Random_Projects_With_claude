@@ -3,7 +3,7 @@
 //! puis les dernières images des deux écrans sont présentées telles que pica les a construites sur le GPU.
 //!
 //! Touches : voir le README. Seul l'écran du haut est affiché ; Échap pose l'écran du bas par-dessus, le jeu continue, et
-//! le clic gauche y devient le stylet. La fenêtre se ferme par sa croix.
+//! le clic gauche y devient le stylet et la croix du clavier ne répond plus. La fenêtre se ferme par sa croix.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -36,6 +36,9 @@ const KEYS: [(KeyCode, &str); 10] = [
     (KeyCode::KeyA, "LEFT"),
     (KeyCode::KeyD, "RIGHT"),
 ];
+
+/// Les boutons que le menu ouvert retire au clavier : le personnage ne marche pas pendant qu'on clique.
+const MOVES: [&str; 4] = ["UP", "DOWN", "LEFT", "RIGHT"];
 
 const MOUSE: [(MouseButton, &str); 2] = [(MouseButton::Left, "A"), (MouseButton::Right, "B")];
 
@@ -136,6 +139,9 @@ impl Play {
         self.stylus = false;
         self.update_stylus();
         self.hold("A", ElementState::Released); // un clic gauche tenu change de sens
+        for name in MOVES {
+            self.hold(name, ElementState::Released);
+        }
     }
 
     fn draw(&mut self) {
@@ -229,7 +235,9 @@ impl ApplicationHandler for Play {
                         self.toggle_menu();
                     }
                 } else if let Some((_, name)) = KEYS.iter().find(|(k, _)| *k == code) {
-                    self.hold(name, event.state);
+                    if !(self.menu && MOVES.contains(name)) {
+                        self.hold(name, event.state);
+                    }
                 }
             }
             WindowEvent::CursorMoved { position, .. } => {

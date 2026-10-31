@@ -19,12 +19,16 @@ pub fn hex_words(words: &[u32], limit: usize) -> String {
     text
 }
 
+/// Les lignes gardées après la limite : sans elles, un jeu qui se fige ou s'arrête tard ne laisse aucune trace.
+const TAIL_LINES: usize = 50_000;
+
 pub struct Journal {
     out: Option<BufWriter<File>>,
     pub names: Names,
     pub lines: usize,
     pub max_lines: usize,
     pub truncated: usize,
+    tail: VecDeque<String>,
     /// (service, en-tête, nom) -> nombre
     pub ipc_counts: BTreeMap<(String, u32, String), u64>,
     pub ipc_kinds: BTreeMap<String, std::collections::BTreeSet<String>>,
@@ -62,6 +66,7 @@ impl Journal {
             lines: 0,
             max_lines,
             truncated: 0,
+            tail: VecDeque::new(),
             ipc_counts: BTreeMap::new(),
             ipc_kinds: BTreeMap::new(),
             ipc_errors: Vec::new(),
@@ -93,6 +98,10 @@ impl Journal {
             self.lines += 1;
         } else {
             self.truncated += 1;
+            if self.tail.len() == TAIL_LINES {
+                self.tail.pop_front();
+            }
+            self.tail.push_back(line.clone());
         }
         line
     }
@@ -187,6 +196,9 @@ impl Journal {
         if let Some(out) = self.out.as_mut() {
             if self.truncated > 0 {
                 let _ = writeln!(out, "… {} lignes de plus non écrites (limite {})", self.truncated, self.max_lines);
+                for line in &self.tail {
+                    let _ = writeln!(out, "{line}");
+                }
             }
             let _ = out.flush();
         }
@@ -204,6 +216,21 @@ impl Drop for Journal {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn close_keeps_the_end_after_the_limit() {
+        let path = std::env::temp_dir().join(format!("journal-fin-{}.txt", std::process::id()));
+        let mut journal = Journal::new(Some(&path), Names::default(), 1).unwrap();
+        for text in ["début", "coupée", "fin"] {
+            journal.write(0, text);
+        }
+        journal.close();
+        let text = std::fs::read_to_string(&path).unwrap();
+        std::fs::remove_file(&path).unwrap();
+        let lines: Vec<&str> = text.lines().collect();
+        assert_eq!(lines.len(), 4);
+        assert!(lines[0].ends_with("début") && lines[1].starts_with("… 2 lignes") && lines[2].ends_with("coupée") && lines[3].ends_with("fin"));
+    }
+
     use super::*;
 
     #[test]
