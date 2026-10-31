@@ -553,7 +553,7 @@ pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
     }
     hid.buttons = buttons;
     let touch = k.touch_now();
-    if touch.is_some() != hid.touch.is_some() {
+    if touch != hid.touch {
         k.journal.write(k.now, &format!("hid : stylet {touch:?}"));
     }
     hid.touch = touch;

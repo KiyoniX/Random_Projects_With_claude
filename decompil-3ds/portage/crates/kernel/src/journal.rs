@@ -96,6 +96,11 @@ impl Journal {
                 capture.push(line.clone());
             }
             self.lines += 1;
+        } else if text.starts_with("hid : ") {
+            // les entrées passent toujours : c'est ce qui permet de rejouer la partie (`runtime run --rejouer`)
+            if let Some(out) = self.out.as_mut() {
+                let _ = writeln!(out, "{line}");
+            }
         } else {
             self.truncated += 1;
             if self.tail.len() == TAIL_LINES {
@@ -220,15 +225,16 @@ mod tests {
     fn close_keeps_the_end_after_the_limit() {
         let path = std::env::temp_dir().join(format!("journal-fin-{}.txt", std::process::id()));
         let mut journal = Journal::new(Some(&path), Names::default(), 1).unwrap();
-        for text in ["début", "coupée", "fin"] {
+        for text in ["début", "coupée", "hid : boutons tenus 0x1", "fin"] {
             journal.write(0, text);
         }
         journal.close();
         let text = std::fs::read_to_string(&path).unwrap();
         std::fs::remove_file(&path).unwrap();
         let lines: Vec<&str> = text.lines().collect();
-        assert_eq!(lines.len(), 4);
-        assert!(lines[0].ends_with("début") && lines[1].starts_with("… 2 lignes") && lines[2].ends_with("coupée") && lines[3].ends_with("fin"));
+        assert_eq!(lines.len(), 5);
+        assert!(lines[0].ends_with("début") && lines[1].ends_with("hid : boutons tenus 0x1") && lines[2].starts_with("… 2 lignes")
+            && lines[3].ends_with("coupée") && lines[4].ends_with("fin"));
     }
 
     use super::*;
