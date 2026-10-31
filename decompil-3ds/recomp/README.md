@@ -229,6 +229,8 @@ vérification). La compilation est incrémentale (objets gardés dans `build/obj
   départ. Cycle : lancer le banc, `gen`, `build --host`, recommencer jusqu'à ce que le fichier ne grossisse plus. `gen` part
   aussi de tout ce que les modules importent de `code.bin` une fois liés (`load_import_seeds`, 4 958 adresses dont 889
   inconnues de Ghidra et du banc) : sans cela, le premier écran que le banc n'a pas joué, comme le sac, tombe sur un trou.
+  Il part encore des mots de `code.bin` qui visent une entrée (`pointer_seeds` : tables de méthodes, constantes hors de
+  toute fonction).
 - **Retours non-locaux.** Du code du jeu « revient » ailleurs qu'à son appelant (un `pop {..., pc}` qui termine l'épilogue de
   l'appelant ; une adresse de retour fixée à la main par `add lr, pc, #imm` éventuellement suivi de `add lr, lr, #imm`, puis
   empilée). Le C ne sait revenir qu'à l'appelant : `RT_PUSH` met `c->r[15]` à 0 avant un appel, tout retour y pose sa cible,

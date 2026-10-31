@@ -11,6 +11,7 @@ et écrit pour chacune une fonction C qui opère sur l'état du processeur (rt.h
 """
 import collections
 import os
+import bisect
 import struct
 import sys
 
@@ -426,12 +427,13 @@ def function_limits(functions, image):
     return out
 
 
-def translate_all(image, functions, comments=None, progress=False, hooks=(), holes=False, seeds=()):
+def translate_all(image, functions, comments=None, progress=False, hooks=(), holes=False, seeds=(), guesses=()):
     """Traduit toutes les fonctions. `holes` : Ghidra laisse du code hors de ses fonctions (suite d'une fonction coupée,
     cible d'un saut que personne n'a nommée). Avec `holes`, toute cible constante d'un appel ou d'un saut qui tombe dans
     le code sans être une fonction connue devient elle-même une fonction (nommée `trou_...`), jusqu'à ce qu'il n'y en
     ait plus : le natif n'a alors plus à confier ce code à unicorn. `seeds` : adresses de départ supplémentaires (bit 0
-    à 1 pour Thumb), celles que le banc a rencontrées sans les trouver recompilées (local/recomp/trous.txt)."""
+    à 1 pour Thumb), celles que le banc a rencontrées sans les trouver recompilées (local/recomp/trous.txt). `guesses` :
+    pareil, mais sans certitude sur le mode (`pointer_seeds`) : elles ne prennent pas le pas sur un saut trouvé."""
     arm = [f for f in functions if f[2] == 'arm']
     thumb = [f for f in functions if f[2] == 'thumb']
     try:
@@ -442,7 +444,7 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
     todo = arm + (thumb if have_thumb else [])
     results = []
     done = 0
-    pending = tuple(seeds)
+    pending = tuple(seeds) + tuple(guesses)
     # Le mode d'un point de départ est sûr : une fonction dont la fin déborde dans les données peut « sauter » sur la même
     # adresse dans l'autre mode (0x100134, en Thumb, sur 0x100184, importée en ARM), et ne doit pas la remplacer.
     certain = {seed & ~1: seed for seed in seeds}
@@ -466,7 +468,8 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
         keys = set(f[0] | (1 if f[2] == 'thumb' else 0) for f in todo)
         found = {}
         for seed in pending:
-            if text_lo <= seed & ~1 < text_hi and seed not in keys:
+            # une adresse n'a qu'une fonction, dans un seul mode : le premier cité l'emporte (les sûrs passent d'abord)
+            if text_lo <= seed & ~1 < text_hi and seed not in keys and seed ^ 1 not in keys and seed ^ 1 not in found:
                 found[seed] = 'thumb' if seed & 1 else 'arm'
         pending = ()
         for r in results:
@@ -474,7 +477,7 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
                 target = int(m.group(1), 16)
                 base = target & ~1
                 if text_lo <= base < text_hi and target not in keys and target not in found and base not in replaced \
-                        and certain.get(base, target) == target:
+                        and certain.get(base, target) == target and target ^ 1 not in found:
                     found[target] = 'thumb' if target & 1 else 'arm'
         if not found and not scanned:
             # Plus rien d'atteint par les appels et les sauts : les prologues ARM que personne n'a couverts. Le code écrit à
@@ -628,7 +631,8 @@ def cmd_gen(args):
     if limit:
         functions = functions[:limit]
     results = translate_all(image, functions, comments=disassembler() if asm else None, progress=True, hooks=hooks, holes=True,
-                             seeds=sorted(set(load_seeds()) | set(load_import_seeds(image))) if use_seeds else ())
+                             seeds=sorted(set(load_seeds()) | set(load_import_seeds(image))) if use_seeds else (),
+                             guesses=pointer_seeds(image, functions) if use_seeds else ())
     files = write_build(out, results, by_address=True)
     import shutil
     shutil.copy(os.path.join(HERE, 'runtime', 'rt.h'), os.path.join(out, 'rt.h'))
@@ -646,6 +650,44 @@ def load_seeds():
         return sorted(set(int(line, 16) for line in open(SEEDS_FILE) if line.strip()))
     except OSError:
         return []
+
+def pointer_seeds(image, functions, text_size=None):
+    """Les entrées que seuls des pointeurs citent : une table de méthodes vise souvent 4 octets plus loin que la fonction
+    de Ghidra, qui commence sur un `mov r0, r0` de remplissage. Un mot des données vise une entrée s'il tombe sur un
+    prologue ARM ou juste après une fin de fonction ; un mot du code, s'il tombe sur un prologue hors de toute fonction.
+    Le reste est écarté, et ne prendre que du sûr compte : ce qui est traduit depuis une constante qui n'est pas du code
+    fait de faux sauts, qui remplacent de vraies fonctions, et le milieu d'une fonction est surtout fait de tables de
+    sauts dont il casserait les boucles."""
+    text = image.text
+    start, end = text.address, text.address + (text_size or text.size)
+    ordered = sorted(f[:2] for f in functions)
+    starts = [f[0] for f in ordered]
+    known = set(starts)
+
+    def word_at(address):
+        return struct.unpack_from('<I', text.data, address - start)[0]
+
+    def inside(address):
+        i = bisect.bisect_right(starts, address) - 1
+        return i >= 0 and address < ordered[i][0] + ordered[i][1]
+
+    def after_an_end(address):
+        before = word_at(address - 4) if address - 4 >= start else 0
+        return before in (0xE1A00000, 0xE12FFF1E) or before & 0xFFFF8000 == 0xE8BD8000 or before >> 24 == 0xEA
+
+    out = set()
+    for section in image.sections:
+        for offset in range(0, len(section.data) - 3, 4):
+            word = struct.unpack_from('<I', section.data, offset)[0]
+            if word & 3 or not start <= word < end - 4 or word in known:
+                continue
+            if section is text:
+                if not inside(word) and is_arm_prologue(word_at(word)):
+                    out.add(word)
+            elif is_arm_prologue(word_at(word)) or after_an_end(word):
+                out.add(word)
+    return sorted(out)
+
 
 def load_import_seeds(image, code_path=DEFAULT_CODE):
     """Les adresses du code que les modules .cro reçoivent par leurs imports, tous liés (bit 0 à 1 pour Thumb) : rien

@@ -183,6 +183,34 @@ def test_jump_table_bound():
         assert 0x100040 in res.callees
 
 
+def test_pointer_seeds():
+    """Une table de méthodes vise l'entrée après le `mov r0, r0` ; un mot au milieu d'une boucle n'est pas pris."""
+    code = [0xE1A00000, 0xE92D4010, 0xE3A00001, 0xE8BD8010,     # 00 mov r0, r0 ; 04 push ; 08 mov ; 0c pop {r4, pc}
+            0xE3A00002, 0xE3A00003, 0xE12FFF1E, 0xE92D4010]     # 10 mov ; 14 mov ; 18 bx lr ; 1c push, hors des fonctions
+    text = struct.pack('<8I', *code)
+    table = struct.pack('<4I', BASE + 0x04, BASE + 0x14, BASE + 0x1C, BASE + 0x10)
+    image = recomp.RawImage(BASE, text)
+    image.sections = [image.text, recomp.Section('rodata', BASE + 0x1000, len(table), table, 1)]
+    functions = [(BASE, 0x10, 'arm', 'a'), (BASE + 0x10, 0xC, 'arm', 'b')]
+    found = recomp.pointer_seeds(image, functions)
+    assert BASE + 0x04 in found, 'après le remplissage'
+    assert BASE + 0x14 not in found, 'au milieu de b, sans prologue'
+    assert BASE + 0x10 not in found, 'déjà une fonction'
+    # dans le code, seul un mot hors de toute fonction compte
+    image = recomp.RawImage(BASE, text + struct.pack('<4I', BASE + 0x04, BASE + 0x1C, BASE + 0x1D, BASE + 0x24))
+    found = recomp.pointer_seeds(image, functions + [(BASE + 0x20, 16, 'arm', 'c')])
+    assert found == [BASE + 0x1C], found
+
+
+def test_seed_one_mode_per_address():
+    """La même adresse citée dans les deux modes ne donne qu'une fonction : deux définitions ne compileraient pas."""
+    data = struct.pack('<4I', 0xE12FFF1E, 0xE3A00001, 0xE12FFF1E, 0xE12FFF1E)
+    results = recomp.translate_all(recomp.RawImage(BASE, data), [(BASE, 4, 'arm', 'a')], holes=True,
+                                   guesses=(BASE + 4, BASE + 5))
+    found = [r.addr for r in results]
+    assert len(found) == len(set(found)) and BASE + 4 in found, found
+
+
 def test_seed_keeps_its_mode():
     """Une fonction Thumb qui déborde sur un point de départ ARM ne le fait pas traduire en Thumb."""
     arm = struct.pack('<II', 0xE3A00001, 0xE12FFF1E)      # mov r0, #1 ; bx lr
@@ -931,6 +959,8 @@ def test():
     test_function_translation()
     test_jump_table_bound()
     test_seed_keeps_its_mode()
+    test_pointer_seeds()
+    test_seed_one_mode_per_address()
     test_programs()
     test_fuzz()
     test_vfp_conversions()
