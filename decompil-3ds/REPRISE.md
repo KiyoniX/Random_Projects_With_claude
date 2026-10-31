@@ -65,6 +65,8 @@ Idées d'interface de l'utilisateur, à développer avec lui avant de coder : É
 
 Décidé par l'utilisateur : Échap affiche l'écran du bas par-dessus le jeu, et cet écran n'est pas visible le reste du temps ; le launcher est une application à part, qui lance le jeu.
 
+À faire, sans urgence (décidé par l'utilisateur) : viser à la souris avec Otto Focus. La scène se vise en penchant la console ; `hid` écrit pour l'instant une console à plat et immobile (`crates/services/src/small.rs`). L'idée est que le mouvement de la souris devienne celui du gyroscope, avec le coefficient que le jeu demande déjà au service (14,375 unités par degré par seconde).
+
 Demandé par l'utilisateur pour la montée en résolution : toutes les techniques d'upscale des émulateurs comme Citra, réglables dans le launcher. Liste à vérifier dans leur code le moment venu : échelle de rendu interne (1x à 4x, déjà là), filtres de texture (Anime4K, bicubique, ScaleForce, xBRZ, MMPX), filtrage linéaire ou au plus proche à l'affichage, shaders de post-traitement, packs de textures personnalisées.
 
 État de la console à la pause (24/10) : 19 839 fonctions nommées et relues sur 254 369. Toutes les applets ont un premier lot relu ; secondes passes relues et versées pour kernel9 et arm9loader. Outils du 21 au 24/10 : `ipc_trace` écrit après chaque module et ne cherche les ouvertures que dans les fonctions qui peuvent écrire les places (1 s au lieu d'une heure, `--full` garde l'ancien balayage ; lancer un processus par module, la passe complète dans un seul processus finit par planter dans unicorn) ; `ghidra_direct.find_pointers` filtre les cibles ARM des tables de distances ; swkbd-safe a le même code.bin que swkbd (`fiches/safe.md`).

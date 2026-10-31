@@ -63,6 +63,8 @@ pub struct Options {
     pub scale: u32,
     /// Avec `draw` : l'affichage en direct d'une fenêtre (ni PNG ni relecture des images).
     pub live: bool,
+    /// Garder la copie de travail de la sauvegarde d'un lancement à l'autre : c'est la partie de celui qui joue.
+    pub keep_archives: bool,
 }
 
 impl Options {
@@ -82,6 +84,7 @@ impl Options {
             draw: false,
             scale: 1,
             live: false,
+            keep_archives: false,
         }
     }
 
@@ -240,7 +243,11 @@ impl Bench {
         use services::{apt::Apt, dsp::Dsp, fs::FsUser, gsp::Gsp, ldr_ro::LdrRo, small::{Cfg, ErrF, Hid, Ptm}, srv::Srv};
         let k = &mut self.kernel;
         let paths = k.bench.paths.clone();
-        let note = services::fs::prepare_archives(&paths, Some(&paths.save), Some(&paths.extdata));
+        let note = if self.options.keep_archives && paths.archives.join("sauvegarde").is_dir() {
+            format!("sauvegarde reprise de {}", paths.archives.display())
+        } else {
+            services::fs::prepare_archives(&paths, Some(&paths.save), Some(&paths.extdata))
+        };
         k.bench.events.push((0, note));
         let srv = Rc::new(RefCell::new(Srv::new(k)));
         let errf = Rc::new(RefCell::new(ErrF));

@@ -265,6 +265,7 @@ pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>) -> Res
     options.seconds = f64::INFINITY;
     options.draw = true;
     options.live = true;
+    options.keep_archives = true;
     options.scale = scale.clamp(1, 4);
     let mut bench = Bench::new(options)?;
     let shared = bench.drawing.clone().ok_or("pas de GPU")?;
