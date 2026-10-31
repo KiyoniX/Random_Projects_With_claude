@@ -171,6 +171,18 @@ THUMB_CLASSES = [
 ]
 
 
+def test_jump_table_bound():
+    """Un point d'entrée au milieu d'un `switch` ne coupe pas la table : sa taille vient du cmp qui la garde."""
+    for compare, load in ((0xE3500003, 0x379FF100), (0xE3500002, 0x979FF100)):      # cmp + ldrlo, cmp + ldrls : 3 entrées
+        words = [compare, load, 0xE12FFF1E, BASE + 0x18, BASE + 0x40, BASE + 0x1C, 0xE3A00001, 0xE12FFF1E]
+        data = struct.pack('<%dI' % len(words), *words)
+        res = recomp.translate_function(BASE, len(data), 'arm', recomp.RawImage(BASE, data), {BASE}, limit=BASE + len(data))
+        assert res.complete, res.unimpl
+        assert 'case 0x00100014u: goto L_0010001c;' in res.source, res.source
+        assert 'case 0x00100010u: RT_SAVE(); rt_dispatch(c, 0x00100040u); return;' in res.source, res.source
+        assert 0x100040 in res.callees
+
+
 def test_fuzz_thumb(per_class=100, draws=20):
     problem = tools_available()
     if problem:
@@ -907,6 +919,7 @@ def test_cro_cpu():
 def test():
     test_decoder()
     test_function_translation()
+    test_jump_table_bound()
     test_programs()
     test_fuzz()
     test_vfp_conversions()

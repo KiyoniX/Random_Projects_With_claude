@@ -687,15 +687,31 @@ def _single(insn, ctx):
     return insn
 
 
+def _table_bound(insn, ctx, rm):
+    """La taille d'une table de sauts d'après le « cmp rm, #n » qui la garde, ou None. Sans elle, une entrée qui dépasse le
+    début de la fonction suivante (un point d'entrée au milieu du `switch`) couperait la table en silence."""
+    extra = {3: 0, 9: 1}.get(insn.cond)      # ldrlo : n entrées ; ldrls : n + 1
+    if extra is None:
+        return None
+    for k in range(1, 5):
+        w = ctx.read_word(insn.addr - 4 * k)
+        if w is None:
+            return None
+        if w & 0x0FFFF000 == 0x03500000 | rm << 16:
+            return ror(w & 0xFF, 2 * ((w >> 8) & 15)) + extra
+    return None
+
+
 def _table_ldr(insn, ctx, rm):
     """ldr pc, [pc, rm, lsl #2] : suivi d'une table d'adresses. Une adresse hors de la fonction n'est admise que si
     c'est le début d'une fonction connue (Ghidra coupe parfois une fonction au milieu d'un `switch`) : appel terminal."""
     base = insn.addr + 8
+    bound = _table_bound(insn, ctx, rm)
     entries = []
     a = base
-    while len(entries) < 4096:
+    while len(entries) < (bound or 4096):
         word = ctx.read_word(a)
-        if word is None or word & 3 or not (ctx.claim(word) or word in ctx.known):
+        if word is None or word & 3 or not (ctx.claim(word) or word in ctx.known or bound):
             break
         entries.append((a, word))
         a += 4
@@ -705,9 +721,12 @@ def _table_ldr(insn, ctx, rm):
     for e, t in entries:
         if ctx.inside(t):
             cases.append('case %s: goto L_%08x;' % (lit(e), t))
-        else:
+        elif t in ctx.known:
             ctx.callees.add(t)
             cases.append('case %s: RT_SAVE(); f_%08x(c); return;' % (lit(e), t))
+        else:
+            ctx.callees.add(t)
+            cases.append('case %s: RT_SAVE(); rt_dispatch(c, %s); return;' % (lit(e), lit(t)))
     insn.lines += ['switch (%s + (%s << 2)) {' % (lit(base), REGS[rm])] + cases +                   ['default: RT_SAVE(); rt_unimplemented(c, %s);' % lit(insn.addr), '}']
     insn.succ = sorted(set(t for _, t in entries if ctx.inside(t)))
     insn.kind = 'switch'
