@@ -65,7 +65,8 @@ class Y2r(Stub):
         if command in self.SETTERS:
             self.settings[self.SETTERS[command]] = req.word(1)
         elif command in self.PLANES:
-            self.planes[self.PLANES[command]] = (req.word(1), req.word(2), req.word(3), req.word(4))
+            # le jeu laisse 0xFFFF dans le haut de l'écart
+            self.planes[self.PLANES[command]] = (req.word(1), req.word(2), req.word(3), req.word(4) & 0xFFFF)
         if command == 0x000F:
             reply = Reply(0).copy_handles(self.end_event)
         elif command == 0x0026:

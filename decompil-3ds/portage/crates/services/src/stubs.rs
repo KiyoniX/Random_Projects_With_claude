@@ -314,7 +314,7 @@ impl Service for Y2r {
                     0x0012 => PLANE_V,
                     _ => PLANE_OUT,
                 };
-                self.planes[index] = Some((req.word(1), req.word(2), req.word(3), req.word(4)));
+                self.planes[index] = Some((req.word(1), req.word(2), req.word(3), req.word(4) & 0xFFFF)); // le jeu laisse 0xFFFF dans le haut de l'écart
             }
             _ => {}
         }

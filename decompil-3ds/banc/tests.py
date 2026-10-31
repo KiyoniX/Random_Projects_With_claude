@@ -84,7 +84,12 @@ class Assembler:
 
 def test_dsp_voices():
     """Mêmes valeurs que les tests de `Voice` dans portage/crates/services/src/dsp.rs."""
-    from services.dsp import Voice, CONFIG_SIZE, dsp32
+    from services.dsp import Voice, CONFIG_SIZE, adts_rate_index, dsp32
+
+    assert adts_rate_index(bytes([0xFF, 0xF1, 3 << 2])) == 0
+    assert adts_rate_index(bytes([0xFF, 0xF1, 5 << 2 | 1])) == 2
+    assert adts_rate_index(bytes([0x12, 0x34, 5 << 2])) == 0
+    assert adts_rate_index(b'') == 0
 
     def config(length, rate):
         c = bytearray(CONFIG_SIZE)

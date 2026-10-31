@@ -5,7 +5,7 @@
 //! formule du module (0x1FF40000 + adresse × 2) ; « arrête » fait rendre 1 au registre de réponse 0.
 //! Simplifié : la trame. À chaque fois que le jeu lève le signal du sémaphore, le banc attend une trame (5 ms du banc),
 //! fait avancer les voix ([`Voice`]) et lève le signal du canal 2, sans rien mixer. Le décodeur AAC (canal 3) répond
-//! « réussi » à chaque message, sans décoder.
+//! « réussi » à chaque message et dit avoir consommé chaque bloc, sans le décoder.
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -28,6 +28,18 @@ const ZONE_B: u32 = 0x2_0000;
 const CONFIG_SIZE: usize = 0xC0;
 const STATUS_SIZE: usize = 0x0C;
 const SAMPLES_PER_FRAME: f64 = 160.0;
+
+/// Le jeu ajoute cette valeur à ses adresses pour les passer au décodeur (contrat de dsp, partie 5).
+const AAC_PHYSICAL_OFFSET: u32 = 0x0C00_0000;
+
+/// L'indice de fréquence que rend le décodeur (0 : 48 000 Hz, 1 : 44 100…), d'après l'en-tête ADTS d'un bloc : les
+/// indices du format commencent trois crans plus haut, à 96 000 Hz. 0 si le bloc n'en a pas.
+fn adts_rate_index(header: &[u8]) -> u32 {
+    if header.len() < 3 || header[0] != 0xFF || header[1] & 0xF0 != 0xF0 {
+        return 0;
+    }
+    ((header[2] >> 2 & 0xF) as u32).saturating_sub(3)
+}
 
 /// Un mot de 32 bits du DSP : la moitié haute d'abord (le jeu le fait tourner de 16 bits, `0x18f6dc`).
 fn dsp32(data: &[u8], at: usize) -> u32 {
@@ -279,11 +291,19 @@ impl Dsp {
         }
         if channel == 3 {
             let request: i64 = if data.len() >= 4 { u16::from_le_bytes([data[2], data[3]]) as i64 } else { -1 };
-            // En-tête recopié (codec, demande), résultat 0, arguments à zéro : le contenu d'une vraie réponse n'est
-            // pas lu (contrat de dsp, partie 5). Renvoyer les arguments de la demande fait lire au jeu des
-            // adresses physiques comme des index (faute à 0x2c95c0 au premier essai).
+            // En-tête recopié (codec, demande), résultat 0. Renvoyer les arguments de la demande fait lire au jeu des
+            // adresses physiques comme des index (faute à 0x2c95c0 au premier essai) : pour un bloc, la réponse est
+            // l'indice de la fréquence, les canaux et la taille consommée. Sans cette taille, une musique n'avance pas
+            // et la montée de niveau, qui attend la sienne, se fige.
             let mut answer = data[..data.len().min(4)].to_vec();
             answer.resize(0x20, 0);
+            if request == 1 && data.len() >= 0x10 {
+                let source = u32::from_le_bytes([data[8], data[9], data[10], data[11]]).wrapping_sub(AAC_PHYSICAL_OFFSET);
+                let header = k.memory.read(source, 3).unwrap_or_default();
+                answer[8..12].copy_from_slice(&adts_rate_index(&header).to_le_bytes());
+                answer[12..16].copy_from_slice(&2u32.to_le_bytes());
+                answer[16..20].copy_from_slice(&data[12..16]);
+            }
             self.pipes.entry(3).or_default().extend_from_slice(&answer);
             self.signal(k, 3);
             return Reply::new(0).with_note(format!("décodeur AAC, demande {request} : « réussi » sans décoder"));
@@ -426,6 +446,14 @@ mod tests {
         c[0xB0..0xB4].copy_from_slice(&dsp(length));
         c[0xBE] = 7;
         c
+    }
+
+    #[test]
+    fn adts_gives_the_rate_index() {
+        assert_eq!(adts_rate_index(&[0xFF, 0xF1, 3 << 2]), 0, "48 000 Hz");
+        assert_eq!(adts_rate_index(&[0xFF, 0xF1, 5 << 2 | 1]), 2, "32 000 Hz");
+        assert_eq!(adts_rate_index(&[0x12, 0x34, 5 << 2]), 0, "pas d'en-tête");
+        assert_eq!(adts_rate_index(&[]), 0);
     }
 
     #[test]

@@ -5,7 +5,7 @@ Réel pour le démarrage : LoadComponent rend l'octet 1 ; le tuyau 2 reçoit « 
 formule du module (0x1FF40000 + adresse × 2) ; « arrête » fait rendre 1 au registre de réponse 0.
 Simplifié : la trame. À chaque fois que le jeu lève le signal du sémaphore, le banc attend une trame (5 ms du banc),
 fait avancer les voix (`Voice`) et lève le signal du canal 2, sans rien mixer. Le décodeur AAC (canal 3) répond
-« réussi » à chaque message, sans décoder.
+« réussi » à chaque message et dit avoir consommé chaque bloc, sans le décoder.
 """
 import struct
 
@@ -25,6 +25,17 @@ STATUS_A = 0x1FF50D00
 ZONE_B = 0x20000
 CONFIG_SIZE = 0xC0
 SAMPLES_PER_FRAME = 160.0
+
+
+AAC_PHYSICAL_OFFSET = 0x0C000000    # le jeu l'ajoute à ses adresses pour les passer au décodeur (contrat de dsp, partie 5)
+
+
+def adts_rate_index(header):
+    """L'indice de fréquence que rend le décodeur (0 : 48 000 Hz, 1 : 44 100…), d'après l'en-tête ADTS d'un bloc : les
+    indices du format commencent trois crans plus haut, à 96 000 Hz. 0 si le bloc n'en a pas."""
+    if len(header) < 3 or header[0] != 0xFF or header[1] & 0xF0 != 0xF0:
+        return 0
+    return max(0, (header[2] >> 2 & 0xF) - 3)
 
 
 def dsp32(data, at):
@@ -191,10 +202,18 @@ class Dsp(Service):
             return Reply(0).with_note('« arrête » (%d) : le registre 0 rendra 1' % word)
         if channel == 3:
             request = struct.unpack_from('<H', data, 2)[0] if len(data) >= 4 else -1
-            # En-tête recopié (codec, demande), résultat 0, arguments à zéro : le contenu d'une vraie réponse n'est
-            # pas lu (contrat de dsp, partie 5). Renvoyer les arguments de la demande fait lire au jeu des
-            # adresses physiques comme des index (faute à 0x2c95c0 au premier essai).
+            # En-tête recopié (codec, demande), résultat 0. Renvoyer les arguments de la demande fait lire au jeu des
+            # adresses physiques comme des index (faute à 0x2c95c0 au premier essai) : pour un bloc, la réponse est
+            # l'indice de la fréquence, les canaux et la taille consommée. Sans cette taille, une musique n'avance pas
+            # et la montée de niveau, qui attend la sienne, se fige.
             answer = bytearray(data[:4].ljust(0x20, b'\0'))
+            if request == 1 and len(data) >= 0x10:
+                source, size = struct.unpack_from('<II', data, 8)
+                try:
+                    header = req.memory.read((source - AAC_PHYSICAL_OFFSET) & 0xFFFFFFFF, 3)
+                except MemoryError3ds:
+                    header = b''
+                struct.pack_into('<III', answer, 8, adts_rate_index(header), 2, size)
             self.pipes[3] += answer
             self.signal(3)
             return Reply(0).with_note('décodeur AAC, demande %d : « réussi » sans décoder' % request)
