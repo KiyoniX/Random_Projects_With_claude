@@ -443,6 +443,9 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
     results = []
     done = 0
     pending = tuple(seeds)
+    # Le mode d'un point de départ est sûr : une fonction dont la fin déborde dans les données peut « sauter » sur la même
+    # adresse dans l'autre mode (0x100134, en Thumb, sur 0x100184, importée en ARM), et ne doit pas la remplacer.
+    certain = {seed & ~1: seed for seed in seeds}
     scanned = False
     replaced = set()
     text = image.text
@@ -470,7 +473,8 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
             for m in DISPATCH_CONST.finditer(r.source):
                 target = int(m.group(1), 16)
                 base = target & ~1
-                if text_lo <= base < text_hi and target not in keys and target not in found and base not in replaced:
+                if text_lo <= base < text_hi and target not in keys and target not in found and base not in replaced \
+                        and certain.get(base, target) == target:
                     found[target] = 'thumb' if target & 1 else 'arm'
         if not found and not scanned:
             # Plus rien d'atteint par les appels et les sauts : les prologues ARM que personne n'a couverts. Le code écrit à

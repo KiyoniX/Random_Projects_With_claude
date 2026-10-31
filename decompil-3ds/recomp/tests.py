@@ -183,6 +183,16 @@ def test_jump_table_bound():
         assert 0x100040 in res.callees
 
 
+def test_seed_keeps_its_mode():
+    """Une fonction Thumb qui déborde sur un point de départ ARM ne le fait pas traduire en Thumb."""
+    arm = struct.pack('<II', 0xE3A00001, 0xE12FFF1E)      # mov r0, #1 ; bx lr
+    data = struct.pack('<HH', 0x46C0, 0x46C0) + arm       # nop ; nop, puis rien qui rende la main
+    image = recomp.RawImage(BASE, data)
+    results = recomp.translate_all(image, [(BASE, 4, 'thumb', 'debordante')], holes=True, seeds=(BASE + 4,))
+    modes = {r.addr: r.mode for r in results}
+    assert modes.get(BASE + 4) == 'arm', modes
+
+
 def test_fuzz_thumb(per_class=100, draws=20):
     problem = tools_available()
     if problem:
@@ -920,6 +930,7 @@ def test():
     test_decoder()
     test_function_translation()
     test_jump_table_bound()
+    test_seed_keeps_its_mode()
     test_programs()
     test_fuzz()
     test_vfp_conversions()
