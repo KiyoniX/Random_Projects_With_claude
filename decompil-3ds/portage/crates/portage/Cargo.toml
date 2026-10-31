@@ -15,4 +15,5 @@ winit.workspace = true
 wgpu.workspace = true
 pollster.workspace = true
 bytemuck.workspace = true
+chrono = "=0.4.44"
 cpal = "=0.18.2"

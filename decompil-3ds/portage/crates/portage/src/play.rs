@@ -335,6 +335,11 @@ pub fn run(settings: Settings) -> Result<(), String> {
     options.draw = true;
     options.live = true;
     options.keep_archives = replay.is_none();
+    if replay.is_none() {
+        // de 1900 à 1970 : 2 208 988 800 secondes
+        let local = chrono::Local::now().naive_local().and_utc().timestamp_millis();
+        options.clock_milliseconds = Some((local + 2_208_988_800_000) as u64);
+    }
     options.mod_dir = game_mod;
     let audio: std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>> = Default::default();
     // un volume nul ne décode rien du tout : le son reste éteint comme sur le banc

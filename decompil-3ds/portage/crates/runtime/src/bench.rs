@@ -66,6 +66,8 @@ pub struct Options {
     pub live: bool,
     /// Garder la copie de travail de la sauvegarde d'un lancement à l'autre : c'est la partie de celui qui joue.
     pub keep_archives: bool,
+    /// L'heure de la console au démarrage (`portage play` : l'heure locale du PC).
+    pub clock_milliseconds: Option<u64>,
     /// La sortie du son : le DSP y range ce qu'il mixe.
     pub audio: Option<std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>>>,
 }
@@ -96,6 +98,7 @@ impl Options {
             scale: 1,
             live: false,
             keep_archives: false,
+            clock_milliseconds: None,
             audio: None,
         }
     }
@@ -242,8 +245,8 @@ impl Bench {
         put32(&mut page, 0x68, 0xF450);
         k.memory.write(CONFIG_PAGE, &page).map_err(|e| e.to_string())?;
         let mut shared = vec![0u8; PAGE as usize];
-        // 2026-10-14 12:00:00, en millisecondes depuis 1900
-        let milliseconds = (days_since_1900(2026, 10, 14) * 86400 + 12 * 3600) as u64 * 1000;
+        // en millisecondes depuis 1900 ; 2026-10-14 12:00:00 sauf en jeu : le banc et le rejeu ne dépendent pas du jour
+        let milliseconds = self.options.clock_milliseconds.unwrap_or((days_since_1900(2026, 10, 14) * 86400 + 12 * 3600) as u64 * 1000);
         shared[0x20..0x28].copy_from_slice(&milliseconds.to_le_bytes()); // DATETIME_0 : l'heure, et le tick de la mise à jour
         shared[0x40..0x48].copy_from_slice(&milliseconds.to_le_bytes());
         shared[0x04] = 1; // RUNNING_HW : console du commerce
