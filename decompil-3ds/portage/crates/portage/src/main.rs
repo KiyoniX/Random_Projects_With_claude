@@ -6,6 +6,7 @@
 //!   portage compare-images <dossier de référence> <dossier>  compare les PNG de même nom (ex. banc et runtime --dessiner)
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
 //!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL]
+//!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
 //!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
@@ -38,11 +39,17 @@ struct Options {
     screenshot: Option<(f64, String)>,
     /// `play` : refaire les entrées relevées dans ce journal (sans toucher à la partie gardée).
     replay: Option<String>,
+    /// `play` : l'écran du bas reste dans le coin pendant un combat (par défaut), ou seulement avec Échap (`menu`).
+    combat_in_corner: bool,
+    /// `play` : les deux écrans l'un sur l'autre.
+    both_screens: bool,
+    /// `play` : le dossier d'un mod (`local/mods-build/pc`).
+    game_mod: Option<PathBuf>,
     positional: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, combat_in_corner: true, both_screens: false, game_mod: None, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -51,6 +58,18 @@ fn parse(args: &[String]) -> Options {
                 o.scale = args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage());
             }
             "--direct" => o.direct = true,
+            "--combat" => {
+                i += 1;
+                o.combat_in_corner = args.get(i).map(String::as_str) != Some("menu");
+            }
+            "--ecrans" => {
+                i += 1;
+                o.both_screens = args.get(i).map(String::as_str) == Some("deux");
+            }
+            "--mod" => {
+                i += 1;
+                o.game_mod = Some(PathBuf::from(args.get(i).unwrap_or_else(|| usage())));
+            }
             "--rejouer" => {
                 i += 1;
                 o.replay = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
@@ -358,7 +377,15 @@ fn main() {
         "replay" => cmd_replay(options),
         "compare" => cmd_compare(options),
         "compare-images" => cmd_compare_images(options),
-        "play" => play::run(options.scale, options.seconds, options.screenshot, options.replay),
+        "play" => play::run(play::Settings {
+            scale: options.scale,
+            seconds: options.seconds,
+            shot: options.screenshot,
+            replay: options.replay,
+            combat_in_corner: options.combat_in_corner,
+            both_screens: options.both_screens,
+            game_mod: options.game_mod,
+        }),
         "overlay" => cmd_overlay(options),
         "bench" => cmd_bench(options),
         "window" => window::run(options.positional.first().cloned().unwrap_or_else(|| usage()), options.scale),

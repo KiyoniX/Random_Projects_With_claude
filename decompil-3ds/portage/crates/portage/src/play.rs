@@ -90,6 +90,20 @@ struct Play {
     moves: [bool; 4],
     /// Shift est tenu : la croix du clavier est le pad circulaire.
     shift: bool,
+    combat_in_corner: bool,
+    both_screens: bool,
+}
+
+/// Ce que `portage play` reçoit de la ligne de commande (les réglages du launcher).
+pub struct Settings {
+    pub scale: u32,
+    /// Quitter après tant de secondes réelles (pour une mesure), sinon à la fermeture de la fenêtre.
+    pub seconds: Option<f64>,
+    pub shot: Option<(f64, String)>,
+    pub replay: Option<String>,
+    pub combat_in_corner: bool,
+    pub both_screens: bool,
+    pub game_mod: Option<std::path::PathBuf>,
 }
 
 impl Play {
@@ -154,9 +168,11 @@ impl Play {
 
     /// Où est l'écran du bas : (disposition, affiché ou non). Échap l'emporte sur le coin du combat.
     fn layout(&self) -> (Layout, bool) {
-        if self.menu {
+        if self.both_screens {
+            (Layout::Stacked, true)
+        } else if self.menu {
             (Layout::Overlaid, true)
-        } else if self.in_battle() {
+        } else if self.combat_in_corner && self.in_battle() {
             (Layout::Corner, true)
         } else {
             (Layout::Overlaid, false)
@@ -241,7 +257,7 @@ impl ApplicationHandler for Play {
         if self.window.is_some() {
             return;
         }
-        let window = open(event_loop, "Pokémon X, portage PC", 800.0, 480.0);
+        let window = open(event_loop, "Pokémon X, portage PC", 800.0, if self.both_screens { 960.0 } else { 480.0 });
         match Screens::new(window.clone(), self.shared.gpu.clone()) {
             Ok(screens) => self.screens = Some(screens),
             Err(e) => {
@@ -275,7 +291,7 @@ impl ApplicationHandler for Play {
             WindowEvent::KeyboardInput { event, .. } => {
                 let PhysicalKey::Code(code) = event.physical_key else { return };
                 if code == KeyCode::Escape {
-                    if event.state == ElementState::Pressed && !event.repeat {
+                    if event.state == ElementState::Pressed && !event.repeat && !self.both_screens {
                         self.toggle_menu();
                     }
                 } else if matches!(code, KeyCode::ShiftLeft | KeyCode::ShiftRight) {
@@ -309,8 +325,8 @@ impl ApplicationHandler for Play {
     }
 }
 
-/// `seconds` : quitter après tant de secondes réelles (pour une mesure), sinon à la fermeture de la fenêtre.
-pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>, replay: Option<String>) -> Result<(), String> {
+pub fn run(settings: Settings) -> Result<(), String> {
+    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod } = settings;
     let root = find_root();
     let mut options = Options::new(&root);
     options.out = root.join("local/analyse/runtime/play");
@@ -318,6 +334,7 @@ pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>, replay
     options.draw = true;
     options.live = true;
     options.keep_archives = replay.is_none();
+    options.mod_dir = game_mod;
     if let Some(path) = &replay {
         options.replay(path)?;
         options.out = root.join("local/analyse/runtime/play-rejeu");
@@ -348,6 +365,8 @@ pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>, replay
         cursor: (0.0, 0.0),
         moves: [false; 4],
         shift: false,
+        combat_in_corner,
+        both_screens,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());

@@ -39,7 +39,8 @@ les captures du vrai jeu vivent dans `../local/`, les tests fabriquent leurs don
 | `formats` | tuiles de Morton, 5 formats de couleur, les 14 formats de texture dont ETC1 et ETC1A4 ; vérifiée contre `banc/pica/formats.py` |
 | `pica` | le PICA200 vers wgpu : registres, sommets, shaders traduits, textures, combinateur, mélange, transferts |
 | `overlay` | lit `overlay.json` et `romfs/` des mods ; refuse un `format` plus grand que 1 ; SHA-1 maison |
-| `portage` | l'outil : `replay`, `compare`, `window`, `overlay` |
+| `portage` | l'outil : `replay`, `compare`, `window`, `overlay`, `play` |
+| `launcher` | l'application à part : réglages (`local/portage/reglages.json`), mod, lance `portage play` |
 | `kernel` | le noyau de la console (mémoire, objets, ordonnanceur, horloge du banc, 41 appels système, IPC, journal au format du banc) ; processeur scénarisé pour les tests |
 | `hostcpu` | le code ARM recompilé en C, chargé depuis `jeu-hote.dll` (fibres Windows), y compris les modules `.cro` recompilés |
 | `services` | `srv:`, `APT:U`, `fs:USER`, `gsp::Gpu`, `dsp::DSP`, `hid:USER`, `cfg:u`, `ptm:u`, `err:f`, `ldr:ro`, et les services simplifiés (`ndm:u`, `boss:U`, `frd:u`, `y2r:u`, réseau…) |
