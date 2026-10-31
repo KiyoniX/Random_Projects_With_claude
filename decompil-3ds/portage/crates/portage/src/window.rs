@@ -22,7 +22,7 @@ use winit::window::{Window, WindowId};
 use capture::Capture;
 
 const SHADER: &str = r#"
-struct Rect { v: vec4<f32> }   // x0, y0, x1, y1 en coordonnées d'écran (-1..1, y vers le haut)
+struct Rect { v: vec4<f32>, uv: vec4<f32> }   // x0, y0, x1, y1 en coordonnées d'écran (-1..1, y vers le haut), puis le morceau d'image
 @group(0) @binding(0) var<uniform> rect: Rect;
 @group(0) @binding(1) var img: texture_2d<f32>;
 @group(0) @binding(2) var samp: sampler;
@@ -31,7 +31,7 @@ struct Out { @builtin(position) p: vec4<f32>, @location(0) uv: vec2<f32> }
     let c = vec2<f32>(f32(i & 1u), f32((i >> 1u) & 1u));
     var o: Out;
     o.p = vec4<f32>(mix(rect.v.x, rect.v.z, c.x), mix(rect.v.w, rect.v.y, c.y), 0.0, 1.0);
-    o.uv = vec2<f32>(c.x, 1.0 - c.y);   // la première ligne de l'image est en haut
+    o.uv = mix(rect.uv.xy, rect.uv.zw, vec2<f32>(c.x, 1.0 - c.y));   // la première ligne de l'image est en haut
     return o;
 }
 @fragment fn fs(in: Out) -> @location(0) vec4<f32> {
@@ -48,21 +48,72 @@ pub enum Layout {
     Overlaid,
     /// Le haut remplit un 400 x 240 ; le bas, à moitié de sa taille, occupe le coin en bas à droite (l'interface de combat).
     Corner,
+    /// Le haut remplit un 400 x 240 ; les quatre boutons de capacité sont empilés à droite.
+    Moves,
+    /// L'écran du bas seul (pour le lire).
+    BottomOnly,
+}
+
+/// Un morceau d'écran posé dans le repère : (x0, y0, x1, y1) dans la disposition, et ce qu'il montre en pixels de l'écran.
+#[derive(Clone, Copy)]
+struct Piece {
+    bottom: bool,
+    to: [f32; 4],
+    from: [f32; 4],
+}
+
+const TOP_WHOLE: [f32; 4] = [0.0, 0.0, 400.0, 240.0];
+const BOTTOM_WHOLE: [f32; 4] = [0.0, 0.0, 320.0, 240.0];
+/// Les quatre boutons de l'écran des capacités, deux par deux, en pixels de l'écran du bas.
+const MOVE_BUTTONS: [[f32; 4]; 4] = [[0.0, 40.0, 160.0, 99.0], [160.0, 40.0, 320.0, 99.0], [0.0, 101.0, 160.0, 160.0], [160.0, 101.0, 320.0, 160.0]];
+/// La colonne : une ligne par bouton, gardant leur proportion, du bas de la fenêtre vers le haut.
+const MOVE_ROW_HEIGHT: f32 = 38.0;
+const MOVE_ROW_WIDTH: f32 = 104.0;
+const MAX_PIECES: usize = 5;
+
+/// L'écran des capacités : un bord sombre, l'espace clair entre deux boutons, un autre bord sombre, à gauche comme à droite.
+/// `rgba` : l'écran du bas en 320 x 240. Lu dans l'image parce que le jeu ne dit rien de l'écran qu'il affiche.
+pub fn shows_moves(rgba: &[u8]) -> bool {
+    let light = |x: usize, y: usize| {
+        let p = &rgba[(y * 320 + x) * 4..(y * 320 + x) * 4 + 3];
+        (p[0] as u32 + p[1] as u32 + p[2] as u32) / 3
+    };
+    [80, 240].iter().all(|&x| light(x, 98) < 80 && light(x, 100) > 120 && light(x, 102) < 80)
 }
 
 impl Layout {
-    /// Le repère (largeur, hauteur), puis le rectangle (x0, y0, x1, y1) de chaque écran.
-    fn areas(self) -> ((f32, f32), [(f32, f32, f32, f32); 2]) {
+    /// Le repère (largeur, hauteur).
+    fn size(self) -> (f32, f32) {
         match self {
-            Layout::Stacked => ((400.0, 480.0), [(0.0, 0.0, 400.0, 240.0), (40.0, 240.0, 360.0, 480.0)]),
-            Layout::Overlaid => ((400.0, 240.0), [(0.0, 0.0, 400.0, 240.0), (40.0, 0.0, 360.0, 240.0)]),
-            Layout::Corner => ((400.0, 240.0), [(0.0, 0.0, 400.0, 240.0), (240.0, 120.0, 400.0, 240.0)]),
+            Layout::Stacked => (400.0, 480.0),
+            Layout::BottomOnly => (320.0, 240.0),
+            _ => (400.0, 240.0),
+        }
+    }
+
+    /// Ce qu'on dessine, dans l'ordre.
+    fn pieces(self) -> Vec<Piece> {
+        let top = Piece { bottom: false, to: TOP_WHOLE, from: TOP_WHOLE };
+        let bottom = |to| Piece { bottom: true, to, from: BOTTOM_WHOLE };
+        match self {
+            Layout::Stacked => vec![top, bottom([40.0, 240.0, 360.0, 480.0])],
+            Layout::Overlaid => vec![top, bottom([40.0, 0.0, 360.0, 240.0])],
+            Layout::Corner => vec![top, bottom([240.0, 120.0, 400.0, 240.0])],
+            Layout::BottomOnly => vec![bottom(BOTTOM_WHOLE)],
+            Layout::Moves => {
+                let mut pieces = vec![top];
+                for (i, from) in MOVE_BUTTONS.into_iter().enumerate() {
+                    let y = 240.0 - (4 - i) as f32 * MOVE_ROW_HEIGHT;
+                    pieces.push(Piece { bottom: true, to: [400.0 - MOVE_ROW_WIDTH, y, 400.0, y + MOVE_ROW_HEIGHT], from });
+                }
+                pieces
+            }
         }
     }
 
     /// Le repère agrandi au mieux dans la fenêtre et centré : (échelle, décalage en x, décalage en y).
     fn fit(self, width: f32, height: f32) -> (f32, f32, f32) {
-        let ((w, h), _) = self.areas();
+        let (w, h) = self.size();
         let f = (width / w).min(height / h);
         (f, (width - w * f) / 2.0, (height - h * f) / 2.0)
     }
@@ -70,10 +121,12 @@ impl Layout {
     /// Le point de l'écran du bas sous ce pixel de la fenêtre, s'il y en a un.
     pub fn bottom_point(self, width: f32, height: f32, x: f32, y: f32) -> Option<(u16, u16)> {
         let (f, ox, oy) = self.fit(width, height);
-        let (_, [_, area]) = self.areas();
         let (px, py) = ((x - ox) / f, (y - oy) / f);
-        let (sx, sy) = (320.0 / (area.2 - area.0), 240.0 / (area.3 - area.1));
-        (area.0 <= px && px < area.2 && area.1 <= py && py < area.3).then(|| (((px - area.0) * sx) as u16, ((py - area.1) * sy) as u16))
+        self.pieces().iter().find(|p| p.bottom && p.to[0] <= px && px < p.to[2] && p.to[1] <= py && py < p.to[3]).map(|p| {
+            let u = (px - p.to[0]) / (p.to[2] - p.to[0]);
+            let v = (py - p.to[1]) / (p.to[3] - p.to[1]);
+            ((p.from[0] + u * (p.from[2] - p.from[0])) as u16, (p.from[1] + v * (p.from[3] - p.from[1])) as u16)
+        })
     }
 }
 
@@ -95,8 +148,8 @@ pub struct Screens {
     layout: wgpu::BindGroupLayout,
     nearest: wgpu::Sampler,
     linear: wgpu::Sampler,
-    /// Le rectangle de chaque écran (haut, bas).
-    rects: [wgpu::Buffer; 2],
+    /// Le rectangle de chaque morceau d'écran dessiné.
+    rects: [wgpu::Buffer; MAX_PIECES],
 }
 
 impl Screens {
@@ -133,8 +186,8 @@ impl Screens {
         });
         let sampler = |filter| device.create_sampler(&wgpu::SamplerDescriptor { mag_filter: filter, min_filter: filter, ..Default::default() });
         let (nearest, linear) = (sampler(wgpu::FilterMode::Nearest), sampler(wgpu::FilterMode::Linear));
-        let rect = || device.create_buffer(&wgpu::BufferDescriptor { label: Some("rectangle"), size: 16, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
-        let rects = [rect(), rect()];
+        let rect = || device.create_buffer(&wgpu::BufferDescriptor { label: Some("rectangle"), size: 32, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
+        let rects = std::array::from_fn(|_| rect());
         Ok(Screens { window, gpu, surface, config, pipeline, layout, nearest, linear, rects })
     }
 
@@ -172,13 +225,16 @@ impl Screens {
     fn compose(&self, view: &wgpu::TextureView, width: u32, height: u32, textures: [Option<&wgpu::Texture>; 2], smooth: bool, layout: Layout) -> wgpu::CommandEncoder {
         let (ww, wh) = (width as f32, height as f32);
         let (f, ox, oy) = layout.fit(ww, wh);
-        let (_, areas) = layout.areas();
         let mut binds = Vec::new();
-        for ((texture, rect), r) in textures.iter().zip(&self.rects).zip(areas) {
-            let Some(texture) = texture else { continue };
+        for (piece, rect) in layout.pieces().iter().zip(&self.rects) {
+            let Some(texture) = textures[piece.bottom as usize] else { continue };
             let px = |x: f32| (ox + x * f) / ww * 2.0 - 1.0;
             let py = |y: f32| 1.0 - (oy + y * f) / wh * 2.0;
-            self.gpu.queue.write_buffer(rect, 0, bytemuck::cast_slice(&[px(r.0), py(r.1), px(r.2), py(r.3)]));
+            let (w, h) = if piece.bottom { (320.0, 240.0) } else { (400.0, 240.0) };
+            let [tx0, ty0, tx1, ty1] = piece.to;
+            let [sx0, sy0, sx1, sy1] = piece.from;
+            let words = [px(tx0), py(ty0), px(tx1), py(ty1), sx0 / w, sy0 / h, sx1 / w, sy1 / h];
+            self.gpu.queue.write_buffer(rect, 0, bytemuck::cast_slice(&words));
             let texture_view = texture.create_view(&Default::default());
             binds.push(self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("écran"),
@@ -243,6 +299,11 @@ impl Screens {
             (w, h, out)
         };
         [crop(0, 0, 400 * s, 240 * s), crop(40 * s, 240 * s, 320 * s, 240 * s)]
+    }
+
+    /// L'écran du bas en 320 x 240, relu en RGBA.
+    pub fn read_bottom(&self, texture: &wgpu::Texture) -> Vec<u8> {
+        self.read_back([None, Some(texture)], 320, 240, Layout::BottomOnly)
     }
 
     /// L'image de la fenêtre telle qu'elle est présentée, en 400 x 240 fois `scale`, relue en RGBA.
@@ -404,7 +465,24 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::Layout;
+    use super::{Layout, shows_moves};
+
+    /// Un écran du bas gris clair, avec des traits sombres aux lignes données.
+    fn screen(dark_lines: &[usize]) -> Vec<u8> {
+        let mut rgba = vec![200u8; 320 * 240 * 4];
+        for &y in dark_lines {
+            rgba[y * 320 * 4..(y + 1) * 320 * 4].fill(30);
+        }
+        rgba
+    }
+
+    #[test]
+    fn moves_screen_is_recognised() {
+        assert!(shows_moves(&screen(&[98, 102])));
+        assert!(!shows_moves(&screen(&[])));
+        assert!(!shows_moves(&screen(&[98])));
+        assert!(!shows_moves(&vec![20u8; 320 * 240 * 4]), "un écran assombri");
+    }
 
     #[test]
     fn bottom_point_follows_the_overlaid_screen() {
@@ -425,6 +503,11 @@ mod tests {
         assert_eq!(Layout::Corner.bottom_point(800.0, 480.0, 480.0, 240.0), Some((0, 0)));
         assert_eq!(Layout::Corner.bottom_point(800.0, 480.0, 799.0, 479.0), Some((319, 239)));
         assert_eq!(Layout::Corner.bottom_point(800.0, 480.0, 479.0, 300.0), None);
+        // la colonne des capacités, à l'échelle 2 : chaque ligne renvoie au milieu du bon bouton
+        let moves = |x, y| Layout::Moves.bottom_point(800.0, 480.0, x, y);
+        assert_eq!(moves(800.0 - 104.0, 480.0 - 4.0 * 76.0 + 38.0), Some((80, 69)), "première ligne : en haut à gauche");
+        assert_eq!(moves(700.0, 480.0 - 38.0), Some((243, 130)), "dernière ligne : en bas à droite");
+        assert_eq!(moves(500.0, 300.0), None, "à côté");
         // deux écrans l'un sur l'autre : le bas commence à la moitié
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 480.0), Some((0, 0)));
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 479.0), None);

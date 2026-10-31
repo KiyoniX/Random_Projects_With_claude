@@ -21,7 +21,7 @@ use winit::window::{Window, WindowId};
 
 use pica::images::save_png;
 
-use crate::window::{Layout, Screens, open};
+use crate::window::{Layout, Screens, open, shows_moves};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -92,6 +92,9 @@ struct Play {
     shift: bool,
     combat_in_corner: bool,
     both_screens: bool,
+    /// L'écran du bas montre les capacités : elles passent en colonne à droite.
+    moves_shown: bool,
+    frames_shown: u64,
 }
 
 /// Ce que `portage play` reçoit de la ligne de commande (les réglages du launcher).
@@ -174,7 +177,7 @@ impl Play {
         } else if self.menu {
             (Layout::Overlaid, true)
         } else if self.combat_in_corner && self.in_battle() {
-            (Layout::Corner, true)
+            (if self.moves_shown { Layout::Moves } else { Layout::Corner }, true)
         } else {
             (Layout::Overlaid, false)
         }
@@ -214,6 +217,15 @@ impl Play {
         }
         let textures: Vec<Option<wgpu::Texture>> = images.iter().map(|i| i.as_ref().map(|(_, i)| screens.texture(i))).collect();
         drop(images);
+        // lire l'image bloque : quelques fois par seconde suffisent, et seulement en combat
+        self.frames_shown += 1;
+        if !self.bench.kernel.journal.names.modules.iter().any(|m| m.2 == "DllBattle") {
+            self.moves_shown = false;
+        } else if self.frames_shown % 8 == 0 {
+            if let Some(bottom) = &textures[1] {
+                self.moves_shown = shows_moves(&screens.read_bottom(bottom));
+            }
+        }
         if self.shot_ready {
             let (_, prefix) = self.shot.take().unwrap();
             self.shot_ready = false;
@@ -379,6 +391,8 @@ pub fn run(settings: Settings) -> Result<(), String> {
         shift: false,
         combat_in_corner,
         both_screens,
+        moves_shown: false,
+        frames_shown: 0,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());
