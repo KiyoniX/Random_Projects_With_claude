@@ -557,6 +557,11 @@ pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
         k.journal.write(k.now, &format!("hid : stylet {touch:?}"));
     }
     hid.touch = touch;
+    let circle = k.circle_now();
+    if circle != hid.circle {
+        k.journal.write(k.now, &format!("hid : pad circulaire {circle:?}"));
+    }
+    hid.circle = circle;
     hid.update(k);
     // L'heure de la page partagée suit l'horloge du banc.
     let milliseconds = k.bench.start_milliseconds + k.now / 1_000_000;

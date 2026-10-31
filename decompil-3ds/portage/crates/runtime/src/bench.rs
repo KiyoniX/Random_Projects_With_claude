@@ -55,6 +55,7 @@ pub struct Options {
     pub wall_seconds: f64,
     pub presses: Vec<(f64, f64, u32)>,
     pub touches: Vec<(f64, f64, u16, u16)>,
+    pub circles: Vec<(f64, f64, i16, i16)>,
     pub mod_dir: Option<PathBuf>,
     pub log_all_svc: bool,
     pub max_lines: usize,
@@ -78,6 +79,7 @@ impl Options {
             wall_seconds: 20.0 * 60.0,
             presses: Vec::new(),
             touches: Vec::new(),
+            circles: Vec::new(),
             mod_dir: None,
             log_all_svc: true,
             max_lines: 400_000,
@@ -169,6 +171,7 @@ impl Bench {
         kernel.bench.paths = paths;
         kernel.bench.presses = options.presses.clone();
         kernel.bench.touches = options.touches.clone();
+        kernel.bench.circles = options.circles.clone();
         kernel.bench.region = 2;
         kernel.bench.turns_limit = options.turns;
         let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None };

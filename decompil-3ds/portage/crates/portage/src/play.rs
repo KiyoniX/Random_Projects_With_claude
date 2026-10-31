@@ -3,7 +3,8 @@
 //! puis les dernières images des deux écrans sont présentées telles que pica les a construites sur le GPU.
 //!
 //! Touches : voir le README. Seul l'écran du haut est affiché ; Échap pose l'écran du bas par-dessus, le jeu continue, et
-//! le clic gauche y devient le stylet et la croix du clavier ne répond plus. La fenêtre se ferme par sa croix.
+//! le clic gauche y devient le stylet et la croix du clavier ne répond plus. La fenêtre se ferme par sa croix. Shift
+//! fait de la croix du clavier le pad circulaire.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -39,6 +40,10 @@ const KEYS: [(KeyCode, &str); 10] = [
 
 /// Les boutons que le menu ouvert retire au clavier : le personnage ne marche pas pendant qu'on clique.
 const MOVES: [&str; 4] = ["UP", "DOWN", "LEFT", "RIGHT"];
+
+/// Le pad circulaire poussé à fond, tout droit (`CIRCLE_MAX`) ou en diagonale (`CIRCLE_DIAGONAL`, le même rayon).
+const CIRCLE_MAX: i16 = 156;
+const CIRCLE_DIAGONAL: i16 = 110;
 
 const MOUSE: [(MouseButton, &str); 2] = [(MouseButton::Left, "A"), (MouseButton::Right, "B")];
 
@@ -81,6 +86,10 @@ struct Play {
     /// Le clic gauche est tenu sur cet écran.
     stylus: bool,
     cursor: (f32, f32),
+    /// Les touches de la croix tenues, dans l'ordre de `MOVES`.
+    moves: [bool; 4],
+    /// Shift est tenu : la croix du clavier est le pad circulaire.
+    shift: bool,
 }
 
 impl Play {
@@ -125,6 +134,19 @@ impl Play {
         *held = if state == ElementState::Pressed { *held | bit } else { *held & !bit };
     }
 
+    /// Envoie les touches de la croix tenues au jeu : aucune si le menu est ouvert, au pad circulaire si Shift est tenu.
+    fn update_moves(&mut self) {
+        let active = if self.menu { [false; 4] } else { self.moves };
+        for (name, pressed) in MOVES.iter().zip(active) {
+            let state = if pressed && !self.shift { ElementState::Pressed } else { ElementState::Released };
+            self.hold(name, state);
+        }
+        let axis = |plus: bool, minus: bool| plus as i16 - minus as i16;
+        let (x, y) = if self.shift { (axis(active[3], active[2]), axis(active[0], active[1])) } else { (0, 0) };
+        let reach = if x != 0 && y != 0 { CIRCLE_DIAGONAL } else { CIRCLE_MAX };
+        self.bench.kernel.bench.circle = (x * reach, y * reach);
+    }
+
     /// Pose ou lève le stylet : il suit la souris tant qu'elle reste sur l'écran du bas.
     fn update_stylus(&mut self) {
         let Some(window) = &self.window else { return };
@@ -139,9 +161,7 @@ impl Play {
         self.stylus = false;
         self.update_stylus();
         self.hold("A", ElementState::Released); // un clic gauche tenu change de sens
-        for name in MOVES {
-            self.hold(name, ElementState::Released);
-        }
+        self.update_moves();
     }
 
     fn draw(&mut self) {
@@ -234,8 +254,14 @@ impl ApplicationHandler for Play {
                     if event.state == ElementState::Pressed && !event.repeat {
                         self.toggle_menu();
                     }
+                } else if matches!(code, KeyCode::ShiftLeft | KeyCode::ShiftRight) {
+                    self.shift = event.state == ElementState::Pressed;
+                    self.update_moves();
                 } else if let Some((_, name)) = KEYS.iter().find(|(k, _)| *k == code) {
-                    if !(self.menu && MOVES.contains(name)) {
+                    if let Some(i) = MOVES.iter().position(|m| m == name) {
+                        self.moves[i] = event.state == ElementState::Pressed;
+                        self.update_moves();
+                    } else {
                         self.hold(name, event.state);
                     }
                 }
@@ -290,6 +316,8 @@ pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>) -> Res
         menu: false,
         stylus: false,
         cursor: (0.0, 0.0),
+        moves: [false; 4],
+        shift: false,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());

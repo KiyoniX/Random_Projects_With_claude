@@ -60,6 +60,10 @@ pub struct BenchState {
     pub start_milliseconds: u64,
     /// Les boutons tenus en direct (le clavier de la fenêtre), en plus des appuis programmés.
     pub buttons: u32,
+    /// Le pad circulaire tenu en direct (Shift et la croix du clavier) : X et Y, Y vers le haut.
+    pub circle: (i16, i16),
+    /// (début en s, durée en s, X, Y) : le pad circulaire programmé
+    pub circles: Vec<(f64, f64, i16, i16)>,
     /// Le stylet tenu en direct (la souris de la fenêtre) : X et Y sur l'écran du bas.
     pub touch: Option<(u16, u16)>,
     pub turns_limit: u64,
@@ -143,6 +147,11 @@ impl Kernel {
             }
         }
         mask
+    }
+
+    pub fn circle_now(&self) -> (i16, i16) {
+        let seconds = self.now as f64 / 1e9;
+        self.bench.circles.iter().find(|c| c.0 <= seconds && seconds < c.0 + c.1).map_or(self.bench.circle, |c| (c.2, c.3))
     }
 
     pub fn touch_now(&self) -> Option<(u16, u16)> {

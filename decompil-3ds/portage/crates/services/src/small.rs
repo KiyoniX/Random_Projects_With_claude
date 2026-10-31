@@ -172,6 +172,9 @@ impl Service for Ptm {
 pub const HID_SECTIONS: [(&str, usize); 5] = [("pad", 0x000), ("touch", 0x0A8), ("accel", 0x108), ("gyro", 0x158),
                                               ("debug", 0x238)];
 
+/// Au-delà, le pad circulaire compte aussi comme une direction dans les boutons.
+const CIRCLE_DIRECTION: i16 = 40;
+
 pub struct Hid {
     pub shared: ObjId,
     pub events: Vec<ObjId>,
@@ -180,6 +183,8 @@ pub struct Hid {
     /// Combien de fois le jeu a allumé chaque capteur : accel, gyro.
     sensors: [u32; 2],
     pub buttons: u32,
+    /// Le pad circulaire : X et Y, Y vers le haut.
+    pub circle: (i16, i16),
     /// Le stylet posé : X et Y sur l'écran du bas.
     pub touch: Option<(u16, u16)>,
     pub updates: u64,
@@ -198,7 +203,7 @@ impl Hid {
                 k.shared(shared).w32(offset + 4 * word, 0xFFFF_FFFF);
             }
         }
-        Hid { shared, events, index: [-1; 4], sensors: [0; 2], buttons: 0, touch: None, updates: 0 }
+        Hid { shared, events, index: [-1; 4], sensors: [0; 2], buttons: 0, circle: (0, 0), touch: None, updates: 0 }
     }
 
     fn push(&mut self, k: &Kernel, section: usize, entry_offset: usize, entry_size: usize, count: i32, entry: &[u8]) {
@@ -220,12 +225,17 @@ impl Hid {
     /// Une lecture des périphériques (appelé à chaque fin d'image).
     pub fn update(&mut self, k: &Kernel) {
         self.updates += 1;
-        let held = self.buttons;
+        // `add_circle_pad_directions` (0x104958) ajoute aux boutons les quatre bits du haut quand le pad est poussé
+        let (x, y) = self.circle;
+        let directions = [(x > CIRCLE_DIRECTION, 1 << 28), (x < -CIRCLE_DIRECTION, 1 << 29),
+                          (y > CIRCLE_DIRECTION, 1 << 30), (y < -CIRCLE_DIRECTION, 1 << 31)];
+        let held = directions.iter().filter(|d| d.0).fold(self.buttons, |mask, d| mask | d.1);
         let mut pad = Vec::new();
         for word in [held, 0, 0] {
             pad.extend_from_slice(&word.to_le_bytes());
         }
-        pad.extend_from_slice(&[0, 0, 0, 0]);
+        pad.extend_from_slice(&x.to_le_bytes());
+        pad.extend_from_slice(&y.to_le_bytes());
         self.push(k, 0, 0x28, 0x10, 8, &pad);
         // X, Y, puis l'octet « touché » que lit hid_read_touch_ring (contrat-petits-services, partie 2)
         let (x, y) = self.touch.unwrap_or((0, 0));
@@ -514,6 +524,12 @@ mod tests {
         assert_eq!(word(&k, 0x28), 0);
         assert_eq!(word(&k, 0xA8), t2 as u32);
         assert_eq!(word(&k, 0xA8 + 0x10), 1);
+        // le pad circulaire : X, Y dans l'entrée, et les bits de direction avec les boutons
+        hid.circle = (-156, 156);
+        hid.update(&k);
+        assert_eq!(word(&k, 0x28 + 2 * 0x10), 0x8 | 1 << 29 | 1 << 30);
+        assert_eq!(word(&k, 0x28 + 2 * 0x10 + 0xC), (-156i16 as u16 as u32) | 156 << 16);
+        hid.circle = (0, 0);
         // un capteur n'écrit que s'il est allumé
         assert_eq!(word(&k, 0x108 + 0x10), 0xFFFF_FFFF);
         hid.sensors = [1, 1];
@@ -525,14 +541,14 @@ mod tests {
         // le stylet posé : X, Y et l'octet « touché » dans l'entrée du tactile, puis levé
         hid.touch = Some((319, 7));
         hid.update(&k);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8), 319 | 7 << 16);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8 + 4), 1);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 4 * 8), 319 | 7 << 16);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 4 * 8 + 4), 1);
         hid.touch = None;
         hid.update(&k);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 4 * 8), 0);
-        assert_eq!(word(&k, 0xA8 + 0x20 + 4 * 8 + 4), 0);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 5 * 8), 0);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 5 * 8 + 4), 0);
         // le tampon circulaire revient à 0 au 9e et recopie la date précédente
-        for _ in 0..3 {
+        for _ in 0..2 {
             k.now += 1_000_000_000;
             hid.update(&k);
         }
