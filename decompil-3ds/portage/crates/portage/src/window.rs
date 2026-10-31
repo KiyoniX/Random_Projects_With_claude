@@ -46,6 +46,8 @@ pub enum Layout {
     Stacked,
     /// Le haut remplit un 400 x 240 ; le bas s'y pose au centre, à la même échelle : les deux écrans ont 240 lignes.
     Overlaid,
+    /// Le haut remplit un 400 x 240 ; le bas, à moitié de sa taille, occupe le coin en bas à droite (l'interface de combat).
+    Corner,
 }
 
 impl Layout {
@@ -54,6 +56,7 @@ impl Layout {
         match self {
             Layout::Stacked => ((400.0, 480.0), [(0.0, 0.0, 400.0, 240.0), (40.0, 240.0, 360.0, 480.0)]),
             Layout::Overlaid => ((400.0, 240.0), [(0.0, 0.0, 400.0, 240.0), (40.0, 0.0, 360.0, 240.0)]),
+            Layout::Corner => ((400.0, 240.0), [(0.0, 0.0, 400.0, 240.0), (240.0, 120.0, 400.0, 240.0)]),
         }
     }
 
@@ -69,7 +72,8 @@ impl Layout {
         let (f, ox, oy) = self.fit(width, height);
         let (_, [_, area]) = self.areas();
         let (px, py) = ((x - ox) / f, (y - oy) / f);
-        (area.0 <= px && px < area.2 && area.1 <= py && py < area.3).then(|| ((px - area.0) as u16, (py - area.1) as u16))
+        let (sx, sy) = (320.0 / (area.2 - area.0), 240.0 / (area.3 - area.1));
+        (area.0 <= px && px < area.2 && area.1 <= py && py < area.3).then(|| (((px - area.0) * sx) as u16, ((py - area.1) * sy) as u16))
     }
 }
 
@@ -229,7 +233,25 @@ impl Screens {
     /// Les deux écrans composés comme dans une fenêtre (même passe, même format de surface), l'un sur l'autre, dans une
     /// image de 400 x 480 fois `scale`, relu : rend les deux écrans (largeur, hauteur, RGBA), pour les comparer aux PNG du banc.
     pub fn capture(&self, textures: [Option<&wgpu::Texture>; 2], scale: u32) -> [(usize, usize, Vec<u8>); 2] {
-        let (width, height) = (400 * scale, 480 * scale);
+        let s = scale as usize;
+        let image = self.read_back(textures, 400 * scale, 480 * scale, Layout::Stacked);
+        let crop = |x0: usize, y0: usize, w: usize, h: usize| {
+            let mut out = Vec::with_capacity(w * h * 4);
+            for y in y0..y0 + h {
+                out.extend_from_slice(&image[(y * 400 * s + x0) * 4..(y * 400 * s + x0 + w) * 4]);
+            }
+            (w, h, out)
+        };
+        [crop(0, 0, 400 * s, 240 * s), crop(40 * s, 240 * s, 320 * s, 240 * s)]
+    }
+
+    /// L'image de la fenêtre telle qu'elle est présentée, en 400 x 240 fois `scale`, relue en RGBA.
+    pub fn capture_window(&self, textures: [Option<&wgpu::Texture>; 2], scale: u32, layout: Layout) -> (usize, usize, Vec<u8>) {
+        let (width, height) = (400 * scale, 240 * scale);
+        (width as usize, height as usize, self.read_back(textures, width, height, layout))
+    }
+
+    fn read_back(&self, textures: [Option<&wgpu::Texture>; 2], width: u32, height: u32, layout: Layout) -> Vec<u8> {
         let device = &self.gpu.device;
         let target = device.create_texture(&wgpu::TextureDescriptor {
             label: Some("capture de la fenêtre"),
@@ -241,7 +263,7 @@ impl Screens {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         });
-        let mut encoder = self.compose(&target.create_view(&Default::default()), width, height, textures, false, Layout::Stacked);
+        let mut encoder = self.compose(&target.create_view(&Default::default()), width, height, textures, false, layout);
         let row = (width * 4).div_ceil(256) * 256;
         let buffer = device.create_buffer(&wgpu::BufferDescriptor { label: Some("capture"), size: (row * height) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
         encoder.copy_texture_to_buffer(
@@ -254,17 +276,13 @@ impl Screens {
         let _ = device.poll(wgpu::PollType::wait_indefinitely());
         let data = buffer.slice(..).get_mapped_range();
         let bgra = matches!(self.config.format, wgpu::TextureFormat::Bgra8Unorm);
-        let s = scale as usize;
-        let crop = |x0: usize, y0: usize, w: usize, h: usize| {
-            let mut out = Vec::with_capacity(w * h * 4);
-            for y in y0..y0 + h {
-                for p in data[y * row as usize + x0 * 4..y * row as usize + (x0 + w) * 4].chunks_exact(4) {
-                    out.extend_from_slice(&if bgra { [p[2], p[1], p[0], 255] } else { [p[0], p[1], p[2], 255] });
-                }
+        let mut out = Vec::with_capacity((width * height * 4) as usize);
+        for y in 0..height as usize {
+            for p in data[y * row as usize..y * row as usize + width as usize * 4].chunks_exact(4) {
+                out.extend_from_slice(&if bgra { [p[2], p[1], p[0], 255] } else { [p[0], p[1], p[2], 255] });
             }
-            (w, h, out)
-        };
-        [crop(0, 0, 400 * s, 240 * s), crop(40 * s, 240 * s, 320 * s, 240 * s)]
+        }
+        out
     }
 }
 
@@ -403,6 +421,10 @@ mod tests {
         // une fenêtre trop haute : le pixel au-dessus du repère ne touche rien
         assert_eq!(Layout::Overlaid.bottom_point(800.0, 960.0, 400.0, 239.0), None);
         assert_eq!(Layout::Overlaid.bottom_point(800.0, 960.0, 400.0, 240.0), Some((160, 0)));
+        // le coin : à l'échelle 2, de 480 à 799 et de 240 à 479, chaque pixel de la console en vaut un de la fenêtre
+        assert_eq!(Layout::Corner.bottom_point(800.0, 480.0, 480.0, 240.0), Some((0, 0)));
+        assert_eq!(Layout::Corner.bottom_point(800.0, 480.0, 799.0, 479.0), Some((319, 239)));
+        assert_eq!(Layout::Corner.bottom_point(800.0, 480.0, 479.0, 300.0), None);
         // deux écrans l'un sur l'autre : le bas commence à la moitié
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 480.0), Some((0, 0)));
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 479.0), None);

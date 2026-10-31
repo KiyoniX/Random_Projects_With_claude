@@ -2,3 +2,4 @@
 pub mod bench;
 pub mod compare;
 pub mod gpu;
+pub mod replay;

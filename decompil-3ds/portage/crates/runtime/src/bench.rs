@@ -69,6 +69,13 @@ pub struct Options {
 }
 
 impl Options {
+    /// Reprend les entrées relevées dans le journal d'une partie.
+    pub fn replay(&mut self, path: &str) -> Result<(), String> {
+        let text = String::from_utf8_lossy(&std::fs::read(path).map_err(|e| format!("{path} : {e}"))?).into_owned();
+        (self.presses, self.touches, self.circles) = crate::replay::parse_replay(&text);
+        Ok(())
+    }
+
     pub fn new(root: &Path) -> Options {
         Options {
             root: root.to_path_buf(),

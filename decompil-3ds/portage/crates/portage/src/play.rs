@@ -4,7 +4,7 @@
 //!
 //! Touches : voir le README. Seul l'écran du haut est affiché ; Échap pose l'écran du bas par-dessus, le jeu continue, et
 //! le clic gauche y devient le stylet et la croix du clavier ne répond plus. La fenêtre se ferme par sa croix. Shift
-//! fait de la croix du clavier le pad circulaire.
+//! fait de la croix du clavier le pad circulaire. En combat, l'écran du bas est toujours là, dans le coin en bas à droite.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -147,13 +147,33 @@ impl Play {
         self.bench.kernel.bench.circle = (x * reach, y * reach);
     }
 
+    /// En combat : `DllBattle` est le module chargé tant qu'il dure.
+    fn in_battle(&self) -> bool {
+        self.bench.kernel.journal.names.modules.iter().any(|m| m.2 == "DllBattle")
+    }
+
+    /// Où est l'écran du bas : (disposition, affiché ou non). Échap l'emporte sur le coin du combat.
+    fn layout(&self) -> (Layout, bool) {
+        if self.menu {
+            (Layout::Overlaid, true)
+        } else if self.in_battle() {
+            (Layout::Corner, true)
+        } else {
+            (Layout::Overlaid, false)
+        }
+    }
+
+    /// Le point de l'écran du bas sous la souris, s'il est affiché.
+    fn point_under_cursor(&self) -> Option<(u16, u16)> {
+        let (layout, shown) = self.layout();
+        let size = self.window.as_ref()?.inner_size();
+        let (x, y) = self.cursor;
+        shown.then(|| layout.bottom_point(size.width as f32, size.height as f32, x, y)).flatten()
+    }
+
     /// Pose ou lève le stylet : il suit la souris tant qu'elle reste sur l'écran du bas.
     fn update_stylus(&mut self) {
-        let Some(window) = &self.window else { return };
-        let size = window.inner_size();
-        let (x, y) = self.cursor;
-        self.bench.kernel.bench.touch =
-            if self.menu && self.stylus { Layout::Overlaid.bottom_point(size.width as f32, size.height as f32, x, y) } else { None };
+        self.bench.kernel.bench.touch = if self.stylus { self.point_under_cursor() } else { None };
     }
 
     fn toggle_menu(&mut self) {
@@ -165,6 +185,7 @@ impl Play {
     }
 
     fn draw(&mut self) {
+        let (layout, shown) = self.layout();
         let Some(screens) = self.screens.as_mut() else { return };
         let images = self.shared.screens.borrow();
         if let Some((_, top)) = &images[0] {
@@ -180,6 +201,10 @@ impl Play {
             let (_, prefix) = self.shot.take().unwrap();
             self.shot_ready = false;
             let pair = screens.capture([textures[0].as_ref(), textures[1].as_ref()], self.scale);
+            let (w, h, rgba) = screens.capture_window([textures[0].as_ref(), if shown { textures[1].as_ref() } else { None }], self.scale, layout);
+            if let Err(e) = save_png(Path::new(&format!("{prefix}fenetre.png")), w, h, &rgba) {
+                eprintln!("{prefix}fenetre.png : {e}");
+            }
             for ((w, h, rgba), label) in pair.iter().zip(["haut", "bas"]) {
                 let path = format!("{prefix}{label}.png");
                 match save_png(Path::new(&path), *w, *h, rgba) {
@@ -188,8 +213,7 @@ impl Play {
                 }
             }
         }
-        let bottom = if self.menu { textures[1].as_ref() } else { None };
-        screens.draw([textures[0].as_ref(), bottom], false, Layout::Overlaid);
+        screens.draw([textures[0].as_ref(), if shown { textures[1].as_ref() } else { None }], false, layout);
         self.second.presented += 1;
         let elapsed = self.second_start.elapsed().as_secs_f64();
         if elapsed >= 1.0 {
@@ -271,7 +295,9 @@ impl ApplicationHandler for Play {
                 self.update_stylus();
             }
             WindowEvent::MouseInput { state, button, .. } => {
-                if self.menu && button == MouseButton::Left {
+                // le clic gauche est le stylet s'il commence sur l'écran du bas, A partout ailleurs (sauf menu ouvert)
+                let on_screen = self.point_under_cursor().is_some();
+                if button == MouseButton::Left && (self.stylus || (state == ElementState::Pressed && (on_screen || self.menu))) {
                     self.stylus = state == ElementState::Pressed;
                     self.update_stylus();
                 } else if let Some((_, name)) = MOUSE.iter().find(|(b, _)| *b == button) {
@@ -284,14 +310,18 @@ impl ApplicationHandler for Play {
 }
 
 /// `seconds` : quitter après tant de secondes réelles (pour une mesure), sinon à la fermeture de la fenêtre.
-pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>) -> Result<(), String> {
+pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>, replay: Option<String>) -> Result<(), String> {
     let root = find_root();
     let mut options = Options::new(&root);
     options.out = root.join("local/analyse/runtime/play");
     options.seconds = f64::INFINITY;
     options.draw = true;
     options.live = true;
-    options.keep_archives = true;
+    options.keep_archives = replay.is_none();
+    if let Some(path) = &replay {
+        options.replay(path)?;
+        options.out = root.join("local/analyse/runtime/play-rejeu");
+    }
     options.scale = scale.clamp(1, 4);
     let mut bench = Bench::new(options)?;
     let shared = bench.drawing.clone().ok_or("pas de GPU")?;

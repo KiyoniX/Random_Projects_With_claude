@@ -5,7 +5,7 @@
 //!                                                          compare l'image native avec celle du banc (numpy)
 //!   portage compare-images <dossier de référence> <dossier>  compare les PNG de même nom (ex. banc et runtime --dessiner)
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
-//!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE]
+//!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
 //!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
@@ -36,11 +36,13 @@ struct Options {
     seconds: Option<f64>,
     /// `play` : capturer la fenêtre à cette heure du jeu, dans des PNG à ce préfixe.
     screenshot: Option<(f64, String)>,
+    /// `play` : refaire les entrées relevées dans ce journal (sans toucher à la partie gardée).
+    replay: Option<String>,
     positional: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -49,6 +51,10 @@ fn parse(args: &[String]) -> Options {
                 o.scale = args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage());
             }
             "--direct" => o.direct = true,
+            "--rejouer" => {
+                i += 1;
+                o.replay = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
+            }
             "--screenshot-at" => {
                 let at = args.get(i + 1).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage());
                 o.screenshot = Some((at, args.get(i + 2).cloned().unwrap_or_else(|| usage())));
@@ -352,7 +358,7 @@ fn main() {
         "replay" => cmd_replay(options),
         "compare" => cmd_compare(options),
         "compare-images" => cmd_compare_images(options),
-        "play" => play::run(options.scale, options.seconds, options.screenshot),
+        "play" => play::run(options.scale, options.seconds, options.screenshot, options.replay),
         "overlay" => cmd_overlay(options),
         "bench" => cmd_bench(options),
         "window" => window::run(options.positional.first().cloned().unwrap_or_else(|| usage()), options.scale),
