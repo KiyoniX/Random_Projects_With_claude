@@ -58,6 +58,8 @@ pub struct BenchState {
     pub start_milliseconds: u64,
     /// Les boutons tenus en direct (le clavier de la fenêtre), en plus des appuis programmés.
     pub buttons: u32,
+    /// Le stylet tenu en direct (la souris de la fenêtre) : X et Y sur l'écran du bas.
+    pub touch: Option<(u16, u16)>,
     pub turns_limit: u64,
 }
 

@@ -1,6 +1,6 @@
-//! Les fenêtres : les deux écrans l'un sur l'autre, dessinés avec le GPU même du rendu (la surface vient de l'instance
-//! de pica : pas de second appareil). [`Screens`] sert à la capture rejouée (`portage window`) comme au jeu en direct
-//! (`portage play`).
+//! Les fenêtres : les écrans dessinés avec le GPU même du rendu (la surface vient de l'instance de pica : pas de second
+//! appareil). [`Screens`] sert à la capture rejouée (`portage window`, les deux écrans l'un sur l'autre) comme au jeu en
+//! direct (`portage play`, voir [`Layout`]).
 //!
 //! `portage window` : 1 à 4 changent l'échelle de rendu (la capture est rejouée), Gauche et Droite changent d'image, L
 //! bascule entre l'agrandissement lissé et au plus proche, Échap quitte.
@@ -39,11 +39,44 @@ struct Out { @builtin(position) p: vec4<f32>, @location(0) uv: vec2<f32> }
 }
 "#;
 
-/// Une fenêtre de la taille des deux écrans à l'échelle 2.
-pub fn open(event_loop: &ActiveEventLoop, title: &str) -> Arc<Window> {
+/// Où vont les écrans, en pixels de la console.
+#[derive(Clone, Copy)]
+pub enum Layout {
+    /// Le haut sur les 240 premières lignes d'un 400 x 480, le bas centré en dessous.
+    Stacked,
+    /// Le haut remplit un 400 x 240 ; le bas s'y pose au centre, à la même échelle : les deux écrans ont 240 lignes.
+    Overlaid,
+}
+
+impl Layout {
+    /// Le repère (largeur, hauteur), puis le rectangle (x0, y0, x1, y1) de chaque écran.
+    fn areas(self) -> ((f32, f32), [(f32, f32, f32, f32); 2]) {
+        match self {
+            Layout::Stacked => ((400.0, 480.0), [(0.0, 0.0, 400.0, 240.0), (40.0, 240.0, 360.0, 480.0)]),
+            Layout::Overlaid => ((400.0, 240.0), [(0.0, 0.0, 400.0, 240.0), (40.0, 0.0, 360.0, 240.0)]),
+        }
+    }
+
+    /// Le repère agrandi au mieux dans la fenêtre et centré : (échelle, décalage en x, décalage en y).
+    fn fit(self, width: f32, height: f32) -> (f32, f32, f32) {
+        let ((w, h), _) = self.areas();
+        let f = (width / w).min(height / h);
+        (f, (width - w * f) / 2.0, (height - h * f) / 2.0)
+    }
+
+    /// Le point de l'écran du bas sous ce pixel de la fenêtre, s'il y en a un.
+    pub fn bottom_point(self, width: f32, height: f32, x: f32, y: f32) -> Option<(u16, u16)> {
+        let (f, ox, oy) = self.fit(width, height);
+        let (_, [_, area]) = self.areas();
+        let (px, py) = ((x - ox) / f, (y - oy) / f);
+        (area.0 <= px && px < area.2 && area.1 <= py && py < area.3).then(|| ((px - area.0) as u16, (py - area.1) as u16))
+    }
+}
+
+pub fn open(event_loop: &ActiveEventLoop, title: &str, width: f64, height: f64) -> Arc<Window> {
     Arc::new(
         event_loop
-            .create_window(Window::default_attributes().with_title(title).with_inner_size(LogicalSize::new(800.0, 960.0)))
+            .create_window(Window::default_attributes().with_title(title).with_inner_size(LogicalSize::new(width, height)))
             .expect("fenêtre"),
     )
 }
@@ -131,13 +164,11 @@ impl Screens {
         )
     }
 
-    /// Encode les écrans du haut et du bas (s'ils existent) dans `view`, une image de `width` x `height` : le haut sur
-    /// les 240 premières lignes du 400 x 480 agrandi au mieux, le bas centré en dessous.
-    fn compose(&self, view: &wgpu::TextureView, width: u32, height: u32, textures: [Option<&wgpu::Texture>; 2], smooth: bool) -> wgpu::CommandEncoder {
+    /// Encode les écrans du haut et du bas (s'ils existent) dans `view`, une image de `width` x `height`.
+    fn compose(&self, view: &wgpu::TextureView, width: u32, height: u32, textures: [Option<&wgpu::Texture>; 2], smooth: bool, layout: Layout) -> wgpu::CommandEncoder {
         let (ww, wh) = (width as f32, height as f32);
-        let f = (ww / 400.0).min(wh / 480.0);
-        let (ox, oy) = ((ww - 400.0 * f) / 2.0, (wh - 480.0 * f) / 2.0);
-        let areas = [(0.0, 0.0, 400.0, 240.0), (40.0, 240.0, 360.0, 480.0)];
+        let (f, ox, oy) = layout.fit(ww, wh);
+        let (_, areas) = layout.areas();
         let mut binds = Vec::new();
         for ((texture, rect), r) in textures.iter().zip(&self.rects).zip(areas) {
             let Some(texture) = texture else { continue };
@@ -180,7 +211,7 @@ impl Screens {
     }
 
     /// Dessine les écrans du haut et du bas (s'ils existent) et présente l'image.
-    pub fn draw(&mut self, textures: [Option<&wgpu::Texture>; 2], smooth: bool) {
+    pub fn draw(&mut self, textures: [Option<&wgpu::Texture>; 2], smooth: bool, layout: Layout) {
         let frame = match self.surface.get_current_texture() {
             wgpu::CurrentSurfaceTexture::Success(t) | wgpu::CurrentSurfaceTexture::Suboptimal(t) => t,
             wgpu::CurrentSurfaceTexture::Outdated | wgpu::CurrentSurfaceTexture::Lost => {
@@ -190,13 +221,13 @@ impl Screens {
             _ => return,
         };
         let view = frame.texture.create_view(&Default::default());
-        let encoder = self.compose(&view, self.config.width, self.config.height, textures, smooth);
+        let encoder = self.compose(&view, self.config.width, self.config.height, textures, smooth, layout);
         self.gpu.queue.submit(Some(encoder.finish()));
         frame.present();
     }
 
-    /// Ce que la fenêtre présente, composé de la même façon (même passe, même format de surface) dans une image de
-    /// 400 x 480 fois `scale`, relu : rend les deux écrans (largeur, hauteur, RGBA), pour les comparer aux PNG du banc.
+    /// Les deux écrans composés comme dans une fenêtre (même passe, même format de surface), l'un sur l'autre, dans une
+    /// image de 400 x 480 fois `scale`, relu : rend les deux écrans (largeur, hauteur, RGBA), pour les comparer aux PNG du banc.
     pub fn capture(&self, textures: [Option<&wgpu::Texture>; 2], scale: u32) -> [(usize, usize, Vec<u8>); 2] {
         let (width, height) = (400 * scale, 480 * scale);
         let device = &self.gpu.device;
@@ -210,7 +241,7 @@ impl Screens {
             usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
             view_formats: &[],
         });
-        let mut encoder = self.compose(&target.create_view(&Default::default()), width, height, textures, false);
+        let mut encoder = self.compose(&target.create_view(&Default::default()), width, height, textures, false, Layout::Stacked);
         let row = (width * 4).div_ceil(256) * 256;
         let buffer = device.create_buffer(&wgpu::BufferDescriptor { label: Some("capture"), size: (row * height) as u64, usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ, mapped_at_creation: false });
         encoder.copy_texture_to_buffer(
@@ -289,7 +320,7 @@ impl App {
             v.get(frame.min(v.len().saturating_sub(1)))
         }
         if let Some(screens) = self.screens.as_mut() {
-            screens.draw([pick(&self.tops, self.frame), pick(&self.bottoms, self.frame)], self.smooth);
+            screens.draw([pick(&self.tops, self.frame), pick(&self.bottoms, self.frame)], self.smooth, Layout::Stacked);
         }
     }
 }
@@ -297,7 +328,7 @@ impl App {
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
-            self.window = Some(open(event_loop, "Pokémon X, portage PC"));
+            self.window = Some(open(event_loop, "Pokémon X, portage PC", 800.0, 960.0));
             self.replay();
         }
     }
@@ -351,4 +382,29 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
     let event_loop = EventLoop::new().map_err(|e| e.to_string())?;
     let mut app = App { capture, scale: scale.clamp(1, 4), smooth: false, frame: 0, tops: Vec::new(), bottoms: Vec::new(), status: String::new(), window: None, screens: None };
     event_loop.run_app(&mut app).map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Layout;
+
+    #[test]
+    fn bottom_point_follows_the_overlaid_screen() {
+        // à l'échelle 2, le bas occupe les colonnes 80 à 719
+        let at = |x, y| Layout::Overlaid.bottom_point(800.0, 480.0, x, y);
+        assert_eq!(at(80.0, 0.0), Some((0, 0)));
+        assert_eq!(at(400.0, 240.0), Some((160, 120)));
+        assert_eq!(at(719.9, 479.9), Some((319, 239)));
+        assert_eq!(at(79.9, 240.0), None);
+        assert_eq!(at(720.0, 240.0), None);
+        // une fenêtre trop large : le repère est centré, bandes de 400 pixels de chaque côté
+        assert_eq!(Layout::Overlaid.bottom_point(1600.0, 480.0, 480.0, 0.0), Some((0, 0)));
+        assert_eq!(Layout::Overlaid.bottom_point(1600.0, 480.0, 479.0, 0.0), None);
+        // une fenêtre trop haute : le pixel au-dessus du repère ne touche rien
+        assert_eq!(Layout::Overlaid.bottom_point(800.0, 960.0, 400.0, 239.0), None);
+        assert_eq!(Layout::Overlaid.bottom_point(800.0, 960.0, 400.0, 240.0), Some((160, 0)));
+        // deux écrans l'un sur l'autre : le bas commence à la moitié
+        assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 480.0), Some((0, 0)));
+        assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 479.0), None);
+    }
 }

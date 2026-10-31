@@ -63,6 +63,8 @@ La source de vérité est **`etat.json`** (page `index.html`, ou `python outils/
 
 Idées d'interface de l'utilisateur, à développer avec lui avant de coder : Échap ouvre le menu de l'écran tactile ; les écrans interactifs (le mini-jeu des ballons…) reçoivent des calques pour jouer à la souris ; en combat, interface moderne (menus sur les côtés) ou à l'ancienne (menus en bas), au choix dans le launcher.
 
+Décidé par l'utilisateur : Échap affiche l'écran du bas par-dessus le jeu, et cet écran n'est pas visible le reste du temps ; le launcher est une application à part, qui lance le jeu.
+
 État de la console à la pause (24/10) : 19 839 fonctions nommées et relues sur 254 369. Toutes les applets ont un premier lot relu ; secondes passes relues et versées pour kernel9 et arm9loader. Outils du 21 au 24/10 : `ipc_trace` écrit après chaque module et ne cherche les ouvertures que dans les fonctions qui peuvent écrire les places (1 s au lieu d'une heure, `--full` garde l'ancien balayage ; lancer un processus par module, la passe complète dans un seul processus finit par planter dans unicorn) ; `ghidra_direct.find_pointers` filtre les cibles ARM des tables de distances ; swkbd-safe a le même code.bin que swkbd (`fiches/safe.md`).
 
 Décidé par l'utilisateur le 24/10 : `hardware_timer_unregister_event` (kernel9) et `hardware_timer_cancel_event` (kernel11) gardent chacun leur nom, pas d'unification.

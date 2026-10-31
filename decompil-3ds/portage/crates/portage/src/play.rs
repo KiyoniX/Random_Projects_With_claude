@@ -2,8 +2,8 @@
 //! (`Bench::run_slice`), le temps du jeu rattrape le temps réel (deux images de retard au plus, au-delà le jeu ralentit),
 //! puis les dernières images des deux écrans sont présentées telles que pica les a construites sur le GPU.
 //!
-//! Touches (voir le README) : flèches = croix, X = A, Z = B, S = X, A = Y, Q = L, W = R, Entrée = START,
-//! Retour arrière = SELECT, Échap quitte.
+//! Touches : voir le README. Seul l'écran du haut est affiché ; Échap pose l'écran du bas par-dessus, le jeu continue, et
+//! le clic gauche y devient le stylet. La fenêtre se ferme par sa croix.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -20,7 +20,7 @@ use winit::window::{Window, WindowId};
 
 use pica::images::save_png;
 
-use crate::window::{Screens, open};
+use crate::window::{Layout, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -73,11 +73,20 @@ struct Play {
     shot: Option<(u64, String)>,
     /// La fin d'image visée est atteinte : la prochaine présentation est capturée.
     shot_ready: bool,
+    /// L'écran du bas est posé sur le jeu (Échap).
+    menu: bool,
+    /// Le clic gauche est tenu sur cet écran.
+    stylus: bool,
+    cursor: (f32, f32),
 }
 
 impl Play {
     /// Fait avancer le jeu jusqu'au temps réel, deux images au plus.
     fn step(&mut self) {
+        // arrêté : la boucle de winit peut repasser ici avant de sortir, et reprendre le fil masquerait la vraie raison
+        if self.stopped.is_some() {
+            return;
+        }
         if self.shot_ready {
             return; // le jeu attend la capture, juste avant la fin d'image visée
         }
@@ -113,6 +122,22 @@ impl Play {
         *held = if state == ElementState::Pressed { *held | bit } else { *held & !bit };
     }
 
+    /// Pose ou lève le stylet : il suit la souris tant qu'elle reste sur l'écran du bas.
+    fn update_stylus(&mut self) {
+        let Some(window) = &self.window else { return };
+        let size = window.inner_size();
+        let (x, y) = self.cursor;
+        self.bench.kernel.bench.touch =
+            if self.menu && self.stylus { Layout::Overlaid.bottom_point(size.width as f32, size.height as f32, x, y) } else { None };
+    }
+
+    fn toggle_menu(&mut self) {
+        self.menu = !self.menu;
+        self.stylus = false;
+        self.update_stylus();
+        self.hold("A", ElementState::Released); // un clic gauche tenu change de sens
+    }
+
     fn draw(&mut self) {
         let Some(screens) = self.screens.as_mut() else { return };
         let images = self.shared.screens.borrow();
@@ -137,7 +162,8 @@ impl Play {
                 }
             }
         }
-        screens.draw([textures[0].as_ref(), textures[1].as_ref()], false);
+        let bottom = if self.menu { textures[1].as_ref() } else { None };
+        screens.draw([textures[0].as_ref(), bottom], false, Layout::Overlaid);
         self.second.presented += 1;
         let elapsed = self.second_start.elapsed().as_secs_f64();
         if elapsed >= 1.0 {
@@ -165,7 +191,7 @@ impl ApplicationHandler for Play {
         if self.window.is_some() {
             return;
         }
-        let window = open(event_loop, "Pokémon X, portage PC");
+        let window = open(event_loop, "Pokémon X, portage PC", 800.0, 480.0);
         match Screens::new(window.clone(), self.shared.gpu.clone()) {
             Ok(screens) => self.screens = Some(screens),
             Err(e) => {
@@ -199,13 +225,22 @@ impl ApplicationHandler for Play {
             WindowEvent::KeyboardInput { event, .. } => {
                 let PhysicalKey::Code(code) = event.physical_key else { return };
                 if code == KeyCode::Escape {
-                    event_loop.exit();
+                    if event.state == ElementState::Pressed && !event.repeat {
+                        self.toggle_menu();
+                    }
                 } else if let Some((_, name)) = KEYS.iter().find(|(k, _)| *k == code) {
                     self.hold(name, event.state);
                 }
             }
+            WindowEvent::CursorMoved { position, .. } => {
+                self.cursor = (position.x as f32, position.y as f32);
+                self.update_stylus();
+            }
             WindowEvent::MouseInput { state, button, .. } => {
-                if let Some((_, name)) = MOUSE.iter().find(|(b, _)| *b == button) {
+                if self.menu && button == MouseButton::Left {
+                    self.stylus = state == ElementState::Pressed;
+                    self.update_stylus();
+                } else if let Some((_, name)) = MOUSE.iter().find(|(b, _)| *b == button) {
                     self.hold(name, state);
                 }
             }
@@ -243,6 +278,9 @@ pub fn run(scale: u32, seconds: Option<f64>, shot: Option<(f64, String)>) -> Res
         shot: shot.map(|(at, prefix)| ((at * 1e9) as u64, prefix)),
         shot_ready: false,
         scale: scale.clamp(1, 4),
+        menu: false,
+        stylus: false,
+        cursor: (0.0, 0.0),
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());

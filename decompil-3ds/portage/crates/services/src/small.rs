@@ -178,6 +178,8 @@ pub struct Hid {
     /// Dernier indice écrit : pad, touch (-1 au départ).
     index: [i32; 2],
     pub buttons: u32,
+    /// Le stylet posé : X et Y sur l'écran du bas.
+    pub touch: Option<(u16, u16)>,
     pub updates: u64,
 }
 
@@ -194,7 +196,7 @@ impl Hid {
                 k.shared(shared).w32(offset + 4 * word, 0xFFFF_FFFF);
             }
         }
-        Hid { shared, events, index: [-1, -1], buttons: 0, updates: 0 }
+        Hid { shared, events, index: [-1, -1], buttons: 0, touch: None, updates: 0 }
     }
 
     fn push(&mut self, k: &Kernel, section: usize, entry_offset: usize, entry_size: usize, count: i32, entry: &[u8]) {
@@ -213,7 +215,7 @@ impl Hid {
         self.index[section] = index;
     }
 
-    /// Une lecture des périphériques : aucun bouton, pas de toucher (appelé à chaque fin d'image).
+    /// Une lecture des périphériques (appelé à chaque fin d'image).
     pub fn update(&mut self, k: &Kernel) {
         self.updates += 1;
         let held = self.buttons;
@@ -223,7 +225,13 @@ impl Hid {
         }
         pad.extend_from_slice(&[0, 0, 0, 0]);
         self.push(k, 0, 0x28, 0x10, 8, &pad);
-        self.push(k, 1, 0x20, 8, 8, &[0u8; 8]);
+        // X, Y, puis l'octet « touché » que lit hid_read_touch_ring (contrat-petits-services, partie 2)
+        let (x, y) = self.touch.unwrap_or((0, 0));
+        let mut touch = [0u8; 8];
+        touch[..2].copy_from_slice(&x.to_le_bytes());
+        touch[2..4].copy_from_slice(&y.to_le_bytes());
+        touch[4] = self.touch.is_some() as u8;
+        self.push(k, 1, 0x20, 8, 8, &touch);
     }
 }
 
@@ -486,8 +494,17 @@ mod tests {
         assert_eq!(word(&k, 0x28), 0);
         assert_eq!(word(&k, 0xA8), t2 as u32);
         assert_eq!(word(&k, 0xA8 + 0x10), 1);
+        // le stylet posé : X, Y et l'octet « touché » dans l'entrée du tactile, puis levé
+        hid.touch = Some((319, 7));
+        hid.update(&k);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 2 * 8), 319 | 7 << 16);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 2 * 8 + 4), 1);
+        hid.touch = None;
+        hid.update(&k);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8), 0);
+        assert_eq!(word(&k, 0xA8 + 0x20 + 3 * 8 + 4), 0);
         // le tampon circulaire revient à 0 au 9e et recopie la date précédente
-        for _ in 0..6 {
+        for _ in 0..4 {
             k.now += 1_000_000_000;
             hid.update(&k);
         }

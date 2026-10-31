@@ -230,7 +230,9 @@ au lieu de 0,31 s ; au démarrage de `play` (12 pipelines), 21 ms au lieu de 64.
 | C | Y | A / E | L / R |
 
 Les touches sont lues à leur place sur le clavier (sur un QWERTY : W / A / S / D pour la croix, Q / E pour L / R).
-Échap quitte. Les touches tenues s'ajoutent aux appuis programmés (`--appuis`) au moment où `hid` lit les boutons.
+Les touches tenues s'ajoutent aux appuis programmés (`--appuis`) au moment où `hid` lit les boutons.
+
+La fenêtre n'affiche que l'écran du haut. Échap pose l'écran du bas par-dessus, à la même échelle, sans arrêter le jeu ; tant qu'il est ouvert, le clic gauche y est le stylet au lieu de A, et le suit quand on le glisse. Échap le referme. On quitte par la croix de la fenêtre.
 
 Il faut la DLL `local/recomp/jeu/build/jeu-hote.dll` (voir `recomp/README.md`). Le journal est écrit au format de
 `banc/journal.py`, ligne pour ligne. `compare` donne trois niveaux (exact, sans l'heure, sans l'heure ni le « où »).
