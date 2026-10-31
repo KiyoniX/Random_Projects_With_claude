@@ -104,6 +104,7 @@ pub struct Settings {
     pub combat_in_corner: bool,
     pub both_screens: bool,
     pub game_mod: Option<std::path::PathBuf>,
+    pub volume: u32,
 }
 
 impl Play {
@@ -326,7 +327,7 @@ impl ApplicationHandler for Play {
 }
 
 pub fn run(settings: Settings) -> Result<(), String> {
-    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod } = settings;
+    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod, volume } = settings;
     let root = find_root();
     let mut options = Options::new(&root);
     options.out = root.join("local/analyse/runtime/play");
@@ -335,6 +336,12 @@ pub fn run(settings: Settings) -> Result<(), String> {
     options.live = true;
     options.keep_archives = replay.is_none();
     options.mod_dir = game_mod;
+    let audio: std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>> = Default::default();
+    // un volume nul ne décode rien du tout : le son reste éteint comme sur le banc
+    let _output = if volume > 0 { crate::sound::start(audio.clone(), volume.min(100) as f32 / 100.0) } else { None };
+    if _output.is_some() {
+        options.audio = Some(audio);
+    }
     if let Some(path) = &replay {
         options.replay(path)?;
         options.out = root.join("local/analyse/runtime/play-rejeu");

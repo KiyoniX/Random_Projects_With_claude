@@ -60,6 +60,8 @@ pub struct BenchState {
     pub start_milliseconds: u64,
     /// Les boutons tenus en direct (le clavier de la fenêtre), en plus des appuis programmés.
     pub buttons: u32,
+    /// La sortie du son, s'il y en a une : les échantillons stéréo mixés par le DSP, à 32 728 Hz.
+    pub audio: Option<std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>>>,
     /// Le pad circulaire tenu en direct (Shift et la croix du clavier) : X et Y, Y vers le haut.
     pub circle: (i16, i16),
     /// (début en s, durée en s, X, Y) : le pad circulaire programmé

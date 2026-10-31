@@ -5,7 +5,8 @@
 //! formule du module (0x1FF40000 + adresse × 2) ; « arrête » fait rendre 1 au registre de réponse 0.
 //! Simplifié : la trame. À chaque fois que le jeu lève le signal du sémaphore, le banc attend une trame (5 ms du banc),
 //! fait avancer les voix ([`Voice`]) et lève le signal du canal 2, sans rien mixer. Le décodeur AAC (canal 3) répond
-//! « réussi » à chaque message et dit avoir consommé chaque bloc, sans le décoder.
+//! « réussi » à chaque message et dit avoir consommé chaque bloc. Si une sortie est demandée (`BenchState::audio`), les
+//! voix décodent leurs tampons et sont mixées, et l'AAC est décodé (voir `audio`) ; le jeu n'en voit aucune différence.
 
 use std::cell::RefCell;
 use std::collections::BTreeMap;
@@ -13,6 +14,9 @@ use std::rc::{Rc, Weak};
 
 use kernel::ipc::{Reply, Request, Service, unknown_command};
 use kernel::kernel::Kernel;
+use kernel::memory::AddressSpace;
+
+use crate::audio::{self, AacStream, AdpcmState};
 use kernel::object::ObjId;
 
 pub const DSP_BASE: u32 = 0x1FF4_0000;
@@ -24,6 +28,7 @@ const VOICES: usize = 24;
 const COUNTER_A: u32 = 0x1FF5_7FFE;
 const CONFIG_A: u32 = 0x1FF5_3D24;
 const STATUS_A: u32 = 0x1FF5_0D00;
+const ADPCM_A: u32 = 0x1FF5_4F24;
 const ZONE_B: u32 = 0x2_0000;
 const CONFIG_SIZE: usize = 0xC0;
 const STATUS_SIZE: usize = 0x0C;
@@ -50,7 +55,17 @@ fn le16(data: &[u8], at: usize) -> u16 {
     u16::from_le_bytes([data[at], data[at + 1]])
 }
 
+/// Ce qu'il faut aux voix quand une sortie est demandée : la mémoire, leurs coefficients ADPCM et la trame à mixer.
+struct Sound<'a> {
+    memory: &'a AddressSpace,
+    coefficients: [i16; 16],
+    mix: [f32; 2 * SAMPLES_PER_FRAME as usize],
+}
+
 struct Buffer {
+    address: u32,
+    /// L'état ADPCM que porte ce tampon, s'il en porte un.
+    adpcm: Option<AdpcmState>,
     length: u32,
     start: u32,
     id: u16,
@@ -64,6 +79,13 @@ struct Buffer {
 /// (`0x18f6b8`) : compteur à +2, position à +4, drapeau à +1, identifiants à +8 et +0xA.
 #[derive(Default)]
 struct Voice {
+    format: u8,
+    stereo: bool,
+    adpcm: AdpcmState,
+    /// Le gain de chaque canal vers chacun des trois mixages intermédiaires ; seul le premier sort d'ici.
+    gain: [[f32; 4]; 3],
+    /// Les échantillons du tampon en cours, décodés, quand une sortie est demandée.
+    samples: Vec<[i16; 2]>,
     enabled: bool,
     rate: f64,
     sync: u16,
@@ -86,6 +108,22 @@ impl Voice {
         if dirty & 1 << 4 != 0 {
             self.queue.clear();
         }
+        if dirty & (1 | 1 << 30) != 0 {
+            self.format = (le16(config, 0xB4) >> 2 & 3) as u8;
+        }
+        if dirty & (2 | 1 << 30) != 0 {
+            self.stereo = le16(config, 0xB4) & 3 == 2;
+        }
+        if dirty & 0x0E00_0000 != 0 {
+            let float = |at: usize| f32::from_le_bytes([config[at], config[at + 1], config[at + 2], config[at + 3]]);
+            for mix in 0..3 {
+                if dirty & 1 << (25 + mix) != 0 {
+                    for channel in 0..4 {
+                        self.gain[mix][channel] = float(4 + 16 * mix + 4 * channel);
+                    }
+                }
+            }
+        }
         if dirty & 1 << 16 != 0 {
             self.enabled = config[0xA0] != 0;
         }
@@ -97,6 +135,8 @@ impl Voice {
         }
         if dirty & 1 << 30 != 0 && dsp32(config, 0xB0) as i32 >= 0 {
             self.queue.push(Buffer {
+                address: dsp32(config, 0xAC),
+                adpcm: (config[0xBC] & 1 != 0).then(|| AdpcmState { y1: le16(config, 0xB8) as i16, y2: le16(config, 0xBA) as i16 }),
                 length: dsp32(config, 0xB0),
                 start: if dirty & 1 << 21 != 0 { dsp32(config, 0xA4) } else { 0 },
                 id: le16(config, 0xBE),
@@ -111,6 +151,8 @@ impl Voice {
                 let at = 0x4C + 20 * slot;
                 if dsp32(config, at + 4) as i32 >= 0 {
                     self.queue.push(Buffer {
+                        address: dsp32(config, at),
+                        adpcm: (config[at + 0xE] != 0).then(|| AdpcmState { y1: le16(config, at + 0xA) as i16, y2: le16(config, at + 0xC) as i16 }),
                         length: dsp32(config, at + 4),
                         start: 0,
                         id: le16(config, at + 0x10),
@@ -123,10 +165,27 @@ impl Voice {
         }
     }
 
+    /// Décode le tampon qui commence : ses octets sont dans la mémoire linéaire, à leur adresse physique moins `AAC_PHYSICAL_OFFSET`.
+    fn decode(&mut self, sound: &Sound, buffer: &Buffer) {
+        if let Some(state) = buffer.adpcm {
+            self.adpcm = state;
+        }
+        let size = audio::encoded_size(self.format, self.stereo, buffer.length);
+        let data = sound.memory.read((buffer.address & !3).wrapping_sub(AAC_PHYSICAL_OFFSET), size).unwrap_or_default();
+        self.samples = match self.format {
+            audio::FORMAT_PCM8 => audio::decode_pcm8(&data, self.stereo),
+            audio::FORMAT_PCM16 => audio::decode_pcm16(&data, self.stereo),
+            _ => audio::decode_adpcm(&data, buffer.length as usize, &sound.coefficients, &mut self.adpcm),
+        };
+    }
+
     /// Passe au tampon suivant : le plus petit identifiant d'abord. Un tampon en boucle retourne dans la file.
-    fn dequeue(&mut self) -> bool {
+    fn dequeue(&mut self, sound: &Option<Sound>) -> bool {
         let Some(next) = (0..self.queue.len()).min_by_key(|&i| self.queue[i].id) else { return false };
         let mut buffer = self.queue.remove(next);
+        if let Some(sound) = sound {
+            self.decode(sound, &buffer);
+        }
         self.position = if buffer.played { 0.0 } else { buffer.start as f64 };
         self.current = Some(buffer.length);
         self.current_id = buffer.id;
@@ -140,12 +199,12 @@ impl Voice {
     }
 
     /// Une trame : 160 échantillons de sortie, soit 160 fois la vitesse de lecture de la voix.
-    fn advance(&mut self) {
+    fn advance(&mut self, sound: &mut Option<Sound>) {
         if !self.enabled {
             return;
         }
         if self.current.is_none() {
-            if !self.dequeue() {
+            if !self.dequeue(sound) {
                 self.enabled = false;
                 self.update = true;
                 self.last_id = self.current_id;
@@ -153,9 +212,10 @@ impl Voice {
             }
             return;
         }
-        let mut left = SAMPLES_PER_FRAME * if self.rate > 0.0 { self.rate } else { 1.0 };
+        let rate = if self.rate > 0.0 { self.rate } else { 1.0 };
+        let mut left = SAMPLES_PER_FRAME * rate;
         while left > 0.0 {
-            if self.current.is_none() && !self.dequeue() {
+            if self.current.is_none() && !self.dequeue(sound) {
                 break;
             }
             let length = self.current.unwrap_or(0) as f64;
@@ -164,11 +224,33 @@ impl Voice {
                 self.current = None; // un tampon vide, ou déjà lu : ne pas tourner sans fin sur une boucle vide
                 break;
             }
+            if let Some(sound) = sound.as_mut() {
+                self.mix(sound, rate, used, SAMPLES_PER_FRAME - left / rate);
+            }
             self.position += used;
             left -= used;
             if self.position >= length {
                 self.current = None;
             }
+        }
+    }
+
+    /// Ajoute au mixage les `used` échantillons à partir de la position courante, qui commencent à l'échantillon de
+    /// sortie `from` (une fraction) de la trame : interpolation linéaire.
+    fn mix(&self, sound: &mut Sound, rate: f64, used: f64, from: f64) {
+        let Some(&last) = self.samples.last() else { return };
+        let gain = self.gain[0];
+        let end = (from + used / rate).ceil().min(SAMPLES_PER_FRAME) as usize;
+        for out in from.ceil() as usize..end {
+            let position = self.position + (out as f64 - from) * rate;
+            let index = position as usize;
+            let fraction = (position - index as f64) as f32;
+            let a = self.samples.get(index).copied().unwrap_or(last);
+            let b = self.samples.get(index + 1).copied().unwrap_or(a);
+            let left = a[0] as f32 + (b[0] as f32 - a[0] as f32) * fraction;
+            let right = a[1] as f32 + (b[1] as f32 - a[1] as f32) * fraction;
+            sound.mix[2 * out] += left * (gain[0] + gain[2]);
+            sound.mix[2 * out + 1] += right * (gain[1] + gain[3]);
         }
     }
 
@@ -200,6 +282,7 @@ pub struct Dsp {
     pub running: bool,
     pub component_size: u32,
     voices: Vec<Voice>,
+    aac: AacStream,
 }
 
 impl Dsp {
@@ -221,6 +304,7 @@ impl Dsp {
             running: false,
             component_size: 0,
             voices: (0..VOICES).map(|_| Voice::default()).collect(),
+            aac: AacStream::default(),
         }
     }
 
@@ -303,12 +387,28 @@ impl Dsp {
                 answer[8..12].copy_from_slice(&adts_rate_index(&header).to_le_bytes());
                 answer[12..16].copy_from_slice(&2u32.to_le_bytes());
                 answer[16..20].copy_from_slice(&data[12..16]);
+                if k.bench.audio.is_some() {
+                    self.decode_aac(k, &data);
+                }
+            } else if request == 0 && k.bench.audio.is_some() {
+                self.aac = AacStream::default();
             }
             self.pipes.entry(3).or_default().extend_from_slice(&answer);
             self.signal(k, 3);
             return Reply::new(0).with_note(format!("décodeur AAC, demande {request} : « réussi » sans décoder"));
         }
         Reply::new(0)
+    }
+
+    /// Décode un bloc vers les tampons de sortie que le jeu a donnés (adresses physiques) : il les jouera sur ses voix.
+    fn decode_aac(&mut self, k: &mut Kernel, data: &[u8]) {
+        let word = |at: usize| u32::from_le_bytes([data[at], data[at + 1], data[at + 2], data[at + 3]]).wrapping_sub(AAC_PHYSICAL_OFFSET);
+        let (source, size) = (word(8), u32::from_le_bytes([data[12], data[13], data[14], data[15]]));
+        let Ok(block) = k.memory.read(source, size) else { return };
+        let Some((left, right)) = self.aac.decode(&block) else { return };
+        let bytes = |plane: &[i16]| plane.iter().flat_map(|s| s.to_le_bytes()).collect::<Vec<u8>>();
+        let _ = k.memory.write(word(16), &bytes(left));
+        let _ = k.memory.write(word(20), &bytes(right));
     }
 
     fn signal(&self, k: &mut Kernel, channel: u32) {
@@ -379,10 +479,25 @@ impl Dsp {
         let (orders, answers) = if zone_b_newer { (ZONE_B, 0) } else { (0, ZONE_B) };
         let Ok(configs) = k.memory.read(CONFIG_A + orders, (VOICES * CONFIG_SIZE) as u32) else { return };
         let mut status = Vec::with_capacity(VOICES * STATUS_SIZE);
+        let output = k.bench.audio.clone();
+        let adpcm = if output.is_some() { k.memory.read(ADPCM_A + orders, (VOICES * 0x20) as u32).ok() } else { None };
+        let mut mix = [0f32; 2 * SAMPLES_PER_FRAME as usize];
         for (i, voice) in self.voices.iter_mut().enumerate() {
             let config = &configs[i * CONFIG_SIZE..(i + 1) * CONFIG_SIZE];
             voice.configure(config);
-            voice.advance();
+            let mut sound = output.as_ref().map(|_| {
+                let mut coefficients = [0i16; 16];
+                if let Some(table) = &adpcm {
+                    for (n, value) in coefficients.iter_mut().enumerate() {
+                        *value = le16(table, i * 0x20 + 2 * n) as i16;
+                    }
+                }
+                Sound { memory: &k.memory, coefficients, mix }
+            });
+            voice.advance(&mut sound);
+            if let Some(sound) = sound {
+                mix = sound.mix;
+            }
             status.extend_from_slice(&voice.status());
             if config[..4] != [0; 4] {
                 let place = CONFIG_A + orders + (i * CONFIG_SIZE) as u32;
@@ -391,6 +506,11 @@ impl Dsp {
             }
         }
         let _ = k.memory.write(STATUS_A + answers, &status);
+        if let Some(output) = output {
+            if let Ok(mut queue) = output.lock() {
+                queue.extend(mix.iter().map(|&s| s.clamp(i16::MIN as f32, i16::MAX as f32) as i16));
+            }
+        }
     }
 }
 
@@ -460,20 +580,22 @@ mod tests {
     fn voice_plays_its_buffers_then_stops() {
         let mut v = Voice::default();
         v.configure(&config(320, 1.0));
-        v.advance(); // première trame : le tampon 7 est pris
+        let mut sound = None;
+        let sound = &mut sound;
+        v.advance(sound); // première trame : le tampon 7 est pris
         let s = v.status();
         assert_eq!((s[0], s[1], le16(&s, 2), dsp32(&s, 4), le16(&s, 8)), (1, 0, 5, 0, 7));
-        v.advance();
+        v.advance(sound);
         assert_eq!(dsp32(&v.status(), 4), 160);
-        v.advance(); // le tampon 7 finit juste : le suivant n'est pris qu'à la trame d'après
-        v.advance();
+        v.advance(sound); // le tampon 7 finit juste : le suivant n'est pris qu'à la trame d'après
+        v.advance(sound);
         let s = v.status();
         assert_eq!((s[1], dsp32(&s, 4), le16(&s, 8)), (1, 0, 8), "le tampon 8, de la file : drapeau levé");
         assert_eq!(v.status()[1], 0, "le drapeau n'est vu qu'une fois");
-        v.advance();
-        v.advance(); // 200 atteint : plus rien
+        v.advance(sound);
+        v.advance(sound); // 200 atteint : plus rien
         assert_eq!(dsp32(&v.status(), 4), 200);
-        v.advance();
+        v.advance(sound);
         let s = v.status();
         assert_eq!((s[0], s[1], le16(&s, 8), le16(&s, 10)), (0, 1, 0, 8), "éteinte, le dernier identifiant rendu");
     }
@@ -484,16 +606,31 @@ mod tests {
         let mut c = config(1000, 0.5);
         c[0xBC] = 2; // en boucle
         v.configure(&c);
-        v.advance();
-        v.advance();
+        let mut sound = None;
+        let sound = &mut sound;
+        v.advance(sound);
+        v.advance(sound);
         assert_eq!(dsp32(&v.status(), 4), 80, "à demi-vitesse");
         let mut v = Voice::default();
         let mut c = config(0, 1.0);
         c[0xBC] = 2;
         v.configure(&c);
         for _ in 0..4 {
-            v.advance(); // un tampon vide en boucle ne bloque pas la trame
+            v.advance(sound); // un tampon vide en boucle ne bloque pas la trame
         }
+    }
+
+    #[test]
+    fn voice_mixes_its_samples_with_its_gain() {
+        let memory = kernel::memory::AddressSpace::new();
+        let mut v = Voice { enabled: true, rate: 1.0, gain: [[0.5, 0.25, 0.0, 0.0]; 3], ..Voice::default() };
+        v.samples = vec![[1000, -1000]; 320];
+        v.current = Some(320);
+        let mut sound = Some(Sound { memory: &memory, coefficients: [0; 16], mix: [0.0; 320] });
+        v.advance(&mut sound);
+        let mix = sound.unwrap().mix;
+        assert_eq!((mix[0], mix[1]), (500.0, -250.0));
+        assert_eq!((mix[318], mix[319]), (500.0, -250.0), "toute la trame est remplie");
     }
 
     struct Rig {

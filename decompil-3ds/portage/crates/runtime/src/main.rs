@@ -1,7 +1,7 @@
 //! `runtime` : le noyau, les services et le processeur recompilé du portage, en ligne de commande.
 //!
 //!   runtime run [--seconds S] [--turns N] [--minutes-pc M] [--out DOSSIER] [--dll CHEMIN] [--mod DOSSIER]
-//!               [--appuis "12:A,14:START"] [--rejouer JOURNAL] [--root DOSSIER] [--appels-systeme-rares] [--dessiner [--scale N]]
+//!               [--appuis "12:A,14:START"] [--rejouer JOURNAL] [--garder-sauvegarde] [--son WAV] [--root DOSSIER] [--appels-systeme-rares] [--dessiner [--scale N]]
 //!   runtime compare JOURNAL_GAUCHE JOURNAL_DROITE      (ex. le journal du banc Python et celui du runtime)
 
 use std::path::PathBuf;
@@ -31,7 +31,7 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     let mut flags: Vec<String> = Vec::new();
     while let Some(arg) = it.next() {
         match arg.as_str() {
-            "--appels-systeme-rares" | "--dessiner" => flags.push(arg.clone()),
+            "--appels-systeme-rares" | "--dessiner" | "--garder-sauvegarde" => flags.push(arg.clone()),
             a if a.starts_with("--") => {
                 let value = it.next().ok_or_else(|| format!("{a} demande une valeur"))?;
                 if a == "--root" {
@@ -44,6 +44,7 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
         }
     }
     let mut options = Options::new(&root);
+    let mut wav = None;
     for (key, value) in pending {
         match key.as_str() {
             "--seconds" | "--secondes" => options.seconds = value.parse().map_err(|e| format!("{key} : {e}"))?,
@@ -53,6 +54,10 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             "--dll" => options.dll = PathBuf::from(value),
             "--mod" => options.mod_dir = Some(PathBuf::from(value)),
             "--appuis" => options.presses = parse_presses(&value)?,
+            "--son" => {
+                wav = Some(value);
+                options.audio = Some(Default::default());
+            }
             "--rejouer" => {
                 options.replay(&value)?;
             }
@@ -66,9 +71,26 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
     }
     // comme le banc : les listes de commandes sont dessinées et une paire d'images par seconde va dans `out/images`
     options.draw = flags.iter().any(|f| f == "--dessiner");
+    options.keep_archives = flags.iter().any(|f| f == "--garder-sauvegarde");
     let out = options.out.clone();
+    let audio = options.audio.clone();
     let mut bench = Bench::new(options)?;
     let reason = bench.run();
+    if let (Some(path), Some(audio)) = (wav, audio) {
+        let samples = audio.lock().map_err(|e| e.to_string())?;
+        let mut bytes = Vec::with_capacity(44 + samples.len() * 2);
+        let size = samples.len() as u32 * 2;
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36 + size).to_le_bytes());
+        bytes.extend_from_slice(b"WAVEfmt ");
+        for (word, width) in [(16u32, 4), (1, 2), (2, 2), (32728, 4), (32728 * 4, 4), (4, 2), (16, 2)] {
+            bytes.extend_from_slice(&word.to_le_bytes()[..width]);
+        }
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&size.to_le_bytes());
+        bytes.extend(samples.iter().flat_map(|s| s.to_le_bytes()));
+        std::fs::write(&path, bytes).map_err(|e| format!("{path} : {e}"))?;
+    }
     let summary = bench.summary(&reason);
     println!("{summary}");
     let _ = std::fs::write(out.join("resume.txt"), summary + "\n");

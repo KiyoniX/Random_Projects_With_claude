@@ -66,6 +66,8 @@ pub struct Options {
     pub live: bool,
     /// Garder la copie de travail de la sauvegarde d'un lancement à l'autre : c'est la partie de celui qui joue.
     pub keep_archives: bool,
+    /// La sortie du son : le DSP y range ce qu'il mixe.
+    pub audio: Option<std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>>>,
 }
 
 impl Options {
@@ -94,6 +96,7 @@ impl Options {
             scale: 1,
             live: false,
             keep_archives: false,
+            audio: None,
         }
     }
 
@@ -179,6 +182,7 @@ impl Bench {
         kernel.bench.presses = options.presses.clone();
         kernel.bench.touches = options.touches.clone();
         kernel.bench.circles = options.circles.clone();
+        kernel.bench.audio = options.audio.clone();
         kernel.bench.region = 2;
         kernel.bench.turns_limit = options.turns;
         let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None };

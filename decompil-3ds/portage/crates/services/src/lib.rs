@@ -1,5 +1,6 @@
 //! Les services de la console, réécrits en Rust d'après les services Python du banc (`banc/services/`).
 pub mod apt;
+pub mod audio;
 pub mod dsp;
 pub mod fs;
 pub mod gsp;

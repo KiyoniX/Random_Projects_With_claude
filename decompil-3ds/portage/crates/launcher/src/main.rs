@@ -34,11 +34,13 @@ struct Settings {
     combat: CombatUi,
     /// Le dossier du mod dans `local/mods-build`, s'il y en a un.
     game_mod: Option<String>,
+    /// De 0 (pas de son) à 100.
+    volume: u32,
 }
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None }
+        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100 }
     }
 }
 
@@ -47,6 +49,7 @@ impl Settings {
     fn arguments(&self, root: &Path) -> Vec<String> {
         let mut out = vec!["play".to_string(), "--scale".to_string(), self.scale.to_string()];
         out.extend(["--combat".to_string(), if self.combat == CombatUi::Corner { "coin" } else { "menu" }.to_string()]);
+        out.extend(["--volume".to_string(), self.volume.to_string()]);
         if self.screens == Screens::Both {
             out.extend(["--ecrans".to_string(), "deux".to_string()]);
         }
@@ -152,6 +155,9 @@ impl eframe::App for Launcher {
                     ui.radio_value(&mut self.settings.combat, CombatUi::Menu, "Avec Échap");
                 });
                 ui.end_row();
+                ui.label("Volume");
+                ui.add(egui::Slider::new(&mut self.settings.volume, 0..=100));
+                ui.end_row();
                 ui.label("Mod");
                 let current = self.settings.game_mod.clone().unwrap_or_else(|| "Aucun".to_string());
                 egui::ComboBox::from_id_salt("mod").selected_text(current).show_ui(ui, |ui| {
@@ -183,7 +189,7 @@ fn main() -> eframe::Result {
     let mods = list_mods(&root);
     let app = Launcher { root, settings, mods, game: None, status: String::new() };
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([520.0, 260.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([520.0, 300.0]),
         ..Default::default()
     };
     eframe::run_native("Pokémon X", options, Box::new(|_| Ok(Box::new(app))))
@@ -196,18 +202,18 @@ mod tests {
     #[test]
     fn arguments_follow_the_settings() {
         let root = Path::new("R");
-        assert_eq!(Settings::default().arguments(root), ["play", "--scale", "2", "--combat", "coin"]);
-        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()) };
+        assert_eq!(Settings::default().arguments(root), ["play", "--scale", "2", "--combat", "coin", "--volume", "100"]);
+        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()), volume: 30 };
         let arguments = settings.arguments(root);
-        assert_eq!(&arguments[..7], ["play", "--scale", "4", "--combat", "menu", "--ecrans", "deux"]);
-        assert_eq!(arguments[7], "--mod");
-        assert!(arguments[8].ends_with("pc"));
+        assert_eq!(&arguments[..9], ["play", "--scale", "4", "--combat", "menu", "--volume", "30", "--ecrans", "deux"]);
+        assert_eq!(arguments[9], "--mod");
+        assert!(arguments[10].ends_with("pc"));
     }
 
     #[test]
     fn settings_survive_a_file_and_a_missing_field() {
         let path = std::env::temp_dir().join(format!("reglages-{}/r.json", std::process::id()));
-        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()) };
+        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()), volume: 7 };
         save(&path, &settings).unwrap();
         assert_eq!(load(&path), settings);
         std::fs::write(&path, r#"{"scale": 1}"#).unwrap();

@@ -6,13 +6,14 @@
 //!   portage compare-images <dossier de référence> <dossier>  compare les PNG de même nom (ex. banc et runtime --dessiner)
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
 //!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL]
-//!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER]
+//!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER] [--volume 0 à 100]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
 //!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
 //!   portage overlay <dossier pc de mods-build>               lit et contrôle overlay.json et romfs/
 
 mod play;
+mod sound;
 mod window;
 
 use std::path::{Path, PathBuf};
@@ -45,11 +46,13 @@ struct Options {
     both_screens: bool,
     /// `play` : le dossier d'un mod (`local/mods-build/pc`).
     game_mod: Option<PathBuf>,
+    /// `play` : le volume, de 0 (pas de sortie du tout) à 100.
+    volume: u32,
     positional: Vec<String>,
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, combat_in_corner: true, both_screens: false, game_mod: None, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, combat_in_corner: true, both_screens: false, game_mod: None, volume: 100, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -65,6 +68,10 @@ fn parse(args: &[String]) -> Options {
             "--ecrans" => {
                 i += 1;
                 o.both_screens = args.get(i).map(String::as_str) == Some("deux");
+            }
+            "--volume" => {
+                i += 1;
+                o.volume = args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage());
             }
             "--mod" => {
                 i += 1;
@@ -385,6 +392,7 @@ fn main() {
             combat_in_corner: options.combat_in_corner,
             both_screens: options.both_screens,
             game_mod: options.game_mod,
+            volume: options.volume,
         }),
         "overlay" => cmd_overlay(options),
         "bench" => cmd_bench(options),
