@@ -3,16 +3,16 @@ window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-10-25",
+ "mise_a_jour": "2026-11-01",
  "prochaine_action": "Console en pause depuis le 25/10 ; ses travaux en cours sont finis (passe ipc_trace sur tous les modules, boot9/boot11, process9). Prochain chantier : Pokémon X seul. Son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur avant de coder : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher.",
  "fonctions": {
   "total": 254369,
   "identifiees": 254369,
-  "nommees": 20112,
+  "nommees": 20122,
   "reimplementees": 0,
   "typees": 0,
   "citees": 7907,
-  "recompilees": 62452,
+  "recompilees": 62482,
   "binaires": [
    {
     "nom": "ac",
@@ -756,12 +756,12 @@ window.ETAT = {
     "fiche_seule": 0,
     "hors_compte": 0,
     "trouvees": 24737,
-    "nommees": 1290,
+    "nommees": 1300,
     "proposees_haute": 3,
-    "proposees_moyenne": 44,
+    "proposees_moyenne": 43,
     "typees": 0,
     "citees": 522,
-    "recompilees": 24597,
+    "recompilees": 24627,
     "reimplementees": 0
    },
    {
@@ -2234,8 +2234,84 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "25/10/2026 à 19:22",
+ "mise_a_jour_heure": "01/11/2026 à 00:56",
  "commits": [
+  [
+   "2026-11-01",
+   "Décompil 3DS : ExitThread rend les mutex du fil qui meurt, comme le vrai noyau (l'intro du titre bloquait) ; filtres de texture MMPX, Scale2x, bicubique et packs de textures, réglés dans le launcher"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : sur l'écran des capacités, les quatre boutons s'empilent à droite de la fenêtre et se cliquent (reconnu dans l'image) ; les dispositions deviennent des morceaux d'écran"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : portage play donne au jeu l'heure locale du PC ; le banc et le rejeu gardent leur date fixe"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : le son. Les voix du DSP décodent PCM et ADPCM et sont mixées, l'AAC est décodé (symphonia), portage play sort sur la carte son, runtime --son écrit un WAV ; le jeu se comporte à l'identique avec ou sans"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : le décodeur AAC dit avoir consommé chaque bloc, les musiques avancent et la montée de niveau, les nouvelles capacités et l'évolution ne bloquent plus ; y2r ne garde que les 16 bits bas de l'écart"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : le launcher, une application à part (egui) qui garde les réglages et lance portage play ; play reçoit --combat, --ecrans et --mod"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : en combat, l'écran du bas reste affiché dans le coin en bas à droite et se clique sans Échap ; portage play sait rejouer un journal et --screenshot-at écrit aussi l'image de la fenêtre"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : Shift fait de la croix du clavier le pad circulaire ; hid écrit sa position et ses bits de direction, le journal le note et --rejouer le refait"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : le journal écrit toujours les boutons et le stylet, et chaque déplacement du stylet, pour pouvoir rejouer une longue partie"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : le recompilateur part aussi des entrées que seuls des pointeurs citent (62 : tables de méthodes qui visent 4 octets après un mov r0, r0 de remplissage) ; une adresse n'a qu'une fonction, dans un seul mode ; les combats se lancent"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : portage play garde la partie sauvegardée d'un lancement à l'autre ; la sauvegarde d'origine n'est copiée que la première fois"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : le mode d'un point de départ prime sur un saut déduit (0x100184, importée en ARM, était traduite en Thumb par débordement ; arrêt après 29 min de jeu)"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : hid écrit l'accéléromètre et le gyroscope quand le jeu les allume (console à plat, immobile) ; le viseur d'Otto Focus s'affiche et la photo se prend et se sauvegarde"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : les voix du DSP avancent en silence, côté banc et portage, et « CT activée ! » ne bloque plus ; runtime run --rejouer refait une partie d'après son journal (205 246 lignes identiques)"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : le menu ouvert bloque les déplacements au clavier ; le journal garde ses 50 000 dernières lignes au-delà de la limite, pour lire un jeu figé ou arrêté tard"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : une table de sauts garde toutes ses entrées, sa taille vient du cmp qui la garde (7 tables de code.bin étaient coupées par un point d'entrée au milieu du switch, le jeu s'arrêtait dessus)"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : le recompilateur part aussi des adresses de code.bin que les modules importent (889 nouvelles) ; le sac s'ouvre au stylet, journal identique au banc sur 3 s"
+  ],
+  [
+   "2026-10-31",
+   "Décompil 3DS : portage play n'affiche que l'écran du haut, Échap pose l'écran du bas par-dessus et le clic gauche y devient le stylet (hid rapporte le toucher) ; une faute n'est plus masquée par une reprise après l'arrêt"
+  ],
+  [
+   "2026-10-25",
+   "Décompil 3DS : passe ipc_trace finie sur tous les modules (1 317 envois TRACED sur 2 955, mêmes traces qu'avant) ; la console est en pause, cap sur Pokémon X"
+  ],
   [
    "2026-10-25",
    "Décompil 3DS : seconde passe relue de process9 versée (60 noms, 8 renommages : DSiWare, MigrateAGBtoSAV ; pilote SD/MMC, CFG9, canaux PXI, couche FAT recoupée avec fatgen103 et ERTFS)"

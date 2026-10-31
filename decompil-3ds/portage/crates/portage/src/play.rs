@@ -4,7 +4,7 @@
 //!
 //! Touches : voir le README. Seul l'écran du haut est affiché ; Échap pose l'écran du bas par-dessus, le jeu continue, et
 //! le clic gauche y devient le stylet et la croix du clavier ne répond plus. La fenêtre se ferme par sa croix. Shift
-//! fait de la croix du clavier le pad circulaire. En combat, l'écran du bas est toujours là, dans le coin en bas à droite.
+//! fait de la croix du clavier le pad circulaire. F11 passe en plein écran. En combat, l'écran du bas est toujours là, dans le coin en bas à droite.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -306,7 +306,14 @@ impl ApplicationHandler for Play {
             WindowEvent::RedrawRequested => self.draw(),
             WindowEvent::KeyboardInput { event, .. } => {
                 let PhysicalKey::Code(code) = event.physical_key else { return };
-                if code == KeyCode::Escape {
+                if code == KeyCode::F11 {
+                    if event.state == ElementState::Pressed && !event.repeat {
+                        if let Some(window) = &self.window {
+                            let full = window.fullscreen().is_none().then_some(winit::window::Fullscreen::Borderless(None));
+                            window.set_fullscreen(full);
+                        }
+                    }
+                } else if code == KeyCode::Escape {
                     if event.state == ElementState::Pressed && !event.repeat && !self.both_screens {
                         self.toggle_menu();
                     }

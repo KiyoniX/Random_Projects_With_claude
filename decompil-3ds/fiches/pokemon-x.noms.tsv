@@ -1288,3 +1288,13 @@
 0x1e6e80	function	shared_memory_dtor
 0x1e7460	function	handle_holder_dtor
 0x478e20	function	file_get_size_impl
+0x1001b4	label	wcsncpy
+0x1003e4	label	wcslen
+0x100798	label	strcat
+0x101382	label	snprintf_putc
+0x102dfc	label	wcsncmp
+0x18ebcc	function	create_thread_on_heap_stack
+0x1e706c	function	shared_memory_dtor_unchecked
+0x2cc2f4	function	sha256_init
+0x2feb3c	function	udiv10_64
+0x2ff058	function	fp_classify

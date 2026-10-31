@@ -2,16 +2,16 @@
   "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
-  "mise_a_jour": "2026-10-25",
+  "mise_a_jour": "2026-11-01",
   "prochaine_action": "Console en pause depuis le 25/10 ; ses travaux en cours sont finis (passe ipc_trace sur tous les modules, boot9/boot11, process9). Prochain chantier : Pokémon X seul. Son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur avant de coder : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher.",
   "fonctions": {
     "total": 254369,
     "identifiees": 254369,
-    "nommees": 20112,
+    "nommees": 20122,
     "reimplementees": 0,
     "typees": 0,
     "citees": 7907,
-    "recompilees": 62452,
+    "recompilees": 62482,
     "binaires": [
       {
         "nom": "ac",
@@ -755,12 +755,12 @@
         "fiche_seule": 0,
         "hors_compte": 0,
         "trouvees": 24737,
-        "nommees": 1290,
+        "nommees": 1300,
         "proposees_haute": 3,
-        "proposees_moyenne": 44,
+        "proposees_moyenne": 43,
         "typees": 0,
         "citees": 522,
-        "recompilees": 24597,
+        "recompilees": 24627,
         "reimplementees": 0
       },
       {
@@ -2233,5 +2233,5 @@
     "present": true,
     "code_octets": 5156864
   },
-  "mise_a_jour_heure": "25/10/2026 à 19:22"
+  "mise_a_jour_heure": "01/11/2026 à 00:56"
 }

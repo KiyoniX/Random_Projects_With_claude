@@ -7050,3 +7050,13 @@ swkbd-safe	0x170040	handle_holder_dtor	empreinte:codec ; a (codec, dsp, errdisp,
 swkbd-safe	0x170090	thread_dtor	empreinte:codec ; a (codec, dsp, fs, hid)	2026-10-18
 swkbd-safe	0x195b94	file_get_size_impl	empreinte:errdisp ; a (errdisp, loader, ns)	2026-10-18
 swkbd-safe	0x199238	init_memory_pools	empreinte:errdisp ; a (loader, ps)	2026-10-18
+maj	0x1001b4	wcsncpy	empreinte:error ; b:nom	2026-11-01
+maj	0x1003e4	wcslen	empreinte:error ; b:nom	2026-11-01
+maj	0x100798	strcat	empreinte:cecd ; b:nom	2026-11-01
+maj	0x101382	snprintf_putc	empreinte:appleted ; a (appleted, cecd, error, friend)	2026-11-01
+maj	0x102dfc	wcsncmp	empreinte:error ; b:nom	2026-11-01
+maj	0x18ebcc	create_thread_on_heap_stack	empreinte:hid ; a (hid, i2c, ir, olv)	2026-11-01
+maj	0x1e706c	shared_memory_dtor_unchecked	empreinte:extrapad ; a (extrapad, ir, memolib, mic)	2026-11-01
+maj	0x2cc2f4	sha256_init	empreinte:dsp ; a (dsp, skater)	2026-11-01
+maj	0x2feb3c	udiv10_64	appel:appleted ; a (appleted, cecd, cherry, ctrapp)	2026-11-01
+maj	0x2ff058	fp_classify	appel:appleted ; a (appleted, cecd, cherry, ctrapp)	2026-11-01
