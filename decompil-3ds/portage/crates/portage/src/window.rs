@@ -74,9 +74,12 @@ const MOVE_ROW_WIDTH: f32 = 104.0;
 const MOVE_BOTTOM_HEIGHT: f32 = 26.0;
 const MAX_PIECES: usize = 6;
 /// Les deux boutons d'une question (`app::YesNo` de `DllBattle`), relevés sur une capture de l'utilisateur.
-const YES_NO_BUTTONS: [[f32; 4]; 2] = [[16.0, 86.0, 304.0, 132.0], [16.0, 156.0, 304.0, 202.0]];
+const YES_NO_BUTTONS: [[f32; 4]; 2] = [[20.0, 90.0, 300.0, 128.0], [20.0, 160.0, 300.0, 198.0]];
 const YES_NO_WIDTH: f32 = 160.0;
-const YES_NO_HEIGHT: f32 = 26.0;
+const YES_NO_HEIGHT: f32 = 22.0;
+/// Sous cette ligne commence la boîte de dialogue du combat.
+const DIALOG_TOP: f32 = 186.0;
+const YES_NO_GAP: f32 = 6.0;
 
 
 impl Layout {
@@ -99,7 +102,7 @@ impl Layout {
             Layout::YesNo => {
                 let mut pieces = vec![top];
                 for (i, from) in YES_NO_BUTTONS.into_iter().enumerate() {
-                    let y = 240.0 - (2 - i) as f32 * (YES_NO_HEIGHT + 4.0);
+                    let y = DIALOG_TOP - (2 - i) as f32 * (YES_NO_HEIGHT + YES_NO_GAP);
                     pieces.push(Piece { bottom: true, to: [400.0 - YES_NO_WIDTH - 4.0, y, 396.0, y + YES_NO_HEIGHT], from });
                 }
                 pieces
@@ -494,8 +497,8 @@ mod tests {
         assert_eq!(moves(696.0, 454.0), Some((160, 200)), "le bas de l'écran");
         assert_eq!(moves(500.0, 300.0), None, "à côté");
         let question = |x, y| Layout::YesNo.bottom_point(800.0, 480.0, x, y);
-        assert_eq!(question(472.0, 360.0), Some((16, 86)), "premier bouton : en haut à gauche");
-        assert_eq!(question(630.0, 450.0), Some((158, 182)), "second bouton");
+        assert_eq!(question(472.0, 260.0), Some((20, 90)), "premier bouton : en haut à gauche");
+        assert_eq!(question(632.0, 340.0), Some((160, 180)), "second bouton");
         assert_eq!(question(300.0, 300.0), None, "à côté");
         // deux écrans l'un sur l'autre : le bas commence à la moitié
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 480.0), Some((0, 0)));

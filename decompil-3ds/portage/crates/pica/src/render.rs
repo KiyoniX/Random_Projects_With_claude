@@ -1093,7 +1093,8 @@ struct Out { @builtin(frag_depth) d: f32 }
         // Un modèle 3D (test de profondeur actif) dont la texture demande le point le plus proche : à la définition de la console
         // chaque point couvre à peu près un point d'écran, mais en plus grand il devient un bloc (flammes de Salamèche, personnages).
         // Répétée sur ses deux axes seulement : les décors sont faits de morceaux bord à bord, où le filtre ferait des coutures.
-        let repeated = (config >> 12) & 7 == 2 && (config >> 8) & 7 == 2;
+        // Pas en RGB8 : le jeu y range la table qui colore le tampon de ses contours, où un mélange ferait de fausses lignes.
+        let repeated = (config >> 12) & 7 == 2 && (config >> 8) & 7 == 2 && fmt != TextureFormat::Rgb8;
         let linear = if (config >> 1) & 1 != 0 || (self.scale > 1 && regs[0x107] & 1 != 0 && repeated) { 1.0 } else { 0.0 };
         // Un tampon de rendu vivant qui est exactement cette texture (même adresse, mêmes dimensions, RGBA8) sert de texture
         // sans passer par la mémoire : la couleur à la définition de l'échelle (le jeu le relit sans perte), la profondeur
@@ -1433,7 +1434,7 @@ struct Out { @builtin(frag_depth) d: f32 }
         }
         // les textures
         let t = self.now();
-        let used = fragment::used_texture_units(regs);
+        let used = fragment::used_texture_units(state);
         let mut views = [self.dummy_view.clone(), self.dummy_view.clone(), self.dummy_view.clone()];
         let mut view_ids = [0u64; 3];
         let mut uniform = DrawUniform::zeroed();
@@ -1480,20 +1481,18 @@ struct Out { @builtin(frag_depth) d: f32 }
         uniform.buffer_color = byte_color(regs[0xFD]);
         uniform.fog_color = byte_color(regs[0xE1]);
         // Un modèle 3D opaque découpé par « alpha > 0 » : en filtrant la texture, le bord garde la forme de ses blocs dès qu'un voisin
-        // n'est pas nul. En haute définition, couper à mi-hauteur suit le vrai contour ; le jeu n'en voit rien.
+        // n'est pas nul. En haute définition, `sample_unit` décide par la part de voisins non nuls et suit le vrai contour. L'alpha
+        // faible reste : certains matériaux y rangent autre chose qu'une découpe.
         let opaque = (regs[0x100] >> 8) & 1 == 0 || regs[0x101] >> 16 == 0x0101;
         let reference = (regs[0x104] >> 8) & 255;
-        let cutting = regs[0x104] & 1 != 0 && self.scale > 1 && regs[0x107] & 1 != 0 && opaque && (regs[0x104] >> 4) & 7 == 6 && reference < 127;
-        let cut = if cutting { 127 } else { reference };
-        // à ce bord, la couleur des points transparents ne doit pas déteindre (`sample_unit`)
-        if cutting {
+        if regs[0x104] & 1 != 0 && self.scale > 1 && regs[0x107] & 1 != 0 && opaque && (regs[0x104] >> 4) & 7 == 6 && reference == 0 {
             for dim in &mut uniform.tex_dim {
                 if dim[2] > 0.5 {
                     dim[2] = 2.0;
                 }
             }
         }
-        uniform.alpha_test = if regs[0x104] & 1 != 0 { [1, (regs[0x104] >> 4) & 7, cut, 0] } else { [0, 0, 0, 0] };
+        uniform.alpha_test = if regs[0x104] & 1 != 0 { [1, (regs[0x104] >> 4) & 7, reference, 0] } else { [0, 0, 0, 0] };
         for e in 0..128 {
             uniform.fog[e / 2][(e % 2) * 2] = state.fog[e][0];
             uniform.fog[e / 2][(e % 2) * 2 + 1] = state.fog[e][1];

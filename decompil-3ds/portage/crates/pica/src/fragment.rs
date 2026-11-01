@@ -17,9 +17,23 @@ pub fn stage_is_default(regs: &[u32], base: usize) -> bool {
     regs[base] == 0x000F_000F && regs[base + 1] == 0 && regs[base + 2] == 0 && regs[base + 4] == 0
 }
 
-/// Les unités de texture lues par les étages utilisés (0 à 2).
-pub fn used_texture_units(regs: &[u32]) -> [bool; 3] {
+/// Ce que l'éclairage lit dans les textures : (carte de normales, unité), (ombre, unité), d'après 0x1C3.
+fn lighting_texture_reads(state: &GpuState) -> [(bool, u32); 2] {
+    let c0 = state.regs[0x1C3];
+    [((c0 >> 28) & 3 != 0, (c0 >> 22) & 3), (c0 & 1 != 0, (c0 >> 24) & 3)]
+}
+
+/// Les unités de texture lues par les étages utilisés et par l'éclairage (0 à 2).
+pub fn used_texture_units(state: &GpuState) -> [bool; 3] {
+    let regs = &state.regs;
     let mut used = [false; 3];
+    if crate::lighting_on(state) {
+        for (active, unit) in lighting_texture_reads(state) {
+            if active && unit < 3 {
+                used[unit as usize] = true;
+            }
+        }
+    }
     for &base in &STAGE_BASES {
         if stage_is_default(regs, base) {
             continue;
@@ -123,6 +137,10 @@ pub fn cache_key(state: &GpuState, logic: bool, depth_out: bool) -> [u32; 30] {
         key[at + 3] = regs[base + 4];
     }
     key[28] = crate::lighting_on(state) as u32 | (logic as u32) << 1 | (depth_out as u32) << 2;
+    // ces lectures décident quelles textures le texte échantillonne
+    for (i, (active, unit)) in lighting_texture_reads(state).into_iter().enumerate() {
+        key[28] |= (active as u32 | unit << 1) << (3 + 3 * i);
+    }
     key
 }
 
@@ -215,10 +233,15 @@ fn sample_unit(unit: u32, uv: vec2<f32>) -> vec4<f32> {
     let w01 = (1.0 - fx) * fy;
     let w11 = fx * fy;
     let plain = c00 * w00 + c10 * w10 + c01 * w01 + c11 * w11;
-    // découpe en haute définition : la couleur pondérée par l'alpha, sans celle des points transparents
-    if d.z > 1.5 && plain.w > 0.0 {
-        let rgb = c00.xyz * (w00 * c00.w) + c10.xyz * (w10 * c10.w) + c01.xyz * (w01 * c01.w) + c11.xyz * (w11 * c11.w);
-        return vec4<f32>(rgb / plain.w, plain.w);
+    // découpe en haute définition : les points nuls comptent pour la forme, et ne déteignent pas sur ce qui reste
+    if d.z > 1.5 {
+        let m00 = w00 * select(0.0, 1.0, c00.w > 0.0);
+        let m10 = w10 * select(0.0, 1.0, c10.w > 0.0);
+        let m01 = w01 * select(0.0, 1.0, c01.w > 0.0);
+        let m11 = w11 * select(0.0, 1.0, c11.w > 0.0);
+        let covered = m00 + m10 + m01 + m11;
+        if covered < 0.5 { return vec4<f32>(plain.xyz, 0.0); }
+        return (c00 * m00 + c10 * m10 + c01 * m01 + c11 * m11) / covered;
     }
     return plain;
 }
@@ -459,7 +482,7 @@ fn fs_main(in: FsIn) -> FsOut {
 "#,
     );
     // les textures
-    let used = used_texture_units(regs);
+    let used = used_texture_units(state);
     let enable = regs[0x80];
     for unit in 0..3usize {
         if used[unit] && (enable >> unit) & 1 != 0 {
@@ -595,7 +618,7 @@ mod tests {
         let s = GpuState::new();
         let src = generate(&s, false, true);
         assert!(src.contains("previous = primary;"));
-        assert_eq!(used_texture_units(&s.regs), [false; 3]);
+        assert_eq!(used_texture_units(&s), [false; 3]);
     }
 
     #[test]
@@ -604,6 +627,15 @@ mod tests {
         // étage 0 : source 0 = texture 0 (code 3), les autres « précédent »
         s.regs[0xC0] = 0x000F_FFF3 & 0x000F_FFFF | (0xF << 16);
         s.regs[0xC2] = 1;
-        assert!(used_texture_units(&s.regs)[0]);
+        assert!(used_texture_units(&s)[0]);
+        // une carte de normales lue par l'éclairage seul : son unité est liée, et le texte l'échantillonne
+        let mut lit = GpuState::new();
+        lit.write(0x1C6, 0, 0xF);
+        lit.regs[0x80] = 7;
+        lit.regs[0x1C3] = 1 << 28 | 2 << 22;
+        assert_eq!(used_texture_units(&lit), [false, false, true]);
+        assert!(generate(&lit, false, true).contains("let t2 = sample_unit(2u"));
+        lit.regs[0x1C3] = 0;
+        assert_eq!(used_texture_units(&lit), [false; 3]);
     }
 }
