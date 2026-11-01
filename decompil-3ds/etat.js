@@ -8,7 +8,7 @@ window.ETAT = {
  "fonctions": {
   "total": 254375,
   "identifiees": 254375,
-  "nommees": 20264,
+  "nommees": 20285,
   "reimplementees": 0,
   "typees": 0,
   "citees": 7925,
@@ -1416,7 +1416,7 @@ window.ETAT = {
     "fiche_seule": 0,
     "hors_compte": 0,
     "trouvees": 37855,
-    "nommees": 273,
+    "nommees": 294,
     "proposees_haute": 0,
     "proposees_moyenne": 0,
     "typees": 0,
@@ -2234,8 +2234,12 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "01/11/2026 à 02:26",
+ "mise_a_jour_heure": "01/11/2026 à 02:45",
  "commits": [
+  [
+   "2026-11-01",
+   "Décompil 3DS : 116 noms relus tirés des natifs des scripts (code.bin, DllField, DllKawaigari, DllBattle) ; REPRISE à jour, décisions à prendre pour Archipelago"
+  ],
   [
    "2026-11-01",
    "Décompil 3DS : Archipelago, preuve de bout en bout. Un client dans le runtime (crates/apclient), un monde d'essai (archipelago/), un serveur officiel a reçu les contrôles et l'objectif, et le jeu a sauvegardé les objets reçus"

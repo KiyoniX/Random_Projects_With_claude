@@ -7,7 +7,7 @@
   "fonctions": {
     "total": 254375,
     "identifiees": 254375,
-    "nommees": 20264,
+    "nommees": 20285,
     "reimplementees": 0,
     "typees": 0,
     "citees": 7925,
@@ -1415,7 +1415,7 @@
         "fiche_seule": 0,
         "hors_compte": 0,
         "trouvees": 37855,
-        "nommees": 273,
+        "nommees": 294,
         "proposees_haute": 0,
         "proposees_moyenne": 0,
         "typees": 0,
@@ -2233,5 +2233,5 @@
     "present": true,
     "code_octets": 5156864
   },
-  "mise_a_jour_heure": "01/11/2026 à 02:26"
+  "mise_a_jour_heure": "01/11/2026 à 02:45"
 }

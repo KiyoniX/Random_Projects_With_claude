@@ -64,10 +64,13 @@ const TOP_WHOLE: [f32; 4] = [0.0, 0.0, 400.0, 240.0];
 const BOTTOM_WHOLE: [f32; 4] = [0.0, 0.0, 320.0, 240.0];
 /// Les quatre boutons de l'écran des capacités, deux par deux, en pixels de l'écran du bas.
 const MOVE_BUTTONS: [[f32; 4]; 4] = [[0.0, 40.0, 160.0, 99.0], [160.0, 40.0, 320.0, 99.0], [0.0, 101.0, 160.0, 160.0], [160.0, 101.0, 320.0, 160.0]];
-/// La colonne : une ligne par bouton, gardant leur proportion, du bas de la fenêtre vers le haut.
-const MOVE_ROW_HEIGHT: f32 = 38.0;
+/// Le bas de cet écran : le retour et un bouton de plus (id 7 de `DllBattle`, peut-être la Méga-Évolution), à garder.
+const MOVE_SCREEN_BOTTOM: [f32; 4] = [0.0, 160.0, 320.0, 240.0];
+/// La colonne : une ligne par bouton, puis le bas de l'écran, en bas à droite de la fenêtre.
+const MOVE_ROW_HEIGHT: f32 = 34.0;
 const MOVE_ROW_WIDTH: f32 = 104.0;
-const MAX_PIECES: usize = 5;
+const MOVE_BOTTOM_HEIGHT: f32 = 26.0;
+const MAX_PIECES: usize = 6;
 
 
 impl Layout {
@@ -88,11 +91,13 @@ impl Layout {
             Layout::Overlaid => vec![top, bottom([40.0, 0.0, 360.0, 240.0])],
             Layout::Corner => vec![top, bottom([240.0, 120.0, 400.0, 240.0])],
             Layout::Moves => {
+                let (left, bottom_top) = (400.0 - MOVE_ROW_WIDTH, 240.0 - MOVE_BOTTOM_HEIGHT);
                 let mut pieces = vec![top];
                 for (i, from) in MOVE_BUTTONS.into_iter().enumerate() {
-                    let y = 240.0 - (4 - i) as f32 * MOVE_ROW_HEIGHT;
-                    pieces.push(Piece { bottom: true, to: [400.0 - MOVE_ROW_WIDTH, y, 400.0, y + MOVE_ROW_HEIGHT], from });
+                    let y = bottom_top - (4 - i) as f32 * MOVE_ROW_HEIGHT;
+                    pieces.push(Piece { bottom: true, to: [left, y, 400.0, y + MOVE_ROW_HEIGHT], from });
                 }
+                pieces.push(Piece { bottom: true, to: [left, bottom_top, 400.0, 240.0], from: MOVE_SCREEN_BOTTOM });
                 pieces
             }
         }
@@ -470,8 +475,9 @@ mod tests {
         assert_eq!(Layout::Corner.bottom_point(800.0, 480.0, 479.0, 300.0), None);
         // la colonne des capacités, à l'échelle 2 : chaque ligne renvoie au milieu du bon bouton
         let moves = |x, y| Layout::Moves.bottom_point(800.0, 480.0, x, y);
-        assert_eq!(moves(800.0 - 104.0, 480.0 - 4.0 * 76.0 + 38.0), Some((80, 69)), "première ligne : en haut à gauche");
-        assert_eq!(moves(700.0, 480.0 - 38.0), Some((243, 130)), "dernière ligne : en bas à droite");
+        assert_eq!(moves(696.0, 190.0), Some((80, 69)), "première ligne : en haut à gauche");
+        assert_eq!(moves(700.0, 394.0), Some((243, 130)), "dernière ligne : en bas à droite");
+        assert_eq!(moves(696.0, 454.0), Some((160, 200)), "le bas de l'écran");
         assert_eq!(moves(500.0, 300.0), None, "à côté");
         // deux écrans l'un sur l'autre : le bas commence à la moitié
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 480.0), Some((0, 0)));

@@ -62,14 +62,15 @@ const ACTION_SELECT_VTABLE: u32 = 0xDAFA0;
 /// L'écran de combat montre les capacités. `[bss + 0xF3E0] + 0x14` est le `BattleViewSystem`, `+0x190` ses objets d'interface,
 /// et l'octet `+0x93` l'état de `BtlvUiActSelect` : 2 ouvert, 6 en fermeture, encore visible (`local/analyse/DllBattle/notes.md`).
 fn moves_on_screen(memory: &AddressSpace, base: u32) -> bool {
-    let word = |address: u32| memory.read(address, 4).ok().map(|d| u32::from_le_bytes([d[0], d[1], d[2], d[3]]));
+    // les valeurs lues peuvent être n'importe quoi après un déchargement : d'où wrapping_add, et la garde par les vtables
+    let word = |address: u32, offset: u32| memory.u32(address.wrapping_add(offset)).ok();
     let state = || -> Option<u8> {
-        let context = word(word(base + BATTLE_BSS_SEGMENT)? + BATTLE_CONTEXT)?;
-        let view = word(context + 0x14)?;
-        (word(view)? == base + BATTLE_VIEW_VTABLE).then_some(())?;
-        let objects = word(view + 0x190)?;
-        (word(objects + 0x5C)? == base + ACTION_SELECT_VTABLE).then_some(())?;
-        memory.read(objects + 0x93, 1).ok().map(|d| d[0])
+        let context = word(word(base, BATTLE_BSS_SEGMENT)?, BATTLE_CONTEXT)?;
+        let view = word(context, 0x14)?;
+        (word(view, 0)? == base + BATTLE_VIEW_VTABLE).then_some(())?;
+        let objects = word(view, 0x190)?;
+        (word(objects, 0x5C)? == base + ACTION_SELECT_VTABLE).then_some(())?;
+        memory.u8(objects.wrapping_add(0x93)).ok()
     };
     matches!(state(), Some(2 | 6))
 }
@@ -206,9 +207,8 @@ impl Play {
             (Layout::Stacked, true)
         } else if self.menu {
             (Layout::Overlaid, true)
-        } else if self.combat_in_corner && self.battle_base().is_some() {
-            let moves = self.battle_base().is_some_and(|base| moves_on_screen(&self.bench.kernel.memory, base));
-            (if moves { Layout::Moves } else { Layout::Corner }, true)
+        } else if let Some(base) = self.battle_base().filter(|_| self.combat_in_corner) {
+            (if moves_on_screen(&self.bench.kernel.memory, base) { Layout::Moves } else { Layout::Corner }, true)
         } else {
             (Layout::Overlaid, false)
         }
@@ -468,7 +468,7 @@ mod tests {
         word(&memory, view, BASE + BATTLE_VIEW_VTABLE);
         word(&memory, view + 0x190, objects);
         word(&memory, objects + 0x5C, BASE + ACTION_SELECT_VTABLE);
-        for (state, expected) in [(0u8, false), (1, false), (2, true), (6, true), (3, false)] {
+        for (state, expected) in [(0u8, false), (1, false), (2, true), (6, true), (3, false), (4, false), (5, false), (7, false)] {
             memory.write(objects + 0x93, &[state]).unwrap();
             assert_eq!(moves_on_screen(&memory, BASE), expected, "état {state}");
         }
