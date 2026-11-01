@@ -74,6 +74,10 @@ fn moves_on_screen(memory: &AddressSpace, base: u32) -> bool {
     matches!(state(), Some(2 | 6))
 }
 
+/// Les scènes qui se jouent au stylet : l'écran du bas s'y ouvre tout seul, sans Échap (saisie d'un nom, boîtes, Poké
+/// Récré, tenue, puzzle). Échap le referme quand même.
+const TOUCH_SCENES: [&str; 8] = ["DllStrInput", "DllNumberInput", "DllBox", "DllBoxSearch", "DllKawaigari", "DllKawaigariArrange", "DllKisekae", "DllPuzzle"];
+
 /// Les compteurs d'une seconde de fenêtre (titre et ligne de suivi).
 #[derive(Default)]
 struct Second {
@@ -116,6 +120,8 @@ struct Play {
     combat_in_corner: bool,
     both_screens: bool,
     smooth: bool,
+    /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
+    touch_scene: bool,
 }
 
 /// Ce que `portage play` reçoit de la ligne de commande (les réglages du launcher).
@@ -220,6 +226,17 @@ impl Play {
         self.bench.kernel.bench.touch = if self.stylus { self.point_under_cursor() } else { None };
     }
 
+    /// À l'entrée et à la sortie d'une scène au stylet, ouvre ou referme l'écran du bas.
+    fn follow_touch_scenes(&mut self) {
+        let inside = self.bench.kernel.journal.names.modules.iter().any(|m| TOUCH_SCENES.contains(&m.2.as_str()));
+        if inside != self.touch_scene {
+            self.touch_scene = inside;
+            if self.menu != inside && !self.both_screens {
+                self.toggle_menu();
+            }
+        }
+    }
+
     fn toggle_menu(&mut self) {
         self.menu = !self.menu;
         self.stylus = false;
@@ -229,6 +246,7 @@ impl Play {
     }
 
     fn draw(&mut self) {
+        self.follow_touch_scenes();
         let (layout, shown) = self.layout();
         let Some(screens) = self.screens.as_mut() else { return };
         let images = self.shared.screens.borrow();
@@ -415,6 +433,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         combat_in_corner,
         both_screens,
         smooth,
+        touch_scene: false,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());
