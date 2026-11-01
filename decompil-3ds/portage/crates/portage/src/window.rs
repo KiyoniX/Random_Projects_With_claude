@@ -52,18 +52,10 @@ pub enum Layout {
     YesNo,
     /// Le haut remplit un 400 x 240 ; les quatre boutons de capacité sont empilés à droite.
     Moves,
-    /// Le haut garde ses 400 x 240 et une bande vide le suit à droite, où va ce panneau : avec plusieurs Pokémon de chaque côté,
-    /// celui de droite et sa jauge sont dans le coin (double, triple, rotation).
-    Beside(Panel),
-}
-
-/// Ce que la bande de `Layout::Beside` montre.
-#[derive(Clone, Copy)]
-pub enum Panel {
-    Nothing,
-    Menu,
-    YesNo,
-    Moves,
+    /// `Corner` et `Moves` plus étroits, avec plusieurs Pokémon de chaque côté (double, triple, rotation) : caméra au repos, le
+    /// Pokémon de droite et l'ennemi de droite s'arrêtent vers x = 310.
+    SmallCorner,
+    SmallMoves,
 }
 
 /// Un morceau d'écran posé dans le repère : (x0, y0, x1, y1) dans la disposition, et ce qu'il montre en pixels de l'écran.
@@ -92,17 +84,14 @@ const YES_NO_HEIGHT: f32 = 22.0;
 /// Sous cette ligne commence la boîte de dialogue du combat.
 const DIALOG_TOP: f32 = 186.0;
 const YES_NO_GAP: f32 = 6.0;
-/// La bande de `Layout::Beside` : le coin (160) et la marge des boutons d'une question (4).
-const BESIDE_WIDTH: f32 = 164.0;
-/// Dans la bande, le bas de l'écran des capacités prend toute la largeur : les flèches de la rotation et « Déplacer » y sont.
-const BESIDE_MOVES_BOTTOM: f32 = BESIDE_WIDTH / 4.0;
+/// La largeur de `SmallCorner` et `SmallMoves`.
+const SMALL_WIDTH: f32 = 88.0;
 
 impl Layout {
     /// Le repère (largeur, hauteur).
     fn size(self) -> (f32, f32) {
         match self {
             Layout::Stacked => (400.0, 480.0),
-            Layout::Beside(_) => (400.0 + BESIDE_WIDTH, 240.0),
             _ => (400.0, 240.0),
         }
     }
@@ -123,36 +112,21 @@ impl Layout {
                 }
                 pieces
             }
-            Layout::Moves => {
-                let (left, bottom_top) = (400.0 - MOVE_ROW_WIDTH, 240.0 - MOVE_BOTTOM_HEIGHT);
+            Layout::Moves | Layout::SmallMoves => {
+                let width = if matches!(self, Layout::Moves) { MOVE_ROW_WIDTH } else { SMALL_WIDTH };
+                let k = width / MOVE_ROW_WIDTH;
+                let (left, bottom_top) = (400.0 - width, 240.0 - MOVE_BOTTOM_HEIGHT * k);
                 let mut pieces = vec![top];
                 for (i, from) in MOVE_BUTTONS.into_iter().enumerate() {
-                    let y = bottom_top - (4 - i) as f32 * MOVE_ROW_HEIGHT;
-                    pieces.push(Piece { bottom: true, to: [left, y, 400.0, y + MOVE_ROW_HEIGHT], from });
+                    let y = bottom_top - (4 - i) as f32 * MOVE_ROW_HEIGHT * k;
+                    pieces.push(Piece { bottom: true, to: [left, y, 400.0, y + MOVE_ROW_HEIGHT * k], from });
                 }
                 pieces.push(Piece { bottom: true, to: [left, bottom_top, 400.0, 240.0], from: MOVE_SCREEN_BOTTOM });
                 pieces
             }
-            Layout::Beside(panel) => {
-                let mut pieces = match panel {
-                    Panel::Nothing => vec![top],
-                    Panel::Menu => Layout::Corner.pieces(),
-                    Panel::YesNo => Layout::YesNo.pieces(),
-                    Panel::Moves => Layout::Moves.pieces(),
-                };
-                for piece in pieces.iter_mut().filter(|p| p.bottom) {
-                    piece.to[0] += BESIDE_WIDTH;
-                    piece.to[2] += BESIDE_WIDTH;
-                }
-                if matches!(panel, Panel::Moves) {
-                    let (rows, last) = pieces.split_at_mut(5);
-                    last[0].to = [400.0, 240.0 - BESIDE_MOVES_BOTTOM, 400.0 + BESIDE_WIDTH, 240.0];
-                    for row in rows.iter_mut().filter(|p| p.bottom) {
-                        row.to[1] -= BESIDE_MOVES_BOTTOM - MOVE_BOTTOM_HEIGHT;
-                        row.to[3] -= BESIDE_MOVES_BOTTOM - MOVE_BOTTOM_HEIGHT;
-                    }
-                }
-                pieces
+            Layout::SmallCorner => {
+                let height = SMALL_WIDTH * 240.0 / 320.0;
+                vec![top, bottom([400.0 - SMALL_WIDTH, 240.0 - height, 400.0, 240.0])]
             }
         }
     }
@@ -506,7 +480,7 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Layout, Panel};
+    use super::Layout;
 
     #[test]
     fn bottom_point_follows_the_overlaid_screen() {
@@ -537,18 +511,14 @@ mod tests {
         assert_eq!(question(472.0, 260.0), Some((20, 90)), "premier bouton : en haut à gauche");
         assert_eq!(question(632.0, 340.0), Some((160, 180)), "second bouton");
         assert_eq!(question(300.0, 300.0), None, "à côté");
-        // la bande : 564 x 240 en 1128 x 480, les panneaux n'empiètent jamais sur l'image du haut
-        for panel in [Panel::Nothing, Panel::Menu, Panel::YesNo, Panel::Moves] {
-            let layout = Layout::Beside(panel);
-            assert_eq!(layout.size(), (564.0, 240.0));
-            assert!(layout.pieces().iter().all(|p| !p.bottom || (p.to[0] >= 400.0 && p.to[2] <= 564.0)));
-        }
-        let beside = |x, y| Layout::Beside(Panel::Menu).bottom_point(1128.0, 480.0, x, y);
-        assert_eq!(beside(808.0, 240.0), Some((0, 0)), "le coin du panneau");
-        assert_eq!(beside(700.0, 300.0), None, "sur l'image : rien à toucher");
-        let moves = |x, y| Layout::Beside(Panel::Moves).bottom_point(1128.0, 480.0, x, y);
-        assert_eq!(moves(800.0, 460.0), Some((0, 220)), "la flèche de rotation, en bas à gauche de la bande");
-        assert_eq!(moves(1000.0, 160.0).map(|p| p.1), Some(69), "premier bouton de capacité");
+        // le petit coin : 88 x 66 en bas à droite, l'écran du bas en entier
+        let small = |x, y| Layout::SmallCorner.bottom_point(800.0, 480.0, x, y);
+        assert_eq!(small(624.0, 348.0), Some((0, 0)), "son coin en haut à gauche");
+        assert_eq!(small(620.0, 400.0), None, "à côté");
+        // la petite colonne garde les mêmes morceaux de l'écran, et s'arrête au même bord
+        let small_moves = |x, y| Layout::SmallMoves.bottom_point(800.0, 480.0, x, y);
+        assert_eq!(small_moves(624.0, 480.0 - 44.0 - 4.0 * 2.0 * 34.0 * 88.0 / 104.0 + 1.0), Some((0, 41)), "premier bouton");
+        assert_eq!(small_moves(620.0, 400.0), None, "à côté");
         // deux écrans l'un sur l'autre : le bas commence à la moitié
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 480.0), Some((0, 0)));
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 479.0), None);

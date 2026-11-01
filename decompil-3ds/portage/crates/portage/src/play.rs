@@ -22,7 +22,7 @@ use winit::window::{Window, WindowId};
 
 use pica::images::save_png;
 
-use crate::window::{Layout, Panel, Screens, open};
+use crate::window::{Layout, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -240,15 +240,12 @@ impl Play {
         } else if let Some(base) = self.battle_base().filter(|_| self.combat_in_corner) {
             // rien quand l'écran du bas n'offre rien à toucher : Échap l'affiche quand même
             let memory = &self.bench.kernel.memory;
-            match (battle_screen(memory, base), battle_with_many(memory, base)) {
-                (Some(BattleScreen::Moves), false) => (Layout::Moves, true),
-                (Some(BattleScreen::YesNo), false) => (Layout::YesNo, true),
-                (Some(BattleScreen::Menu), false) => (Layout::Corner, true),
-                (Some(BattleScreen::Moves), true) => (Layout::Beside(Panel::Moves), true),
-                (Some(BattleScreen::YesNo), true) => (Layout::Beside(Panel::YesNo), true),
-                (Some(BattleScreen::Menu), true) => (Layout::Beside(Panel::Menu), true),
-                // la bande reste pendant les attaques : l'image ne change pas de taille à chaque menu
-                (Some(BattleScreen::Idle), true) => (Layout::Beside(Panel::Nothing), true),
+            match battle_screen(memory, base) {
+                Some(BattleScreen::Moves) if battle_with_many(memory, base) => (Layout::SmallMoves, true),
+                Some(BattleScreen::Moves) => (Layout::Moves, true),
+                Some(BattleScreen::YesNo) => (Layout::YesNo, true),
+                Some(BattleScreen::Menu) if battle_with_many(memory, base) => (Layout::SmallCorner, true),
+                Some(BattleScreen::Menu) => (Layout::Corner, true),
                 _ => (Layout::Overlaid, false),
             }
         } else {
