@@ -4,7 +4,7 @@ window.ETAT = {
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
  "mise_a_jour": "2026-11-01",
- "prochaine_action": "Console en pause depuis le 25/10 ; ses travaux en cours sont finis (passe ipc_trace sur tous les modules, boot9/boot11, process9). Prochain chantier : Pokémon X seul. Son reverse (code.bin et les 133 .cro), puis le portage natif sur PC, un launcher (modèle : Dusklight pour Zelda Twilight Princess), la montée en résolution, les mods, Archipelago et de nouveaux Pokémon. Idées d'interface à développer avec l'utilisateur avant de coder : Échap ouvre le menu de l'écran tactile, calques souris pour les écrans interactifs, combats en interface moderne ou à l'ancienne au choix dans le launcher.",
+ "prochaine_action": "Pokémon X se joue en natif : combats, évolution, sauvegarde, son, launcher, interface de combat au coin avec capacités en colonne, filtres et packs de textures. À faire écouter et vérifier par l'utilisateur (voir REPRISE §5). Prochains chantiers : défauts d'image connus (joues magenta, vidéo d'intro), reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon, visée à la souris pour Otto Focus.",
  "fonctions": {
   "total": 254369,
   "identifiees": 254369,
@@ -2236,6 +2236,14 @@ window.ETAT = {
  },
  "mise_a_jour_heure": "01/11/2026 à 00:56",
  "commits": [
+  [
+   "2026-11-01",
+   "Décompil 3DS : une unité de texture désactivée rend du noir transparent, comme Azahar, au lieu de la couleur de la texture factice"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : F11 pour le plein écran ; 10 noms relus reportés par empreinte sur code.bin (libc, verrous, SHA-256)"
+  ],
   [
    "2026-11-01",
    "Décompil 3DS : ExitThread rend les mutex du fil qui meurt, comme le vrai noyau (l'intro du titre bloquait) ; filtres de texture MMPX, Scale2x, bicubique et packs de textures, réglés dans le launcher"
