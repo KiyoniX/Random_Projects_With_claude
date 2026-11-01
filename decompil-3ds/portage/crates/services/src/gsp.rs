@@ -542,6 +542,21 @@ impl Gsp {
     }
 }
 
+/// Donne les objets arrivés à échéance : un seul par fin d'image, et sans en sauter (le sac peut être plein, ou la partie
+/// pas encore chargée : il réessaiera). Rien n'écrit tant que personne n'a rien programmé, donc le banc reste identique.
+fn give_due_gifts(k: &mut Kernel) {
+    let seconds = k.now as f64 / 1e9;
+    let Some(&(at, item, quantity)) = k.bench.gifts.front() else { return };
+    if seconds < at {
+        return;
+    }
+    let given = crate::game_state::GameState::find(&k.memory).and_then(|g| g.add_item(item, quantity));
+    if given == Some(true) {
+        k.bench.gifts.pop_front();
+        k.journal.write(k.now, &format!("objet donné : {item} × {quantity}"));
+    }
+}
+
 /// `Bench.on_vblank` : les boutons tenus, la mise à jour de la page de `hid`, l'heure de la page partagée du noyau.
 pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
     k.bench.vblanks += 1;
@@ -563,6 +578,8 @@ pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
     }
     hid.circle = circle;
     hid.update(k);
+    drop(hid);
+    give_due_gifts(k);
     // L'heure de la page partagée suit l'horloge du banc.
     let milliseconds = k.bench.start_milliseconds + k.now / 1_000_000;
     let ticks = k.ticks();

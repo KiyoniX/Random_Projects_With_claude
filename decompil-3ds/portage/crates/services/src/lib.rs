@@ -3,6 +3,7 @@ pub mod apt;
 pub mod audio;
 pub mod dsp;
 pub mod fs;
+pub mod game_state;
 pub mod gsp;
 pub mod ldr_ro;
 pub mod small;

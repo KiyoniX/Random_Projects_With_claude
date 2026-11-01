@@ -62,6 +62,8 @@ pub struct BenchState {
     pub buttons: u32,
     /// La sortie du son, s'il y en a une : les échantillons stéréo mixés par le DSP, à 32 728 Hz.
     pub audio: Option<std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>>>,
+    /// (heure en s, objet, quantité) : ce qu'il reste à donner au joueur, dans l'ordre (`--donner`, Archipelago).
+    pub gifts: std::collections::VecDeque<(f64, u32, u32)>,
     /// Le pad circulaire tenu en direct (Shift et la croix du clavier) : X et Y, Y vers le haut.
     pub circle: (i16, i16),
     /// (début en s, durée en s, X, Y) : le pad circulaire programmé

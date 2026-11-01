@@ -1,7 +1,7 @@
 //! `runtime` : le noyau, les services et le processeur recompilé du portage, en ligne de commande.
 //!
 //!   runtime run [--seconds S] [--turns N] [--minutes-pc M] [--out DOSSIER] [--dll CHEMIN] [--mod DOSSIER]
-//!               [--appuis "12:A,14:START"] [--rejouer JOURNAL] [--garder-sauvegarde] [--son WAV] [--filtre-texture NOM] [--textures DOSSIER] [--extraire-textures DOSSIER] [--root DOSSIER] [--appels-systeme-rares] [--dessiner [--scale N]]
+//!               [--appuis "12:A,14:START"] [--rejouer JOURNAL] [--garder-sauvegarde] [--donner "30:17:7,..."] [--son WAV] [--filtre-texture NOM] [--textures DOSSIER] [--extraire-textures DOSSIER] [--root DOSSIER] [--appels-systeme-rares] [--dessiner [--scale N]]
 //!   runtime compare JOURNAL_GAUCHE JOURNAL_DROITE      (ex. le journal du banc Python et celui du runtime)
 
 use std::path::PathBuf;
@@ -59,6 +59,14 @@ fn run(args: &[String]) -> Result<ExitCode, String> {
             }
             "--textures" => options.textures.pack = Some(PathBuf::from(value)),
             "--extraire-textures" => options.textures.dump = Some(PathBuf::from(value)),
+            "--donner" => {
+                // heure en s : objet : quantité
+                for gift in value.split(',') {
+                    let mut parts = gift.split(':').map(str::parse::<f64>);
+                    let mut next = || parts.next().and_then(Result::ok).ok_or_else(|| format!("don illisible : {gift}"));
+                    options.gifts.push((next()?, next()? as u32, next()? as u32));
+                }
+            }
             "--son" => {
                 wav = Some(value);
                 options.audio = Some(Default::default());
