@@ -1,2 +1,5 @@
+0x3fb28	function	DllKawaigari_amx_ClearScreen_nop
+0x3fd14	function	DllKawaigari_amx__SaveCamera_nop
+0x40a8c	function	DllKawaigari_amx_ResetBodyRotationY_nop
 0x43b80	function	DllKawaigari__ZN9xy_system2bg6System13SetIsCallDrawEb
 0x43c84	function	DllKawaigari_nnroControlObject_

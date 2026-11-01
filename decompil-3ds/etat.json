@@ -5,9 +5,9 @@
   "mise_a_jour": "2026-11-01",
   "prochaine_action": "Pokémon X se joue en natif : combats, évolution, sauvegarde, son, launcher, interface de combat au coin avec capacités en colonne, filtres et packs de textures. À faire écouter et vérifier par l'utilisateur (voir REPRISE §5). Prochains chantiers : défauts d'image connus (joues magenta, vidéo d'intro), reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon, visée à la souris pour Otto Focus.",
   "fonctions": {
-    "total": 254372,
-    "identifiees": 254372,
-    "nommees": 20148,
+    "total": 254375,
+    "identifiees": 254375,
+    "nommees": 20264,
     "reimplementees": 0,
     "typees": 0,
     "citees": 7925,
@@ -752,10 +752,10 @@
         "nom": "maj",
         "ghidra": 23883,
         "manquees": 854,
-        "fiche_seule": 3,
+        "fiche_seule": 6,
         "hors_compte": 0,
-        "trouvees": 24740,
-        "nommees": 1326,
+        "trouvees": 24743,
+        "nommees": 1369,
         "proposees_haute": 3,
         "proposees_moyenne": 43,
         "typees": 0,
@@ -1415,7 +1415,7 @@
         "fiche_seule": 0,
         "hors_compte": 0,
         "trouvees": 37855,
-        "nommees": 200,
+        "nommees": 273,
         "proposees_haute": 0,
         "proposees_moyenne": 0,
         "typees": 0,
@@ -2233,5 +2233,5 @@
     "present": true,
     "code_octets": 5156864
   },
-  "mise_a_jour_heure": "01/11/2026 à 01:41"
+  "mise_a_jour_heure": "01/11/2026 à 02:26"
 }

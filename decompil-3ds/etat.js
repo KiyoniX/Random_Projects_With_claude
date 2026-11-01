@@ -6,9 +6,9 @@ window.ETAT = {
  "mise_a_jour": "2026-11-01",
  "prochaine_action": "Pokémon X se joue en natif : combats, évolution, sauvegarde, son, launcher, interface de combat au coin avec capacités en colonne, filtres et packs de textures. À faire écouter et vérifier par l'utilisateur (voir REPRISE §5). Prochains chantiers : défauts d'image connus (joues magenta, vidéo d'intro), reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon, visée à la souris pour Otto Focus.",
  "fonctions": {
-  "total": 254372,
-  "identifiees": 254372,
-  "nommees": 20148,
+  "total": 254375,
+  "identifiees": 254375,
+  "nommees": 20264,
   "reimplementees": 0,
   "typees": 0,
   "citees": 7925,
@@ -753,10 +753,10 @@ window.ETAT = {
     "nom": "maj",
     "ghidra": 23883,
     "manquees": 854,
-    "fiche_seule": 3,
+    "fiche_seule": 6,
     "hors_compte": 0,
-    "trouvees": 24740,
-    "nommees": 1326,
+    "trouvees": 24743,
+    "nommees": 1369,
     "proposees_haute": 3,
     "proposees_moyenne": 43,
     "typees": 0,
@@ -1416,7 +1416,7 @@ window.ETAT = {
     "fiche_seule": 0,
     "hors_compte": 0,
     "trouvees": 37855,
-    "nommees": 200,
+    "nommees": 273,
     "proposees_haute": 0,
     "proposees_moyenne": 0,
     "typees": 0,
@@ -2234,8 +2234,20 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "01/11/2026 à 01:41",
+ "mise_a_jour_heure": "01/11/2026 à 02:26",
  "commits": [
+  [
+   "2026-11-01",
+   "Décompil 3DS : Archipelago, preuve de bout en bout. Un client dans le runtime (crates/apclient), un monde d'essai (archipelago/), un serveur officiel a reçu les contrôles et l'objectif, et le jeu a sauvegardé les objets reçus"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : lire et écrire l'état du jeu (services::game_state : sac, drapeaux, argent, badges) ; runtime --donner donne un objet en jeu, et le jeu le sauvegarde"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : le sac, les drapeaux, l'argent, les badges et l'équipe de Pokémon X, relus (26 noms, fiche pokemon-x-archipelago) ; l'écran du bas s'ouvre seul dans les scènes au stylet"
+  ],
   [
    "2026-11-01",
    "Décompil 3DS : le mode immédiat du PICA (la vidéo d'intro, l'écran du bas du titre et des fondus s'affichent), y2r lit les plans ligne par ligne, une texture sans adresse se lit en noir transparent (plus de magenta sur les joues du dresseur)"
