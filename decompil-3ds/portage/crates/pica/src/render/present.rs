@@ -324,15 +324,17 @@ impl Renderer {
         pass.draw(0..3, 0..1);
     }
 
-    /// Convertit le tampon de profondeur D24S8 en octets de mémoire (RGBA8 natif) si la conversion n'est pas à jour ;
-    /// rend la vue et l'identité de la texture.
+    /// Convertit le tampon de profondeur D24S8 en octets de mémoire (RGBA8) si la conversion n'est pas à jour, à la définition
+    /// de l'échelle : le jeu y calcule ses contours, qui suivraient sinon les blocs de la définition de la console. Rend la vue
+    /// et l'identité de la texture.
     pub(super) fn convert_depth(&mut self, index: usize) -> (wgpu::TextureView, u64) {
         let (width, height, version) = {
             let d = &self.depth_surfaces[index];
             (d.width, d.height, d.version)
         };
         if self.depth_surfaces[index].converted.is_none() {
-            let texture = self.color_target(width, height, "profondeur convertie");
+            let s = self.scale as usize;
+            let texture = self.color_target(width * s, height * s, "profondeur convertie");
             let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
             let id = self.next_id;
             self.next_id += 1;
@@ -350,7 +352,7 @@ impl Renderer {
             };
             let depth_view = depth_texture.create_view(&wgpu::TextureViewDescriptor { aspect: wgpu::TextureAspect::DepthOnly, ..Default::default() });
             let stencil_view = depth_texture.create_view(&wgpu::TextureViewDescriptor { aspect: wgpu::TextureAspect::StencilOnly, ..Default::default() });
-            let params: [i32; 8] = [self.scale as i32, 0, 0, 0, 0, 0, 0, 0];
+            let params: [i32; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
             let uniform = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
                 label: Some("paramètres"),
                 contents: bytemuck::cast_slice(&params),

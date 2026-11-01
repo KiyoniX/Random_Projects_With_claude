@@ -1115,7 +1115,9 @@ struct Out { @builtin(frag_depth) d: f32 }
             if let Some(i) = found {
                 let (view, id) = self.convert_depth(i);
                 self.stats.live_textures += 1;
-                return Some((view, id, [width as f32, height as f32, linear, 2.0], wrap, border));
+                let k = self.scale as f32;
+                // des octets de profondeur : le filtre seul du jeu, jamais un mélange de plus
+                return Some((view, id, [width as f32 * k, height as f32 * k, ((config >> 1) & 1) as f32, 2.0], wrap, border));
             }
         }
         // Le résultat d'un transfert vers l'écran en attente qui est exactement cette texture (le jeu rend dans une

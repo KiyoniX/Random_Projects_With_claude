@@ -48,6 +48,8 @@ pub enum Layout {
     Overlaid,
     /// Le haut remplit un 400 x 240 ; le bas, à moitié de sa taille, occupe le coin en bas à droite (l'interface de combat).
     Corner,
+    /// Le haut remplit un 400 x 240 ; seuls les deux boutons d'une question, l'un au-dessus de l'autre, en bas à droite.
+    YesNo,
     /// Le haut remplit un 400 x 240 ; les quatre boutons de capacité sont empilés à droite.
     Moves,
 }
@@ -71,6 +73,10 @@ const MOVE_ROW_HEIGHT: f32 = 34.0;
 const MOVE_ROW_WIDTH: f32 = 104.0;
 const MOVE_BOTTOM_HEIGHT: f32 = 26.0;
 const MAX_PIECES: usize = 6;
+/// Les deux boutons d'une question (`app::YesNo` de `DllBattle`), relevés sur une capture de l'utilisateur.
+const YES_NO_BUTTONS: [[f32; 4]; 2] = [[16.0, 86.0, 304.0, 132.0], [16.0, 156.0, 304.0, 202.0]];
+const YES_NO_WIDTH: f32 = 160.0;
+const YES_NO_HEIGHT: f32 = 26.0;
 
 
 impl Layout {
@@ -90,6 +96,14 @@ impl Layout {
             Layout::Stacked => vec![top, bottom([40.0, 240.0, 360.0, 480.0])],
             Layout::Overlaid => vec![top, bottom([40.0, 0.0, 360.0, 240.0])],
             Layout::Corner => vec![top, bottom([240.0, 120.0, 400.0, 240.0])],
+            Layout::YesNo => {
+                let mut pieces = vec![top];
+                for (i, from) in YES_NO_BUTTONS.into_iter().enumerate() {
+                    let y = 240.0 - (2 - i) as f32 * (YES_NO_HEIGHT + 4.0);
+                    pieces.push(Piece { bottom: true, to: [400.0 - YES_NO_WIDTH - 4.0, y, 396.0, y + YES_NO_HEIGHT], from });
+                }
+                pieces
+            }
             Layout::Moves => {
                 let (left, bottom_top) = (400.0 - MOVE_ROW_WIDTH, 240.0 - MOVE_BOTTOM_HEIGHT);
                 let mut pieces = vec![top];
@@ -479,6 +493,10 @@ mod tests {
         assert_eq!(moves(700.0, 394.0), Some((243, 130)), "dernière ligne : en bas à droite");
         assert_eq!(moves(696.0, 454.0), Some((160, 200)), "le bas de l'écran");
         assert_eq!(moves(500.0, 300.0), None, "à côté");
+        let question = |x, y| Layout::YesNo.bottom_point(800.0, 480.0, x, y);
+        assert_eq!(question(472.0, 360.0), Some((16, 86)), "premier bouton : en haut à gauche");
+        assert_eq!(question(630.0, 450.0), Some((158, 182)), "second bouton");
+        assert_eq!(question(300.0, 300.0), None, "à côté");
         // deux écrans l'un sur l'autre : le bas commence à la moitié
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 480.0), Some((0, 0)));
         assert_eq!(Layout::Stacked.bottom_point(800.0, 960.0, 80.0, 479.0), None);

@@ -6,7 +6,6 @@
 //! le clic gauche y devient le stylet et la croix du clavier ne répond plus. La fenêtre se ferme par sa croix. Shift
 //! fait de la croix du clavier le pad circulaire. F11 passe en plein écran. En combat, l'écran du bas est toujours là, dans le coin en bas à droite.
 
-use std::cell::Cell;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
@@ -60,10 +59,20 @@ const BATTLE_CONTEXT: u32 = 0xF3E0;
 const BATTLE_VIEW_VTABLE: u32 = 0xDAFC0;
 const ACTION_SELECT_VTABLE: u32 = 0xDAFA0;
 
-/// L'état de `BtlvUiActSelect`, le menu du combat. `[bss + 0xF3E0] + 0x14` est le `BattleViewSystem`, `+0x190` ses objets
-/// d'interface, et l'octet `+0x93` l'état : 0 aucun, 4 première ouverture, 1 menu, 2 capacités, 5 et 6 fermetures de 1 et 2
-/// (`local/analyse/DllBattle/notes.md`).
-fn action_select_state(memory: &AddressSpace, base: u32) -> Option<u8> {
+/// Ce que l'écran du bas montre en combat.
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum BattleScreen {
+    /// Assombri ou en transition : rien à y faire.
+    Idle,
+    Menu,
+    Moves,
+    YesNo,
+}
+
+/// `[bss + 0xF3E0] + 0x14` est le `BattleViewSystem`, `+0x190` ses objets d'interface. Octets lus : `+0x93` le menu
+/// (`BtlvUiActSelect` : 0 aucun, 4 première ouverture, 1 menu, 2 capacités, 5 et 6 fermetures de 1 et 2), `+0xF0` la liste
+/// des Pokémon, `+0x1E8` le sac, `+0x244` la question (`local/analyse/DllBattle/notes.md`).
+fn battle_screen(memory: &AddressSpace, base: u32) -> Option<BattleScreen> {
     // les valeurs lues peuvent être n'importe quoi après un déchargement : d'où wrapping_add, et la garde par les vtables
     let word = |address: u32, offset: u32| memory.u32(address.wrapping_add(offset)).ok();
     let context = word(word(base, BATTLE_BSS_SEGMENT)?, BATTLE_CONTEXT)?;
@@ -71,12 +80,16 @@ fn action_select_state(memory: &AddressSpace, base: u32) -> Option<u8> {
     (word(view, 0)? == base + BATTLE_VIEW_VTABLE).then_some(())?;
     let objects = word(view, 0x190)?;
     (word(objects, 0x5C)? == base + ACTION_SELECT_VTABLE).then_some(())?;
-    memory.u8(objects.wrapping_add(0x93)).ok()
-}
-
-/// L'écran de combat montre les capacités (2 ouvert, 6 en fermeture, encore visible).
-fn moves_on_screen(state: Option<u8>) -> bool {
-    matches!(state, Some(2 | 6))
+    let byte = |offset: u32| memory.u8(objects.wrapping_add(offset)).ok();
+    Some(if byte(0x244)? == 1 {
+        BattleScreen::YesNo
+    } else if matches!(byte(0x93)?, 2 | 6) {
+        BattleScreen::Moves
+    } else if byte(0x93)? != 0 || byte(0xF0)? != 0 || byte(0x1E8)? != 0 {
+        BattleScreen::Menu
+    } else {
+        BattleScreen::Idle
+    })
 }
 
 /// Les scènes qui se jouent au stylet : l'écran du bas s'y ouvre tout seul, sans Échap (saisie d'un nom, boîtes, Poké
@@ -123,8 +136,6 @@ struct Play {
     /// Shift est tenu : la croix du clavier est le pad circulaire.
     shift: bool,
     combat_in_corner: bool,
-    /// Le combat en cours a ouvert son menu : sa fenêtre est affichée.
-    battle_opened: Cell<bool>,
     both_screens: bool,
     smooth: bool,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
@@ -214,13 +225,14 @@ impl Play {
         } else if self.menu {
             (Layout::Overlaid, true)
         } else if let Some(base) = self.battle_base().filter(|_| self.combat_in_corner) {
-            // rien pendant l'entrée en combat : la fenêtre paraît au premier menu ouvert, et reste jusqu'à la fin du combat
-            let state = action_select_state(&self.bench.kernel.memory, base);
-            self.battle_opened.set(self.battle_opened.get() || state.is_some_and(|s| s != 0));
-            let layout = if moves_on_screen(state) { Layout::Moves } else { Layout::Corner };
-            if self.battle_opened.get() { (layout, true) } else { (Layout::Overlaid, false) }
+            // rien quand l'écran du bas n'offre rien à toucher : Échap l'affiche quand même
+            match battle_screen(&self.bench.kernel.memory, base) {
+                Some(BattleScreen::Moves) => (Layout::Moves, true),
+                Some(BattleScreen::YesNo) => (Layout::YesNo, true),
+                Some(BattleScreen::Menu) => (Layout::Corner, true),
+                _ => (Layout::Overlaid, false),
+            }
         } else {
-            self.battle_opened.set(false);
             (Layout::Overlaid, false)
         }
     }
@@ -445,7 +457,6 @@ pub fn run(settings: Settings) -> Result<(), String> {
         moves: [false; 4],
         shift: false,
         combat_in_corner,
-        battle_opened: Cell::new(false),
         both_screens,
         smooth,
         touch_scene: false,
@@ -469,7 +480,7 @@ mod tests {
     use kernel::memory::PERM_RW;
 
     #[test]
-    fn moves_follow_the_action_select_state() {
+    fn screen_follows_the_open_application() {
         const BASE: u32 = 0x0100_0000;
         let (bss, context, view, objects) = (BASE + 0x10_0000, BASE + 0x11_0000, BASE + 0x11_1000, BASE + 0x11_2000);
         let mut memory = AddressSpace::new();
@@ -481,16 +492,23 @@ mod tests {
         word(&memory, view, BASE + BATTLE_VIEW_VTABLE);
         word(&memory, view + 0x190, objects);
         word(&memory, objects + 0x5C, BASE + ACTION_SELECT_VTABLE);
-        for (state, expected) in [(0u8, false), (1, false), (2, true), (6, true), (3, false), (4, false), (5, false), (7, false)] {
+        use BattleScreen::*;
+        for (state, expected) in [(0u8, Idle), (1, Menu), (2, Moves), (6, Moves), (3, Menu), (4, Menu), (5, Menu), (7, Menu)] {
             memory.write(objects + 0x93, &[state]).unwrap();
-            assert_eq!(moves_on_screen(action_select_state(&memory, BASE)), expected, "état {state}");
+            assert_eq!(battle_screen(&memory, BASE), Some(expected), "état {state}");
         }
-        // un objet qui n'a pas la bonne vtable (module rechargé, mémoire réutilisée) : pas de capacités
+        memory.write(objects + 0x93, &[0]).unwrap();
+        for (offset, expected) in [(0xF0, Menu), (0x1E8, Menu), (0x244, YesNo)] {
+            memory.write(objects + offset, &[1]).unwrap();
+            assert_eq!(battle_screen(&memory, BASE), Some(expected), "{offset:#x}");
+            memory.write(objects + offset, &[0]).unwrap();
+        }
+        // un objet qui n'a pas la bonne vtable (module rechargé, mémoire réutilisée) : pas d'écran connu
         memory.write(objects + 0x93, &[2]).unwrap();
         word(&memory, objects + 0x5C, 0x1234);
-        assert_eq!(action_select_state(&memory, BASE), None);
+        assert_eq!(battle_screen(&memory, BASE), None);
         // un pointeur qui sort de la mémoire
         word(&memory, BASE + BATTLE_BSS_SEGMENT, 0xFFFF_0000);
-        assert_eq!(action_select_state(&memory, BASE), None);
+        assert_eq!(battle_screen(&memory, BASE), None);
     }
 }
