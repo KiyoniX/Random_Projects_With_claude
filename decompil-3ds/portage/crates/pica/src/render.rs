@@ -1429,8 +1429,8 @@ struct Out { @builtin(frag_depth) d: f32 }
         }
 
         let texture_type = regs[0x83] >> 28;
-        if regs[0x80] & 1 != 0 && !matches!(texture_type, 0 | 3) {
-            self.note(format!("texture 0 de type {texture_type} (1 cube, 2 et 4 ombre, 5 éteinte) lue comme une 2D"));
+        if regs[0x80] & 1 != 0 && !matches!(texture_type, 0 | 3 | 5) {
+            self.note(format!("texture 0 de type {texture_type} (1 cube, 2 et 4 ombre) lue comme une 2D"));
         }
         // les textures
         let t = self.now();

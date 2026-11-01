@@ -485,7 +485,9 @@ fn fs_main(in: FsIn) -> FsOut {
     let used = used_texture_units(state);
     let enable = regs[0x80];
     for unit in 0..3usize {
-        if used[unit] && (enable >> unit) & 1 != 0 {
+        // la texture 0 de type 5 est éteinte : elle lit zéro (`glsl_fs_shader_gen.cpp` d'Azahar)
+        let disabled = unit == 0 && (regs[0x83] >> 28) & 7 == 5;
+        if used[unit] && (enable >> unit) & 1 != 0 && !disabled {
             let (u, v) = match unit {
                 0 => (4, 5),
                 1 => (6, 7),
@@ -628,6 +630,9 @@ mod tests {
         s.regs[0xC0] = 0x000F_FFF3 & 0x000F_FFFF | (0xF << 16);
         s.regs[0xC2] = 1;
         assert!(used_texture_units(&s)[0]);
+        s.regs[0x83] = 5 << 28;
+        assert!(generate(&s, false, true).contains("let t0 = zero4;"), "texture 0 éteinte");
+        s.regs[0x83] = 0;
         // une carte de normales lue par l'éclairage seul : son unité est liée, et le texte l'échantillonne
         let mut lit = GpuState::new();
         lit.write(0x1C6, 0, 0xF);

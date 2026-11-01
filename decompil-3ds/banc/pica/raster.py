@@ -914,7 +914,8 @@ def shade_and_merge(gpu, surface, depth, textures, batches):
     zint = (z * scale + 0.5).astype(np.uint32)
     samples = {}
     for unit in range(3):
-        if unit in textures:
+        # la texture 0 de type 5 est éteinte : elle lit zéro (`glsl_fs_shader_gen.cpp` d'Azahar)
+        if unit in textures and not (unit == 0 and regs[0x83] >> 28 & 7 == 5):
             texture = textures[unit]
             u, v = texture_uv(regs, unit, frag)
             if texture is None:
