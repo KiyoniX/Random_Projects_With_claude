@@ -1,5 +1,21 @@
 //! Refaire une partie d'après son journal (`runtime run --rejouer`, `portage play --rejouer`).
 
+/// Le début de la ligne du journal qui donne le dossier du mod de la partie.
+pub const MOD_NOTE: &str = "mod : ";
+
+/// Le mod d'une partie, si son journal en donne un.
+pub fn parse_mod(text: &str) -> Option<&str> {
+    text.lines().find_map(|line| line.split_once(" ms] ")?.1.strip_prefix(MOD_NOTE))
+}
+
+/// Le début de la ligne du journal qui donne l'heure de la console au démarrage, en millisecondes depuis 1900.
+pub const CLOCK_NOTE: &str = "horloge au départ : ";
+
+/// L'heure de la console au démarrage d'une partie, si son journal la donne.
+pub fn parse_clock(text: &str) -> Option<u64> {
+    text.lines().find_map(|line| line.split_once(" ms] ")?.1.strip_prefix(CLOCK_NOTE)?.trim().parse().ok())
+}
+
 /// Les boutons et le stylet relevés dans le journal d'une partie (`portage play`). Le journal note la fin d'image où ils
 /// changent, arrondie à la microseconde : on avance d'une milliseconde pour que le changement tombe sur cette même image.
 pub fn parse_replay(text: &str) -> (Vec<(f64, f64, u32)>, Vec<(f64, f64, u16, u16)>, Vec<(f64, f64, i16, i16)>) {
@@ -52,7 +68,16 @@ pub fn parse_replay(text: &str) -> (Vec<(f64, f64, u32)>, Vec<(f64, f64, u16, u1
 
 #[cfg(test)]
 mod tests {
-    use super::parse_replay;
+    use super::{parse_clock, parse_mod, parse_replay};
+
+    #[test]
+    fn replay_reads_the_starting_clock() {
+        let none = "[     0.000 ms] fil créé\n";
+        assert_eq!(parse_clock(&format!("{none}[     0.000 ms] horloge au départ : 3970000000000\n")), Some(3970000000000));
+        assert_eq!(parse_clock(none), None);
+        assert_eq!(parse_mod(&format!("{none}[     0.000 ms] mod : D:\\mods\\pc\n")), Some("D:\\mods\\pc"));
+        assert_eq!(parse_mod(none), None);
+    }
 
     #[test]
     fn replay_reads_buttons_and_stylus_from_the_journal() {

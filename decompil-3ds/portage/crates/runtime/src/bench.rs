@@ -72,6 +72,8 @@ pub struct Options {
     pub textures: crate::gpu::TextureOptions,
     /// L'heure de la console au démarrage (`portage play` : l'heure locale du PC).
     pub clock_milliseconds: Option<u64>,
+    /// Un rejeu : les archives que la partie avait à son départ.
+    pub start_archives: Option<PathBuf>,
     /// La sortie du son : le DSP y range ce qu'il mixe.
     pub audio: Option<std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>>>,
 }
@@ -81,6 +83,10 @@ impl Options {
     pub fn replay(&mut self, path: &str) -> Result<(), String> {
         let text = String::from_utf8_lossy(&std::fs::read(path).map_err(|e| format!("{path} : {e}"))?).into_owned();
         (self.presses, self.touches, self.circles) = crate::replay::parse_replay(&text);
+        // une partie reprise n'est refaite à l'identique qu'avec son heure, son mod et sa sauvegarde de départ
+        self.clock_milliseconds = crate::replay::parse_clock(&text);
+        self.mod_dir = crate::replay::parse_mod(&text).map(PathBuf::from).or(self.mod_dir.take());
+        self.start_archives = Path::new(path).parent().map(|dir| dir.join(START_ARCHIVES)).filter(|dir| dir.is_dir());
         Ok(())
     }
 
@@ -106,6 +112,7 @@ impl Options {
             archipelago: None,
             textures: Default::default(),
             clock_milliseconds: None,
+            start_archives: None,
             audio: None,
         }
     }
@@ -139,6 +146,9 @@ pub struct Bench {
     /// Avec `draw` : les chiffres du dessin, les dernières images des écrans et le GPU.
     pub drawing: Option<Shared>,
 }
+
+/// À côté du journal d'une partie : ses archives au départ, pour la rejouer.
+const START_ARCHIVES: &str = "depart";
 
 /// La racine du dépôt `decompil-3ds` : `$DECOMPIL_ROOT`, sinon le premier parent qui a `etat.json` et `banc/`.
 pub fn find_root() -> PathBuf {
@@ -270,6 +280,12 @@ impl Bench {
         shared[0x67] = 0; // pas de réseau
         k.memory.write(SHARED_PAGE, &shared).map_err(|e| e.to_string())?;
         k.bench.start_milliseconds = milliseconds;
+        if self.options.clock_milliseconds.is_some() {
+            k.journal.write(0, &format!("{}{milliseconds}", crate::replay::CLOCK_NOTE));
+        }
+        if let Some(dir) = &self.options.mod_dir {
+            k.journal.write(0, &format!("{}{}", crate::replay::MOD_NOTE, dir.display()));
+        }
         Ok(())
     }
 
@@ -277,11 +293,20 @@ impl Bench {
         use services::{apt::Apt, dsp::Dsp, fs::FsUser, gsp::Gsp, ldr_ro::LdrRo, small::{Cfg, ErrF, Hid, Ptm}, srv::Srv};
         let k = &mut self.kernel;
         let paths = k.bench.paths.clone();
-        let note = if self.options.keep_archives && paths.archives.join("sauvegarde").is_dir() {
+        let note = if let Some(start) = &self.options.start_archives {
+            let _ = std::fs::remove_dir_all(&paths.archives);
+            services::fs::copy_tree(start, &paths.archives).map_err(|e| format!("{} : {e}", start.display()))?;
+            format!("sauvegarde de départ reprise de {}", start.display())
+        } else if self.options.keep_archives && paths.archives.join("sauvegarde").is_dir() {
             format!("sauvegarde reprise de {}", paths.archives.display())
         } else {
             services::fs::prepare_archives(&paths, Some(&paths.save), Some(&paths.extdata))
         };
+        if self.options.keep_archives {
+            let start = self.options.out.join(START_ARCHIVES);
+            let _ = std::fs::remove_dir_all(&start);
+            services::fs::copy_tree(&paths.archives, &start).map_err(|e| format!("{} : {e}", start.display()))?;
+        }
         k.bench.events.push((0, note));
         let srv = Rc::new(RefCell::new(Srv::new(k)));
         let errf = Rc::new(RefCell::new(ErrF));
