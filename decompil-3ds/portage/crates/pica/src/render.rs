@@ -1304,6 +1304,9 @@ struct Out { @builtin(frag_depth) d: f32 }
     /// Les sommets d'un dessin : décodés une fois, puis gardés tant que ni les registres qui les décrivent ni la mémoire
     /// qu'ils lisent ne changent (le terrain est redessiné à l'identique d'une image à l'autre).
     fn vertex_data(&mut self, state: &GpuState, memory: &mut Memory, indexed: bool) -> Option<Arc<vertex::VertexData>> {
+        if !state.immediate.is_empty() {
+            return Some(Arc::new(vertex::immediate(state)));
+        }
         let regs = &state.regs;
         let mut key: Vec<u32> = Vec::with_capacity(64);
         key.extend_from_slice(&regs[0x200..=0x22A]);
@@ -1400,7 +1403,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                         uniform.tex_border[unit] = border;
                     }
                     None => {
-                        uniform.tex_dim[unit] = [1.0, 1.0, 0.0, 1.0];
+                        // comme Azahar (NULL_SURFACE) : une texture sans adresse se lit en noir transparent (mode 0)
                         self.note(format!("texture {unit} introuvable"));
                     }
                 }

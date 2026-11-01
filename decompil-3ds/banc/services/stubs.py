@@ -102,11 +102,12 @@ class Y2r(Stub):
         def plane(name, w, h):
             address, size, unit, gap = self.planes[name]
             pitch = unit + gap
-            raw = np.frombuffer(self.memory.read(address, size), dtype=np.uint8)
             rows = np.zeros((h, w), dtype=np.uint8)
             for line in range(h):
-                chunk = raw[line * pitch:line * pitch + w]
-                rows[line, :len(chunk)] = chunk
+                if line * unit >= size:     # la taille ne compte que les octets transférés, pas les écarts entre lignes
+                    break
+                length = min(w, size - line * unit)
+                rows[line, :length] = np.frombuffer(self.memory.read(address + line * pitch, length), dtype=np.uint8)
             return rows
         try:
             y = plane('y', width, lines).astype(np.float32)

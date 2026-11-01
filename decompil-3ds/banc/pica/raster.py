@@ -918,7 +918,9 @@ def shade_and_merge(gpu, surface, depth, textures, batches):
             texture = textures[unit]
             u, v = texture_uv(regs, unit, frag)
             if texture is None:
-                samples[unit] = np.tile(np.array([1, 0, 1, 1], dtype=np.float32), (len(frag), 1))
+                # comme Azahar (NULL_SURFACE) : une texture sans adresse se lit en noir transparent ; X et Y en dessinent
+                # (les joues du dresseur), et le test alpha les rejette
+                samples[unit] = np.zeros((len(frag), 4), dtype=np.float32)
             else:
                 samples[unit] = sample(texture, u, v)
         else:

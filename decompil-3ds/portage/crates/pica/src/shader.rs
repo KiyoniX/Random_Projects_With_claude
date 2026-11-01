@@ -31,7 +31,7 @@ struct Draw {
     tev_const: array<vec4<f32>, 6>,
     buffer_color: vec4<f32>,
     fog_color: vec4<f32>,
-    tex_dim: array<vec4<f32>, 3>,   // largeur, hauteur, linéaire (0/1), mode (0 vide, 1 magenta, 2 échantillonner)
+    tex_dim: array<vec4<f32>, 3>,   // largeur, hauteur, linéaire (0/1), mode (0 vide, 2 échantillonner)
     tex_wrap: array<vec4<u32>, 3>,  // mode s, mode t
     tex_border: array<vec4<f32>, 3>,
     alpha_test: vec4<u32>,    // actif, fonction, référence

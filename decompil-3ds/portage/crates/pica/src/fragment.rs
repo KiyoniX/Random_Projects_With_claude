@@ -186,7 +186,6 @@ fn fetch_texel(unit: u32, ix: vec2<i32>, iy: vec2<i32>) -> vec4<f32> {
 fn sample_unit(unit: u32, uv: vec2<f32>) -> vec4<f32> {
     let d = u.tex_dim[unit];
     if d.w < 0.5 { return vec4<f32>(0.0); }
-    if d.w < 1.5 { return vec4<f32>(1.0, 0.0, 1.0, 1.0); }
     let size = vec2<i32>(i32(d.x), i32(d.y));
     var x = uv.x * d.x;
     var y = d.y - uv.y * d.y;

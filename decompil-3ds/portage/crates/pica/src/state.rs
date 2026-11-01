@@ -66,6 +66,8 @@ pub struct GpuState {
     /// Incrémenté à chaque écriture d'une table d'éclairage (pour le tampon des tables du GPU).
     pub lut_version: u64,
     pub draws_requested: u64,
+    /// Les attributs reçus en mode immédiat (index 0xF au registre 0x232), dans l'ordre d'arrivée.
+    pub immediate: Vec<[f32; 4]>,
 }
 
 impl GpuState {
@@ -102,6 +104,7 @@ impl GpuState {
             program_version: 0,
             lut_version: 1,
             draws_requested: 0,
+            immediate: Vec::new(),
         }
     }
 
@@ -165,12 +168,14 @@ impl GpuState {
             } else {
                 if let Some(ix) = self.write(reg, words[i], mask) {
                     draw(self, ix);
+                    self.immediate.clear();
                 }
                 for k in 0..extra {
                     let Some(&value) = words.get(i + 2 + k) else { break };
                     let target = if consecutive { reg + k + 1 } else { reg };
                     if let Some(ix) = self.write(target, value, mask) {
                         draw(self, ix);
+                        self.immediate.clear();
                     }
                 }
             }
@@ -225,7 +230,12 @@ impl GpuState {
         }
         if reg == 0x22E || reg == 0x22F {
             self.draws_requested += 1;
+            self.immediate.clear();
             return Some(reg == 0x22F);
+        }
+        // la fin du mode dessin : les sommets immédiats reçus forment un dessin
+        if reg == 0x245 && !self.immediate.is_empty() {
+            return Some(false);
         }
         if is_uniform(reg) || is_code(reg) || is_swizzle(reg) || is_fixed(reg) {
             self.stream(reg, &[value]);
@@ -240,11 +250,12 @@ impl GpuState {
         } else if reg == 0x232 {
             self.fixed_index = value & 0xF;
             self.fixed_pending.clear();
+            self.immediate.clear();
         }
         None
     }
 
-    fn stream(&mut self, reg: usize, words: &[u32]) {
+    pub(crate) fn stream(&mut self, reg: usize, words: &[u32]) {
         if is_code(reg) {
             for &w in words {
                 self.code[(self.code_offset & 0xFFF) as usize] = w;
@@ -279,8 +290,12 @@ impl GpuState {
             self.fixed_pending.extend_from_slice(words);
             while self.fixed_pending.len() >= 3 {
                 let v = unpack_f24([self.fixed_pending[0], self.fixed_pending[1], self.fixed_pending[2]]);
-                self.fixed[(self.fixed_index & 0xF) as usize] = v;
-                self.fixed_index += 1;
+                if self.fixed_index >= 0xF {
+                    self.immediate.push(v); // le mode immédiat : l'index reste à 0xF, les attributs fixes ne bougent pas
+                } else {
+                    self.fixed[self.fixed_index as usize] = v;
+                    self.fixed_index += 1;
+                }
                 self.fixed_pending.drain(..3);
             }
         }

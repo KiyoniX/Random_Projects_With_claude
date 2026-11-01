@@ -143,6 +143,8 @@ le banc est en cours de modification.
   filtrage sont rendus à cette taille) et le transfert vers l'écran lit directement le tampon du GPU. Les textures du jeu
   restent à leur définition d'origine : c'est la première preuve, pas encore de textures remplacées.
 
+Le mode immédiat (attributs écrits en 0x233-0x235 après 0x232 = 0xF, dessin à l'écriture de 0x245) est fait, d'après Azahar : le jeu s'en sert pour la vidéo et ses fondus. Le banc Python ne l'a pas : ses images diffèrent sur ces dessins, ses journaux non.
+
 ### Ce qui n'est pas fait dans `pica`
 
 - les **shaders de géométrie** (la référence du banc les a en modes point et primitive fixe, jamais vus dans une capture du

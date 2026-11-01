@@ -182,9 +182,48 @@ pub fn load(state: &GpuState, memory: &Memory, indexed: bool) -> Option<VertexDa
     Some(VertexData { stride, inputs, triangles, notes })
 }
 
+/// Les sommets d'un dessin en mode immédiat : les attributs viennent de la liste de commandes (`GpuState::immediate`),
+/// groupés par `registre 0x242 + 1` et rangés selon la permutation, comme les autres.
+pub fn immediate(state: &GpuState) -> VertexData {
+    let regs = &state.regs;
+    let count = (regs[0x242] & 0xF) as usize + 1;
+    let permutation = regs[0x2BB] as u64 | ((regs[0x2BC] as u64) << 32);
+    let registers: Vec<usize> = (0..count).map(|a| ((permutation >> (4 * a)) & 15) as usize).collect();
+    let stride = registers.iter().max().map_or(1, |r| r + 1);
+    let n = state.immediate.len() / count;
+    let mut inputs = vec![[0.0, 0.0, 0.0, 1.0]; n * stride];
+    for k in 0..n {
+        for (a, &register) in registers.iter().enumerate() {
+            inputs[k * stride + register] = state.immediate[k * count + a];
+        }
+    }
+    let index: Vec<u32> = (0..n as u32).collect();
+    VertexData { stride, inputs, triangles: assemble((regs[0x25E] >> 8) & 3, &index), notes: Vec::new() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn immediate_groups_attributes_by_vertex() {
+        let mut s = GpuState::new();
+        s.regs[0x242] = 1; // deux attributs par sommet
+        s.regs[0x2BB] = 0x10;
+        s.regs[0x25E] = 0x100; // bande
+        s.write(0x232, 0xF, 0xF);
+        for i in 0..8 {
+            s.stream(0x233, &[0, 0, i]); // x = entier brut, ne sert qu'à reconnaître l'ordre
+        }
+        let before = s.fixed;
+        assert_eq!(s.immediate.len(), 8);
+        assert_eq!(s.fixed, before);
+        let v = immediate(&s);
+        assert_eq!(v.stride, 2);
+        assert_eq!(v.inputs.len(), 8);
+        assert_eq!(v.triangles, vec![0, 1, 2, 2, 1, 3]);
+        assert_eq!(s.write(0x245, 1, 0xF), Some(false));
+    }
 
     #[test]
     fn assemble_modes() {

@@ -202,17 +202,17 @@ impl Y2r {
             return format!("entrée de format {} : rien n'est converti", self.input_format);
         }
 
+        // la taille annoncée ne compte que les octets transférés, pas les écarts entre les lignes
         let read_plane = |k: &Kernel, (address, size, unit, gap): (u32, u32, u32, u32), w: usize, h: usize| -> Result<Vec<u8>, String> {
-            let pitch = unit as usize + gap as usize;
-            let raw = k.memory.read(address, size).map_err(|e| format!("{:?}", e))?;
+            let (size, unit, pitch) = (size as usize, unit as usize, unit as usize + gap as usize);
             let mut rows = vec![0u8; w * h];
             for line in 0..h {
-                let start = line * pitch;
-                if start >= raw.len() {
+                if line * unit >= size {
                     break;
                 }
-                let chunk = &raw[start..raw.len().min(start + w)];
-                rows[line * w..line * w + chunk.len()].copy_from_slice(chunk);
+                let len = w.min(size - line * unit);
+                let chunk = k.memory.read(address + (line * pitch) as u32, len as u32).map_err(|e| format!("{:?}", e))?;
+                rows[line * w..line * w + len].copy_from_slice(&chunk);
             }
             Ok(rows)
         };
