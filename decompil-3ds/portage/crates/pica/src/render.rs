@@ -429,7 +429,7 @@ impl Renderer {
                 view_formats: &[],
             },
             wgpu::util::TextureDataOrder::LayerMajor,
-            &[255, 0, 255, 255],
+            &[0, 0, 0, 0], // une unité désactivée rend du noir transparent, comme Azahar (sw_rasterizer.cpp, TextureColor)
         );
         let dummy_view = dummy.create_view(&wgpu::TextureViewDescriptor::default());
         let uniform_arena = Arena::new(&device, "constantes", 8 << 20, wgpu::BufferUsages::UNIFORM);
