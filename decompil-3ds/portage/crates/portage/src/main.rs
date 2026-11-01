@@ -5,7 +5,7 @@
 //!                                                          compare l'image native avec celle du banc (numpy)
 //!   portage compare-images <dossier de référence> <dossier>  compare les PNG de même nom (ex. banc et runtime --dessiner)
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
-//!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL [--aller-a S]]
+//!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL [--aller-a S]] [--vitesse N] [--nouvelle-partie]
 //!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER] [--volume 0 à 100]
 //!                [--archipelago ADRESSE --joueur NOM] [--filtre-texture aucun|scale2x|mmpx|bicubique|scaleforce|anime4k] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
@@ -43,6 +43,10 @@ struct Options {
     replay: Option<String>,
     /// `play` : la fenêtre ne paraît qu'à cette heure du jeu, atteinte à pleine vitesse.
     forward: Option<f64>,
+    /// `play` : le jeu avance tant de fois plus vite que le temps réel.
+    speed: u64,
+    /// `play` : une partie à part, partie d'une sauvegarde vide ; celle du joueur n'est pas touchée.
+    new_game: bool,
     /// `play` : l'écran du bas reste dans le coin pendant un combat (par défaut), ou seulement avec Échap (`menu`).
     combat_in_corner: bool,
     /// `play` : les deux écrans l'un sur l'autre.
@@ -62,7 +66,7 @@ struct Options {
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, forward: None, combat_in_corner: true, both_screens: false, archipelago: None, player: None, game_mod: None, volume: 100, textures: Default::default(), smooth: false, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, forward: None, speed: 1, new_game: false, combat_in_corner: true, both_screens: false, archipelago: None, player: None, game_mod: None, volume: 100, textures: Default::default(), smooth: false, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -112,6 +116,11 @@ fn parse(args: &[String]) -> Options {
                 i += 1;
                 o.replay = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
             }
+            "--vitesse" => {
+                i += 1;
+                o.speed = args.get(i).and_then(|s| s.parse().ok()).filter(|&n| n >= 1).unwrap_or_else(|| usage());
+            }
+            "--nouvelle-partie" => o.new_game = true,
             "--aller-a" => {
                 i += 1;
                 o.forward = Some(args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage()));
@@ -425,6 +434,8 @@ fn main() {
             shot: options.screenshot,
             replay: options.replay,
             forward: options.forward,
+            speed: options.speed,
+            new_game: options.new_game,
             combat_in_corner: options.combat_in_corner,
             both_screens: options.both_screens,
             game_mod: options.game_mod,

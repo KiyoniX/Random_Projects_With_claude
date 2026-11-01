@@ -74,6 +74,8 @@ pub struct Options {
     pub clock_milliseconds: Option<u64>,
     /// Un rejeu : les archives que la partie avait à son départ.
     pub start_archives: Option<PathBuf>,
+    /// Sans archives à reprendre, partir d'une sauvegarde vide et non de celle de la console.
+    pub empty_save: bool,
     /// La sortie du son : le DSP y range ce qu'il mixe.
     pub audio: Option<std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>>>,
 }
@@ -113,6 +115,7 @@ impl Options {
             textures: Default::default(),
             clock_milliseconds: None,
             start_archives: None,
+            empty_save: false,
             audio: None,
         }
     }
@@ -300,7 +303,7 @@ impl Bench {
         } else if self.options.keep_archives && paths.archives.join("sauvegarde").is_dir() {
             format!("sauvegarde reprise de {}", paths.archives.display())
         } else {
-            services::fs::prepare_archives(&paths, Some(&paths.save), Some(&paths.extdata))
+            services::fs::prepare_archives(&paths, (!self.options.empty_save).then_some(&paths.save), Some(&paths.extdata))
         };
         if self.options.keep_archives {
             let start = self.options.out.join(START_ARCHIVES);

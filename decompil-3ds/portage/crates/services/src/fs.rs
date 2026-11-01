@@ -36,6 +36,7 @@ pub const ERR_FILE_NOT_FOUND: u32 = 0xC880_4470;
 pub const ERR_PATH_NOT_FOUND: u32 = 0xC880_4471;
 pub const ERR_ALREADY_EXISTS: u32 = 0xC820_44BE;
 pub const ERR_ARCHIVE_NOT_FOUND: u32 = 0xC8A0_4478;
+pub const ERR_NOT_FORMATTED: u32 = 0xC8A0_4554;
 pub const ERR_INVALID_PATH: u32 = 0xE0E0_46BE;
 pub const ERR_INVALID_HANDLE: u32 = 0xC880_4465;
 pub const ERR_UNSUPPORTED: u32 = 0xE0C0_46F8;
@@ -868,6 +869,9 @@ impl FsUser {
 
     fn open_archive(&mut self, k: &mut Kernel, req: &Request) -> Reply {
         let archive_id = req.word(1);
+        if archive_id == 4 && self.save_not_formatted() {
+            return Reply::with_words(ERR_NOT_FORMATTED, &[0, 0]).with_note("sauvegarde non formatée");
+        }
         let path = self.path_of(k, req, 2, 4);
         let Some(archive) = self.make_archive(archive_id, &path) else {
             return Reply::with_words(ERR_ARCHIVE_NOT_FOUND, &[0, 0])
@@ -1000,6 +1004,11 @@ impl FsUser {
         self.roots.join("sauvegarde.format.json")
     }
 
+    /// Une nouvelle partie : le dossier est vide et le jeu ne l'a jamais formaté.
+    fn save_not_formatted(&self) -> bool {
+        !self.format_info_path().is_file() && fs::read_dir(self.roots.join("sauvegarde")).is_ok_and(|mut d| d.next().is_none())
+    }
+
     fn ext_root(&self, archive_id: u32, info: &[u8]) -> PathBuf {
         self.roots.join(format!("extdata-{archive_id:x}-{}", hex(info)))
     }
@@ -1007,6 +1016,9 @@ impl FsUser {
     fn get_format_info(&mut self, k: &Kernel, req: &Request) -> Reply {
         let archive_id = req.word(1);
         if archive_id == 4 {
+            if self.save_not_formatted() {
+                return Reply::with_words(ERR_NOT_FORMATTED, &[0, 0, 0, 0]).with_note("sauvegarde non formatée");
+            }
             let info = FormatInfo::read(&self.format_info_path())
                 .unwrap_or(FormatInfo { size: 0x80000, dirs: 1, files: 1, duplicate: 1 });
             return Reply::with_words(0, &info.words()).with_note(format!("sauvegarde : {}", info.repr()));

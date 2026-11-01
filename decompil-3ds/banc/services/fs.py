@@ -23,6 +23,7 @@ ERR_FILE_NOT_FOUND = 0xC8804470
 ERR_PATH_NOT_FOUND = 0xC8804471
 ERR_ALREADY_EXISTS = 0xC82044BE
 ERR_ARCHIVE_NOT_FOUND = 0xC8A04478
+ERR_NOT_FORMATTED = 0xC8A04554
 ERR_INVALID_PATH = 0xE0E046BE
 ERR_INVALID_HANDLE = 0xC8804465
 ERR_UNSUPPORTED = 0xE0C046F8
@@ -410,6 +411,8 @@ class FsUser(Service):
 
     def open_archive(self, req):
         archive_id = req.word(1)
+        if archive_id == 4 and self.save_not_formatted():
+            return Reply(ERR_NOT_FORMATTED, [0, 0]).with_note('sauvegarde non formatée')
         kind, path = self.path_of(req, 2, 4)
         archive = self.make_archive(archive_id, kind, path)
         if archive is None:
@@ -536,9 +539,16 @@ class FsUser(Service):
     def format_info_path(self):
         return os.path.join(self.roots, 'sauvegarde.format.json')
 
+    def save_not_formatted(self):
+        """Une nouvelle partie : le dossier est vide et le jeu ne l'a jamais formaté."""
+        save = os.path.join(self.roots, 'sauvegarde')
+        return not os.path.isfile(self.format_info_path()) and os.path.isdir(save) and not os.listdir(save)
+
     def get_format_info(self, req):
         archive_id = req.word(1)
         if archive_id == 4:
+            if self.save_not_formatted():
+                return Reply(ERR_NOT_FORMATTED, [0, 0, 0, 0]).with_note('sauvegarde non formatée')
             info = {'size': 0x80000, 'dirs': 1, 'files': 1, 'duplicate': 1}
             if os.path.isfile(self.format_info_path()):
                 info = json.load(open(self.format_info_path()))

@@ -140,6 +140,7 @@ struct Play {
     /// La fin d'image visée est atteinte : la prochaine présentation est capturée.
     shot_ready: bool,
     forward: Option<f64>,
+    speed: u64,
     /// L'écran du bas est posé sur le jeu (Échap).
     menu: bool,
     /// Le clic gauche est tenu sur cet écran.
@@ -165,6 +166,10 @@ pub struct Settings {
     pub replay: Option<String>,
     /// La fenêtre ne paraît qu'à cette heure du jeu, atteinte à pleine vitesse (secondes).
     pub forward: Option<f64>,
+    /// Le jeu avance tant de fois plus vite que le temps réel (le son se coupe : il ne suivrait pas).
+    pub speed: u64,
+    /// Une partie à part (`play-neuve`), partie d'une sauvegarde vide.
+    pub new_game: bool,
     pub combat_in_corner: bool,
     pub both_screens: bool,
     pub game_mod: Option<std::path::PathBuf>,
@@ -195,12 +200,13 @@ impl Play {
                 window.focus_window();
             }
         }
-        let mut target = (self.started.elapsed().as_nanos() as u64).saturating_sub(self.dropped);
+        let mut target = (self.started.elapsed().as_nanos() as u64 * self.speed).saturating_sub(self.dropped);
+        let most = now + 2 * self.speed * VBLANK_NS;
         if self.forward.is_some() {
             target = now + 2 * VBLANK_NS;
-        } else if target > now + 2 * VBLANK_NS {
-            self.dropped += target - (now + 2 * VBLANK_NS);
-            target = now + 2 * VBLANK_NS;
+        } else if target > most {
+            self.dropped += target - most;
+            target = most;
         }
         let next = self.bench.kernel.bench.last_vblank + VBLANK_NS;
         if self.shot.is_some() && next > now {
@@ -435,11 +441,13 @@ impl ApplicationHandler for Play {
 }
 
 pub fn run(settings: Settings) -> Result<(), String> {
-    let Settings { scale, seconds, shot, replay, forward, combat_in_corner, both_screens, game_mod, archipelago, volume, textures, smooth } = settings;
+    let Settings { scale, seconds, shot, replay, forward, speed, new_game, combat_in_corner, both_screens, game_mod, archipelago, volume, textures, smooth } = settings;
     let root = find_root();
     let mut options = Options::new(&root);
     // un rejeu repart de la sauvegarde d'origine : il ne touche ni à la partie du joueur ni à son journal
-    options.out = root.join(if replay.is_some() { "local/analyse/runtime/play-rejeu" } else { "local/analyse/runtime/play" });
+    let folder = if replay.is_some() { "play-rejeu" } else if new_game { "play-neuve" } else { "play" };
+    options.out = root.join("local/analyse/runtime").join(folder);
+    options.empty_save = new_game;
     options.seconds = f64::INFINITY;
     options.draw = true;
     options.live = true;
@@ -454,7 +462,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
     options.textures = textures;
     let audio: std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>> = Default::default();
     // un volume nul ne décode rien du tout : le son reste éteint comme sur le banc
-    let _output = if volume > 0 { crate::sound::start(audio.clone(), volume.min(100) as f32 / 100.0) } else { None };
+    let _output = if volume > 0 && speed == 1 { crate::sound::start(audio.clone(), volume.min(100) as f32 / 100.0) } else { None };
     if _output.is_some() {
         options.audio = Some(audio);
     }
@@ -474,6 +482,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         dropped: 0,
         limit: seconds,
         forward,
+        speed,
         window: None,
         screens: None,
         last_top: 0,
