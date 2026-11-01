@@ -71,7 +71,8 @@ enum BattleScreen {
 
 /// `[bss + 0xF3E0] + 0x14` est le `BattleViewSystem`, `+0x190` ses objets d'interface. Octets lus : `+0x93` le menu
 /// (`BtlvUiActSelect` : 0 aucun, 4 première ouverture, 1 menu, 2 capacités, 5 et 6 fermetures de 1 et 2), `+0xF0` la liste
-/// des Pokémon, `+0x1E8` le sac, `+0x244` la question (`local/analyse/DllBattle/notes.md`).
+/// des Pokémon, `+0x1B3` le choix d'un Pokémon, `+0x1E8` le sac, `+0x244` la question ; le mot `+0x26C` est la liste d'oubli de
+/// capacité, nul si fermée (`local/analyse/DllBattle/notes.md` et `notes-ecrans.md`).
 fn battle_screen(memory: &AddressSpace, base: u32) -> Option<BattleScreen> {
     // les valeurs lues peuvent être n'importe quoi après un déchargement : d'où wrapping_add, et la garde par les vtables
     let word = |address: u32, offset: u32| memory.u32(address.wrapping_add(offset)).ok();
@@ -85,7 +86,7 @@ fn battle_screen(memory: &AddressSpace, base: u32) -> Option<BattleScreen> {
         BattleScreen::YesNo
     } else if matches!(byte(0x93)?, 2 | 6) {
         BattleScreen::Moves
-    } else if byte(0x93)? != 0 || byte(0xF0)? != 0 || byte(0x1E8)? != 0 {
+    } else if byte(0x93)? != 0 || byte(0xF0)? != 0 || byte(0x1B3)? != 0 || byte(0x1E8)? != 0 || word(objects, 0x26C)? != 0 {
         BattleScreen::Menu
     } else {
         BattleScreen::Idle
@@ -498,7 +499,7 @@ mod tests {
             assert_eq!(battle_screen(&memory, BASE), Some(expected), "état {state}");
         }
         memory.write(objects + 0x93, &[0]).unwrap();
-        for (offset, expected) in [(0xF0, Menu), (0x1E8, Menu), (0x244, YesNo)] {
+        for (offset, expected) in [(0xF0, Menu), (0x1B3, Menu), (0x1E8, Menu), (0x26C, Menu), (0x244, YesNo)] {
             memory.write(objects + offset, &[1]).unwrap();
             assert_eq!(battle_screen(&memory, BASE), Some(expected), "{offset:#x}");
             memory.write(objects + offset, &[0]).unwrap();
