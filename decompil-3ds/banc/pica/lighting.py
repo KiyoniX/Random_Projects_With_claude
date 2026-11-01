@@ -88,11 +88,9 @@ class Luts:
 
     def push(self, word):
         if self.which < LUT_COUNT and self.row < 256:
-            value = word & 0xFFF
-            diff = word >> 12 & 0xFFF
-            if diff & 0x800:
-                diff -= 0x1000
-            self.table[self.which, self.row] = (value / 4096.0, diff / 4096.0)
+            # bits 0-11 la valeur sur 4095, bits 12-22 la grandeur de l'écart sur 2047, bit 23 son signe
+            diff = (word >> 12 & 0x7FF) / 2047.0
+            self.table[self.which, self.row] = ((word & 0xFFF) / 4095.0, -diff if word >> 23 & 1 else diff)
         self.row += 1
 
 

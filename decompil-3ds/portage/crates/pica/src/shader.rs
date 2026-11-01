@@ -25,7 +25,7 @@ pub const PRELUDE: &str = r#"
 struct Draw {
     c: array<vec4<f32>, 96>,
     ints: array<vec4<u32>, 4>,
-    misc: vec4<u32>,          // x : booléens, y : registres d'entrée par sommet, z : rang du premier vecteur dans `inputs`
+    misc: vec4<u32>,          // x : booléens, y : registres d'entrée par sommet, z : rang du premier vecteur dans `inputs`, w : du premier indice dans `triangles`
     xf0: vec4<f32>,           // x' = x * xf0.x + w * xf0.y ; y' = y * xf0.z + w * xf0.w
     xf1: vec4<f32>,           // profondeur = z / w * xf1.x + xf1.y
     tev_const: array<vec4<f32>, 6>,
@@ -66,6 +66,19 @@ impl ProgramKey {
             out_mask: s.regs[0x2BD] & 0xFFFF,
             semantics,
         }
+    }
+
+    /// Le programme qui recopie ses entrées dans ses sorties allumées : les sommets déjà calculés sur le processeur par le
+    /// shader de géométrie (`geometry.rs`) passent par là.
+    pub fn passthrough(out_mask: u32, semantics: [u32; 7]) -> ProgramKey {
+        let mut code = vec![0u32; 4096];
+        let moves = (0..16).filter(|r| out_mask >> r & 1 != 0).map(|r: u32| (0x13 << 26) | (r << 21) | (r << 12));
+        let count = moves.clone().count();
+        code.iter_mut().zip(moves).for_each(|(slot, mov)| *slot = mov);
+        code[count] = 0x22 << 26;
+        let mut swizzle = vec![0u32; 4096];
+        swizzle[0] = 0x0000_036F;
+        ProgramKey { code, swizzle, entry: 0, out_mask, semantics }
     }
 }
 
@@ -229,8 +242,9 @@ impl<'a> Translator<'a> {
             0x04 | 0x19 => format!("vec4<f32>(1.0, pmul1(({a}).y, ({b}).y), ({a}).z, ({b}).w)"), // DST
             0x09 | 0x1A => format!("select(vec4<f32>(0.0), vec4<f32>(1.0), {a} >= {b})"), // SGE
             0x0A | 0x1B => format!("select(vec4<f32>(0.0), vec4<f32>(1.0), {a} < {b})"),  // SLT
-            0x0C => format!("max({a}, {b})"),
-            0x0D => format!("min({a}, {b})"),
+            // le NaN donne le second opérande (`max` et `min` de WGSL n'en disent rien)
+            0x0C => format!("select({b}, {a}, {a} > {b})"),
+            0x0D => format!("select({b}, {a}, {a} < {b})"),
             _ => "vec4<f32>(0.0)".to_string(),
         };
         write_dest(out, dest, mask, &value, pad);
@@ -394,6 +408,7 @@ pub fn translate(key: &ProgramKey) -> Result<String, String> {
     src.push_str(
         r#"
 @group(0) @binding(1) var<storage, read> inputs: array<vec4<f32>>;
+@group(0) @binding(7) var<storage, read> triangles: array<u32>;
 var<private> v: array<vec4<f32>, 16>;
 var<private> r: array<vec4<f32>, 16>;
 var<private> o: array<vec4<f32>, 16>;
@@ -434,13 +449,14 @@ struct VsOut {
         src.push_str(f);
         src.push('\n');
     }
-    src.push_str("@vertex\nfn vs_main(@builtin(vertex_index) vi: u32) -> VsOut {\n");
+    src.push_str("struct Shaded { pos: vec4<f32>, at: array<f32, 20> }\n\nfn shade_vertex(vi: u32) -> Shaded {\n");
     src.push_str("    let stride = u.misc.y;\n");
+    src.push_str("    for (var i = 0; i < 16; i = i + 1) { r[i] = vec4<f32>(0.0); o[i] = vec4<f32>(0.0); }\n");
     src.push_str("    for (var i: u32 = 0u; i < 16u; i = i + 1u) {\n");
     src.push_str("        if i < stride { v[i] = inputs[u.misc.z + vi * stride + i]; } else { v[i] = vec4<f32>(0.0, 0.0, 0.0, 1.0); }\n");
     src.push_str("    }\n");
     let _ = writeln!(src, "    let status = {main}();");
-    src.push_str("    var pos = vec4<f32>(0.0, 0.0, 0.0, 1.0);\n    var at: array<f32, 20>;\n    at[3] = 1.0;\n");
+    src.push_str("    var pos = vec4<f32>(0.0, 0.0, 0.0, 1.0);\n    var at: array<f32, 20>;\n    for (var i = 0; i < 20; i = i + 1) { at[i] = 1.0; }\n");
     let slots: Vec<u32> = (0..16).filter(|r| key.out_mask >> r & 1 != 0).collect();
     for (k, &reg) in slots.iter().take(7).enumerate() {
         let word = key.semantics[k];
@@ -454,6 +470,20 @@ struct VsOut {
             }
         }
     }
+    src.push_str("    return Shaded(pos, at);\n}\n\n@vertex\nfn vs_main(@builtin(vertex_index) corner: u32) -> VsOut {\n");
+    src.push_str("    let shaded = shade_vertex(triangles[u.misc.w + corner]);\n    let pos = shaded.pos;\n    var at = shaded.at;\n");
+    // Deux quaternions opposés disent la même rotation, mais leur interpolation passe par zéro : la console retourne les
+    // sommets opposés au premier du triangle (`AreQuaternionsOpposite` d'Azahar). wgpu n'a pas de shader de géométrie : le
+    // programme tourne aussi pour le premier sommet.
+    let quaternion = (0..7).any(|k| (0..4).any(|c| (4..=7).contains(&(key.semantics[k] >> (8 * c) & 0x1F))));
+    if quaternion {
+        src.push_str(
+            "    if corner % 3u != 0u {\n        \
+             let first = shade_vertex(triangles[u.misc.w + corner - corner % 3u]).at;\n        \
+             if first[14] * at[14] + first[15] * at[15] + first[16] * at[16] + first[17] * at[17] < 0.0 {\n            \
+             at[14] = -at[14]; at[15] = -at[15]; at[16] = -at[16]; at[17] = -at[17];\n        }\n    }\n",
+        );
+    }
     src.push_str(
         r#"    var out: VsOut;
     let w = pos.w;
@@ -461,7 +491,8 @@ struct VsOut {
     // La profondeur de la console (z/w * échelle + décalage, linéaire à l'écran) voyage à part et sert à la profondeur écrite.
     out.pos = vec4<f32>(pos.x * u.xf0.x + w * u.xf0.y, pos.y * u.xf0.z + w * u.xf0.w, -pos.z, w);
     out.zd = pos.z / w * u.xf1.x + u.xf1.y;
-    out.a0 = vec4<f32>(at[0], at[1], at[2], at[3]);
+    // la console prend la valeur absolue de la couleur et la sature avant l'interpolation (`OutputVertex` d'Azahar)
+    out.a0 = min(abs(vec4<f32>(at[0], at[1], at[2], at[3])), vec4<f32>(1.0));
     out.a1 = vec4<f32>(at[4], at[5], at[6], at[7]);
     out.a2 = vec4<f32>(at[8], at[9], at[10], at[11]);
     out.a3 = vec4<f32>(at[12], at[13], at[14], at[15]);

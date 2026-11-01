@@ -10,6 +10,16 @@ pub(crate) const OUTSIDE: &str = "hors de la mémoire du GPU";
 
 /// Les formats du transfert vers l'écran et les octets qu'il lit et écrit vraiment (ceux de `banc/pica/transfer.py`) :
 /// (entrée, sortie, octets lus, octets écrits).
+/// (entrée en tuiles, sortie en tuiles) d'un transfert : bit 5 tuiles vers tuiles (il l'emporte), bit 1 linéaire vers tuiles,
+/// sinon tuiles vers linéaire (3dbrew, drapeaux du transfert).
+pub fn tiling(flags: u32) -> (bool, bool) {
+    match ((flags >> 5) & 1, (flags >> 1) & 1) {
+        (1, _) => (true, true),
+        (_, 1) => (false, true),
+        _ => (true, false),
+    }
+}
+
 fn display_sizes(in_dim: u32, out_dim: u32, flags: u32) -> Result<(ColorFormat, ColorFormat, usize, usize), String> {
     let (in_w, in_h) = ((in_dim & 0xFFFF) as usize, (in_dim >> 16) as usize);
     let (out_w, out_h) = ((out_dim & 0xFFFF) as usize, (out_dim >> 16) as usize);
@@ -26,8 +36,10 @@ fn display_sizes(in_dim: u32, out_dim: u32, flags: u32) -> Result<(ColorFormat, 
     let scaling = (flags >> 24) & 3;
     let (w, h) = (if scaling != 0 { in_w / 2 } else { in_w }, if scaling == 2 { in_h / 2 } else { in_h });
     let (cw, ch) = (out_w.min(w), out_h.min(h));
-    let written = if (flags >> 1) & 1 != 0 { cw.div_ceil(8) * ch.div_ceil(8) * 64 * unit } else { cw * ch * unit };
-    Ok((in_fmt, out_fmt, in_w.div_ceil(8) * in_h.div_ceil(8) * 64 * in_fmt.bytes_per_pixel(), written))
+    let (in_tiled, out_tiled) = tiling(flags);
+    let written = if out_tiled { cw.div_ceil(8) * ch.div_ceil(8) * 64 * unit } else { cw * ch * unit };
+    let read = if in_tiled { in_w.div_ceil(8) * in_h.div_ceil(8) * 64 } else { in_w * in_h };
+    Ok((in_fmt, out_fmt, read * in_fmt.bytes_per_pixel(), written))
 }
 
 /// Ce que peut lire et écrire une commande : `access(adresse, longueur, écriture)` rend `Err(texte)` pour une plage
@@ -59,13 +71,13 @@ pub fn check(words: &[u32; 8], access: &Access) -> Result<(), String> {
 /// Commande 3 : l'image rendue (en tuiles) devient une image affichable (en lignes).
 ///
 /// Dimensions : largeur dans les 16 bits bas, hauteur dans les 16 bits hauts. Drapeaux : bit 0 retourner de haut en bas,
-/// bit 1 sortie en tuiles, bit 3 copie brute, bits 8-10 format d'entrée, bits 12-14 format de sortie, bits 24-25
+/// bits 1 et 5 les tuiles (`tiling`), bit 3 copie brute, bits 8-10 format d'entrée, bits 12-14 format de sortie, bits 24-25
 /// réduction (1 en largeur, 2 dans les deux sens). Quand la sortie est plus petite, on prend le coin haut-gauche.
 pub fn display_transfer(memory: &mut Memory, source: u32, destination: u32, in_dim: u32, out_dim: u32, flags: u32) -> Result<(), String> {
     let (in_w, in_h) = ((in_dim & 0xFFFF) as usize, (in_dim >> 16) as usize);
     let (out_w, out_h) = ((out_dim & 0xFFFF) as usize, (out_dim >> 16) as usize);
     let flip = flags & 1 != 0;
-    let out_tiled = (flags >> 1) & 1 != 0;
+    let (in_tiled, out_tiled) = tiling(flags);
     let scaling = (flags >> 24) & 3;
     let (in_fmt, out_fmt, read, _) = display_sizes(in_dim, out_dim, flags)?;
     if (flags >> 3) & 1 != 0 {
@@ -74,7 +86,7 @@ pub fn display_transfer(memory: &mut Memory, source: u32, destination: u32, in_d
     }
     let unit = in_fmt.bytes_per_pixel();
     let raw = memory.read(source, read).ok_or(format!("source illisible ({OUTSIDE})"))?.into_owned();
-    let rgba = decode_pixels(in_fmt, &tiled_to_linear(&raw, in_w, in_h, unit));
+    let rgba = if in_tiled { decode_pixels(in_fmt, &tiled_to_linear(&raw, in_w, in_h, unit)) } else { decode_pixels(in_fmt, &raw) };
     let (image, w, h) = reduce(&rgba, in_w, in_h, scaling);
     let image = crop(&image, w, h, out_w, out_h);
     let (cw, ch) = (out_w.min(w), out_h.min(h));

@@ -211,6 +211,19 @@ def test_seed_one_mode_per_address():
     assert len(found) == len(set(found)) and BASE + 4 in found, found
 
 
+def test_cited_address_gets_an_entry():
+    """Une table de données vise le milieu d'une fonction (opcodes de l'interpréteur de scripts) : l'adresse a son entrée, et
+    la fonction d'origine ne change pas."""
+    code = struct.pack('<4I', 0xE3A00001, 0xE3A00002, 0xE3A00003, 0xE12FFF1E)    # mov r0, #1 ; #2 ; #3 ; bx lr
+    image = recomp.RawImage(BASE, code)
+    table = recomp.Section('rodata', BASE + 0x100, 8, struct.pack('<2I', BASE + 8, 0x1234), 4)
+    image.sections = [image.text, table]
+    plain = recomp.translate_all(image, [(BASE, 16, 'arm', 'a')], holes=True)
+    results = recomp.translate_all(image, [(BASE, 16, 'arm', 'a')], holes=True, pointers=True)
+    assert sorted(r.addr for r in results) == [BASE, BASE + 8], results
+    assert results[0].source == plain[0].source
+
+
 def test_seed_keeps_its_mode():
     """Une fonction Thumb qui déborde sur un point de départ ARM ne le fait pas traduire en Thumb."""
     arm = struct.pack('<II', 0xE3A00001, 0xE12FFF1E)      # mov r0, #1 ; bx lr
@@ -958,6 +971,7 @@ def test():
     test_decoder()
     test_function_translation()
     test_jump_table_bound()
+    test_cited_address_gets_an_entry()
     test_seed_keeps_its_mode()
     test_pointer_seeds()
     test_seed_one_mode_per_address()

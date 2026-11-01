@@ -427,13 +427,14 @@ def function_limits(functions, image):
     return out
 
 
-def translate_all(image, functions, comments=None, progress=False, hooks=(), holes=False, seeds=(), guesses=()):
+def translate_all(image, functions, comments=None, progress=False, hooks=(), holes=False, seeds=(), guesses=(), pointers=False):
     """Traduit toutes les fonctions. `holes` : Ghidra laisse du code hors de ses fonctions (suite d'une fonction coupée,
     cible d'un saut que personne n'a nommée). Avec `holes`, toute cible constante d'un appel ou d'un saut qui tombe dans
     le code sans être une fonction connue devient elle-même une fonction (nommée `trou_...`), jusqu'à ce qu'il n'y en
     ait plus : le natif n'a alors plus à confier ce code à unicorn. `seeds` : adresses de départ supplémentaires (bit 0
     à 1 pour Thumb), celles que le banc a rencontrées sans les trouver recompilées (local/recomp/trous.txt). `guesses` :
-    pareil, mais sans certitude sur le mode (`pointer_seeds`) : elles ne prennent pas le pas sur un saut trouvé."""
+    pareil, mais sans certitude sur le mode (`pointer_seeds`) : elles ne prennent pas le pas sur un saut trouvé.
+    `pointers` : en dernier, une entrée pour tout ce qu'un pointeur peut viser (`cited_addresses`)."""
     arm = [f for f in functions if f[2] == 'arm']
     thumb = [f for f in functions if f[2] == 'thumb']
     try:
@@ -453,6 +454,7 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
     text = image.text
     text_lo, text_hi = text.address, text.address + len(text.data)
     returns = literal_return_targets(image)
+    citing = False
     while True:
         known = set(f[0] | (1 if f[2] == 'thumb' else 0) for f in todo)
         limits = function_limits(todo, image)
@@ -500,6 +502,18 @@ def translate_all(image, functions, comments=None, progress=False, hooks=(), hol
                     found[address] = 'arm'
             if progress:
                 print('  %d prologues ARM hors des fonctions connues' % len(found), file=sys.stderr)
+        if citing:
+            # ce qu'on atteint depuis une adresse citée, qui peut être fausse, ne remplace aucune fonction
+            found = {a: m for a, m in found.items() if a & ~1 not in set(f[0] for f in todo)}
+        elif not found and pointers:
+            # Les fonctions déjà traduites ne sont plus reprises : ces entrées s'ajoutent à l'aiguillage sans rien changer à
+            # leur code. Une fausse ne coûte que de la place, puisque rien n'y saute ; une vraie qui manquerait arrête le jeu
+            # (les opcodes de l'interpréteur de scripts, cités par la table 0x567610, au milieu d'une seule fonction).
+            citing = True
+            starts = set(f[0] for f in todo)
+            found = {a: 'thumb' if a & 1 else 'arm' for a in cited_addresses(image, results) if a & ~1 not in starts}
+            if progress:
+                print('  %d adresses citées sans entrée' % len(found), file=sys.stderr)
         if not found:
             return results
         # Ghidra a parfois nommé « fonction » un bout de données ou de code dans l'autre mode, à une adresse où du code
@@ -632,7 +646,7 @@ def cmd_gen(args):
         functions = functions[:limit]
     results = translate_all(image, functions, comments=disassembler() if asm else None, progress=True, hooks=hooks, holes=True,
                              seeds=sorted(set(load_seeds()) | set(load_import_seeds(image))) if use_seeds else (),
-                             guesses=pointer_seeds(image, functions) if use_seeds else ())
+                             guesses=pointer_seeds(image, functions) if use_seeds else (), pointers=use_seeds)
     files = write_build(out, results, by_address=True)
     import shutil
     shutil.copy(os.path.join(HERE, 'runtime', 'rt.h'), os.path.join(out, 'rt.h'))
@@ -687,6 +701,42 @@ def pointer_seeds(image, functions, text_size=None):
             elif is_arm_prologue(word_at(word)) or after_an_end(word):
                 out.add(word)
     return sorted(out)
+
+
+def cited_addresses(image, results):
+    """Les adresses de code qu'un pointeur peut viser : tout mot aligné des données, les pools que le code lit
+    (« ldr rd, [pc, #n] ») et les adresses qu'il calcule (« add rd, pc, #n »). Les mots du code qui ne sont lus par rien ne
+    comptent pas : ce sont des instructions, pas des adresses."""
+    text = image.text
+    start, end = text.address, text.address + len(text.data)
+
+    def word_at(address):
+        return struct.unpack_from('<I', text.data, address - start)[0] if start <= address <= end - 4 else None
+
+    cited = set()
+    for section in image.sections:
+        if section is not text:
+            cited.update(struct.unpack_from('<I', section.data, offset)[0] for offset in range(0, len(section.data) - 3, 4))
+    for result in results:
+        if result.mode != 'arm':
+            continue
+        for insn in result.insns:
+            if insn.word & 0x0F7F0000 == 0x051F0000:
+                offset = insn.word & 0xFFF
+                cited.add(word_at(insn.addr + 8 + (offset if insn.word & 0x00800000 else -offset)))
+            elif insn.word & 0x0FFF0000 == 0x028F0000:
+                cited.add(insn.addr + 8 + armdec.ror(insn.word & 0xFF, 2 * ((insn.word >> 8) & 15)))
+    out = []
+    for address in cited:
+        if address is None or not start <= address & ~1 <= end - 4:
+            continue
+        # le bit 0 dit Thumb ; une adresse ARM vise un mot aligné, qui n'est ni nul ni du domaine des instructions sans condition
+        if address & 1 == 0 and (address & 3 or word_at(address) == 0 or word_at(address) >> 28 == 0xF):
+            continue
+        out.append(address)
+    # les deux modes pour une même adresse : celui du mot pair l'emporte, Thumb étant rare dans le jeu
+    even = set(a for a in out if not a & 1)
+    return sorted(a for a in out if not a & 1 or a & ~1 not in even)
 
 
 def load_import_seeds(image, code_path=DEFAULT_CODE):

@@ -401,7 +401,7 @@ fn render_to_texture_capture() -> Capture {
     rest = list(&pairs);
     capture.commands.clear();
     capture.commands.push(Command { words: [1, 0, 0, 0, 0, 0, 0, 0], data: first.to_vec() });
-    capture.commands.push(Command { words: [3, A, x, 0x0010_0010, 0x0010_0010, 0x2003, 0, 0], data: Vec::new() });
+    capture.commands.push(Command { words: [3, A, x, 0x0010_0010, 0x0010_0010, 0x2021, 0, 0], data: Vec::new() });
     capture.commands.push(Command { words: [1, 0, 0, 0, 0, 0, 0, 0], data: rest });
     capture
 }

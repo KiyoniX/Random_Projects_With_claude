@@ -11,6 +11,8 @@ pub struct VertexData {
     pub inputs: Vec<[f32; 4]>,
     /// Triangles, trois indices de sommet unique chacun.
     pub triangles: Vec<u32>,
+    /// Les indices de sommet unique dans l'ordre du dessin, avant assemblage : ce que reçoit le shader de géométrie.
+    pub order: Vec<u32>,
     pub notes: Vec<&'static str>,
 }
 
@@ -127,7 +129,7 @@ pub fn load(state: &GpuState, memory: &Memory, indexed: bool) -> Option<VertexDa
         let mut position = 0usize;
         for &comp in ids_c.iter().take(components) {
             if comp >= 12 {
-                position += 4 * (comp as usize - 11);
+                position = position.div_ceil(4) * 4 + 4 * (comp as usize - 11);
                 continue;
             }
             let (kind, size) = kinds[comp as usize];
@@ -179,7 +181,7 @@ pub fn load(state: &GpuState, memory: &Memory, indexed: bool) -> Option<VertexDa
     let topology = (regs[0x25E] >> 8) & 3;
     let inverse: Vec<u32> = ids.iter().map(|id| unique.binary_search(id).unwrap() as u32).collect();
     let triangles = assemble(topology, &inverse);
-    Some(VertexData { stride, inputs, triangles, notes })
+    Some(VertexData { stride, inputs, triangles, order: inverse, notes })
 }
 
 /// Les sommets d'un dessin en mode immédiat : les attributs viennent de la liste de commandes (`GpuState::immediate`),
@@ -198,7 +200,7 @@ pub fn immediate(state: &GpuState) -> VertexData {
         }
     }
     let index: Vec<u32> = (0..n as u32).collect();
-    VertexData { stride, inputs, triangles: assemble((regs[0x25E] >> 8) & 3, &index), notes: Vec::new() }
+    VertexData { stride, inputs, triangles: assemble((regs[0x25E] >> 8) & 3, &index), order: index, notes: Vec::new() }
 }
 
 #[cfg(test)]

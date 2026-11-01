@@ -48,7 +48,7 @@ struct Settings {
 }
 
 /// Les filtres de texture : (nom pour `portage play`, ce qu'on affiche).
-const TEXTURE_FILTERS: [(&str, &str); 4] = [("aucun", "Aucun"), ("scale2x", "Scale2x"), ("mmpx", "MMPX"), ("bicubique", "Bicubique")];
+const TEXTURE_FILTERS: [(&str, &str); 6] = [("aucun", "Aucun"), ("scale2x", "Scale2x"), ("mmpx", "MMPX"), ("bicubique", "Bicubique"), ("scaleforce", "ScaleForce"), ("anime4k", "Anime4K")];
 
 impl Default for Settings {
     fn default() -> Settings {

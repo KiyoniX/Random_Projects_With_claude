@@ -14,7 +14,10 @@ def display_transfer(memory, source, destination, in_dim, out_dim, flags):
     """
     in_w, in_h = in_dim & 0xFFFF, in_dim >> 16
     out_w, out_h = out_dim & 0xFFFF, out_dim >> 16
-    flip, out_tiled, raw_copy = flags & 1, flags >> 1 & 1, flags >> 3 & 1
+    flip, raw_copy = flags & 1, flags >> 3 & 1
+    # bit 5 tuiles vers tuiles (il l'emporte), bit 1 linéaire vers tuiles, sinon tuiles vers linéaire
+    out_tiled = flags >> 5 & 1 or flags >> 1 & 1
+    in_tiled = flags >> 5 & 1 or not flags >> 1 & 1
     in_fmt = formats.GX_FORMATS.get(flags >> 8 & 7)
     out_fmt = formats.GX_FORMATS.get(flags >> 12 & 7)
     scaling = flags >> 24 & 3
@@ -27,10 +30,14 @@ def display_transfer(memory, source, destination, in_dim, out_dim, flags):
         memory.write(destination, memory.read(source, size))
         return ''
     try:
-        raw = memory.read(source, ((in_w + 7) // 8) * ((in_h + 7) // 8) * 64 * in_unit)
+        raw = memory.read(source, (((in_w + 7) // 8) * ((in_h + 7) // 8) * 64 if in_tiled else in_w * in_h) * in_unit)
     except Exception as exc:
         return 'source illisible (%s)' % exc
-    image = formats.decode_pixels(in_fmt, formats.tiled_to_linear(raw, in_w, in_h, in_unit))
+    if in_tiled:
+        raw = formats.tiled_to_linear(raw, in_w, in_h, in_unit)
+    else:
+        raw = np.frombuffer(bytes(raw), dtype=np.uint8).reshape(in_h, in_w, in_unit)
+    image = formats.decode_pixels(in_fmt, raw)
     if scaling:
         image = image[:, :image.shape[1] // 2 * 2]
         wide = image.reshape(image.shape[0], -1, 2, 4).astype(np.uint16)

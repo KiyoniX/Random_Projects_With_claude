@@ -430,7 +430,7 @@ def combine(op, s0, s1, s2, dot_is_alpha=False):
     elif op == 8:
         r = s0 * s1 + s2
     elif op == 9:
-        r = (s0 + s1) * s2
+        r = np.minimum(s0 + s1, 1) * s2
     else:
         r = s0
     return r
@@ -449,7 +449,7 @@ def run_combiner(gpu, attributes, textures, lit=None):
     if lit is not None:                         # éclairage : la couleur primaire de fragment vient des lumières
         fragment_primary, secondary = lit
     else:
-        fragment_primary = primary
+        fragment_primary = zero                 # sans éclairage : zéro (comme Azahar), pas la couleur du sommet
     sources = {0: primary, 1: fragment_primary, 2: secondary, 3: textures[0], 4: textures[1], 5: textures[2], 6: zero}
     buffer = zero
     next_buffer = np.broadcast_to(byte_color(regs[0xFD]), (m, 4))

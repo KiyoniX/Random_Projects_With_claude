@@ -41,6 +41,79 @@ fn is_uniform(r: usize) -> bool { in_stream(r, 0x2C1, 0x2C9) }
 fn is_code(r: usize) -> bool { in_stream(r, 0x2CC, 0x2D4) }
 fn is_swizzle(r: usize) -> bool { in_stream(r, 0x2D6, 0x2DE) }
 fn is_fixed(r: usize) -> bool { in_stream(r, 0x233, 0x236) }
+fn is_geometry_uniform(r: usize) -> bool { in_stream(r, 0x291, 0x299) }
+fn is_geometry_code(r: usize) -> bool { in_stream(r, 0x29C, 0x2A4) }
+fn is_geometry_swizzle(r: usize) -> bool { in_stream(r, 0x2A6, 0x2AE) }
+fn is_stream(r: usize) -> bool {
+    is_uniform(r) || is_code(r) || is_swizzle(r) || is_fixed(r) || is_geometry_uniform(r) || is_geometry_code(r) || is_geometry_swizzle(r)
+}
+
+/// Une ligne d'une table d'éclairage (valeur, écart à la suivante) : bits 0-11 la valeur sur 4095, bits 12-22 la grandeur de
+/// l'écart sur 2047, bit 23 son signe (`Lighting::LutEntry` d'Azahar, retrouvé sur les tables du jeu dans 7520 cas sur 7550).
+fn lut_entry(word: u32) -> [f32; 2] {
+    let difference = ((word >> 12) & 0x7FF) as f32 / 2047.0;
+    [(word & 0xFFF) as f32 / 4095.0, if (word >> 23) & 1 != 0 { -difference } else { difference }]
+}
+
+/// Les captures gardent l'ancien décodage (mots de 12 bits sur 4096) : le mot d'origine s'en déduit.
+fn lut_entry_of_old_capture(value: f32, difference: f32) -> [f32; 2] {
+    let raw = |v: f32| (v * 4096.0).round() as i32 as u32 & 0xFFF;
+    lut_entry(raw(value) | raw(difference) << 12)
+}
+
+/// Écrit des mots à la suite dans le code ou les descripteurs d'un shader.
+fn feed(target: &mut [u32], offset: &mut u32, words: &[u32]) {
+    for &w in words {
+        target[(*offset & 0xFFF) as usize] = w;
+        *offset += 1;
+    }
+}
+
+/// Une suite de constantes flottantes : 4 mots en 32 bits, ou 3 mots qui en portent 4 en 24 bits.
+#[derive(Default)]
+struct UniformStream {
+    index: u32,
+    is_f32: bool,
+    pending: Vec<u32>,
+}
+
+impl UniformStream {
+    fn start(&mut self, value: u32) {
+        self.index = value & 0x7F;
+        self.is_f32 = value >> 31 != 0;
+        self.pending.clear();
+    }
+
+    fn feed(&mut self, uniforms: &mut [[f32; 4]], words: &[u32]) {
+        self.pending.extend_from_slice(words);
+        let need = if self.is_f32 { 4 } else { 3 };
+        let groups = self.pending.len() / need;
+        for g in 0..groups {
+            let chunk = &self.pending[g * need..(g + 1) * need];
+            let value = if self.is_f32 {
+                [f32::from_bits(chunk[3]), f32::from_bits(chunk[2]), f32::from_bits(chunk[1]), f32::from_bits(chunk[0])]
+            } else {
+                unpack_f24([chunk[0], chunk[1], chunk[2]])
+            };
+            let at = self.index as usize + g;
+            if at < 96 {
+                uniforms[at] = value;
+            }
+        }
+        self.pending.drain(..groups * need);
+        self.index += groups as u32;
+    }
+}
+
+/// L'unité du shader de géométrie (0x280-0x2AF), quand elle ne partage pas celle des sommets (0x244 bit 0).
+pub struct GeometryUnit {
+    pub code: Vec<u32>,
+    pub swizzle: Vec<u32>,
+    pub uniforms: Vec<[f32; 4]>,
+    uniform_stream: UniformStream,
+    code_offset: u32,
+    swizzle_offset: u32,
+}
 
 pub struct GpuState {
     pub regs: [u32; REG_COUNT],
@@ -48,6 +121,7 @@ pub struct GpuState {
     pub code: Vec<u32>,
     pub swizzle: Vec<u32>,
     pub uniforms: Vec<[f32; 4]>,
+    pub geometry: GeometryUnit,
     pub fixed: [[f32; 4]; 16],
     pub fog: Vec<[f32; 2]>,
     pub luts: Vec<f32>,
@@ -56,9 +130,7 @@ pub struct GpuState {
     lut_row: u32,
     fixed_index: u32,
     fixed_pending: Vec<u32>,
-    uniform_index: u32,
-    uniform_f32: bool,
-    uniform_pending: Vec<u32>,
+    uniform_stream: UniformStream,
     code_offset: u32,
     swizzle_offset: u32,
     /// Incrémenté à chaque modification du code ou des descripteurs (pour le cache des programmes).
@@ -88,6 +160,14 @@ impl GpuState {
             code: vec![0; 4096],
             swizzle: vec![0; 4096],
             uniforms: vec![[0.0; 4]; 96],
+            geometry: GeometryUnit {
+                code: vec![0; 4096],
+                swizzle: vec![0; 4096],
+                uniforms: vec![[0.0; 4]; 96],
+                uniform_stream: UniformStream::default(),
+                code_offset: 0,
+                swizzle_offset: 0,
+            },
             fixed,
             fog: vec![[0.0; 2]; 128],
             luts: vec![0.0; 24 * 256 * 2],
@@ -96,9 +176,7 @@ impl GpuState {
             lut_row: 0,
             fixed_index: 0,
             fixed_pending: Vec::new(),
-            uniform_index: 0,
-            uniform_f32: false,
-            uniform_pending: Vec::new(),
+            uniform_stream: UniformStream::default(),
             code_offset: 0,
             swizzle_offset: 0,
             program_version: 0,
@@ -121,18 +199,18 @@ impl GpuState {
             s.fixed[i] = *f;
         }
         s.fog = c.fog.clone();
-        s.luts = c.luts.clone();
+        s.luts = c.luts.chunks_exact(2).flat_map(|e| lut_entry_of_old_capture(e[0], e[1])).collect();
         let p = &c.ports;
         s.code_offset = p.code_offset;
         s.swizzle_offset = p.swizzle_offset;
         s.fixed_index = p.fixed_index;
-        s.uniform_index = p.uniform_index;
-        s.uniform_f32 = p.uniform_f32;
+        s.uniform_stream.index = p.uniform_index;
+        s.uniform_stream.is_f32 = p.uniform_f32;
         s.fog_row = p.fog_row;
         s.lut_which = p.lut_which;
         s.lut_row = p.lut_row;
         s.fixed_pending = p.fixed_pending.clone();
-        s.uniform_pending = p.uniform_pending.clone();
+        s.uniform_stream.pending = p.uniform_pending.clone();
         s.program_version = 1;
         s
     }
@@ -161,7 +239,7 @@ impl GpuState {
                 i += step;
                 continue;
             }
-            if !consecutive && mask == 0xF && extra > 0 && (is_uniform(reg) || is_code(reg) || is_swizzle(reg) || is_fixed(reg)) {
+            if !consecutive && mask == 0xF && extra > 0 && is_stream(reg) {
                 let mut values = vec![words[i]];
                 values.extend_from_slice(&words[i + 2..end]);
                 self.stream(reg, &values);
@@ -214,14 +292,8 @@ impl GpuState {
                 self.lut_which = (value >> 8) & 0x1F;
             } else if (0x1C8..=0x1CF).contains(&reg) {
                 if self.lut_which < 24 && self.lut_row < 256 {
-                    let v = value & 0xFFF;
-                    let mut d = ((value >> 12) & 0xFFF) as i32;
-                    if d & 0x800 != 0 {
-                        d -= 0x1000;
-                    }
                     let at = (self.lut_which as usize * 256 + self.lut_row as usize) * 2;
-                    self.luts[at] = v as f32 / 4096.0;
-                    self.luts[at + 1] = d as f32 / 4096.0;
+                    self.luts[at..at + 2].copy_from_slice(&lut_entry(value));
                     self.lut_version += 1;
                 }
                 self.lut_row += 1;
@@ -237,12 +309,16 @@ impl GpuState {
         if reg == 0x245 && !self.immediate.is_empty() {
             return Some(false);
         }
-        if is_uniform(reg) || is_code(reg) || is_swizzle(reg) || is_fixed(reg) {
+        if is_stream(reg) {
             self.stream(reg, &[value]);
         } else if reg == 0x2C0 {
-            self.uniform_index = value & 0x7F;
-            self.uniform_f32 = value >> 31 != 0;
-            self.uniform_pending.clear();
+            self.uniform_stream.start(value);
+        } else if reg == 0x290 {
+            self.geometry.uniform_stream.start(value);
+        } else if reg == 0x29B {
+            self.geometry.code_offset = value & 0xFFFF;
+        } else if reg == 0x2A5 {
+            self.geometry.swizzle_offset = value & 0xFFFF;
         } else if reg == 0x2CB {
             self.code_offset = value & 0xFFFF;
         } else if reg == 0x2D5 {
@@ -257,35 +333,22 @@ impl GpuState {
 
     pub(crate) fn stream(&mut self, reg: usize, words: &[u32]) {
         if is_code(reg) {
-            for &w in words {
-                self.code[(self.code_offset & 0xFFF) as usize] = w;
-                self.code_offset += 1;
-            }
+            feed(&mut self.code, &mut self.code_offset, words);
             self.program_version += 1;
         } else if is_swizzle(reg) {
-            for &w in words {
-                self.swizzle[(self.swizzle_offset & 0xFFF) as usize] = w;
-                self.swizzle_offset += 1;
-            }
+            feed(&mut self.swizzle, &mut self.swizzle_offset, words);
             self.program_version += 1;
         } else if is_uniform(reg) {
-            self.uniform_pending.extend_from_slice(words);
-            let need = if self.uniform_f32 { 4 } else { 3 };
-            let groups = self.uniform_pending.len() / need;
-            for g in 0..groups {
-                let chunk = &self.uniform_pending[g * need..(g + 1) * need];
-                let value = if self.uniform_f32 {
-                    [f32::from_bits(chunk[3]), f32::from_bits(chunk[2]), f32::from_bits(chunk[1]), f32::from_bits(chunk[0])]
-                } else {
-                    unpack_f24([chunk[0], chunk[1], chunk[2]])
-                };
-                let at = self.uniform_index as usize + g;
-                if at < 96 {
-                    self.uniforms[at] = value;
-                }
-            }
-            self.uniform_pending.drain(..groups * need);
-            self.uniform_index += groups as u32;
+            self.uniform_stream.feed(&mut self.uniforms, words);
+        } else if is_geometry_code(reg) {
+            let unit = &mut self.geometry;
+            feed(&mut unit.code, &mut unit.code_offset, words);
+        } else if is_geometry_swizzle(reg) {
+            let unit = &mut self.geometry;
+            feed(&mut unit.swizzle, &mut unit.swizzle_offset, words);
+        } else if is_geometry_uniform(reg) {
+            let unit = &mut self.geometry;
+            unit.uniform_stream.feed(&mut unit.uniforms, words);
         } else {
             self.fixed_pending.extend_from_slice(words);
             while self.fixed_pending.len() >= 3 {

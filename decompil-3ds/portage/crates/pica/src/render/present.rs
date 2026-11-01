@@ -652,11 +652,13 @@ impl Renderer {
         // à l'échelle 1, l'image doit être celle que donnerait la mémoire : sans perte par les formats, ou passée par eux
         // (la réduction moyenne avant le passage par le format de sortie : on ne la mêle pas aux formats avec perte)
         // (une sortie en tuiles n'est pas une image d'écran : la mémoire en donne une image brouillée que l'on garde telle quelle)
-        let out_tiled = (flags >> 1) & 1 != 0;
+        let (in_tiled, out_tiled) = crate::transfer::tiling(flags);
         let image_ok = self.scale > 1 || (!out_tiled && (lossless || (scaling == 0 && in_fmt == Some(surface_fmt) && out_fmt.is_some())));
         let page = |start: u32, len: usize| (start & !0xFFF, (start as usize & 0xFFF) + len + 0xFFF & !0xFFF);
         let (source_page, dest_page) = (page(source, source_len), page(destination, dest_len));
+        // une source linéaire n'est pas ce que le tampon de rendu contient : la mémoire seule donne le bon résultat
         let pending_ok = valid
+            && in_tiled
             && memory.read(destination, dest_len).is_some()
             && !overlaps(source_page.0, source_page.1, dest_page.0, dest_page.1)
             && needed <= available
@@ -674,7 +676,7 @@ impl Renderer {
         }
 
         // une copie fidèle (même taille, sans réduction ni découpe, écrite en tuiles) peut servir de texture telle quelle
-        let exact_copy = in_dim == out_dim && scaling == 0 && (flags >> 1) & 1 != 0 && needed == in_h;
+        let exact_copy = in_dim == out_dim && scaling == 0 && in_tiled && out_tiled && needed == in_h;
         // la mémoire de destination : les transferts en attente qui la recouvrent sont écrits ou remplacés
         self.before_write(memory, destination, dest_len);
         let s = self.scale as usize;

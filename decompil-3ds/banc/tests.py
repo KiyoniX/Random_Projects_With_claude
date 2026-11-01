@@ -488,11 +488,11 @@ def test_pica():
     assert np.allclose(primary[1, :3], 0, atol=1e-5), primary[1]
     w(0x1C5, 0)                                               # table D0 : valeur = ligne / 256, différence 1/256
     for row in range(256):
-        w(0x1C8, 16 << 12 | row * 16)
+        w(0x1C8, 8 << 12 | row * 16)
     x = np.array([0.5, -0.5], dtype=np.float32)
-    assert np.allclose(lighting.lookup(gpu.luts, 0, x, False), [0.5, 0]), 'les négatives valent 0 sans « deux faces »'
-    assert np.allclose(lighting.lookup(gpu.luts, 0, x, False, True), 0.5)         # deux faces : valeur absolue
-    assert np.allclose(lighting.lookup(gpu.luts, 0, x, True), [0.25, 0.75])       # signé : les négatives sont les lignes 128 à 255
+    assert np.allclose(lighting.lookup(gpu.luts, 0, x, False), [0.5, 0], atol=1e-3), 'les négatives valent 0 sans « deux faces »'
+    assert np.allclose(lighting.lookup(gpu.luts, 0, x, False, True), 0.5, atol=1e-3)         # deux faces : valeur absolue
+    assert np.allclose(lighting.lookup(gpu.luts, 0, x, True), [0.25, 0.75], atol=1e-3)       # signé : les négatives sont les lignes 128 à 255
     w(0x1C3, 0)                                               # un spéculaire : D0 (la rampe) fois la couleur spéculaire 0
     w(0x140, 255 << 20 | 255 << 10 | 255)
     w(0x1D1, 0)                                               # D0 lit N.H
@@ -537,7 +537,7 @@ def test_pica():
     w(0x1D1, 0)
     w(0x1C3, 1 << 4 | 1 << 2)
     primary, _ = lighting.shade(gpu.regs, gpu.luts, frag)
-    assert np.allclose(primary[0, 3], 0.25), primary
+    assert np.allclose(primary[0, 3], 0.25, atol=1e-3), primary
     w(0x1C3, 0 << 4 | 1 << 2)                                 # mode 0 : pas de Fresnel, l'alpha reste 1
     primary, _ = lighting.shade(gpu.regs, gpu.luts, frag)
     assert primary[0, 3] == 1, primary

@@ -7,6 +7,7 @@
 //! - [`Pica`] : rejoue une capture (ou suit le jeu en direct) et rend les images des deux écrans.
 
 pub mod fragment;
+pub mod geometry;
 pub mod images;
 pub mod memory;
 pub mod render;

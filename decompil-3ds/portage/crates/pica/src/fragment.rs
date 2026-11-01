@@ -83,7 +83,7 @@ fn combine_rgb(op: u32, s: [&str; 3]) -> String {
         5 => format!("({a} - {b})"),
         6 | 7 => format!("vec3<f32>(4.0 * dot({a} - vec3<f32>(0.5), {b} - vec3<f32>(0.5)))"),
         8 => format!("({a} * {b} + {c})"),
-        9 => format!("(({a} + {b}) * {c})"),
+        9 => format!("(min({a} + {b}, vec3<f32>(1.0)) * {c})"),
         _ => a.to_string(),
     }
 }
@@ -98,7 +98,7 @@ fn combine_alpha(op: u32, s: [&str; 3]) -> String {
         4 => format!("({a} * {c} + {b} * (1.0 - {c}))"),
         5 => format!("({a} - {b})"),
         8 => format!("({a} * {b} + {c})"),
-        9 => format!("(({a} + {b}) * {c})"),
+        9 => format!("(min({a} + {b}, 1.0) * {c})"),
         _ => a.to_string(),
     }
 }
@@ -157,7 +157,9 @@ struct FsIn {
 
 fn wrap_index(i: i32, size: i32, mode: u32) -> vec2<i32> {
     // x : indice, y : 1 si le point est valide (hors bordure)
-    let m = mode & 3u;
+    // 4, 5 et 6 redisent 0, 1 et 2 ; 7 répète
+    var m = mode & 3u;
+    if mode == 7u { m = 2u; }
     if m == 0u {
         return vec2<i32>(clamp(i, 0, size - 1), 1);
     }
@@ -435,7 +437,6 @@ fn compare_u(func: u32, a: u32, b: u32) -> bool {
 
 @fragment
 fn fs_main(in: FsIn) -> FsOut {
-    if in.zd < 0.0 || in.zd > 1.0 { discard; }
     var at: array<f32, 20>;
     at[0] = in.a0.x; at[1] = in.a0.y; at[2] = in.a0.z; at[3] = in.a0.w;
     at[4] = in.a1.x; at[5] = in.a1.y; at[6] = in.a1.z; at[7] = in.a1.w;
@@ -472,7 +473,7 @@ fn fs_main(in: FsIn) -> FsOut {
         s.push_str("    let lit = light_shade(vec4<f32>(at[14], at[15], at[16], at[17]), vec3<f32>(at[11], at[12], at[13]), array<vec4<f32>, 4>(t0, t1, t2, zero4));\n");
         s.push_str("    let frag_primary = lit.p;\n    let frag_secondary = lit.s;\n");
     } else {
-        s.push_str("    let frag_primary = primary;\n    let frag_secondary = zero4;\n");
+        s.push_str("    let frag_primary = zero4;\n    let frag_secondary = zero4;\n");
     }
     s.push_str("    var buffer = zero4;\n    var next_buffer = u.buffer_color;\n    var previous = zero4;\n");
     let update = regs[0xE0];
@@ -489,7 +490,7 @@ fn fs_main(in: FsIn) -> FsOut {
                 0xD => "buffer".into(),
                 0xE => format!("u.tev_const[{k}]"),
                 0 => "primary".into(),
-                1 => "frag_primary".into(), // avec l'éclairage : la couleur des lumières, sinon celle du sommet
+                1 => "frag_primary".into(), // avec l'éclairage : la couleur des lumières, sinon zéro (comme Azahar)
                 2 => "frag_secondary".into(),
                 3 => "t0".into(),
                 4 => "t1".into(),
@@ -501,8 +502,8 @@ fn fs_main(in: FsIn) -> FsOut {
         let a: Vec<String> = (0..3).map(|i| alpha_operand(&fetch((w0 >> (16 + 4 * i)) & 15), (w1 >> (12 + 4 * i)) & 7)).collect();
         let color_op = w2 & 15;
         let alpha_op = (w2 >> 16) & 15;
-        let rgb_scale = [1.0, 2.0, 4.0][((w4 & 3) as usize).min(2)];
-        let alpha_scale = [1.0, 2.0, 4.0][(((w4 >> 16) & 3) as usize).min(2)];
+        let rgb_scale = [1.0, 2.0, 4.0, 1.0][(w4 & 3) as usize];
+        let alpha_scale = [1.0, 2.0, 4.0, 1.0][((w4 >> 16) & 3) as usize];
         let rgb = combine_rgb(color_op, [&c[0], &c[1], &c[2]]);
         let alpha = if color_op == 7 { format!("({rgb}).x") } else { combine_alpha(alpha_op, [&a[0], &a[1], &a[2]]) };
         let _ = writeln!(s, "    {{");
@@ -520,8 +521,9 @@ fn fs_main(in: FsIn) -> FsOut {
         }
         let _ = writeln!(s, "    }}");
     }
+    // aucun étage réglé (jamais vu dans le jeu) : la couleur du sommet, ce qui donne quelque chose à voir en test
     if !any_stage {
-        s.push_str("    previous = frag_primary;\n");
+        s.push_str("    previous = primary;\n");
     }
     s.push_str("    var color = previous;\n");
     if regs[0xE0] & 7 == 5 {
@@ -551,7 +553,7 @@ fn fs_main(in: FsIn) -> FsOut {
     }
     s.push_str("    var out: FsOut;\n    out.color = color;\n");
     if depth_out {
-        s.push_str("    out.depth = in.zd;\n");
+        s.push_str("    out.depth = clamp(in.zd, 0.0, 1.0);\n");
     }
     s.push_str("    return out;\n}\n");
     let s = s.replace("    //DEPTH//\n", if depth_out { "    @builtin(frag_depth) depth: f32,\n" } else { "" });
@@ -581,7 +583,7 @@ mod tests {
     fn default_state_uses_primary_only() {
         let s = GpuState::new();
         let src = generate(&s, false, true);
-        assert!(src.contains("previous = frag_primary;"));
+        assert!(src.contains("previous = primary;"));
         assert_eq!(used_texture_units(&s.regs), [false; 3]);
     }
 

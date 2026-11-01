@@ -26,6 +26,7 @@ use present::{Passes, Pending};
 
 use crate::fragment;
 use crate::memory::{translate, Memory};
+use crate::geometry;
 use crate::shader::{self, ProgramKey};
 use crate::state::{f24_to_f32, GpuState};
 use crate::vertex;
@@ -404,6 +405,7 @@ impl Renderer {
             entries: &[
                 entry(0, both, wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Uniform, has_dynamic_offset: true, min_binding_size: std::num::NonZeroU64::new(std::mem::size_of::<DrawUniform>() as u64) }),
                 entry(1, wgpu::ShaderStages::VERTEX, wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: true }, has_dynamic_offset: false, min_binding_size: None }),
+                entry(7, wgpu::ShaderStages::VERTEX, wgpu::BindingType::Buffer { ty: wgpu::BufferBindingType::Storage { read_only: true }, has_dynamic_offset: false, min_binding_size: None }),
                 entry(2, wgpu::ShaderStages::FRAGMENT, texture_ty),
                 entry(3, wgpu::ShaderStages::FRAGMENT, texture_ty),
                 entry(4, wgpu::ShaderStages::FRAGMENT, texture_ty),
@@ -434,7 +436,7 @@ impl Renderer {
         let dummy_view = dummy.create_view(&wgpu::TextureViewDescriptor::default());
         let uniform_arena = Arena::new(&device, "constantes", 8 << 20, wgpu::BufferUsages::UNIFORM);
         let input_arena = Arena::new(&device, "sommets", 16 << 20, wgpu::BufferUsages::STORAGE);
-        let index_arena = Arena::new(&device, "indices", 4 << 20, wgpu::BufferUsages::INDEX);
+        let index_arena = Arena::new(&device, "indices", 4 << 20, wgpu::BufferUsages::STORAGE);
         let uniform_align = device.limits().min_uniform_buffer_offset_alignment as u64;
         let lut_align = device.limits().min_storage_buffer_offset_alignment as u64;
         let device_lut = device.clone();
@@ -1252,8 +1254,13 @@ struct Out { @builtin(frag_depth) d: f32 }
         if let Some(found) = self.vs_by_version.get(&quick) {
             return *found;
         }
-        let key = ProgramKey::from_state(state);
-        let id = if let Some(found) = self.vs_by_key.get(&key) {
+        let id = self.vertex_module_of(ProgramKey::from_state(state));
+        self.vs_by_version.insert(quick, id);
+        id
+    }
+
+    fn vertex_module_of(&mut self, key: ProgramKey) -> Option<u64> {
+        if let Some(found) = self.vs_by_key.get(&key) {
             *found
         } else {
             let id = match shader::translate(&key) {
@@ -1274,9 +1281,7 @@ struct Out { @builtin(frag_depth) d: f32 }
             };
             self.vs_by_key.insert(key, id);
             id
-        };
-        self.vs_by_version.insert(quick, id);
-        id
+        }
     }
 
     fn fragment_module(&mut self, state: &GpuState, logic: bool, depth_out: bool) -> u64 {
@@ -1362,7 +1367,17 @@ struct Out { @builtin(frag_depth) d: f32 }
         let depth_index = self.depth_surface(state, memory);
         self.tick("tampons de rendu", t);
         let t = self.now();
-        let Some(vertices) = self.vertex_data(state, memory, indexed) else { return };
+        let Some(mut vertices) = self.vertex_data(state, memory, indexed) else { return };
+        let uses_geometry = regs[0x229] & 3 == 2;
+        if uses_geometry {
+            match geometry::run(state, &vertices) {
+                Ok(emitted) => vertices = Arc::new(emitted),
+                Err(why) => {
+                    self.note(why);
+                    return;
+                }
+            }
+        }
         self.tick("sommets", t);
         for n in &vertices.notes {
             self.note(*n);
@@ -1371,7 +1386,13 @@ struct Out { @builtin(frag_depth) d: f32 }
             return;
         }
         let t = self.now();
-        let Some(vs_id) = self.vertex_module(state) else { return };
+        let vs_id = if uses_geometry {
+            let semantics = std::array::from_fn(|k| regs[0x50 + k]);
+            self.vertex_module_of(ProgramKey::passthrough(regs[0x28D] & 0xFFFF, semantics))
+        } else {
+            self.vertex_module(state)
+        };
+        let Some(vs_id) = vs_id else { return };
         let blending = (regs[0x100] >> 8) & 1 != 0;
         let logic_op = if !blending && state.seen[0x102] { regs[0x102] & 15 } else { 3 };
         let fs_id = self.fragment_module(state, logic_op != 3, depth_index.is_some());
@@ -1379,13 +1400,26 @@ struct Out { @builtin(frag_depth) d: f32 }
         self.stats.triangles += (vertices.triangles.len() / 3) as u64;
 
         // notes sur ce qui n'est pas fait
+        for (missing, text) in [
+            (regs[0x100] & 3 != 0, "mode ombre ou gaz du tampon de couleur (0x100) non fait"),
+            (regs[0xE0] & 7 == 7, "brouillard de gaz (0xE0) non fait"),
+            
+            ((regs[0x84] >> 16) & 15 != 0, "texture 0 à plusieurs niveaux (0x84) : seul le premier est lu"),
+            (state.seen[0x6D] && regs[0x6D] & 1 == 0, "tampon W (0x6D) non fait"),
+            (regs[0x47] & 1 != 0, "plan de coupe utilisateur (0x47) non fait"),
+        ] {
+            if missing {
+                self.note(text);
+            }
+        }
         if (regs[0x80] >> 10) & 1 != 0 {
             self.note("texture 3 (textures procédurales) non faite");
         }
-        if regs[0x229] & 3 == 2 {
-            self.note("shader de géométrie demandé (non fait : la référence du banc ne l'a vu dans aucune capture du jeu)");
-        }
 
+        let texture_type = regs[0x83] >> 28;
+        if regs[0x80] & 1 != 0 && !matches!(texture_type, 0 | 3) {
+            self.note(format!("texture 0 de type {texture_type} (1 cube, 2 et 4 ombre, 5 éteinte) lue comme une 2D"));
+        }
         // les textures
         let t = self.now();
         let used = fragment::used_texture_units(regs);
@@ -1531,12 +1565,14 @@ struct Out { @builtin(frag_depth) d: f32 }
         let input_bytes = (vertices.inputs.len() * 16) as u64;
         let index_bytes = (vertices.triangles.len() * 4) as u64;
         let lighting = crate::lighting_on(state);
-        let lut_at = if lighting { self.lut_offset(state) } else { 0 };
         let Some((uniform_at, input_at, index_at)) = self.alloc_draw(uniform_bytes, input_bytes, index_bytes) else {
             self.note("dessin trop grand pour les tampons : sauté");
             return;
         };
+        // après `alloc_draw`, qui peut envoyer le travail en cours et remettre l'arène des tables à zéro
+        let lut_at = if lighting { self.lut_offset(state) } else { 0 };
         uniform.misc[2] = (input_at / 16) as u32;
+        uniform.misc[3] = (index_at / 4) as u32;
         self.uniform_arena.write(uniform_at, bytemuck::bytes_of(&uniform));
         self.input_arena.write(input_at, bytemuck::cast_slice(&vertices.inputs));
         self.index_arena.write(index_at, bytemuck::cast_slice(&vertices.triangles));
@@ -1582,6 +1618,8 @@ struct Out { @builtin(frag_depth) d: f32 }
         let (full_w, full_h) = (surface_w as u32, surface_h as u32);
         let (x_min, y_min) = (regs[0x66] & 0x3FF, (regs[0x66] >> 16) & 0x3FF);
         let (x_max, y_max) = (regs[0x67] & 0x3FF, (regs[0x67] >> 16) & 0x3FF);
+        // le ciseau se compte depuis le bas de l'image, comme le viewport
+        let (y_min, y_max) = (full_h.saturating_sub(y_max + 1), full_h.saturating_sub(y_min + 1));
         let mut rects: Vec<(u32, u32, u32, u32)> = Vec::new(); // x, y, largeur, hauteur en points natifs
         match regs[0x65] & 3 {
             3 => {
@@ -1611,7 +1649,6 @@ struct Out { @builtin(frag_depth) d: f32 }
         let depth_view = depth_index.map(|i| self.depth_surfaces[i].view.clone());
         let has_stencil = depth_index.map(|i| self.depth_surfaces[i].format == DEPTH_STENCIL_FORMAT).unwrap_or(false);
         let count = vertices.triangles.len() as u32;
-        let index_buffer = self.index_arena.buffer.clone();
         let pass_key = (self.color_surfaces[color_index].id, depth_index.map(|i| self.depth_surfaces[i].id).unwrap_or(0), has_stencil);
         if self.pass.as_ref().map(|(k, _)| *k) != Some(pass_key) {
             self.pass = None;
@@ -1640,12 +1677,11 @@ struct Out { @builtin(frag_depth) d: f32 }
             pass.set_pipeline(&pipeline);
             pass.set_stencil_reference(stencil_reference);
             pass.set_bind_group(0, &bind, &[uniform_at as u32, lut_at as u32]);
-            pass.set_index_buffer(index_buffer.slice(index_at..index_at + index_bytes), wgpu::IndexFormat::Uint32);
             pass.set_viewport(0.0, 0.0, (full_w * s) as f32, (full_h * s) as f32, 0.0, 1.0);
             pass.set_blend_constant(constant);
             for (x, y, w, h) in rects {
                 pass.set_scissor_rect(x * s, y * s, w * s, h * s);
-                pass.draw_indexed(0..count, 0, 0..1);
+                pass.draw(0..count, 0..1);
             }
         }
         self.tick("passe", t);
@@ -1664,7 +1700,7 @@ struct Out { @builtin(frag_depth) d: f32 }
         self.submit();
         self.uniform_arena = Arena::new(&self.device, "constantes", uniform.max(self.uniform_align + std::mem::size_of::<DrawUniform>() as u64), wgpu::BufferUsages::UNIFORM);
         self.input_arena = Arena::new(&self.device, "sommets", input.max(16), wgpu::BufferUsages::STORAGE);
-        self.index_arena = Arena::new(&self.device, "indices", index.max(4), wgpu::BufferUsages::INDEX);
+        self.index_arena = Arena::new(&self.device, "indices", index.max(4), wgpu::BufferUsages::STORAGE);
         self.arena_generation += 1;
         self.bind_groups.clear();
     }
@@ -1691,7 +1727,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                     self.input_arena = Arena::new(&self.device, "sommets", size, wgpu::BufferUsages::STORAGE);
                 }
                 if index.max(4) > self.index_arena.size {
-                    self.index_arena = Arena::new(&self.device, "indices", index.max(4).next_power_of_two(), wgpu::BufferUsages::INDEX);
+                    self.index_arena = Arena::new(&self.device, "indices", index.max(4).next_power_of_two(), wgpu::BufferUsages::STORAGE);
                 }
                 self.arena_generation += 1;
                 self.bind_groups.clear();
@@ -1742,6 +1778,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                     }),
                 },
                 wgpu::BindGroupEntry { binding: 1, resource: self.input_arena.buffer.as_entire_binding() },
+                wgpu::BindGroupEntry { binding: 7, resource: self.index_arena.buffer.as_entire_binding() },
                 wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::TextureView(&views[0]) },
                 wgpu::BindGroupEntry { binding: 3, resource: wgpu::BindingResource::TextureView(&views[1]) },
                 wgpu::BindGroupEntry { binding: 4, resource: wgpu::BindingResource::TextureView(&views[2]) },

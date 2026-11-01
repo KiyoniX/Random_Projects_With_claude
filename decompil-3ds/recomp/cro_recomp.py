@@ -315,6 +315,11 @@ def translate_module(img, incoming=(), holes=(), comments=None, progress=None, g
                     found = True
         if found:
             run_closure()
+    # Les pointeurs des pools écartés plus haut ont aussi leur entrée, sans rien changer au code déjà traduit : une table
+    # d'opcodes vise le milieu d'une fonction (voir `recomp.cited_addresses`).
+    for w in sorted(weak):
+        add_entry(w)
+    run_closure()
     return [results[k] for k in sorted(results)]
 
 

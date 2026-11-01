@@ -7,7 +7,7 @@
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
 //!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL]
 //!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER] [--volume 0 à 100]
-//!                [--archipelago ADRESSE --joueur NOM] [--filtre-texture aucun|scale2x|mmpx|bicubique] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
+//!                [--archipelago ADRESSE --joueur NOM] [--filtre-texture aucun|scale2x|mmpx|bicubique|scaleforce|anime4k] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
 //!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
