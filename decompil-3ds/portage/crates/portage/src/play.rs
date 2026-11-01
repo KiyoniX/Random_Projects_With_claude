@@ -22,7 +22,7 @@ use winit::window::{Window, WindowId};
 
 use pica::images::save_png;
 
-use crate::window::{Layout, Screens, open};
+use crate::window::{Layout, Panel, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -69,18 +69,30 @@ enum BattleScreen {
     YesNo,
 }
 
-/// `[bss + 0xF3E0] + 0x14` est le `BattleViewSystem`, `+0x190` ses objets d'interface. Octets lus : `+0x93` le menu
-/// (`BtlvUiActSelect` : 0 aucun, 4 première ouverture, 1 menu, 2 capacités, 5 et 6 fermetures de 1 et 2), `+0xF0` la liste
-/// des Pokémon, `+0x1B3` le choix d'un Pokémon, `+0x1E8` le sac, `+0x244` la question ; le mot `+0x26C` est la liste d'oubli de
-/// capacité, nul si fermée (`local/analyse/DllBattle/notes.md` et `notes-ecrans.md`).
-fn battle_screen(memory: &AddressSpace, base: u32) -> Option<BattleScreen> {
+/// Les objets d'interface du combat : `[bss + 0xF3E0] + 0x14` est le `BattleViewSystem`, `+0x190` ses objets.
+fn battle_objects(memory: &AddressSpace, base: u32) -> Option<u32> {
     // les valeurs lues peuvent être n'importe quoi après un déchargement : d'où wrapping_add, et la garde par les vtables
     let word = |address: u32, offset: u32| memory.u32(address.wrapping_add(offset)).ok();
     let context = word(word(base, BATTLE_BSS_SEGMENT)?, BATTLE_CONTEXT)?;
     let view = word(context, 0x14)?;
     (word(view, 0)? == base + BATTLE_VIEW_VTABLE).then_some(())?;
     let objects = word(view, 0x190)?;
-    (word(objects, 0x5C)? == base + ACTION_SELECT_VTABLE).then_some(())?;
+    (word(objects, 0x5C)? == base + ACTION_SELECT_VTABLE).then_some(objects)
+}
+
+/// Plusieurs Pokémon de chaque côté : l'octet `+0xA1` des objets est la règle (0 simple, 1 double, 2 triple, 3 rotation), relevé
+/// par différence des quatre combats, avec le type de combat du dresseur changé dans `a/0/3/8` (`local/analyse/rendu/mods-test`).
+fn battle_with_many(memory: &AddressSpace, base: u32) -> bool {
+    battle_objects(memory, base).and_then(|objects| memory.u8(objects.wrapping_add(0xA1)).ok()).is_some_and(|rule| rule != 0)
+}
+
+/// Octets lus : `+0x93` le menu
+/// (`BtlvUiActSelect` : 0 aucun, 4 première ouverture, 1 menu, 2 capacités, 5 et 6 fermetures de 1 et 2), `+0xF0` la liste
+/// des Pokémon, `+0x1B3` le choix d'un Pokémon, `+0x1E8` le sac, `+0x244` la question ; le mot `+0x26C` est la liste d'oubli de
+/// capacité, nul si fermée (`local/analyse/DllBattle/notes.md` et `notes-ecrans.md`).
+fn battle_screen(memory: &AddressSpace, base: u32) -> Option<BattleScreen> {
+    let word = |address: u32, offset: u32| memory.u32(address.wrapping_add(offset)).ok();
+    let objects = battle_objects(memory, base)?;
     let byte = |offset: u32| memory.u8(objects.wrapping_add(offset)).ok();
     Some(if byte(0x244)? == 1 {
         BattleScreen::YesNo
@@ -227,10 +239,16 @@ impl Play {
             (Layout::Overlaid, true)
         } else if let Some(base) = self.battle_base().filter(|_| self.combat_in_corner) {
             // rien quand l'écran du bas n'offre rien à toucher : Échap l'affiche quand même
-            match battle_screen(&self.bench.kernel.memory, base) {
-                Some(BattleScreen::Moves) => (Layout::Moves, true),
-                Some(BattleScreen::YesNo) => (Layout::YesNo, true),
-                Some(BattleScreen::Menu) => (Layout::Corner, true),
+            let memory = &self.bench.kernel.memory;
+            match (battle_screen(memory, base), battle_with_many(memory, base)) {
+                (Some(BattleScreen::Moves), false) => (Layout::Moves, true),
+                (Some(BattleScreen::YesNo), false) => (Layout::YesNo, true),
+                (Some(BattleScreen::Menu), false) => (Layout::Corner, true),
+                (Some(BattleScreen::Moves), true) => (Layout::Beside(Panel::Moves), true),
+                (Some(BattleScreen::YesNo), true) => (Layout::Beside(Panel::YesNo), true),
+                (Some(BattleScreen::Menu), true) => (Layout::Beside(Panel::Menu), true),
+                // la bande reste pendant les attaques : l'image ne change pas de taille à chaque menu
+                (Some(BattleScreen::Idle), true) => (Layout::Beside(Panel::Nothing), true),
                 _ => (Layout::Overlaid, false),
             }
         } else {
@@ -499,6 +517,10 @@ mod tests {
             assert_eq!(battle_screen(&memory, BASE), Some(expected), "état {state}");
         }
         memory.write(objects + 0x93, &[0]).unwrap();
+        assert!(!battle_with_many(&memory, BASE));
+        memory.write(objects + 0xA1, &[1]).unwrap();
+        assert!(battle_with_many(&memory, BASE));
+        memory.write(objects + 0xA1, &[0]).unwrap();
         for (offset, expected) in [(0xF0, Menu), (0x1B3, Menu), (0x1E8, Menu), (0x26C, Menu), (0x244, YesNo)] {
             memory.write(objects + offset, &[1]).unwrap();
             assert_eq!(battle_screen(&memory, BASE), Some(expected), "{offset:#x}");
