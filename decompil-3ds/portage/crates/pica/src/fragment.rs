@@ -206,10 +206,21 @@ fn sample_unit(unit: u32, uv: vec2<f32>) -> vec4<f32> {
     let ix1 = wrap_index(i32(x0) + 1, size.x, ws);
     let iy0 = wrap_index(i32(y0), size.y, wt);
     let iy1 = wrap_index(i32(y0) + 1, size.y, wt);
-    return fetch_texel(unit, ix0, iy0) * ((1.0 - fx) * (1.0 - fy))
-         + fetch_texel(unit, ix1, iy0) * (fx * (1.0 - fy))
-         + fetch_texel(unit, ix0, iy1) * ((1.0 - fx) * fy)
-         + fetch_texel(unit, ix1, iy1) * (fx * fy);
+    let c00 = fetch_texel(unit, ix0, iy0);
+    let c10 = fetch_texel(unit, ix1, iy0);
+    let c01 = fetch_texel(unit, ix0, iy1);
+    let c11 = fetch_texel(unit, ix1, iy1);
+    let w00 = (1.0 - fx) * (1.0 - fy);
+    let w10 = fx * (1.0 - fy);
+    let w01 = (1.0 - fx) * fy;
+    let w11 = fx * fy;
+    let plain = c00 * w00 + c10 * w10 + c01 * w01 + c11 * w11;
+    // découpe en haute définition : la couleur pondérée par l'alpha, sans celle des points transparents
+    if d.z > 1.5 && plain.w > 0.0 {
+        let rgb = c00.xyz * (w00 * c00.w) + c10.xyz * (w10 * c10.w) + c01.xyz * (w01 * c01.w) + c11.xyz * (w11 * c11.w);
+        return vec4<f32>(rgb / plain.w, plain.w);
+    }
+    return plain;
 }
 
 
