@@ -134,6 +134,7 @@ pub struct Settings {
     pub combat_in_corner: bool,
     pub both_screens: bool,
     pub game_mod: Option<std::path::PathBuf>,
+    pub archipelago: Option<apclient::Settings>,
     pub volume: u32,
     pub textures: runtime::gpu::TextureOptions,
     pub smooth: bool,
@@ -379,7 +380,7 @@ impl ApplicationHandler for Play {
 }
 
 pub fn run(settings: Settings) -> Result<(), String> {
-    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod, volume, textures, smooth } = settings;
+    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod, archipelago, volume, textures, smooth } = settings;
     let root = find_root();
     let mut options = Options::new(&root);
     options.out = root.join("local/analyse/runtime/play");
@@ -393,6 +394,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         options.clock_milliseconds = Some((local + 2_208_988_800_000) as u64);
     }
     options.mod_dir = game_mod;
+    options.archipelago = archipelago;
     options.textures = textures;
     let audio: std::sync::Arc<std::sync::Mutex<std::collections::VecDeque<i16>>> = Default::default();
     // un volume nul ne décode rien du tout : le son reste éteint comme sur le banc

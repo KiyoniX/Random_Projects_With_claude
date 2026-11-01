@@ -9,6 +9,7 @@ pica = { path = "../pica" }
 formats = { path = "../formats" }
 overlay = { path = "../overlay" }
 runtime = { path = "../runtime" }
+apclient = { path = "../apclient" }
 kernel = { path = "../kernel" }
 services = { path = "../services" }
 image.workspace = true

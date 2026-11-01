@@ -40,6 +40,9 @@ struct Settings {
     texture_filter: String,
     /// L'image lissée en s'agrandissant à la fenêtre.
     smooth: bool,
+    /// Une partie Archipelago : l'adresse (vide : aucune) et le nom du joueur.
+    archipelago: String,
+    player: String,
     /// Le pack de textures : un dossier de `local/mods-build/textures`.
     texture_pack: Option<String>,
 }
@@ -49,7 +52,7 @@ const TEXTURE_FILTERS: [(&str, &str); 4] = [("aucun", "Aucun"), ("scale2x", "Sca
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100, texture_filter: "aucun".to_string(), smooth: false, texture_pack: None }
+        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100, texture_filter: "aucun".to_string(), smooth: false, texture_pack: None, archipelago: String::new(), player: String::new() }
     }
 }
 
@@ -65,6 +68,9 @@ impl Settings {
         }
         if self.screens == Screens::Both {
             out.extend(["--ecrans".to_string(), "deux".to_string()]);
+        }
+        if !self.archipelago.is_empty() {
+            out.extend(["--archipelago".to_string(), self.archipelago.clone(), "--joueur".to_string(), self.player.clone()]);
         }
         if let Some(name) = &self.texture_pack {
             out.extend(["--textures".to_string(), root.join("local/mods-build/textures").join(name).display().to_string()]);
@@ -202,6 +208,12 @@ impl eframe::App for Launcher {
                 ui.label("Volume");
                 ui.add(egui::Slider::new(&mut self.settings.volume, 0..=100));
                 ui.end_row();
+                ui.label("Archipelago");
+                ui.horizontal(|ui| {
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.archipelago).hint_text("adresse:port").desired_width(170.0));
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.player).hint_text("joueur").desired_width(110.0));
+                });
+                ui.end_row();
                 ui.label("Mod");
                 let current = self.settings.game_mod.clone().unwrap_or_else(|| "Aucun".to_string());
                 egui::ComboBox::from_id_salt("mod").selected_text(current).show_ui(ui, |ui| {
@@ -234,7 +246,7 @@ fn main() -> eframe::Result {
     let texture_packs = list_texture_packs(&root);
     let app = Launcher { root, settings, mods, texture_packs, game: None, status: String::new() };
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([560.0, 390.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([560.0, 420.0]),
         ..Default::default()
     };
     eframe::run_native("Pokémon X", options, Box::new(|_| Ok(Box::new(app))))
@@ -248,17 +260,17 @@ mod tests {
     fn arguments_follow_the_settings() {
         let root = Path::new("R");
         assert_eq!(Settings::default().arguments(root), ["play", "--scale", "2", "--combat", "coin", "--volume", "100", "--filtre-texture", "aucun"]);
-        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()), volume: 30, texture_filter: "mmpx".into(), smooth: true, texture_pack: None };
+        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()), volume: 30, texture_filter: "mmpx".into(), smooth: true, texture_pack: None, archipelago: "h:1".into(), player: "K".into() };
         let arguments = settings.arguments(root);
-        assert_eq!(&arguments[..12], ["play", "--scale", "4", "--combat", "menu", "--volume", "30", "--filtre-texture", "mmpx", "--lissage", "--ecrans", "deux"]);
-        assert_eq!(arguments[12], "--mod");
-        assert!(arguments[13].ends_with("pc"));
+        assert_eq!(&arguments[..16], ["play", "--scale", "4", "--combat", "menu", "--volume", "30", "--filtre-texture", "mmpx", "--lissage", "--ecrans", "deux", "--archipelago", "h:1", "--joueur", "K"]);
+        assert_eq!(arguments[16], "--mod");
+        assert!(arguments[17].ends_with("pc"));
     }
 
     #[test]
     fn settings_survive_a_file_and_a_missing_field() {
         let path = std::env::temp_dir().join(format!("reglages-{}/r.json", std::process::id()));
-        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()), volume: 7, texture_filter: "mmpx".into(), smooth: true, texture_pack: Some("hd".into()) };
+        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()), volume: 7, texture_filter: "mmpx".into(), smooth: true, texture_pack: Some("hd".into()), archipelago: String::new(), player: String::new() };
         save(&path, &settings).unwrap();
         assert_eq!(load(&path), settings);
         std::fs::write(&path, r#"{"scale": 1}"#).unwrap();

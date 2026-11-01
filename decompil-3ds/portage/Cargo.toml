@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/capture", "crates/formats", "crates/pica", "crates/overlay", "crates/portage", "crates/launcher", "crates/romfs", "crates/cro", "crates/kernel", "crates/hostcpu", "crates/services", "crates/runtime"]
+members = ["crates/capture", "crates/formats", "crates/pica", "crates/overlay", "crates/portage", "crates/launcher", "crates/apclient", "crates/romfs", "crates/cro", "crates/kernel", "crates/hostcpu", "crates/services", "crates/runtime"]
 
 [workspace.package]
 version = "0.1.0"

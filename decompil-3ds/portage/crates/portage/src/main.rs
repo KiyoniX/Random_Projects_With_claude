@@ -7,7 +7,7 @@
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
 //!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL]
 //!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER] [--volume 0 à 100]
-//!                [--filtre-texture aucun|scale2x|mmpx|bicubique] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
+//!                [--archipelago ADRESSE --joueur NOM] [--filtre-texture aucun|scale2x|mmpx|bicubique] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
 //!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
@@ -45,6 +45,9 @@ struct Options {
     combat_in_corner: bool,
     /// `play` : les deux écrans l'un sur l'autre.
     both_screens: bool,
+    /// `play` : l'adresse d'une partie Archipelago, et le nom du joueur.
+    archipelago: Option<String>,
+    player: Option<String>,
     /// `play` : le dossier d'un mod (`local/mods-build/pc`).
     game_mod: Option<PathBuf>,
     /// `play` : le volume, de 0 (pas de sortie du tout) à 100.
@@ -57,7 +60,7 @@ struct Options {
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, combat_in_corner: true, both_screens: false, game_mod: None, volume: 100, textures: Default::default(), smooth: false, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, combat_in_corner: true, both_screens: false, archipelago: None, player: None, game_mod: None, volume: 100, textures: Default::default(), smooth: false, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -75,6 +78,14 @@ fn parse(args: &[String]) -> Options {
                 o.both_screens = args.get(i).map(String::as_str) == Some("deux");
             }
             "--lissage" => o.smooth = true,
+            "--archipelago" => {
+                i += 1;
+                o.archipelago = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
+            }
+            "--joueur" => {
+                i += 1;
+                o.player = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
+            }
             "--filtre-texture" => {
                 i += 1;
                 o.textures.filter = args.get(i).and_then(|s| pica::upscale::TextureFilter::from_name(s)).unwrap_or_else(|| usage());
@@ -410,6 +421,7 @@ fn main() {
             combat_in_corner: options.combat_in_corner,
             both_screens: options.both_screens,
             game_mod: options.game_mod,
+            archipelago: runtime::bench::archipelago_settings(options.archipelago, options.player),
             volume: options.volume,
             textures: options.textures,
             smooth: options.smooth,

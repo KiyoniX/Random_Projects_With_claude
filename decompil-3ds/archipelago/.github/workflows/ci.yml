@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  # Official Archipelago release the world is tested and built against. Bump it deliberately, never track main.
+  ARCHIPELAGO_REF: "0.6.9"
+  WORLD_MODULE: "pokemon_x"
+  GAME_NAME: "Pokemon X"
+
+jobs:
+  apworld:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6.0.2
+        with:
+          path: project
+
+      # Archipelago is checked out next to the project, never forked or vendored into it.
+      - uses: actions/checkout@v6.0.2
+        with:
+          repository: ArchipelagoMW/Archipelago
+          ref: ${{ env.ARCHIPELAGO_REF }}
+          path: archipelago
+
+      - uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.13"
+
+      - name: Static checks
+        run: python project/tools/check_apworld.py "project/apworld/$WORLD_MODULE"
+
+      - name: Install Archipelago
+        working-directory: archipelago
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ci-requirements.txt
+          # The WebHost requirements are needed by Archipelago's own test suite, as in its unittests workflow.
+          python ModuleUpdate.py --yes --force --append "WebHostLib/requirements.txt"
+          python Launcher.py --update_settings
+          cp -r "../project/apworld/$WORLD_MODULE" "worlds/$WORLD_MODULE"
+
+      - name: World tests and Archipelago's generic tests
+        working-directory: archipelago
+        run: AP_TEST_WORLDS="$WORLD_MODULE" pytest -n auto
+
+      - name: Build apworld
+        working-directory: archipelago
+        run: python Launcher.py "Build APWorlds" -- "$GAME_NAME" --skip_open_folder
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apworld
+          path: archipelago/build/apworlds/${{ env.WORLD_MODULE }}.apworld
+          if-no-files-found: error

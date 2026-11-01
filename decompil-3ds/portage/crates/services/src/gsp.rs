@@ -547,7 +547,13 @@ impl Gsp {
 fn give_due_gifts(k: &mut Kernel) {
     let seconds = k.now as f64 / 1e9;
     let Some(&(at, item, quantity)) = k.bench.gifts.front() else { return };
-    if seconds < at {
+    // seulement sur le terrain : le sac ne bouge pas sous un écran qui l'affiche, et un combat n'a pas à le voir changer
+    let in_field = k.journal.names.modules.iter().any(|m| m.2 == "DllField");
+    if seconds < at || !in_field {
+        return;
+    }
+    if item == 0 {
+        k.bench.gifts.pop_front(); // rien à donner : voir `Session::give_items`
         return;
     }
     let given = crate::game_state::GameState::find(&k.memory).and_then(|g| g.add_item(item, quantity));
@@ -580,6 +586,10 @@ pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
     hid.update(k);
     drop(hid);
     give_due_gifts(k);
+    if let Some(mut hook) = k.bench.vblank_hook.take() {
+        hook(k);
+        k.bench.vblank_hook = Some(hook);
+    }
     // L'heure de la page partagée suit l'horloge du banc.
     let milliseconds = k.bench.start_milliseconds + k.now / 1_000_000;
     let ticks = k.ticks();

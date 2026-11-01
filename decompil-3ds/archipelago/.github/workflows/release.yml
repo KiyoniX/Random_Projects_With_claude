@@ -1,0 +1,40 @@
+name: release
+
+# A release is created only from a pushed tag vX.Y.Z matching world_version in archipelago.json.
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: ci
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      - name: Tag must match world_version
+        run: |
+          world_version=$(python -c "import json; print(json.load(open('apworld/pokemon_x/archipelago.json'))['world_version'])")
+          if [ "v$world_version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match world_version $world_version" >&2
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: apworld
+
+      # The .apworld is attached as is: no extra zip around it. Client binaries built against the game are
+      # attached by the maintainer with `gh release upload`, since CI never has the game files.
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" pokemon_x.apworld --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

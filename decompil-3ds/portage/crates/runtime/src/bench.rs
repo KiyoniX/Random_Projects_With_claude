@@ -67,6 +67,8 @@ pub struct Options {
     pub live: bool,
     /// Garder la copie de travail de la sauvegarde d'un lancement à l'autre : c'est la partie de celui qui joue.
     pub keep_archives: bool,
+    /// Jouer dans une partie Archipelago.
+    pub archipelago: Option<apclient::Settings>,
     pub textures: crate::gpu::TextureOptions,
     /// L'heure de la console au démarrage (`portage play` : l'heure locale du PC).
     pub clock_milliseconds: Option<u64>,
@@ -101,6 +103,7 @@ impl Options {
             scale: 1,
             live: false,
             keep_archives: false,
+            archipelago: None,
             textures: Default::default(),
             clock_milliseconds: None,
             audio: None,
@@ -158,6 +161,11 @@ pub fn find_root() -> PathBuf {
 pub const BUTTONS: [(&str, u32); 12] = [("A", 0x1), ("B", 0x2), ("SELECT", 0x4), ("START", 0x8), ("RIGHT", 0x10), ("LEFT", 0x20),
     ("UP", 0x40), ("DOWN", 0x80), ("R", 0x100), ("L", 0x200), ("X", 0x400), ("Y", 0x800)];
 
+/// Les réglages de connexion, s'il y a une adresse. Le nom du jeu et la version du protocole sont ceux du monde.
+pub fn archipelago_settings(address: Option<String>, player: Option<String>) -> Option<apclient::Settings> {
+    Some(apclient::Settings { address: address?, game: "Pokemon X".to_string(), slot: player.unwrap_or_else(|| "Joueur".to_string()), password: None, version: (0, 6, 9) })
+}
+
 /// Jours depuis 1900-01-01 pour une date du calendrier grégorien (algorithme de Howard Hinnant).
 fn days_since_1900(year: i64, month: i64, day: i64) -> i64 {
     let y = if month <= 2 { year - 1 } else { year };
@@ -191,6 +199,10 @@ impl Bench {
         kernel.bench.gifts = options.gifts.iter().copied().collect();
         kernel.bench.circles = options.circles.clone();
         kernel.bench.audio = options.audio.clone();
+        if let Some(settings) = options.archipelago.clone() {
+            let mut session = crate::archipelago::Session::new(settings, options.out.join("archives"));
+            kernel.bench.vblank_hook = Some(Box::new(move |k| session.update(k)));
+        }
         kernel.bench.region = 2;
         kernel.bench.turns_limit = options.turns;
         let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None };
