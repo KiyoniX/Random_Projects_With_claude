@@ -50,8 +50,6 @@ pub enum Layout {
     Corner,
     /// Le haut remplit un 400 x 240 ; les quatre boutons de capacité sont empilés à droite.
     Moves,
-    /// L'écran du bas seul (pour le lire).
-    BottomOnly,
 }
 
 /// Un morceau d'écran posé dans le repère : (x0, y0, x1, y1) dans la disposition, et ce qu'il montre en pixels de l'écran.
@@ -71,22 +69,12 @@ const MOVE_ROW_HEIGHT: f32 = 38.0;
 const MOVE_ROW_WIDTH: f32 = 104.0;
 const MAX_PIECES: usize = 5;
 
-/// L'écran des capacités : un bord sombre, l'espace clair entre deux boutons, un autre bord sombre, à gauche comme à droite.
-/// `rgba` : l'écran du bas en 320 x 240. Lu dans l'image parce que le jeu ne dit rien de l'écran qu'il affiche.
-pub fn shows_moves(rgba: &[u8]) -> bool {
-    let light = |x: usize, y: usize| {
-        let p = &rgba[(y * 320 + x) * 4..(y * 320 + x) * 4 + 3];
-        (p[0] as u32 + p[1] as u32 + p[2] as u32) / 3
-    };
-    [80, 240].iter().all(|&x| light(x, 98) < 80 && light(x, 100) > 120 && light(x, 102) < 80)
-}
 
 impl Layout {
     /// Le repère (largeur, hauteur).
     fn size(self) -> (f32, f32) {
         match self {
             Layout::Stacked => (400.0, 480.0),
-            Layout::BottomOnly => (320.0, 240.0),
             _ => (400.0, 240.0),
         }
     }
@@ -99,7 +87,6 @@ impl Layout {
             Layout::Stacked => vec![top, bottom([40.0, 240.0, 360.0, 480.0])],
             Layout::Overlaid => vec![top, bottom([40.0, 0.0, 360.0, 240.0])],
             Layout::Corner => vec![top, bottom([240.0, 120.0, 400.0, 240.0])],
-            Layout::BottomOnly => vec![bottom(BOTTOM_WHOLE)],
             Layout::Moves => {
                 let mut pieces = vec![top];
                 for (i, from) in MOVE_BUTTONS.into_iter().enumerate() {
@@ -301,11 +288,6 @@ impl Screens {
         [crop(0, 0, 400 * s, 240 * s), crop(40 * s, 240 * s, 320 * s, 240 * s)]
     }
 
-    /// L'écran du bas en 320 x 240, relu en RGBA.
-    pub fn read_bottom(&self, texture: &wgpu::Texture) -> Vec<u8> {
-        self.read_back([None, Some(texture)], 320, 240, Layout::BottomOnly)
-    }
-
     /// L'image de la fenêtre telle qu'elle est présentée, en 400 x 240 fois `scale`, relue en RGBA.
     pub fn capture_window(&self, textures: [Option<&wgpu::Texture>; 2], scale: u32, layout: Layout) -> (usize, usize, Vec<u8>) {
         let (width, height) = (400 * scale, 240 * scale);
@@ -465,24 +447,7 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Layout, shows_moves};
-
-    /// Un écran du bas gris clair, avec des traits sombres aux lignes données.
-    fn screen(dark_lines: &[usize]) -> Vec<u8> {
-        let mut rgba = vec![200u8; 320 * 240 * 4];
-        for &y in dark_lines {
-            rgba[y * 320 * 4..(y + 1) * 320 * 4].fill(30);
-        }
-        rgba
-    }
-
-    #[test]
-    fn moves_screen_is_recognised() {
-        assert!(shows_moves(&screen(&[98, 102])));
-        assert!(!shows_moves(&screen(&[])));
-        assert!(!shows_moves(&screen(&[98])));
-        assert!(!shows_moves(&vec![20u8; 320 * 240 * 4]), "un écran assombri");
-    }
+    use super::Layout;
 
     #[test]
     fn bottom_point_follows_the_overlaid_screen() {

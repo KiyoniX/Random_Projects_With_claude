@@ -10,6 +10,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Instant;
 
+use kernel::memory::AddressSpace;
 use runtime::bench::{BUTTONS, Bench, Options, find_root};
 use runtime::gpu::Shared;
 use services::gsp::VBLANK_NS;
@@ -21,7 +22,7 @@ use winit::window::{Window, WindowId};
 
 use pica::images::save_png;
 
-use crate::window::{Layout, Screens, open, shows_moves};
+use crate::window::{Layout, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -49,6 +50,28 @@ const MOUSE: [(MouseButton, &str); 2] = [(MouseButton::Left, "A"), (MouseButton:
 
 fn bit(name: &str) -> Option<u32> {
     BUTTONS.iter().find(|(n, _)| *n == name).map(|(_, bit)| *bit)
+}
+
+/// `DllBattle` en mémoire, d'après ses octets : la case de sa table des segments réécrite par ro (.bss), le contexte du
+/// module dans .bss, les vtables de `BattleViewSystem` et `BtlvUiActSelect` qui gardent le chemin.
+const BATTLE_BSS_SEGMENT: u32 = 0xDC00C + 36;
+const BATTLE_CONTEXT: u32 = 0xF3E0;
+const BATTLE_VIEW_VTABLE: u32 = 0xDAFC0;
+const ACTION_SELECT_VTABLE: u32 = 0xDAFA0;
+
+/// L'écran de combat montre les capacités. `[bss + 0xF3E0] + 0x14` est le `BattleViewSystem`, `+0x190` ses objets d'interface,
+/// et l'octet `+0x93` l'état de `BtlvUiActSelect` : 2 ouvert, 6 en fermeture, encore visible (`local/analyse/DllBattle/notes.md`).
+fn moves_on_screen(memory: &AddressSpace, base: u32) -> bool {
+    let word = |address: u32| memory.read(address, 4).ok().map(|d| u32::from_le_bytes([d[0], d[1], d[2], d[3]]));
+    let state = || -> Option<u8> {
+        let context = word(word(base + BATTLE_BSS_SEGMENT)? + BATTLE_CONTEXT)?;
+        let view = word(context + 0x14)?;
+        (word(view)? == base + BATTLE_VIEW_VTABLE).then_some(())?;
+        let objects = word(view + 0x190)?;
+        (word(objects + 0x5C)? == base + ACTION_SELECT_VTABLE).then_some(())?;
+        memory.read(objects + 0x93, 1).ok().map(|d| d[0])
+    };
+    matches!(state(), Some(2 | 6))
 }
 
 /// Les compteurs d'une seconde de fenêtre (titre et ligne de suivi).
@@ -92,9 +115,6 @@ struct Play {
     shift: bool,
     combat_in_corner: bool,
     both_screens: bool,
-    /// L'écran du bas montre les capacités : elles passent en colonne à droite.
-    moves_shown: bool,
-    frames_shown: u64,
     smooth: bool,
 }
 
@@ -168,9 +188,9 @@ impl Play {
         self.bench.kernel.bench.circle = (x * reach, y * reach);
     }
 
-    /// En combat : `DllBattle` est le module chargé tant qu'il dure.
-    fn in_battle(&self) -> bool {
-        self.bench.kernel.journal.names.modules.iter().any(|m| m.2 == "DllBattle")
+    /// En combat : l'adresse de `DllBattle`, chargé tant qu'il dure.
+    fn battle_base(&self) -> Option<u32> {
+        self.bench.kernel.journal.names.modules.iter().find(|m| m.2 == "DllBattle").map(|m| m.0)
     }
 
     /// Où est l'écran du bas : (disposition, affiché ou non). Échap l'emporte sur le coin du combat.
@@ -179,8 +199,9 @@ impl Play {
             (Layout::Stacked, true)
         } else if self.menu {
             (Layout::Overlaid, true)
-        } else if self.combat_in_corner && self.in_battle() {
-            (if self.moves_shown { Layout::Moves } else { Layout::Corner }, true)
+        } else if self.combat_in_corner && self.battle_base().is_some() {
+            let moves = self.battle_base().is_some_and(|base| moves_on_screen(&self.bench.kernel.memory, base));
+            (if moves { Layout::Moves } else { Layout::Corner }, true)
         } else {
             (Layout::Overlaid, false)
         }
@@ -220,15 +241,6 @@ impl Play {
         }
         let textures: Vec<Option<wgpu::Texture>> = images.iter().map(|i| i.as_ref().map(|(_, i)| screens.texture(i))).collect();
         drop(images);
-        // lire l'image bloque : quelques fois par seconde suffisent, et seulement en combat
-        self.frames_shown += 1;
-        if !self.bench.kernel.journal.names.modules.iter().any(|m| m.2 == "DllBattle") {
-            self.moves_shown = false;
-        } else if self.frames_shown % 8 == 0 {
-            if let Some(bottom) = &textures[1] {
-                self.moves_shown = shows_moves(&screens.read_bottom(bottom));
-            }
-        }
         if self.shot_ready {
             let (_, prefix) = self.shot.take().unwrap();
             self.shot_ready = false;
@@ -402,8 +414,6 @@ pub fn run(settings: Settings) -> Result<(), String> {
         shift: false,
         combat_in_corner,
         both_screens,
-        moves_shown: false,
-        frames_shown: 0,
         smooth,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
@@ -417,4 +427,36 @@ pub fn run(settings: Settings) -> Result<(), String> {
     }
     println!("{}", play.bench.summary(&reason).lines().filter(|l| !l.starts_with("  ")).collect::<Vec<_>>().join("\n"));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use kernel::memory::PERM_RW;
+
+    #[test]
+    fn moves_follow_the_action_select_state() {
+        const BASE: u32 = 0x0100_0000;
+        let (bss, context, view, objects) = (BASE + 0x10_0000, BASE + 0x11_0000, BASE + 0x11_1000, BASE + 0x11_2000);
+        let mut memory = AddressSpace::new();
+        memory.map(BASE, 0x20_0000, PERM_RW, "DllBattle", None).unwrap();
+        let word = |memory: &AddressSpace, at: u32, value: u32| memory.write(at, &value.to_le_bytes()).unwrap();
+        word(&memory, BASE + BATTLE_BSS_SEGMENT, bss);
+        word(&memory, bss + BATTLE_CONTEXT, context);
+        word(&memory, context + 0x14, view);
+        word(&memory, view, BASE + BATTLE_VIEW_VTABLE);
+        word(&memory, view + 0x190, objects);
+        word(&memory, objects + 0x5C, BASE + ACTION_SELECT_VTABLE);
+        for (state, expected) in [(0u8, false), (1, false), (2, true), (6, true), (3, false)] {
+            memory.write(objects + 0x93, &[state]).unwrap();
+            assert_eq!(moves_on_screen(&memory, BASE), expected, "état {state}");
+        }
+        // un objet qui n'a pas la bonne vtable (module rechargé, mémoire réutilisée) : pas de capacités
+        memory.write(objects + 0x93, &[2]).unwrap();
+        word(&memory, objects + 0x5C, 0x1234);
+        assert!(!moves_on_screen(&memory, BASE));
+        // un pointeur qui sort de la mémoire
+        word(&memory, BASE + BATTLE_BSS_SEGMENT, 0xFFFF_0000);
+        assert!(!moves_on_screen(&memory, BASE));
+    }
 }

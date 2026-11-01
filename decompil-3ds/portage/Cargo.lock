@@ -2871,6 +2871,7 @@ dependencies = [
  "cpal",
  "formats",
  "image",
+ "kernel",
  "overlay",
  "pica",
  "pollster 0.4.0",
