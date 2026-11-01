@@ -1090,7 +1090,9 @@ struct Out { @builtin(frag_depth) d: f32 }
             return None;
         }
         let size = formats::texture_size(fmt, width, height);
-        let linear = if (config >> 1) & 1 != 0 { 1.0 } else { 0.0 };
+        // Un modèle 3D (test de profondeur actif) dont la texture demande le point le plus proche : à la définition de la console
+        // chaque point couvre à peu près un point d'écran, mais en plus grand il devient un bloc (flammes de Salamèche, personnages).
+        let linear = if (config >> 1) & 1 != 0 || (self.scale > 1 && regs[0x107] & 1 != 0) { 1.0 } else { 0.0 };
         // Un tampon de rendu vivant qui est exactement cette texture (même adresse, mêmes dimensions, RGBA8) sert de texture
         // sans passer par la mémoire : la couleur à la définition de l'échelle (le jeu le relit sans perte), la profondeur
         // convertie sur le GPU en octets de mémoire.
@@ -1357,7 +1359,7 @@ struct Out { @builtin(frag_depth) d: f32 }
         let regs = &state.regs;
         self.stats.draws += 1;
         if self.trace {
-            eprintln!("dessin {} : n={} indexé={} topologie={} entrée={:x} éclairage={}", self.stats.draws, regs[0x228], indexed, (regs[0x25E] >> 8) & 3, regs[0x2BA] & 0xFFFF, crate::lighting_on(state));
+            eprintln!("dessin {} : n={} indexé={} topologie={} entrée={:x} éclairage={} gs={} sorties={:x} cible={:x} tex={:x}/{:x} cfg={:x} fmt={:x} actives={:x} type={} mélange={:x} alpha={:x} prof={:x} masque={:x} attrs={:x} base={:x} sem0={:x} tev0={:x}", self.stats.draws, regs[0x228], indexed, (regs[0x25E] >> 8) & 3, regs[0x2BA] & 0xFFFF, crate::lighting_on(state), regs[0x229] & 3, regs[0x2BD] & 0xFFFF, regs[0x117], regs[0x85], regs[0x82], regs[0x83], regs[0x8E], regs[0x80], regs[0x83] >> 28, regs[0x101], regs[0x104], regs[0x107], regs[0x113], regs[0x202], regs[0x200], regs[0x50], regs[0xC0]);
         }
         let t = self.now();
         let Some(color_index) = self.color_surface(state, memory) else {
@@ -1371,7 +1373,12 @@ struct Out { @builtin(frag_depth) d: f32 }
         let uses_geometry = regs[0x229] & 3 == 2;
         if uses_geometry {
             match geometry::run(state, &vertices) {
-                Ok(emitted) => vertices = Arc::new(emitted),
+                Ok(emitted) => {
+                    if self.trace {
+                        eprintln!("  gs : {} sommets en entrée, {} indices émis, sorties gs {:x} mode {:x} sép {:x} premier {:?}", vertices.order.len(), emitted.triangles.len(), regs[0x28D], regs[0x252], regs[0x244], &emitted.inputs[..emitted.inputs.len().min(8)]);
+                    }
+                    vertices = Arc::new(emitted)
+                }
                 Err(why) => {
                     self.note(why);
                     return;
@@ -1468,7 +1475,12 @@ struct Out { @builtin(frag_depth) d: f32 }
         }
         uniform.buffer_color = byte_color(regs[0xFD]);
         uniform.fog_color = byte_color(regs[0xE1]);
-        uniform.alpha_test = if regs[0x104] & 1 != 0 { [1, (regs[0x104] >> 4) & 7, (regs[0x104] >> 8) & 255, 0] } else { [0; 4] };
+        // Un modèle 3D opaque découpé par « alpha > 0 » : en filtrant la texture, le bord garde la forme de ses blocs dès qu'un voisin
+        // n'est pas nul. En haute définition, couper à mi-hauteur suit le vrai contour ; le jeu n'en voit rien.
+        let opaque = (regs[0x100] >> 8) & 1 == 0 || regs[0x101] >> 16 == 0x0101;
+        let reference = (regs[0x104] >> 8) & 255;
+        let cut = if self.scale > 1 && regs[0x107] & 1 != 0 && opaque && (regs[0x104] >> 4) & 7 == 6 && reference < 127 { 127 } else { reference };
+        uniform.alpha_test = if regs[0x104] & 1 != 0 { [1, (regs[0x104] >> 4) & 7, cut, 0] } else { [0, 0, 0, 0] };
         for e in 0..128 {
             uniform.fog[e / 2][(e % 2) * 2] = state.fog[e][0];
             uniform.fog[e / 2][(e % 2) * 2 + 1] = state.fog[e][1];

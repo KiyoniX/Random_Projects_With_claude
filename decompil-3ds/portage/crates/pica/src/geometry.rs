@@ -171,9 +171,10 @@ impl<'a> Run<'a> {
                 }
                 0x2A => self.emit(),
                 0x2B => {
-                    self.emit_vertex = (instruction >> 22 & 3) as usize;
-                    self.emit_primitive = instruction >> 24 & 1 != 0;
-                    self.emit_flipped = instruction >> 25 & 1 != 0;
+                    // bits lus sur le programme des particules : sommets 0, 1, 2 puis 0 (deux triangles, le second inversé)
+                    self.emit_flipped = instruction >> 22 & 1 != 0;
+                    self.emit_primitive = instruction >> 23 & 1 != 0;
+                    self.emit_vertex = (instruction >> 24 & 3) as usize;
                 }
                 0x2C if self.condition(instruction) => {
                     pc = dest;
@@ -364,7 +365,7 @@ mod tests {
     }
 
     fn setemit(vertex: u32, primitive: bool, flipped: bool) -> u32 {
-        0x2B << 26 | vertex << 22 | (primitive as u32) << 24 | (flipped as u32) << 25
+        0x2B << 26 | vertex << 24 | (primitive as u32) << 23 | (flipped as u32) << 22
     }
 
     const EMIT: u32 = 0x2A << 26;

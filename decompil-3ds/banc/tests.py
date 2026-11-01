@@ -704,7 +704,7 @@ def test_pica():
     # 8 undecies. le shader de géométrie (0x229 : 2 dans les bits 0-1). Pas dans la capture du terrain : tout est fabriqué.
     # Mode point : une exécution par sommet ; le programme émet trois sommets, le dernier (SETEMIT 2, primitive) finit le triangle.
     mov = lambda dest, src: 0x13 << 26 | dest << 21 | src << 12
-    setemit = lambda vertex, primitive, winding: 0x2B << 26 | vertex << 22 | primitive << 24 | winding << 25
+    setemit = lambda vertex, primitive, winding: 0x2B << 26 | vertex << 24 | primitive << 23 | winding << 22
     emit = 0x2A << 26
     end = 0x22 << 26
 

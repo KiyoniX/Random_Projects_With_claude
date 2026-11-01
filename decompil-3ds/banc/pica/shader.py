@@ -246,7 +246,7 @@ class VertexShader:
                 self._emit()
                 pc += 1
             elif op == OP_SETEMIT:
-                self.emit_vertex, self.emit_primitive, self.emit_winding = instr >> 22 & 3, instr >> 24 & 1, instr >> 25 & 1
+                self.emit_vertex, self.emit_primitive, self.emit_winding = instr >> 24 & 3, instr >> 23 & 1, instr >> 22 & 1
                 pc += 1
             elif op == OP_BREAK:
                 return 'break'
