@@ -147,8 +147,7 @@ Le mode immédiat (attributs écrits en 0x233-0x235 après 0x232 = 0xF, dessin �
 
 ### Ce qui n'est pas fait dans `pica`
 
-- les **shaders de géométrie** (la référence du banc les a en modes point et primitive fixe, jamais vus dans une capture du
-  jeu : le Rust attendra que le jeu en utilise ; le dessin est signalé) ;
+- les **shaders de géométrie** tournent sur le processeur (`geometry.rs`, modes point et primitive fixe ; le mode variable est noté et le dessin sauté).
 - les **textures procédurales**, les **niveaux de détail** et les **cubes** (non faits non plus dans le banc) ;
 - un pochoir initial non uniforme (approché), les sauts vers l'arrière qui sortent de leur bloc (erreur signalée) ;
 - une texture rendue puis réutilisée ne garde la définition de l'échelle que dans les trois cas ci-dessus (tampon de couleur
@@ -299,7 +298,7 @@ sous 9 ms par image du jeu aux échelles 1 et 2, 14 ms à l'échelle 4 avec imag
 (`cargo test`) fabriquent leurs captures.
 
 **Reste, dans l'ordre**
-1. les shaders de géométrie quand le jeu en utilisera, et un cache de pipelines sur disque pour la première image ;
+1. un cache de pipelines plus complet : la première partie après un changement de shader rame le temps de compiler ;
 2. le noyau en Rust (mémoire, fils, synchronisation, SVC) face au banc ;
 3. les services dans l'ordre des fiches : `sm`, `fs`, `apt`, `gsp` (la file qui alimente `pica`), `hid`, `cfg`, `ro`, `ndm`…
 4. l'appel du C recompilé depuis Rust, jusqu'à l'écran-titre en direct (au lieu d'une capture) ;

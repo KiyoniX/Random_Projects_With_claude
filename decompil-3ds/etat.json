@@ -2215,6 +2215,10 @@
     {
       "date": "2026-10-25",
       "texte": "Passe ipc_trace finie sur tous les modules, un processus par module : 2 955 envois, 1 317 TRACED, 41 MISMATCH, 11 UNNAMED, 106 AMBIGUOUS, 1 480 UNTRACED (avant : 92 TRACED sur 373). Mêmes poignées et mêmes services ouverts que la passe d'avant. Sur les 61 envois versés, 56 restent TRACED. Les 5 autres tombent sous les règles devenues plus strictes depuis : cecd:s, préfixe étranger, et cam:q, dont l'aiguillage frère n'est pas prouvé. C'est la décision déjà en attente (table d'aiguillage de la fiche ou Carte). Les nouveaux TRACED ne sont pas versés, la console est en pause."
+    },
+    {
+      "date": "2026-11-01",
+      "texte": "Plantage de l'utilisateur corrigé : toute adresse citée par un pointeur a son entrée (2 568 de plus sur code.bin). Audit du PICA : shader de géométrie sur le processeur, tables d'éclairage, quaternions opposés, transferts linéaires et petits écarts corrigés. Fenêtre de combat au premier menu, filtres ScaleForce et Anime4K, répétition respectée par les filtres. 88 noms du rendu relus et versés."
     }
   ],
   "dump": {
@@ -2233,5 +2237,5 @@
     "present": true,
     "code_octets": 5156864
   },
-  "mise_a_jour_heure": "01/11/2026 à 02:45"
+  "mise_a_jour_heure": "01/11/2026 à 16:34"
 }

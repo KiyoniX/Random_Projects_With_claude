@@ -1203,7 +1203,7 @@ struct Out { @builtin(frag_depth) d: f32 }
             // assez petite pour en valoir la peine : les grandes textures sont des images déjà détaillées
             let upscale = self.texture_filter != crate::upscale::TextureFilter::None && width <= 512 && height <= 512;
             let (mut stored_width, mut stored_height) = if upscale { (width * 2, height * 2) } else { (width, height) };
-            let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height) } else { pixels };
+            let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height, (matches!((config >> 12) & 7, 2 | 6 | 7), matches!((config >> 8) & 7, 2 | 6 | 7))) } else { pixels };
             if let Some(replacement) = self.texture_pack.as_ref().and_then(|folder| crate::images::load_png(&folder.join(format!("{new_crc:08x}.png")))) {
                 (stored_width, stored_height, pixels) = replacement;
             }

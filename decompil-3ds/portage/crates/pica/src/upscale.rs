@@ -33,25 +33,31 @@ impl TextureFilter {
     }
 }
 
-/// Lit un pixel ; hors de l'image, le bord le plus proche.
+/// Lit un pixel ; hors de l'image, le bord le plus proche, ou l'autre côté d'une texture répétée sur cet axe (x, y).
 struct Source<'a> {
     rgba: &'a [u8],
     width: usize,
     height: usize,
+    repeat: (bool, bool),
 }
 
 impl Source<'_> {
+    fn index(&self, x: isize, y: isize) -> usize {
+        let wrap = |v: isize, size: usize, repeat: bool| {
+            if repeat { v.rem_euclid(size as isize) as usize } else { v.clamp(0, size as isize - 1) as usize }
+        };
+        wrap(y, self.height, self.repeat.1) * self.width + wrap(x, self.width, self.repeat.0)
+    }
+
     fn at(&self, x: isize, y: isize) -> Pixel {
-        let x = x.clamp(0, self.width as isize - 1) as usize;
-        let y = y.clamp(0, self.height as isize - 1) as usize;
-        let i = (y * self.width + x) * 4;
+        let i = self.index(x, y) * 4;
         [self.rgba[i], self.rgba[i + 1], self.rgba[i + 2], self.rgba[i + 3]]
     }
 }
 
 /// `rgba` agrandie 2 fois : (largeur, hauteur) doublées, 4 octets par point.
-pub fn upscale2x(filter: TextureFilter, rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
-    let source = Source { rgba, width, height };
+pub fn upscale2x(filter: TextureFilter, rgba: &[u8], width: usize, height: usize, repeat: (bool, bool)) -> Vec<u8> {
+    let source = Source { rgba, width, height, repeat };
     let lines = if filter == TextureFilter::Anime4k { line_map(&source) } else { Vec::new() };
     let mut out = vec![0u8; width * height * 16];
     for y in 0..height {
@@ -312,10 +318,7 @@ fn anime4k(s: &Source, lines: &[f32], x: isize, y: isize) -> [Pixel; 4] {
             let (x, y) = (fx + dx, fy + dy);
             bilinear([at(x, y), at(x + 1, y), at(x, y + 1), at(x + 1, y + 1)], tx, ty)
         };
-        let line_at = |x: isize, y: isize| {
-            let (x, y) = (x.clamp(0, s.width as isize - 1) as usize, y.clamp(0, s.height as isize - 1) as usize);
-            [lines[y * s.width + x]; 4]
-        };
+        let line_at = |x: isize, y: isize| [lines[s.index(x, y)]; 4];
         let line = |dx: isize, dy: isize| around(dx, dy, &line_at)[0];
         let color = |dx: isize, dy: isize| around(dx, dy, &|x, y| s.at(x, y).map(|v| v as f32));
         let center = color(0, 0);
@@ -345,6 +348,21 @@ fn anime4k(s: &Source, lines: &[f32], x: isize, y: isize) -> [Pixel; 4] {
 mod tests {
     use super::*;
 
+    const CLAMP: (bool, bool) = (false, false);
+
+    #[test]
+    fn a_repeated_texture_reads_across_its_edge() {
+        // une colonne noire à gauche : répétée, le bord droit voit du noir et Catmull-Rom le suit
+        let mut pixels = Vec::new();
+        for _ in 0..4 {
+            pixels.extend_from_slice(&[K, W, W, W]);
+        }
+        let clamped = upscale2x(TextureFilter::Bicubic, &image(&pixels), 4, 4, CLAMP);
+        let repeated = upscale2x(TextureFilter::Bicubic, &image(&pixels), 4, 4, (true, false));
+        assert_eq!(pixel(&clamped, 8, 7, 4), W);
+        assert!(pixel(&repeated, 8, 7, 4)[0] < 255);
+    }
+
     const W: Pixel = [255, 255, 255, 255];
     const K: Pixel = [0, 0, 0, 255];
 
@@ -361,7 +379,7 @@ mod tests {
     fn new_filters_keep_flat_colours_and_the_size() {
         let flat = image(&[W; 16]);
         for filter in [TextureFilter::ScaleForce, TextureFilter::Anime4k] {
-            let out = upscale2x(filter, &flat, 4, 4);
+            let out = upscale2x(filter, &flat, 4, 4, CLAMP);
             assert_eq!(out.len(), 64 * 4);
             assert!(out.chunks(4).all(|p| p == W), "{filter:?}");
         }
@@ -374,7 +392,7 @@ mod tests {
             pixels.extend_from_slice(&[K, K, K, K, W, W, W, W]);
         }
         for filter in [TextureFilter::ScaleForce, TextureFilter::Anime4k] {
-            let out = upscale2x(filter, &image(&pixels), 8, 8);
+            let out = upscale2x(filter, &image(&pixels), 8, 8, CLAMP);
             assert_eq!(pixel(&out, 16, 1, 8), K, "{filter:?}");
             assert_eq!(pixel(&out, 16, 14, 8), W, "{filter:?}");
         }
@@ -384,7 +402,7 @@ mod tests {
     fn a_flat_image_stays_flat_with_every_filter() {
         let flat = image(&[[10, 20, 30, 40]; 16]);
         for filter in [TextureFilter::None, TextureFilter::Scale2x, TextureFilter::Mmpx, TextureFilter::Bicubic] {
-            let out = upscale2x(filter, &flat, 4, 4);
+            let out = upscale2x(filter, &flat, 4, 4, CLAMP);
             assert_eq!(out.len(), 8 * 8 * 4);
             assert!(out.chunks_exact(4).all(|p| p == [10, 20, 30, 40]), "{filter:?}");
         }
@@ -392,7 +410,7 @@ mod tests {
 
     #[test]
     fn no_filter_doubles_each_pixel() {
-        let out = upscale2x(TextureFilter::None, &image(&[W, K]), 2, 1);
+        let out = upscale2x(TextureFilter::None, &image(&[W, K]), 2, 1, CLAMP);
         assert_eq!((pixel(&out, 4, 1, 1), pixel(&out, 4, 2, 0)), (W, K));
     }
 
@@ -400,7 +418,7 @@ mod tests {
     fn scale2x_rounds_a_corner() {
         // E (blanc) a du noir en haut et à gauche : son coin haut gauche passe au noir, le reste non
         let source = image(&[K, K, W, K, W, W, W, W, W]);
-        let out = upscale2x(TextureFilter::Scale2x, &source, 3, 3);
+        let out = upscale2x(TextureFilter::Scale2x, &source, 3, 3, CLAMP);
         assert_eq!(pixel(&out, 6, 2, 2), K);
         assert_eq!(pixel(&out, 6, 3, 3), W);
     }
@@ -416,7 +434,7 @@ mod tests {
             K, K, K, K, W,
             K, K, K, K, K,
         ]);
-        let out = upscale2x(TextureFilter::Mmpx, &source, 5, 5);
+        let out = upscale2x(TextureFilter::Mmpx, &source, 5, 5, CLAMP);
         assert!(out.chunks_exact(4).all(|p| p == W || p == K));
         assert_eq!(pixel(&out, 10, 6, 5), K, "le coin de la marche prend le noir de sa diagonale");
     }
@@ -424,7 +442,7 @@ mod tests {
     #[test]
     fn bicubic_interpolates_between_two_columns() {
         let source = image(&[K, K, W, W, K, K, W, W]);
-        let out = upscale2x(TextureFilter::Bicubic, &source, 4, 2);
+        let out = upscale2x(TextureFilter::Bicubic, &source, 4, 2, CLAMP);
         // entre le noir et le blanc, de façon croissante
         let row: Vec<u8> = (0..8).map(|x| pixel(&out, 8, x, 1)[0]).collect();
         assert!(row[3] < row[4], "{row:?}");
