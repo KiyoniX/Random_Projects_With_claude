@@ -139,6 +139,7 @@ struct Play {
     shot: Option<(u64, String)>,
     /// La fin d'image visée est atteinte : la prochaine présentation est capturée.
     shot_ready: bool,
+    forward: Option<f64>,
     /// L'écran du bas est posé sur le jeu (Échap).
     menu: bool,
     /// Le clic gauche est tenu sur cet écran.
@@ -162,6 +163,8 @@ pub struct Settings {
     pub seconds: Option<f64>,
     pub shot: Option<(f64, String)>,
     pub replay: Option<String>,
+    /// La fenêtre ne paraît qu'à cette heure du jeu, atteinte à pleine vitesse (secondes).
+    pub forward: Option<f64>,
     pub combat_in_corner: bool,
     pub both_screens: bool,
     pub game_mod: Option<std::path::PathBuf>,
@@ -182,8 +185,20 @@ impl Play {
             return; // le jeu attend la capture, juste avant la fin d'image visée
         }
         let now = self.bench.kernel.now;
+        if self.forward.is_some_and(|at| now as f64 / 1e9 >= at) {
+            // arrivé : l'horloge réelle repart de l'heure du jeu
+            self.forward = None;
+            self.started = Instant::now() - std::time::Duration::from_nanos(now);
+            self.dropped = 0;
+            if let Some(window) = &self.window {
+                window.set_visible(true);
+                window.focus_window();
+            }
+        }
         let mut target = (self.started.elapsed().as_nanos() as u64).saturating_sub(self.dropped);
-        if target > now + 2 * VBLANK_NS {
+        if self.forward.is_some() {
+            target = now + 2 * VBLANK_NS;
+        } else if target > now + 2 * VBLANK_NS {
             self.dropped += target - (now + 2 * VBLANK_NS);
             target = now + 2 * VBLANK_NS;
         }
@@ -344,6 +359,7 @@ impl ApplicationHandler for Play {
             return;
         }
         let window = open(event_loop, "Pokémon X, portage PC", 800.0, if self.both_screens { 960.0 } else { 480.0 });
+        window.set_visible(self.forward.is_none());
         match Screens::new(window.clone(), self.shared.gpu.clone()) {
             Ok(screens) => self.screens = Some(screens),
             Err(e) => {
@@ -419,7 +435,7 @@ impl ApplicationHandler for Play {
 }
 
 pub fn run(settings: Settings) -> Result<(), String> {
-    let Settings { scale, seconds, shot, replay, combat_in_corner, both_screens, game_mod, archipelago, volume, textures, smooth } = settings;
+    let Settings { scale, seconds, shot, replay, forward, combat_in_corner, both_screens, game_mod, archipelago, volume, textures, smooth } = settings;
     let root = find_root();
     let mut options = Options::new(&root);
     // un rejeu repart de la sauvegarde d'origine : il ne touche ni à la partie du joueur ni à son journal
@@ -457,6 +473,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         started: Instant::now(),
         dropped: 0,
         limit: seconds,
+        forward,
         window: None,
         screens: None,
         last_top: 0,
