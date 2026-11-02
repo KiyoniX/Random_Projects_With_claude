@@ -16,11 +16,21 @@ pub fn parse_clock(text: &str) -> Option<u64> {
     text.lines().find_map(|line| line.split_once(" ms] ")?.1.strip_prefix(CLOCK_NOTE)?.trim().parse().ok())
 }
 
-/// Les boutons et le stylet relevés dans le journal d'une partie (`portage play`). Le journal note la fin d'image où ils
-/// changent, arrondie à la microseconde : on avance d'une milliseconde pour que le changement tombe sur cette même image.
-pub fn parse_replay(text: &str) -> (Vec<(f64, f64, u32)>, Vec<(f64, f64, u16, u16)>, Vec<(f64, f64, i16, i16)>) {
-    let (mut presses, mut touches, mut circles) = (Vec::new(), Vec::new(), Vec::new());
+/// Ce qu'un joueur a fait d'une partie : (début en s, durée en s, valeur) pour chaque entrée.
+#[derive(Default)]
+pub struct Inputs {
+    pub presses: Vec<(f64, f64, u32)>,
+    pub touches: Vec<(f64, f64, u16, u16)>,
+    pub circles: Vec<(f64, f64, i16, i16)>,
+    pub gyros: Vec<(f64, f64, [i16; 3])>,
+}
+
+/// Les entrées relevées dans le journal d'une partie (`portage play`). Le journal note la fin d'image où elles changent,
+/// arrondie à la microseconde : on avance d'une milliseconde pour que le changement tombe sur cette même image.
+pub fn parse_replay(text: &str) -> Inputs {
+    let Inputs { mut presses, mut touches, mut circles, mut gyros } = Inputs::default();
     let mut pushed: Option<(f64, i16, i16)> = None;
+    let mut turning: Option<(f64, [i16; 3])> = None;
     let (mut held, mut stylus): (Option<(f64, u32)>, Option<(f64, u16, u16)>) = (None, None);
     for line in text.lines() {
         let Some((stamp, rest)) = line.strip_prefix('[').and_then(|l| l.split_once(" ms] ")) else { continue };
@@ -44,6 +54,16 @@ pub fn parse_replay(text: &str) -> (Vec<(f64, f64, u32)>, Vec<(f64, f64, u16, u1
                     pushed = Some((at, x, y));
                 }
             }
+        } else if let Some(axes) = rest.strip_prefix("hid : gyroscope ") {
+            if let Some((start, value)) = turning.take() {
+                gyros.push((start, at - start, value));
+            }
+            let numbers: Vec<i16> = axes.trim_matches(['[', ']']).split(", ").filter_map(|n| n.parse().ok()).collect();
+            if let Ok(value) = <[i16; 3]>::try_from(numbers) {
+                if value != [0; 3] {
+                    turning = Some((at, value));
+                }
+            }
         } else if let Some(point) = rest.strip_prefix("hid : stylet ") {
             if let Some((start, x, y)) = stylus.take() {
                 touches.push((start, at - start, x, y));
@@ -63,12 +83,15 @@ pub fn parse_replay(text: &str) -> (Vec<(f64, f64, u32)>, Vec<(f64, f64, u16, u1
     if let Some((start, x, y)) = pushed {
         circles.push((start, f64::INFINITY, x, y));
     }
-    (presses, touches, circles)
+    if let Some((start, value)) = turning {
+        gyros.push((start, f64::INFINITY, value));
+    }
+    Inputs { presses, touches, circles, gyros }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_clock, parse_mod, parse_replay};
+    use super::{Inputs, parse_clock, parse_mod, parse_replay};
 
     #[test]
     fn replay_reads_the_starting_clock() {
@@ -84,8 +107,11 @@ mod tests {
         let journal = "[  1000.000 ms] hid : boutons tenus 0x2\n[  1500.000 ms] hid : boutons tenus 0x0\n\
             [  2000.000 ms] hid : stylet Some((127, 225))\n[  2250.000 ms] hid : stylet None\n\
             [  3000.000 ms] hid : boutons tenus 0x1\n[  3100.000 ms] f40 autre ligne\n\
-            [  4000.000 ms] hid : pad circulaire (-156, 110)\n[  4500.000 ms] hid : pad circulaire (0, 0)\n";
-        let (presses, touches, circles) = parse_replay(journal);
+            [  4000.000 ms] hid : pad circulaire (-156, 110)\n[  4500.000 ms] hid : pad circulaire (0, 0)\n\
+            [  5000.000 ms] hid : gyroscope [-3, 0, 700]\n[  5016.000 ms] hid : gyroscope [0, 0, 0]\n";
+        let Inputs { presses, touches, circles, gyros } = parse_replay(journal);
+        assert_eq!(gyros.len(), 1);
+        assert!((gyros[0].1 - 0.016).abs() < 1e-9 && gyros[0].2 == [-3, 0, 700]);
         assert_eq!(circles.len(), 1);
         assert!((circles[0].1 - 0.5).abs() < 1e-9 && circles[0].2 == -156 && circles[0].3 == 110);
         assert_eq!(presses.len(), 2);

@@ -15,10 +15,10 @@ use runtime::bench::{BUTTONS, Bench, Options, find_root};
 use runtime::gpu::Shared;
 use services::gsp::VBLANK_NS;
 use winit::application::ApplicationHandler;
-use winit::event::{ElementState, MouseButton, WindowEvent};
+use winit::event::{DeviceEvent, DeviceId, ElementState, MouseButton, WindowEvent};
 use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::keyboard::{KeyCode, PhysicalKey};
-use winit::window::{Window, WindowId};
+use winit::window::{CursorGrabMode, Window, WindowId};
 
 use pica::images::save_png;
 
@@ -118,6 +118,49 @@ struct Second {
     emulated_from: u64,
 }
 
+/// Valeur brute du gyroscope par point de souris : environ 2 degrés pour 100 points.
+const AIM_RAW_PER_COUNT: f64 = 20.0;
+/// Le plus par fin d'image, soit 7 degrés par seconde : mesuré à Otto Focus, 100 reste stable, et à partir de 150 la caméra
+/// rebondit quand la rotation s'arrête, à l'horizontale comme à la verticale.
+const AIM_MAX_RAW: f64 = 100.0;
+/// Le retard gardé au plus, un quart de seconde : quand la souris s'arrête, la visée s'arrête peu après.
+const AIM_MAX_PENDING: f64 = 15.0 * AIM_MAX_RAW;
+
+/// La visée à la souris : ce qui reste à envoyer au gyroscope (X, Y), étalé d'une fin d'image à l'autre.
+#[derive(Default)]
+struct Aim {
+    pending: [f64; 2],
+    sent: [f64; 2],
+    vblanks: u64,
+}
+
+impl Aim {
+    /// Un déplacement de la souris, en points d'écran. Haut de l'écran : on incline vers le haut (X négatif) ; droite : on
+    /// tourne à droite (Y négatif). Les deux sens sont lus sur les images d'Otto Focus.
+    fn moved(&mut self, dx: f64, dy: f64) {
+        for (pending, delta) in self.pending.iter_mut().zip([dy, -dx]) {
+            *pending = (*pending + delta * AIM_RAW_PER_COUNT).clamp(-AIM_MAX_PENDING, AIM_MAX_PENDING);
+        }
+    }
+
+    /// Les valeurs du gyroscope pour la prochaine fin d'image, sachant combien de fins d'image ont eu lieu.
+    fn gyro(&mut self, vblanks: u64) -> [i16; 3] {
+        if vblanks != self.vblanks {
+            self.vblanks = vblanks;
+            for (pending, sent) in self.pending.iter_mut().zip(self.sent) {
+                *pending -= sent;
+            }
+        }
+        self.sent = self.pending.map(|p| p.clamp(-AIM_MAX_RAW, AIM_MAX_RAW).trunc());
+        [self.sent[0] as i16, self.sent[1] as i16, 0]
+    }
+
+    fn reset(&mut self) {
+        self.pending = [0.0; 2];
+        self.sent = [0.0; 2];
+    }
+}
+
 /// Les tranches de jeu trop longues : une tranche vise au plus deux images (33 ms), au-delà le joueur voit un à-coup.
 #[derive(Default)]
 struct Hitches {
@@ -147,6 +190,12 @@ impl Hitches {
 
 struct Play {
     hitches: Hitches,
+    aim: Aim,
+    /// La souris peut viser : ni rejeu, ni pendant que l'on va à un moment donné.
+    can_aim: bool,
+    focused: bool,
+    /// Le curseur est retenu dans la fenêtre et caché, le temps de viser.
+    grabbed: bool,
     bench: Bench,
     shared: Shared,
     started: Instant,
@@ -241,6 +290,7 @@ impl Play {
             target = target.min(next); // une fin d'image par tranche au plus
         }
         if target > now {
+            self.update_aim();
             let start = Instant::now();
             if let Some(reason) = self.bench.run_slice(target) {
                 self.stopped = Some(reason);
@@ -254,6 +304,30 @@ impl Play {
             // l'instant où le banc prend ses images
             let next = self.bench.kernel.bench.last_vblank + VBLANK_NS;
             self.shot_ready = self.bench.kernel.now >= next && next >= *at;
+        }
+    }
+
+    fn aiming(&self) -> bool {
+        self.can_aim && self.focused && !self.menu && self.bench.kernel.bench.gyro_on && !self.layout().1
+    }
+
+    /// Envoie la visée au gyroscope, et ne retient le curseur que le temps de viser.
+    fn update_aim(&mut self) {
+        let aiming = self.aiming();
+        if !aiming {
+            self.aim.reset();
+        }
+        let bench = &mut self.bench.kernel.bench;
+        bench.gyro = self.aim.gyro(bench.vblanks);
+        if aiming != self.grabbed {
+            self.grabbed = aiming;
+            if let Some(window) = &self.window {
+                let mode = if aiming { CursorGrabMode::Confined } else { CursorGrabMode::None };
+                if let Err(e) = window.set_cursor_grab(mode) {
+                    eprintln!("curseur non retenu : {e}");
+                }
+                window.set_cursor_visible(!aiming);
+            }
         }
     }
 
@@ -417,6 +491,14 @@ impl ApplicationHandler for Play {
         }
     }
 
+    fn device_event(&mut self, _event_loop: &ActiveEventLoop, _id: DeviceId, event: DeviceEvent) {
+        if let DeviceEvent::MouseMotion { delta } = event {
+            if self.aiming() {
+                self.aim.moved(delta.0, delta.1);
+            }
+        }
+    }
+
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
         match event {
             WindowEvent::CloseRequested => event_loop.exit(),
@@ -426,6 +508,7 @@ impl ApplicationHandler for Play {
                 }
             }
             WindowEvent::RedrawRequested => self.draw(),
+            WindowEvent::Focused(focused) => self.focused = focused,
             WindowEvent::KeyboardInput { event, .. } => {
                 let PhysicalKey::Code(code) = event.physical_key else { return };
                 if code == KeyCode::F11 {
@@ -517,6 +600,10 @@ pub fn run(settings: Settings) -> Result<(), String> {
         screens: None,
         last_top: 0,
         hitches: Hitches::default(),
+        aim: Aim::default(),
+        can_aim: replay.is_none(),
+        focused: true,
+        grabbed: false,
         second: Second::default(),
         second_start: Instant::now(),
         first_frame: None,
@@ -552,6 +639,22 @@ pub fn run(settings: Settings) -> Result<(), String> {
 mod tests {
     use super::*;
     use kernel::memory::PERM_RW;
+
+    #[test]
+    fn aim_spreads_a_fast_move_over_the_next_frames() {
+        let mut aim = Aim::default();
+        aim.moved(10.0, -2.0); // 200 et 40 unités
+        assert_eq!(aim.gyro(0), [-40, -100, 0]);
+        assert_eq!(aim.gyro(0), [-40, -100, 0], "sans fin d'image, rien n'est consommé");
+        assert_eq!(aim.gyro(1), [0, -100, 0], "le vertical est fini, il reste 100 à l'horizontale");
+        assert_eq!(aim.gyro(2), [0, 0, 0]);
+        aim.moved(1000.0, 0.0);
+        let total: i32 = (3..40).map(|v| -aim.gyro(v)[1] as i32).sum();
+        assert_eq!(total, AIM_MAX_PENDING as i32, "le retard gardé est borné");
+        aim.moved(1.0, 1.0);
+        aim.reset();
+        assert_eq!(aim.gyro(50), [0, 0, 0]);
+    }
 
     #[test]
     fn screen_follows_the_open_application() {

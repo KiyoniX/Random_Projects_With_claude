@@ -2,8 +2,8 @@
   "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
-  "mise_a_jour": "2026-11-01",
-  "prochaine_action": "Pokémon X se joue en natif : combats, évolution, sauvegarde, son, launcher, interface de combat au coin avec capacités en colonne, filtres et packs de textures. À faire écouter et vérifier par l'utilisateur (voir REPRISE §5). Prochains chantiers : reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon, visée à la souris pour Otto Focus.",
+  "mise_a_jour": "2026-11-02",
+  "prochaine_action": "Pokémon X se joue en natif et tient sur la durée. À faire essayer par l'utilisateur : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Prochains chantiers : refonte des menus quand il aura validé l'esthétique, reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon.",
   "fonctions": {
     "total": 254375,
     "identifiees": 254375,
@@ -2223,6 +2223,10 @@
     {
       "date": "2026-11-02",
       "texte": "Une partie depuis zéro de l'utilisateur jusqu'à la première arène, à ×5 (portage play --nouvelle-partie --vitesse 5, aussi dans le launcher), rejouée à l'identique grâce à l'heure, au mod et aux archives de départ. Une sauvegarde jamais formatée répond « non formatée », le jeu la crée. Fuite trouvée par mesure : chaque fil gardait sa fibre et 256 Ko ; 5,9 Go ramenés à 1,95 Go sur une heure de jeu, et l'ordonnanceur ne parcourt plus les fils morts. Combats double, triple et rotatif joués par des mods d'essai ; menu et colonne de 88 points dans le coin. Mipmaps et filtre de réduction dans le moteur."
+    },
+    {
+      "date": "2026-11-02",
+      "texte": "Le cache de sommets survit à touch_all par une empreinte du contenu : étape de 179 à 11 s, images identiques. En fenêtre cachée, 4,5 fois le temps réel à l'échelle 2, 4,1 fois à l'échelle 4 sur 1 h 42 de jeu sans arrêt, 2,8 Go au plus, aucun à-coup de plus de 112 ms. Visée à la souris pour Otto Focus : le gyroscope et la pesanteur suivent la souris, à faire essayer à l'utilisateur."
     }
   ],
   "dump": {

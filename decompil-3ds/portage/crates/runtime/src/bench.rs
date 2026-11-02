@@ -57,6 +57,7 @@ pub struct Options {
     pub touches: Vec<(f64, f64, u16, u16)>,
     pub gifts: Vec<(f64, u32, u32)>,
     pub circles: Vec<(f64, f64, i16, i16)>,
+    pub gyros: Vec<(f64, f64, [i16; 3])>,
     pub mod_dir: Option<PathBuf>,
     pub log_all_svc: bool,
     pub max_lines: usize,
@@ -84,7 +85,8 @@ impl Options {
     /// Reprend les entrées relevées dans le journal d'une partie.
     pub fn replay(&mut self, path: &str) -> Result<(), String> {
         let text = String::from_utf8_lossy(&std::fs::read(path).map_err(|e| format!("{path} : {e}"))?).into_owned();
-        (self.presses, self.touches, self.circles) = crate::replay::parse_replay(&text);
+        let inputs = crate::replay::parse_replay(&text);
+        (self.presses, self.touches, self.circles, self.gyros) = (inputs.presses, inputs.touches, inputs.circles, inputs.gyros);
         // une partie reprise n'est refaite à l'identique qu'avec son heure, son mod et sa sauvegarde de départ
         self.clock_milliseconds = crate::replay::parse_clock(&text);
         self.mod_dir = crate::replay::parse_mod(&text).map(PathBuf::from).or(self.mod_dir.take());
@@ -104,6 +106,7 @@ impl Options {
             touches: Vec::new(),
             gifts: Vec::new(),
             circles: Vec::new(),
+            gyros: Vec::new(),
             mod_dir: None,
             log_all_svc: true,
             max_lines: 400_000,
@@ -211,6 +214,7 @@ impl Bench {
         kernel.bench.touches = options.touches.clone();
         kernel.bench.gifts = options.gifts.iter().copied().collect();
         kernel.bench.circles = options.circles.clone();
+        kernel.bench.gyros = options.gyros.clone();
         kernel.bench.audio = options.audio.clone();
         if let Some(settings) = options.archipelago.clone() {
             let mut session = crate::archipelago::Session::new(settings, options.out.join("archives"));

@@ -70,6 +70,12 @@ pub struct BenchState {
     pub circle: (i16, i16),
     /// (début en s, durée en s, X, Y) : le pad circulaire programmé
     pub circles: Vec<(f64, f64, i16, i16)>,
+    /// La rotation de la console en direct (la souris de la fenêtre) : les valeurs brutes des trois axes du gyroscope.
+    pub gyro: [i16; 3],
+    /// (début en s, durée en s, valeurs brutes) : la rotation programmée
+    pub gyros: Vec<(f64, f64, [i16; 3])>,
+    /// Le jeu a allumé le gyroscope : la souris de la fenêtre le mène.
+    pub gyro_on: bool,
     /// Le stylet tenu en direct (la souris de la fenêtre) : X et Y sur l'écran du bas.
     pub touch: Option<(u16, u16)>,
     pub turns_limit: u64,
@@ -158,6 +164,11 @@ impl Kernel {
     pub fn circle_now(&self) -> (i16, i16) {
         let seconds = self.now as f64 / 1e9;
         self.bench.circles.iter().find(|c| c.0 <= seconds && seconds < c.0 + c.1).map_or(self.bench.circle, |c| (c.2, c.3))
+    }
+
+    pub fn gyro_now(&self) -> [i16; 3] {
+        let seconds = self.now as f64 / 1e9;
+        self.bench.gyros.iter().find(|g| g.0 <= seconds && seconds < g.0 + g.1).map_or(self.bench.gyro, |g| g.2)
     }
 
     pub fn touch_now(&self) -> Option<(u16, u16)> {

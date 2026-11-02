@@ -168,6 +168,11 @@ impl Service for Ptm {
     }
 }
 
+/// Une valeur brute du gyroscope tenue une fin d'image : 14,375 unités par degré par seconde (GetGyroscopeLowRawToDpsCoefficient).
+pub const GYRO_DEGREES_PER_RAW_UPDATE: f32 = 1.0 / 14.375 / 59.83;
+/// De quoi atteindre les butées de la caméra d'Otto Focus, sans que la souris ait à revenir de loin.
+const PITCH_LIMIT_DEGREES: f32 = 10.0;
+
 /// (section, décalage dans la page) : pad, touch, accel, gyro, debug.
 pub const HID_SECTIONS: [(&str, usize); 5] = [("pad", 0x000), ("touch", 0x0A8), ("accel", 0x108), ("gyro", 0x158),
                                               ("debug", 0x238)];
@@ -185,6 +190,10 @@ pub struct Hid {
     pub buttons: u32,
     /// Le pad circulaire : X et Y, Y vers le haut.
     pub circle: (i16, i16),
+    /// La rotation de la console : les valeurs brutes des trois axes.
+    pub gyro: [i16; 3],
+    /// L'inclinaison de la console autour de son axe X, en degrés, cumulée tant que le gyroscope est allumé.
+    pitch: f32,
     /// Le stylet posé : X et Y sur l'écran du bas.
     pub touch: Option<(u16, u16)>,
     pub updates: u64,
@@ -203,7 +212,7 @@ impl Hid {
                 k.shared(shared).w32(offset + 4 * word, 0xFFFF_FFFF);
             }
         }
-        Hid { shared, events, index: [-1; 4], sensors: [0; 2], buttons: 0, circle: (0, 0), touch: None, updates: 0 }
+        Hid { shared, events, index: [-1; 4], sensors: [0; 2], buttons: 0, circle: (0, 0), gyro: [0; 3], pitch: 0.0, touch: None, updates: 0 }
     }
 
     fn push(&mut self, k: &Kernel, section: usize, entry_offset: usize, entry_size: usize, count: i32, entry: &[u8]) {
@@ -220,6 +229,10 @@ impl Hid {
         shared.w32(base + 4, (now >> 32) as u32);
         shared.w32(base + 0x10, index as u32);
         self.index[section] = index;
+    }
+
+    pub fn gyro_on(&self) -> bool {
+        self.sensors[1] > 0
     }
 
     /// Une lecture des périphériques (appelé à chaque fin d'image).
@@ -244,15 +257,32 @@ impl Hid {
         touch[2..4].copy_from_slice(&y.to_le_bytes());
         touch[4] = self.touch.is_some() as u8;
         self.push(k, 1, 0x20, 8, 8, &touch);
-        // La console posée à plat, immobile : la pesanteur sur Y (512 pour 1 g), aucune rotation. Otto Focus attend ces
-        // entrées pour afficher son viseur.
+        // La console posée à plat : la pesanteur sur Y (512 pour 1 g). Otto Focus attend ces entrées pour afficher son
+        // viseur et vise avec le gyroscope, qu'il corrige par la pesanteur : celle-ci doit donc suivre l'inclinaison.
+        let mut rotation = self.gyro;
+        if self.sensors[1] > 0 {
+            let pitch = self.pitch + rotation[0] as f32 * GYRO_DEGREES_PER_RAW_UPDATE;
+            if pitch.abs() > PITCH_LIMIT_DEGREES {
+                rotation[0] = 0;
+            } else {
+                self.pitch = pitch;
+            }
+        } else {
+            self.pitch = 0.0;
+        }
         if self.sensors[0] > 0 {
+            let (sin, cos) = self.pitch.to_radians().sin_cos();
             let mut accel = [0u8; 6];
-            accel[2..4].copy_from_slice(&(-512i16).to_le_bytes());
+            accel[2..4].copy_from_slice(&((-512.0 * cos).round() as i16).to_le_bytes());
+            accel[4..6].copy_from_slice(&((512.0 * sin).round() as i16).to_le_bytes());
             self.push(k, 2, 0x20, 6, 8, &accel);
         }
         if self.sensors[1] > 0 {
-            self.push(k, 3, 0x20, 6, 32, &[0u8; 6]);
+            let mut gyro = [0u8; 6];
+            for (bytes, value) in gyro.chunks_exact_mut(2).zip(rotation) {
+                bytes.copy_from_slice(&value.to_le_bytes());
+            }
+            self.push(k, 3, 0x20, 6, 32, &gyro);
         }
     }
 }
@@ -334,6 +364,36 @@ mod tests {
     use kernel::testing::{call, header, test_kernel, test_main_thread};
 
     const BUFFERS: u32 = 0x0200_0000;
+
+    #[test]
+    fn gravity_follows_the_gyroscope_up_to_the_limit() {
+        let (k, _) = setup();
+        let mut k = k;
+        let mut hid = Hid::new(&mut k);
+        hid.sensors = [1, 1];
+        hid.gyro = [100, 7, 0];
+        let shared = k.shared(hid.shared);
+        let read = |section: usize, size: usize, at: usize| {
+            let base = HID_SECTIONS[section].1 + 0x20 + shared.u32(HID_SECTIONS[section].1 + 0x10) as usize * size + at;
+            i16::from_le_bytes([shared.u8(base), shared.u8(base + 1)])
+        };
+        for _ in 0..60 {
+            hid.update(&k);
+        }
+        // une seconde à 100 : 100 / 14,375 degrés
+        let degrees = 100.0f32 / 14.375 * 60.0 / 59.83;
+        assert!((read(2, 6, 4) as f32 - 512.0 * degrees.to_radians().sin()).abs() < 2.0);
+        assert!((read(2, 6, 2) as f32 + 512.0 * degrees.to_radians().cos()).abs() < 2.0);
+        assert_eq!((read(3, 6, 0), read(3, 6, 2)), (100, 7), "le gyroscope écrit ce qu'on lui donne");
+        for _ in 0..600 {
+            hid.update(&k);
+        }
+        assert_eq!((read(3, 6, 0), read(3, 6, 2)), (0, 7), "à la limite, plus de rotation sur X, le reste continue");
+        assert!((read(2, 6, 4) as f32 - 512.0 * PITCH_LIMIT_DEGREES.to_radians().sin()).abs() < 2.0);
+        hid.sensors = [1, 0];
+        hid.update(&k);
+        assert_eq!(read(2, 6, 4), 0, "gyroscope éteint : de nouveau à plat");
+    }
 
     fn setup() -> (Kernel, ObjId) {
         let (mut k, _script) = test_kernel();

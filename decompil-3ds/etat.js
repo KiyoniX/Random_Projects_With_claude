@@ -3,8 +3,8 @@ window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-11-01",
- "prochaine_action": "Pokémon X se joue en natif : combats, évolution, sauvegarde, son, launcher, interface de combat au coin avec capacités en colonne, filtres et packs de textures. À faire écouter et vérifier par l'utilisateur (voir REPRISE §5). Prochains chantiers : défauts d'image connus (joues magenta, vidéo d'intro), reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon, visée à la souris pour Otto Focus.",
+ "mise_a_jour": "2026-11-02",
+ "prochaine_action": "Pokémon X se joue en natif et tient sur la durée. À faire essayer par l'utilisateur : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Prochains chantiers : refonte des menus quand il aura validé l'esthétique, reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon.",
  "fonctions": {
   "total": 254375,
   "identifiees": 254375,
@@ -2216,6 +2216,18 @@ window.ETAT = {
   {
    "date": "2026-10-25",
    "texte": "Passe ipc_trace finie sur tous les modules, un processus par module : 2 955 envois, 1 317 TRACED, 41 MISMATCH, 11 UNNAMED, 106 AMBIGUOUS, 1 480 UNTRACED (avant : 92 TRACED sur 373). Mêmes poignées et mêmes services ouverts que la passe d'avant. Sur les 61 envois versés, 56 restent TRACED. Les 5 autres tombent sous les règles devenues plus strictes depuis : cecd:s, préfixe étranger, et cam:q, dont l'aiguillage frère n'est pas prouvé. C'est la décision déjà en attente (table d'aiguillage de la fiche ou Carte). Les nouveaux TRACED ne sont pas versés, la console est en pause."
+  },
+  {
+   "date": "2026-11-01",
+   "texte": "Plantage de l'utilisateur corrigé : toute adresse citée par un pointeur a son entrée (2 568 de plus sur code.bin). Audit du PICA : shader de géométrie sur le processeur, tables d'éclairage, quaternions opposés, transferts linéaires et petits écarts corrigés. Fenêtre de combat au premier menu, filtres ScaleForce et Anime4K, répétition respectée par les filtres. 88 noms du rendu relus et versés."
+  },
+  {
+   "date": "2026-11-02",
+   "texte": "Une partie depuis zéro de l'utilisateur jusqu'à la première arène, à ×5 (portage play --nouvelle-partie --vitesse 5, aussi dans le launcher), rejouée à l'identique grâce à l'heure, au mod et aux archives de départ. Une sauvegarde jamais formatée répond « non formatée », le jeu la crée. Fuite trouvée par mesure : chaque fil gardait sa fibre et 256 Ko ; 5,9 Go ramenés à 1,95 Go sur une heure de jeu, et l'ordonnanceur ne parcourt plus les fils morts. Combats double, triple et rotatif joués par des mods d'essai ; menu et colonne de 88 points dans le coin. Mipmaps et filtre de réduction dans le moteur."
+  },
+  {
+   "date": "2026-11-02",
+   "texte": "Le cache de sommets survit à touch_all par une empreinte du contenu : étape de 179 à 11 s, images identiques. En fenêtre cachée, 4,5 fois le temps réel à l'échelle 2, 4,1 fois à l'échelle 4 sur 1 h 42 de jeu sans arrêt, 2,8 Go au plus, aucun à-coup de plus de 112 ms. Visée à la souris pour Otto Focus : le gyroscope et la pesanteur suivent la souris, à faire essayer à l'utilisateur."
   }
  ],
  "dump": {
@@ -2234,8 +2246,76 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "01/11/2026 à 02:45",
+ "mise_a_jour_heure": "01/11/2026 à 16:34",
  "commits": [
+  [
+   "2026-11-02",
+   "Décompil 3DS : le cache de sommets survit à touch_all grâce à une empreinte du contenu (étape de 179 à 11 s, images identiques) ; temps par étape du moteur et relevé des à-coups de portage play"
+  ],
+  [
+   "2026-11-02",
+   "Décompil 3DS : le launcher lance la partie à part et règle la vitesse ; images des modules déchargés et listes de suivi de gsp rendues ; notes de reprise"
+  ],
+  [
+   "2026-11-02",
+   "Décompil 3DS : les fils finis rendent leur fibre et leur pile (5,9 Go ramenés à 1,95 Go sur une heure de jeu), l'ordonnanceur ne parcourt plus que les fils vivants ; mipmaps et filtre de réduction ; pipelines gardés limités"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : une sauvegarde jamais formatée répond « non formatée » et le jeu la crée (nouvelle partie jusqu'à la saisie du nom) ; portage play --vitesse et --nouvelle-partie"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : portage play --aller-a, un rejeu paraît directement au moment voulu, à pleine vitesse jusque-là et fenêtre cachée"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : plus de bande en combat à plusieurs, le menu et la colonne des capacités passent à 88 points de large dans le coin"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : la texture 0 de type 5 (éteinte) lit zéro, comme Azahar, dans le moteur et le banc"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : en combat double, triple et rotatif, les menus passent dans une bande à côté de l'image (plus de Pokémon caché) ; ces combats joués par des mods d'essai"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : le rejeu refait une partie reprise à l'identique (heure de départ et mod notés au journal, archives du lancement gardées)"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : en combat, l'écran du bas revient pour la liste d'oubli de capacité et le choix d'un Pokémon"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : les textures lues par le seul éclairage sont liées (plus de rectangle autour des yeux) ; la découpe alpha en haute définition garde les alphas faibles ; boutons de question au-dessus de la boîte de dialogue"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : les contours du jeu lisent la profondeur à la définition de l'échelle, plus de marches ; en combat l'écran du bas se cache quand il n'offre rien, et une question n'affiche que ses boutons"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : le lissage en haute définition se limite aux textures répétées, et la découpe alpha ne déteint plus (ni coutures ni liseré dans les décors)"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : effets de combat, les particules du shader de géométrie sortent entières (bits de SETEMIT) ; en haute définition, les modèles 3D lissent les textures au plus proche et leur découpe alpha suit le contour"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : 88 noms du rendu relus et versés ; les filtres de texture respectent la répétition ; REPRISE et README à jour après l'audit du PICA"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : plus de saut vers du code non recompilé pour les adresses citées (opcodes de l'interpréteur de scripts) ; shader de géométrie, tables d'éclairage, quaternions opposés et transferts linéaires corrigés d'après l'audit du PICA ; fenêtre de combat au premier menu ; filtres ScaleForce et Anime4K"
+  ],
+  [
+   "2026-11-01",
+   "Décompil 3DS : le bas de l'écran des capacités reste visible sous la colonne (retour, bouton 7) ; 21 noms relus de l'interface de combat ; la liste à vérifier en jouant"
+  ],
   [
    "2026-11-01",
    "Décompil 3DS : 116 noms relus tirés des natifs des scripts (code.bin, DllField, DllKawaigari, DllBattle) ; REPRISE à jour, décisions à prendre pour Archipelago"

@@ -592,7 +592,13 @@ pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
         k.journal.write(k.now, &format!("hid : pad circulaire {circle:?}"));
     }
     hid.circle = circle;
+    let gyro = k.gyro_now();
+    if gyro != hid.gyro {
+        k.journal.write(k.now, &format!("hid : gyroscope {gyro:?}"));
+    }
+    hid.gyro = gyro;
     hid.update(k);
+    k.bench.gyro_on = hid.gyro_on();
     drop(hid);
     give_due_gifts(k);
     if let Some(mut hook) = k.bench.vblank_hook.take() {
