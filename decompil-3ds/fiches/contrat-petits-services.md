@@ -792,4 +792,4 @@ Ces noms ont été versés dans `pokemon-x.noms.tsv` après la rédaction de ce 
 | `0x15fc68` | `ro_call_control_object` | 6 |
 | `0x1e7804`, `0x146a50` | `ro_register_code_range`, `ro_unregister_code_range` | 6 |
 | `0x146ad4` | `ro_mirror_to_heap_address` | 6 |
-| `0x3506fc` | `create_title_proc` | 6 |
+| `0x3506fc` | `create_movie_movie_proc` | 6 |

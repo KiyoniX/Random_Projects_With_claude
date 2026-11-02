@@ -56,6 +56,7 @@ pub struct Options {
     pub presses: Vec<(f64, f64, u32)>,
     pub touches: Vec<(f64, f64, u16, u16)>,
     pub gifts: Vec<(f64, u32, u32)>,
+    pub requests: Vec<(f64, u32)>,
     pub circles: Vec<(f64, f64, i16, i16)>,
     pub gyros: Vec<(f64, f64, [i16; 3])>,
     pub mod_dir: Option<PathBuf>,
@@ -105,6 +106,7 @@ impl Options {
             presses: Vec::new(),
             touches: Vec::new(),
             gifts: Vec::new(),
+            requests: Vec::new(),
             circles: Vec::new(),
             gyros: Vec::new(),
             mod_dir: None,
@@ -213,6 +215,7 @@ impl Bench {
         kernel.bench.presses = options.presses.clone();
         kernel.bench.touches = options.touches.clone();
         kernel.bench.gifts = options.gifts.iter().copied().collect();
+        kernel.bench.requests = options.requests.iter().copied().collect();
         kernel.bench.circles = options.circles.clone();
         kernel.bench.gyros = options.gyros.clone();
         kernel.bench.audio = options.audio.clone();

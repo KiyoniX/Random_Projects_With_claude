@@ -4,6 +4,7 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+use crate::cpu::Reg;
 use crate::kernel::Kernel;
 
 // Repères du démarrage (pokemon-x-services.md, partie 4).
@@ -12,6 +13,14 @@ pub const MAIN: u32 = 0x106138;
 pub const GAME_INIT_SYSTEMS: u32 = 0x107CBC;
 pub const MAIN_LOOP: u32 = 0x1066EC;
 pub const MAIN_LOOP_TURN: u32 = 0x106710;
+/// Appelée à chaque tour de la boucle du terrain avec r0 = le terrain, dans DllField au miroir 0x6a9000.
+const FIELD_TURN: u32 = 0x6a9000 + 0x2fa4c;
+/// `amx_exec` : r0 l'AMX, r2 la fonction à lancer.
+const AMX_EXEC: u32 = 0x4cd938;
+/// Le hachage du nom `g_mode` dans la table des variables publiques (c ^ (h * 0x83)).
+const G_MODE_HASH: u32 = 0xd7477c97;
+/// Le pointeur vers l'objet qui porte le numéro de la zone courante, à +0x38.
+const ZONE_HOLDER: u32 = 0x5b1748;
 
 pub const APT_STARTUP: [&str; 9] = ["GetLockHandle", "Initialize", "Enable", "NotifyToWait", "GlanceParameter",
     "ReceiveParameter", "AppletUtility(7)", "AppletUtility(4)", "GetSharedFont"];
@@ -66,6 +75,9 @@ pub struct BenchState {
     pub vblank_hook: Option<Box<dyn FnMut(&mut Kernel)>>,
     /// (heure en s, objet, quantité) : ce qu'il reste à donner au joueur, dans l'ordre (`--donner`, Archipelago).
     pub gifts: std::collections::VecDeque<(f64, u32, u32)>,
+    /// Les requêtes de l'écran du bas à poser (`--requete`) : heure en s, numéro.
+    pub requests: std::collections::VecDeque<(f64, u32)>,
+    pub requests_watched: bool,
     /// Le pad circulaire tenu en direct (Shift et la croix du clavier) : X et Y, Y vers le haut.
     pub circle: (i16, i16),
     /// (début en s, durée en s, X, Y) : le pad circulaire programmé
@@ -248,6 +260,68 @@ impl Kernel {
             Rc::new(|k: &mut Kernel, _| k.reached("install", "game_init_systems (0x107cbc) atteint")))?;
         self.watch(MAIN_LOOP, true, Rc::new(|k: &mut Kernel, _| k.reached("loop", "main_loop (0x1066ec) atteint")))?;
         self.watch(MAIN_LOOP_TURN, false, Rc::new(|k: &mut Kernel, _| k.loop_turn()))?;
+        self.watch(AMX_EXEC, false, Rc::new(|k: &mut Kernel, _| k.note_script()))?;
         Ok(())
+    }
+
+    /// Pose les requêtes de `--requete`. La boucle du terrain F appelle `FIELD_TURN(F)` puis, si [F+0x48] a le bit 0x100, lit
+    /// les requêtes de l'écran du bas : le bit n de S+0xa4, avec S = [[F+0x10]+0x16c]. L'écran du bas remet ce tableau à zéro
+    /// entre deux images, d'où l'écriture juste avant la lecture. Un repère dans un module ne se pose qu'une fois celui-ci chargé.
+    pub fn watch_requests(&mut self) {
+        use std::rc::Rc;
+        let in_field = self.journal.names.modules.iter().any(|m| m.2 == "DllField");
+        if self.bench.requests_watched || self.bench.requests.is_empty() || !in_field {
+            return;
+        }
+        self.bench.requests_watched = true;
+        let watched = self.watch(FIELD_TURN, false, Rc::new(|k: &mut Kernel, _| {
+            let Some(&(at, request)) = k.bench.requests.front() else { return };
+            let in_field = k.journal.names.modules.iter().any(|m| m.2 == "DllField");
+            if !in_field || (k.now as f64 / 1e9) < at {
+                return;
+            }
+            let field = k.cpu.get(Reg::R(0));
+            let word = |k: &Kernel, a: u32| k.memory.u32(a).unwrap_or(0);
+            let screen = word(k, word(k, field.wrapping_add(0x10)).wrapping_add(0x16c));
+            let bits = screen.wrapping_add(0xa4 + 4 * (request >> 5));
+            let (flags, requests) = (word(k, field.wrapping_add(0x48)), word(k, bits));
+            let _ = k.memory.w32(field.wrapping_add(0x48), flags | 0x100);
+            let _ = k.memory.w32(bits, requests | 1 << (request & 31));
+            k.bench.requests.pop_front();
+            let now = k.now;
+            k.journal.write(now, &format!("requête {request} posée (terrain {field:#x}, écran du bas {screen:#x})"));
+        }));
+        if let Err(text) = watched {
+            self.bench.stop_request = Some(text);
+        }
+    }
+
+    /// Note au journal chaque script lancé : ce qui mesure les événements déroulés. Un script est un fichier et une valeur
+    /// de sa variable publique `g_mode`, sur laquelle `main` aiguille ; le fichier se déduit de `g_mode`, de la zone et du
+    /// nombre de variables publiques.
+    fn note_script(&mut self) {
+        // -1 lance `main` ; -2 reprend un script en attente, et un index positif appelle une fonction publique
+        if self.cpu.get(Reg::R(2)) != u32::MAX {
+            return;
+        }
+        let amx = self.cpu.get(Reg::R(0));
+        let word = |k: &Kernel, a: u32| k.memory.u32(a).unwrap_or(0);
+        let base = word(self, amx);
+        let data = match word(self, amx.wrapping_add(8)) {
+            0 => base.wrapping_add(word(self, base.wrapping_add(0x10))),
+            d => d,
+        };
+        let first = base.wrapping_add(word(self, base.wrapping_add(0x2c)));
+        let last = base.wrapping_add(word(self, base.wrapping_add(0x30)));
+        let publics = last.wrapping_sub(first) / 8;
+        let mode = (0..publics.min(64)).map(|i| first.wrapping_add(i * 8)).find(|&e| word(self, e.wrapping_add(4)) == G_MODE_HASH)
+            .map(|e| word(self, data.wrapping_add(word(self, e))) as i32);
+        let zone = word(self, word(self, ZONE_HOLDER).wrapping_add(0x38)) & 0xffff;
+        let now = self.now;
+        let text = match mode {
+            Some(mode) => format!("script : zone {zone} publiques {publics} g_mode {mode}"),
+            None => format!("script : zone {zone} publiques {publics} sans g_mode"),
+        };
+        self.journal.write(now, &text);
     }
 }

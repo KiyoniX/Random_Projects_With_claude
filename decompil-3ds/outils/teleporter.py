@@ -8,7 +8,9 @@ Le fichier de sauvegarde (d'après PKHeX, faits seulement) fait 0x65600 octets. 
 « FEEB » à +0x10 puis, pour chaque bloc, (longueur u32, numéro u16, CRC u16) à +0x14. Le CRC d'un bloc est CRC-16/CCITT-FALSE
 (vérifié sur les trois blocs lus ici, sur les parties de l'utilisateur). La position est dans le bloc 4, à 0x1400 : zone u16 à
 +2 et sa copie à +0xF4, X, hauteur, Z en flottants à +0x10 et leur copie à +0x104. Les personnages de la zone sont dans le
-bloc 10 : vidés, sinon le jeu, chargeant une autre zone, ne les y retrouve pas et s'arrête dans sa boucle d'erreur (0x11eba0).
+bloc 10 : un enregistrement de 0x108 octets par personnage, le joueur compris. Au lancement d'une partie, le jeu les restaure
+tels quels : gardés d'une autre zone, il ne les y retrouve pas et s'arrête dans sa boucle d'erreur (0x11eba0) ; vidés, la zone
+est déserte. Donner le fichier de la zone à `placer` les refait d'après elle (champs relevés sur les parties de l'utilisateur).
 
 Les zones (`a/0/1/2` de la mise à jour, rien n'en est versionné) : un fichier ZO par zone, dont la section 1 liste les
 entités. Une sortie y fait 0x18 octets : zone visée u16 à +0, X, hauteur, Z en entiers signés à +8, +0xA, +0xC. Un personnage
@@ -30,6 +32,7 @@ PIED = 0x65400
 SITUATION = (4, 0x1400, 0x150)
 # Les personnages de la zone sauvegardée : le jeu les recherche dans la zone chargée, et se fige s'il ne les trouve pas.
 PERSONNAGES = (10, 0x2000, 0x2100)
+ENREGISTREMENT = 0x108
 DEVANT_LA_PORTE = 36
 CASE = 18
 
@@ -43,12 +46,51 @@ def crc16(donnees):
     return registre
 
 
-def placer(sauvegarde, zone, x, hauteur, z):
-    """Rend une copie de la sauvegarde, le joueur à cette position, le CRC du bloc recalculé."""
+def enregistrements(donnees_joueur, fichier, zone, x, hauteur, z):
+    """Le contenu du bloc 10 pour une zone : ses personnages à leur place, puis le joueur, repris de l'ancien bloc."""
+    donnees = lz11.decompresser(fichier) if fichier[0] == 0x11 else fichier
+    debut, fin = struct.unpack_from('<II', donnees, 8)
+    entites = donnees[debut:fin]
+    meubles, nombre = entites[4:6]
+    bloc = bytearray()
+    for i in range(min(nombre, PERSONNAGES[2] // ENREGISTREMENT - 1)):
+        p = 0xC + meubles * 0x14 + i * 0x30
+        r = bytearray(ENREGISTREMENT)
+        struct.pack_into('<IHH', r, 0, 0x08010003, i, zone)
+        r[8:0x14] = entites[p + 2:p + 0xE]
+        r[0x34:0x3C] = entites[p + 0x14:p + 0x1C]
+        case_x, case_z, h = struct.unpack_from('<HHf', entites, p + 0x28)
+        for champ in (0x40, 0x6C):
+            struct.pack_into('<fff', r, champ, case_x, h / CASE, case_z)
+        # regard vers le sud, échelles à 1, et les valeurs que tous les personnages relevés ont en commun
+        struct.pack_into('<fff', r, 0x1C, 1, 0, 0)
+        struct.pack_into('<fff', r, 0x28, 1, 0, 0)
+        for champ in (0x58, 0x60, 0x84, 0x8C):
+            struct.pack_into('<f', r, champ, 1)
+        struct.pack_into('<III', r, 0x94, 0x20, 0x00010100, 0x00FFFFFF)
+        struct.pack_into('<I', r, 0xA0, 0xFFFFFFFF)
+        bloc += r
+    joueur = bytearray(donnees_joueur)
+    struct.pack_into('<H', joueur, 6, zone)
+    for champ in (0x40, 0x6C):
+        struct.pack_into('<fff', joueur, champ, x / CASE, hauteur / CASE, z / CASE)
+    return bytes(bloc + joueur)
+
+
+def placer(sauvegarde, zone, x, hauteur, z, fichier=None):
+    """Rend une copie de la sauvegarde, le joueur à cette position, le CRC du bloc recalculé. Sans le fichier de la zone,
+    ses personnages sont absents."""
     if len(sauvegarde) != TAILLE or sauvegarde[PIED + 0x10:PIED + 0x14] != b'FEEB':
         raise ValueError("pas une sauvegarde de Pokémon X (taille ou signature)")
     copie = bytearray(sauvegarde)
+    ancien = bytes(copie[PERSONNAGES[1]:PERSONNAGES[1] + PERSONNAGES[2]])
     copie[PERSONNAGES[1]:PERSONNAGES[1] + PERSONNAGES[2]] = bytes(PERSONNAGES[2])
+    if fichier:
+        # le joueur porte le numéro 0xff dans l'ancien bloc
+        joueur = next((ancien[i:i + ENREGISTREMENT] for i in range(0, len(ancien), ENREGISTREMENT) if ancien[i + 4] == 0xFF), None)
+        if joueur:
+            nouveau = enregistrements(joueur, fichier, zone, x, hauteur, z)
+            copie[PERSONNAGES[1]:PERSONNAGES[1] + len(nouveau)] = nouveau
     debut = SITUATION[1]
     for champ in (debut + 2, debut + 0xF4):
         struct.pack_into('<H', copie, champ, zone)
@@ -74,6 +116,24 @@ def sorties(fichier):
         vers, = struct.unpack_from('<H', entites, p)
         x, hauteur, z = struct.unpack_from('<hhh', entites, p + 8)
         rendu.append((vers, x, hauteur, z))
+    return rendu
+
+
+def personnages(fichier):
+    """Les personnages d'un fichier de zone qui ont un script : (numéro du script, case X, case Z, hauteur).
+    0 et 2000 : aucun script. La hauteur, flottante, est à +0x2C (36 sur la zone de référence, comme ses sorties)."""
+    donnees = lz11.decompresser(fichier) if fichier[0] == 0x11 else fichier
+    if donnees[:2] != b'ZO':
+        return []
+    debut, fin = struct.unpack_from('<II', donnees, 8)
+    entites = donnees[debut:fin]
+    meubles, nombre = entites[4:6]
+    rendu = []
+    for i in range(nombre):
+        p = 0xC + meubles * 0x14 + i * 0x30
+        script, = struct.unpack_from('<H', entites, p + 0xA)
+        if script not in (0, 2000):
+            rendu.append((script, *struct.unpack_from('<HHf', entites, p + 0x28)))
     return rendu
 
 
@@ -126,10 +186,25 @@ def test():
         pass
     else:
         raise AssertionError('un fichier de mauvaise taille est refusé')
+    # le joueur repris, les personnages refaits : le jeu les retrouve dans la zone, à leur place
+    sauvegarde[0x2000:0x2108] = bytes(4) + b'\xff' + bytes(0x103)
+    fichier = bytearray(b'ZO\x00\x00' + bytes(12))
+    struct.pack_into('<II', fichier, 8, 16, 16 + 0xC + 0x30)
+    fichier += bytes(0xC) + bytes(0x30)
+    fichier[16 + 5] = 1
+    struct.pack_into('<H', fichier, 16 + 0xC + 0xA, 77)
+    struct.pack_into('<HHf', fichier, 16 + 0xC + 0x28, 7, 8, 36.0)
+    rendu = placer(bytes(sauvegarde), 53, 18, 36, 90, bytes(fichier))
+    assert struct.unpack_from('<IHH', rendu, 0x2000) == (0x08010003, 0, 53) and struct.unpack_from('<H', rendu, 0x2010) == (77,)
+    assert struct.unpack_from('<fff', rendu, 0x2040) == (7, 2, 8) == struct.unpack_from('<fff', rendu, 0x206C)
+    assert rendu[0x2108 + 4] == 0xFF and struct.unpack_from('<H', rendu, 0x2108 + 6) == (53,)
+    assert struct.unpack_from('<fff', rendu, 0x2108 + 0x40) == (1, 2, 5)
     # une zone fabriquée : un meuble, un personnage, deux sorties
     entites = bytearray(0xC + 0x14 + 0x30 + 2 * 0x18)
     entites[4:7] = bytes([1, 1, 2])
     p = 0xC + 0x14 + 0x30
+    struct.pack_into('<HHf', entites, 0xC + 0x14 + 0x28, 7, 8, 36.0)
+    struct.pack_into('<H', entites, 0xC + 0x14 + 0xA, 1234)
     struct.pack_into('<H', entites, p, 54)
     struct.pack_into('<HHH', entites, p + 8, 100, 36, 200)
     struct.pack_into('<H', entites, p + 0x18, 57)

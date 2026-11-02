@@ -5,13 +5,13 @@
   "mise_a_jour": "2026-11-02",
   "prochaine_action": "L'utilisateur relit les modèles (page locale de outils/revue_modeles.py) ; traiter ses Non par cause commune. À lui faire essayer : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Couverture : dérouler les événements des zones, pas seulement les charger. Puis refonte des menus quand il aura validé l'esthétique, reverse du jeu pour Archipelago, mods, nouveaux Pokémon.",
   "fonctions": {
-    "total": 254375,
-    "identifiees": 254375,
-    "nommees": 20285,
+    "total": 264215,
+    "identifiees": 264215,
+    "nommees": 20537,
     "reimplementees": 0,
     "typees": 0,
     "citees": 7925,
-    "recompilees": 62482,
+    "recompilees": 72351,
     "binaires": [
       {
         "nom": "ac",
@@ -755,12 +755,12 @@
         "fiche_seule": 6,
         "hors_compte": 0,
         "trouvees": 24743,
-        "nommees": 1369,
+        "nommees": 1621,
         "proposees_haute": 3,
         "proposees_moyenne": 43,
         "typees": 0,
         "citees": 540,
-        "recompilees": 24627,
+        "recompilees": 24656,
         "reimplementees": 0
       },
       {
@@ -1410,17 +1410,17 @@
       },
       {
         "nom": ".cro (133 modules)",
-        "ghidra": 37855,
+        "ghidra": 47695,
         "manquees": 0,
         "fiche_seule": 0,
         "hors_compte": 0,
-        "trouvees": 37855,
+        "trouvees": 47695,
         "nommees": 294,
         "proposees_haute": 0,
         "proposees_moyenne": 0,
         "typees": 0,
         "citees": 0,
-        "recompilees": 37855,
+        "recompilees": 47695,
         "reimplementees": 0
       }
     ],
@@ -2249,5 +2249,5 @@
     "present": true,
     "code_octets": 5156864
   },
-  "mise_a_jour_heure": "01/11/2026 à 16:34"
+  "mise_a_jour_heure": "02/11/2026 à 23:13"
 }

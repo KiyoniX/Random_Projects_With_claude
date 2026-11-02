@@ -601,6 +601,7 @@ pub fn on_vblank(k: &mut Kernel, hid: &Rc<RefCell<Hid>>) {
     k.bench.gyro_on = hid.gyro_on();
     drop(hid);
     give_due_gifts(k);
+    k.watch_requests();
     if let Some(mut hook) = k.bench.vblank_hook.take() {
         hook(k);
         k.bench.vblank_hook = Some(hook);

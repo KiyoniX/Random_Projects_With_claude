@@ -15,11 +15,13 @@ import oracles
 import revue_modeles
 import svc_check
 import texte
+import tournee
 
 if __name__ == '__main__':
     lz11.test()
     garc.test()
     teleporter.test()
+    tournee.test()
     revue_modeles.test()
     inspecter.test()
     texte.test()

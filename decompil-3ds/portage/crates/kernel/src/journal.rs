@@ -96,9 +96,9 @@ impl Journal {
                 capture.push(line.clone());
             }
             self.lines += 1;
-        } else if text.starts_with("hid : ") || text.starts_with("module : ") {
+        } else if text.starts_with("hid : ") || text.starts_with("module : ") || text.starts_with("script : ") {
             // les entrées passent toujours : c'est ce qui permet de rejouer la partie (`runtime run --rejouer`) ;
-            // les modules aussi : c'est ce qui dit quelles parties du jeu ont tourné
+            // les modules et les scripts aussi : c'est ce qui dit quelles parties du jeu ont tourné
             if let Some(out) = self.out.as_mut() {
                 let _ = writeln!(out, "{line}");
             }
