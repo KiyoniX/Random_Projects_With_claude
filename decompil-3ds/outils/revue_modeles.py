@@ -46,6 +46,8 @@ ENTREE_COMBAT_MS = 21370
 TEXTES = os.path.join(RACINE, 'local', 'extrait', 'maj', 'romfs', 'a', '0', '7', '5')
 TEXTE_ESPECES = 80
 AVIS = os.path.join(SORTIE, 'avis.json')
+# Les Non donnés avant le correctif de la ligne au milieu des modèles : à revoir sur les nouvelles images.
+ANCIENS = os.path.join(SORTIE, 'avis-avant-correctif.json')
 SECONDES = 100
 ECHELLE = 4
 # La caméra d'attente du combat tourne autour des deux Pokémon : une image toutes les deux secondes, dès qu'ils sont sortis.
@@ -222,26 +224,26 @@ button.oui{background:var(--oui);border-color:var(--oui);font-weight:600;padding
 <header><h1 id="nom"></h1><span id="forme"></span><span id="progres"></span></header>
 <div id="barre"><div></div></div>
 <img id="vue" alt="Vue du combat"><div id="vide" hidden>Aucune image pour ce Pokémon : le rendu n'a rien donné.</div>
-<div class="ligne"><button id="lire">⏸</button><input type="range" id="temps" min="0" value="0" aria-label="Moment du combat"><select id="filtre" aria-label="Quels Pokémon montrer"><option value="reste">À relire</option><option value="non">Marqués non</option><option value="tout">Tous</option></select></div>
-<textarea id="note" placeholder="Commentaire, si besoin : ce qui ne va pas, où, à quel moment"></textarea>
+<div class="ligne"><button id="lire">⏸</button><input type="range" id="temps" min="0" value="0" aria-label="Moment du combat"><select id="filtre" aria-label="Quels Pokémon montrer"><option value="reste">À relire</option><option value="non">Marqués non</option><option value="anciens">Anciens Non, après correctif</option><option value="tout">Tous</option></select></div>
+<p id="avant" hidden></p><textarea id="note" placeholder="Commentaire, si besoin : ce qui ne va pas, où, à quel moment"></textarea>
 <div class="ligne"><button class="oui" id="oui">Oui, il est bon</button><button class="non" id="non">Non</button><button id="prec">← Précédent</button><button id="suiv">Passer →</button><span id="avis"></span></div>
 <p id="aide"><kbd>O</kbd> oui · <kbd>N</kbd> non · <kbd>←</kbd> <kbd>→</kbd> précédent, suivant · <kbd>Espace</kbd> pause · la caméra du combat tourne : le curseur la fait avancer. Chaque avis s'enregistre tout de suite ; on peut fermer et revenir.</p>
 </main><script>
-let liste=[],avis={},i=0,vue=0,lecture=true;const $=x=>document.getElementById(x);
+let liste=[],avis={},anciens={},i=0,vue=0,lecture=true;const $=x=>document.getElementById(x);
 const cle=p=>p.espece+":"+p.forme;
-function visibles(){const f=$("filtre").value;return liste.filter(p=>f==="tout"||(f==="reste"&&!avis[cle(p)])||(f==="non"&&avis[cle(p)]&&avis[cle(p)].bon===false))}
+function visibles(){const f=$("filtre").value;return liste.filter(p=>f==="tout"||(f==="reste"&&!avis[cle(p)])||(f==="non"&&avis[cle(p)]&&avis[cle(p)].bon===false)||(f==="anciens"&&anciens[cle(p)]&&anciens[cle(p)].bon===false))}
 function montrer(){const v=visibles();const faits=Object.keys(avis).length;$("progres").textContent=faits+" / "+liste.length+" relus · "+Object.values(avis).filter(a=>!a.bon).length+" non";$("barre").firstElementChild.style.width=(100*faits/Math.max(liste.length,1))+"%";
  if(!v.length){$("nom").textContent="Plus rien ici";$("forme").textContent="";$("vue").hidden=true;$("vide").hidden=true;return}
- i=Math.min(i,v.length-1);const p=v[i];$("nom").textContent="#"+p.espece+" "+p.nom;$("forme").textContent=p.forme?"forme "+p.forme:"";const a=avis[cle(p)];$("note").value=a?a.note:"";$("avis").textContent=a?(a.bon?"Déjà marqué oui":"Déjà marqué non"):"";
+ i=Math.min(i,v.length-1);const p=v[i];$("nom").textContent="#"+p.espece+" "+p.nom;$("forme").textContent=p.forme?"forme "+p.forme:"";const a=avis[cle(p)];$("note").value=a?a.note:"";$("avis").textContent=a?(a.bon?"Déjà marqué oui":"Déjà marqué non"):"";const o=anciens[cle(p)];$("avant").hidden=!(o&&o.bon===false);$("avant").textContent=o?"Avant le correctif : Non"+(o.note?" : "+o.note:""):"";
  $("temps").max=Math.max(p.vues.length-1,0);vue=0;p.vues.forEach(n=>{new Image().src=n});$("vide").hidden=p.vues.length>0;$("vue").hidden=!p.vues.length;afficher()}
 function afficher(){const v=visibles();if(!v.length)return;const p=v[i];if(p.vues.length){$("vue").src=p.vues[vue];$("temps").value=vue}}
 function tic(){const v=visibles();if(!lecture||!v.length||!v[i].vues.length)return;vue=(vue+1)%v[i].vues.length;afficher()}
 function avancer(d){i=Math.max(0,i+d);montrer()}
-async function juger(bon){const v=visibles();if(!v.length)return;const p=v[i];const r=await fetch("avis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cle:cle(p),bon,note:$("note").value})});if(!r.ok){$("avis").textContent="Non enregistré : "+r.status;return}avis[cle(p)]={bon,note:$("note").value};if($("filtre").value==="tout")i++;montrer()}
+async function juger(bon){const v=visibles();if(!v.length)return;const p=v[i];const r=await fetch("avis",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({cle:cle(p),bon,note:$("note").value})});if(!r.ok){$("avis").textContent="Non enregistré : "+r.status;return}avis[cle(p)]={bon,note:$("note").value};const w=visibles();if(w[i]&&cle(w[i])===cle(p))i++;montrer()}
 $("oui").onclick=()=>juger(true);$("non").onclick=()=>juger(false);$("prec").onclick=()=>avancer(-1);$("suiv").onclick=()=>avancer(1);$("filtre").onchange=()=>{i=0;montrer()};
 $("lire").onclick=()=>{lecture=!lecture;$("lire").textContent=lecture?"⏸":"▶"};$("temps").oninput=e=>{vue=+e.target.value;lecture=false;$("lire").textContent="▶";afficher()};
 addEventListener("keydown",e=>{if(e.target.tagName==="TEXTAREA"||e.target.tagName==="SELECT")return;const k=e.key.toLowerCase();if(k==="o")juger(true);else if(k==="n")juger(false);else if(k==="arrowleft")avancer(-1);else if(k==="arrowright")avancer(1);else if(k===" "){e.preventDefault();$("lire").click()}});
-(async()=>{const r=await(await fetch("etat")).json();liste=r.liste;avis=r.avis;montrer();setInterval(tic,700);setInterval(async()=>{const n=await(await fetch("etat")).json();const vide=!visibles().length;const q=visibles()[i];liste=n.liste;if(q){const j=visibles().findIndex(p=>cle(p)===cle(q));if(j>=0)i=j}if(vide)montrer()},30000)})();
+(async()=>{const r=await(await fetch("etat")).json();liste=r.liste;avis=r.avis;anciens=r.anciens;if(location.hash==="#anciens")$("filtre").value="anciens";montrer();setInterval(tic,700);setInterval(async()=>{const n=await(await fetch("etat")).json();const vide=!visibles().length;const q=visibles()[i];liste=n.liste;if(q){const j=visibles().findIndex(p=>cle(p)===cle(q));if(j>=0)i=j}if(vide)montrer()},30000)})();
 </script></body></html>
 """
 
@@ -279,7 +281,7 @@ def ecrire_avis(chemin, avis):
     os.replace(provisoire, chemin)
 
 
-def serveur(racine, chemin_avis, noms, port):
+def serveur(racine, chemin_avis, noms, port, chemin_anciens=ANCIENS):
     verrou = threading.Lock()
 
     class Page(http.server.BaseHTTPRequestHandler):
@@ -295,7 +297,7 @@ def serveur(racine, chemin_avis, noms, port):
                 self.repondre(200, PAGE.encode('utf-8'), 'text/html; charset=utf-8')
             elif self.path == '/etat':
                 with verrou:
-                    etat = {'liste': etat_de_la_revue(racine, noms), 'avis': lire_avis(chemin_avis)}
+                    etat = {'liste': etat_de_la_revue(racine, noms), 'avis': lire_avis(chemin_avis), 'anciens': lire_avis(chemin_anciens)}
                 self.repondre(200, json.dumps(etat).encode('utf-8'), 'application/json')
             elif self.path.startswith('/vues/'):
                 morceaux = self.path.split('/')
@@ -343,11 +345,14 @@ def test():
             f.write(b'image')
         os.makedirs(os.path.join(racine, '006-00'))  # pas encore fini : pas de verdict
         chemin = os.path.join(racine, 'avis.json')
-        serv = serveur(racine, chemin, ['Oeuf', 'a', 'b', 'c', 'd', 'Reptincel'], 0)
+        anciens = os.path.join(racine, 'anciens.json')
+        ecrire_avis(anciens, {'5:0': {'bon': False, 'note': 'ligne'}})
+        serv = serveur(racine, chemin, ['Oeuf', 'a', 'b', 'c', 'd', 'Reptincel'], 0, anciens)
         threading.Thread(target=serv.serve_forever, daemon=True).start()
         base = f'http://127.0.0.1:{serv.server_address[1]}'
         etat = json.load(urllib.request.urlopen(base + '/etat'))
         assert etat['liste'] == [{'espece': 5, 'forme': 0, 'nom': 'Reptincel', 'vues': ['vues/005-00/030.jpg']}] and etat['avis'] == {}
+        assert etat['anciens'] == {'5:0': {'bon': False, 'note': 'ligne'}}
         assert urllib.request.urlopen(base + '/vues/005-00/030.jpg').read() == b'image'
         for mauvais in ('/vues/../avis.json', '/vues/005-00/..%2f..%2favis.json', '/avis.json'):
             try:
