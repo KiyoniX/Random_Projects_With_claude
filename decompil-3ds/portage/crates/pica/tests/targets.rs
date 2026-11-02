@@ -350,6 +350,31 @@ fn identical_redraw_reuses_the_decoded_vertices() {
 }
 
 #[test]
+fn vertices_survive_touch_all_until_their_bytes_change() {
+    // le jeu écrit sans prévenir : `touch_all` date tout, et seul le contenu dit si les sommets ont changé
+    let mut capture = build([[0.0, 0.0]; 3]);
+    capture.commands.clear();
+    let draw = Command { words: [1, 0, 0, 0, 0, 0, 0, 0], data: list(&[write(0x22E, 1), (0, 0)]) };
+    let Some(mut pica) = Pica::new(&capture, 1).ok() else { return };
+    pica.run_command(&draw).unwrap();
+    pica.memory.touch_all();
+    pica.run_command(&draw).unwrap();
+    assert_eq!(pica.renderer.stats.mesh_hits, 1, "mêmes octets : pas de nouveau décodage");
+    let mut green = vec![0u8; 96];
+    for i in 0..3 {
+        let v = [if i == 1 { 1.0f32 } else { -1.0 }, if i == 2 { 1.0 } else { -1.0 }, -0.5, 1.0, 0.0, 1.0, 0.0, 1.0];
+        put_floats(&mut green, i * 32, &v);
+    }
+    pica.memory.write(0x1400_1000, &green);
+    pica.memory.touch_all();
+    pica.run_command(&draw).unwrap();
+    pica.finish();
+    assert_eq!(pica.renderer.stats.mesh_hits, 1, "octets changés : décodés à nouveau");
+    let at = (14 * 16 + 1) * 4;
+    assert_eq!(&tiles(&pica, A)[at..at + 4], &[0, 255, 0, 255], "le dernier dessin est vert");
+}
+
+#[test]
 fn second_transfer_to_the_same_destination_replaces_the_first() {
     let mut capture = build([[0.05, 0.95], [0.95, 0.95], [0.05, 0.05]]);
     capture.regions.push(Region { address: 0x1405_0000, data: vec![0x55u8; 0x1000] });

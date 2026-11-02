@@ -85,6 +85,8 @@ Mémoire (2/11) : mesurée sur ce rejeu, 5,9 Go après une heure de jeu, autant 
 
 Mipmaps (2/11, moteur seul : le banc reste au premier niveau) : niveaux de 0x84, 0x94, 0x9C (biais, min, max), mélange entre niveaux (bit 24) et filtre de réduction (bit 2), `getLod` d'Azahar. 23 276 dessins en demandaient sur cette partie ; 120 images sur 1 396 changent, très peu à l'œil. Un test fabriqué le prouve (`a_shrunken_texture_reads_its_next_level`). La texture 0 éteinte (type 5) lit zéro, comme Azahar.
 
+Vitesse (2/11, partie `run-premiere-arene`, sorties dans `local/analyse/rendu/perf`) : `touch_all` date toute la mémoire à chaque commande, si bien que le cache de sommets ne servait qu'à l'intérieur d'une commande. Une empreinte CRC des plages lues le fait survivre : étape sommets de 179 à 11 s, rejeu de 985 à 814 s, 6 780 images identiques, journal identique hors le nom du dossier de sortie. Les 146 s de relecture de ce rejeu viennent de l'écriture des images (`pica.readback`) : 3 s en fenêtre. Fenêtre cachée (`--aller-a 99999`, donc sans présentation à l'écran) : échelle 2, 4,5 fois le temps réel sur 4 103 s de jeu, 88 tranches de plus de 33 ms, 2 de plus de 100 ms, pire 112 ms, aucune de plus de 500 ms (cache de pipelines déjà rempli, `portage play` imprime ce relevé à la fin) ; échelle 4, 4,1 fois sur 6 146 s de jeu sans arrêt, 2,8 Go au plus. Non mesuré : les à-coups avec le cache vide, la présentation elle-même.
+
 Tranché par l'utilisateur : les points noirs sur les boutons de combat sont une animation passagère, et les deux arcs sur la tête de Tarsal font partie du modèle. Rien à corriger.
 
 Connu et non réglé : l'upscale n'a pas xBRZ (GPL) ; réseau, caméra et micro sont factices.

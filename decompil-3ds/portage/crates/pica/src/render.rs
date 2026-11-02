@@ -185,11 +185,24 @@ impl Arena {
     }
 }
 
+/// L'empreinte du contenu de plages de mémoire ; une plage illisible n'y compte pas.
+fn ranges_crc(memory: &Memory, ranges: &[(u32, usize)]) -> u32 {
+    let mut hasher = crc32fast::Hasher::new();
+    for &(start, len) in ranges {
+        if let Some(raw) = memory.read(start, len) {
+            hasher.update(&raw);
+        }
+    }
+    hasher.finalize()
+}
+
 struct MeshEntry {
     /// Horloge de la mémoire quand les sommets ont été décodés.
     checked: u64,
     /// Les plages de mémoire lues (indices et attributs).
     ranges: Vec<(u32, usize)>,
+    /// L'empreinte de ces plages : le jeu écrit sans prévenir, l'horloge seule ne dit donc rien d'une commande à l'autre.
+    crc: u32,
     data: Arc<vertex::VertexData>,
     bytes: usize,
 }
@@ -1373,8 +1386,10 @@ struct Out { @builtin(frag_depth) d: f32 }
                 self.sync_read(memory, start, len);
             }
         }
-        if let Some(entry) = self.meshes.get(&key) {
-            if entry.ranges.iter().all(|&(start, len)| memory.stamp(start, len) <= entry.checked) {
+        let clock = memory.clock();
+        if let Some(entry) = self.meshes.get_mut(&key) {
+            if entry.ranges.iter().all(|&(start, len)| memory.stamp(start, len) <= entry.checked) || ranges_crc(memory, &entry.ranges) == entry.crc {
+                entry.checked = clock;
                 self.stats.mesh_hits += 1;
                 return Some(entry.data.clone());
             }
@@ -1382,7 +1397,7 @@ struct Out { @builtin(frag_depth) d: f32 }
             self.mesh_bytes -= old.bytes;
         }
         let ranges = vertex::read_ranges(state, memory, indexed);
-        let clock = memory.clock();
+        let crc = ranges_crc(memory, &ranges);
         let data = Arc::new(vertex::load(state, memory, indexed)?);
         let bytes = data.inputs.len() * 16 + data.triangles.len() * 4;
         if self.mesh_bytes + bytes > (256 << 20) {
@@ -1390,7 +1405,7 @@ struct Out { @builtin(frag_depth) d: f32 }
             self.mesh_bytes = 0;
         }
         self.mesh_bytes += bytes;
-        self.meshes.insert(key, MeshEntry { checked: clock, ranges, data: data.clone(), bytes });
+        self.meshes.insert(key, MeshEntry { checked: clock, ranges, crc, data: data.clone(), bytes });
         Some(data)
     }
 
@@ -1410,6 +1425,8 @@ struct Out { @builtin(frag_depth) d: f32 }
         self.tick("tampons de rendu", t);
         let t = self.now();
         let Some(mut vertices) = self.vertex_data(state, memory, indexed) else { return };
+        self.tick("sommets", t);
+        let t = self.now();
         let uses_geometry = regs[0x229] & 3 == 2;
         if uses_geometry {
             match geometry::run(state, &vertices) {
@@ -1425,7 +1442,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 }
             }
         }
-        self.tick("sommets", t);
+        self.tick("geometrie", t);
         for n in &vertices.notes {
             self.note(*n);
         }

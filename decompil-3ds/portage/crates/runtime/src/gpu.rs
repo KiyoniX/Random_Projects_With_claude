@@ -38,6 +38,8 @@ pub struct DrawStats {
     /// Pipelines créés par pica et le temps passé à les créer (secondes) : ce que le cache sur disque abrège.
     pub pipelines: u64,
     pub pipeline_seconds: f64,
+    /// Le temps du moteur par étape, en secondes.
+    pub steps: std::collections::BTreeMap<&'static str, f64>,
     /// Ce que le moteur a rencontré sans savoir le faire, avec le nombre de fois.
     pub notes: std::collections::BTreeMap<String, u64>,
 }
@@ -183,6 +185,7 @@ impl GpuBackend for PicaBackend {
         stats.pipelines = renderer.pipelines;
         stats.pipeline_seconds = renderer.time.get("pipeline").copied().unwrap_or(0.0);
         stats.notes.clone_from(&self.pica.renderer.notes);
+        stats.steps.clone_from(&renderer.time);
         stats.touch_seconds += touched;
         stats.pica_seconds += start.elapsed().as_secs_f64() - touched;
         result

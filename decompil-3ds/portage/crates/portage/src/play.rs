@@ -118,7 +118,35 @@ struct Second {
     emulated_from: u64,
 }
 
+/// Les tranches de jeu trop longues : une tranche vise au plus deux images (33 ms), au-delà le joueur voit un à-coup.
+#[derive(Default)]
+struct Hitches {
+    /// Combien ont dépassé 33 ms, 100 ms, 500 ms.
+    over: [u32; 3],
+    /// Les plus longues : (secondes, temps du jeu en s), la pire d'abord.
+    worst: Vec<(f64, f64)>,
+}
+
+impl Hitches {
+    fn add(&mut self, seconds: f64, now: u64) {
+        for (count, limit) in self.over.iter_mut().zip([0.033, 0.1, 0.5]) {
+            *count += (seconds > limit) as u32;
+        }
+        if seconds > 0.033 {
+            self.worst.push((seconds, now as f64 / 1e9));
+            self.worst.sort_by(|a, b| b.0.total_cmp(&a.0));
+            self.worst.truncate(8);
+        }
+    }
+
+    fn summary(&self) -> String {
+        let worst: Vec<String> = self.worst.iter().map(|(s, at)| format!("{:.0} ms à {at:.1} s", s * 1000.0)).collect();
+        format!("À-coups : {} tranches de plus de 33 ms, {} de plus de 100 ms, {} de plus de 500 ms ; les pires : {}", self.over[0], self.over[1], self.over[2], worst.join(", "))
+    }
+}
+
 struct Play {
+    hitches: Hitches,
     bench: Bench,
     shared: Shared,
     started: Instant,
@@ -217,7 +245,9 @@ impl Play {
             if let Some(reason) = self.bench.run_slice(target) {
                 self.stopped = Some(reason);
             }
-            self.second.run_seconds += start.elapsed().as_secs_f64();
+            let spent = start.elapsed().as_secs_f64();
+            self.second.run_seconds += spent;
+            self.hitches.add(spent, self.bench.kernel.now);
         }
         if let Some((at, _)) = &self.shot {
             // la fin d'image est due mais pas encore faite (Kernel::run teste l'heure avant les échéances) : c'est
@@ -486,6 +516,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         window: None,
         screens: None,
         last_top: 0,
+        hitches: Hitches::default(),
         second: Second::default(),
         second_start: Instant::now(),
         first_frame: None,
@@ -513,6 +544,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         println!("Première image du jeu présentée à {first:.2} s");
     }
     println!("{}", play.bench.summary(&reason).lines().filter(|l| !l.starts_with("  ")).collect::<Vec<_>>().join("\n"));
+    println!("{}", play.hitches.summary());
     Ok(())
 }
 

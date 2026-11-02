@@ -424,6 +424,8 @@ impl Bench {
             let s = drawing.stats.borrow();
             lines.push(format!("Dessin : {} commandes de gsp, {:.2} s dans pica, {:.3} s dans touch_all ({:.1} µs par commande), {} paires d'images, {} pipelines créés en {:.3} s",
                 s.commands, s.pica_seconds, s.touch_seconds, 1e6 * s.touch_seconds / s.commands.max(1) as f64, s.snapshots, s.pipelines, s.pipeline_seconds));
+            let steps: Vec<String> = s.steps.iter().map(|(name, seconds)| format!("{name} {seconds:.2} s")).collect();
+            lines.push(format!("Étapes du dessin : {}", steps.join(", ")));
         }
         if let Some(drawing) = &self.drawing {
             lines.extend(drawing.stats.borrow().notes.iter().map(|(note, n)| format!("Note du dessin ({n} fois) : {note}")));
