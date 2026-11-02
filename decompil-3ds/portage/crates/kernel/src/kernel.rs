@@ -802,21 +802,31 @@ impl Kernel {
             };
             let mut where_ = String::new();
             if state != ThreadState::Dead {
-                let (pc, lr) = if self.loaded == Some(t) {
-                    (self.cpu.get(Reg::Pc), self.cpu.get(Reg::Lr))
+                let (pc, lr, sp) = if self.loaded == Some(t) {
+                    (self.cpu.get(Reg::Pc), self.cpu.get(Reg::Lr), self.cpu.get(Reg::Sp))
                 } else if let Some(ctx) = pc_lr {
                     let saved = self.cpu.save();
                     self.cpu.restore(ctx);
-                    let out = (self.cpu.get(Reg::Pc), self.cpu.get(Reg::Lr));
+                    let out = (self.cpu.get(Reg::Pc), self.cpu.get(Reg::Lr), self.cpu.get(Reg::Sp));
                     if let Some(saved) = saved {
                         self.cpu.restore(saved);
                     }
                     out
                 } else {
-                    (0, 0)
+                    (0, 0, 0)
                 };
                 where_ = format!("pc {:#010x} {}, lr {:#010x} {}", pc, self.journal.names.function(pc), lr,
                     self.journal.names.function(lr));
+                // un fil prêt à la fin d'une partie figée tourne en rond sans appel système : sa pile dit où
+                if state == ThreadState::Ready {
+                    let stack = self.memory.words(sp, 128).unwrap_or_default();
+                    let calls: Vec<String> = stack.iter()
+                        .filter(|&&w| (0x10_0000..0x800_0000).contains(&w) && w & 3 == 0)
+                        .take(32)
+                        .map(|&w| format!("{:#x} {}", w, self.journal.names.function(w)))
+                        .collect();
+                    where_ += &format!(" ; sur la pile : {}", calls.join(", "));
+                }
             }
             let th = self.thread(t);
             let mut wait = String::new();

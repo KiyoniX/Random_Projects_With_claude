@@ -4,6 +4,7 @@ import cro_loader
 import elfer
 import firm
 import garc
+import teleporter
 import ghidra_direct
 import ghidra_raw
 import inspecter
@@ -11,12 +12,15 @@ import ipc_trace
 import lz11
 import nand
 import oracles
+import revue_modeles
 import svc_check
 import texte
 
 if __name__ == '__main__':
     lz11.test()
     garc.test()
+    teleporter.test()
+    revue_modeles.test()
     inspecter.test()
     texte.test()
     elfer.test()

@@ -1290,7 +1290,8 @@ struct Out { @builtin(frag_depth) d: f32 }
         Some((
             entry.view.clone(),
             entry.id,
-            [entry.stored[0], entry.stored[1], linear, 2.0],
+            // w : 2 une texture, 3 si le lissage vient de nous et non du jeu (`sample_level` ne franchit pas alors le bord)
+            [entry.stored[0], entry.stored[1], linear, if linear > 0.5 && (config >> 1) & 1 == 0 { 3.0 } else { 2.0 }],
             // z : le mélange entre niveaux (bit 24) ; w : les niveaux réellement stockés
             [(config >> 12) & 7, (config >> 8) & 7, (config >> 24) & 1, entry.levels],
             byte_color(regs[border_reg]),

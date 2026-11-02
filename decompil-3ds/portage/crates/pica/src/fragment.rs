@@ -245,10 +245,20 @@ fn sample_level(unit: u32, uv: vec2<f32>, level: i32, mode: f32) -> vec4<f32> {
     let y0 = floor(y);
     let fx = x - x0;
     let fy = y - y0;
-    let ix0 = wrap_index(i32(x0), size.x, ws);
-    let ix1 = wrap_index(i32(x0) + 1, size.x, ws);
-    let iy0 = wrap_index(i32(y0), size.y, wt);
-    let iy1 = wrap_index(i32(y0) + 1, size.y, wt);
+    var ix0 = wrap_index(i32(x0), size.x, ws);
+    var ix1 = wrap_index(i32(x0) + 1, size.x, ws);
+    var iy0 = wrap_index(i32(y0), size.y, wt);
+    var iy1 = wrap_index(i32(y0) + 1, size.y, wt);
+    // Le jeu voulait le point le plus proche, le lissage vient de nous : ne pas mélanger par-dessus le bord de la texture, où le
+    // morceau d'à côté (l'autre bord) n'a rien à voir. Sur un modèle symétrique, c'est la ligne au milieu du corps.
+    if d.w > 2.5 {
+        if ix1.x != ix0.x + 1 && ix1.x != ix0.x {
+            if fx < 0.5 { ix1 = ix0; } else { ix0 = ix1; }
+        }
+        if iy1.x != iy0.x + 1 && iy1.x != iy0.x {
+            if fy < 0.5 { iy1 = iy0; } else { iy0 = iy1; }
+        }
+    }
     let c00 = fetch_texel(unit, ix0, iy0, level);
     let c10 = fetch_texel(unit, ix1, iy0, level);
     let c01 = fetch_texel(unit, ix0, iy1, level);

@@ -518,3 +518,28 @@ fn a_shrunken_texture_reads_its_next_level() {
     assert_eq!(second, [0, 255, 0, 255], "niveau maximal 1 : le second niveau");
     assert_ne!(color_at(0).unwrap()[1], 255, "niveau maximal 0 : jamais le vert du niveau 1");
 }
+
+#[test]
+fn smoothing_of_our_own_stops_at_the_edge_of_the_texture() {
+    // La texture est le triangle rouge du premier dessin : à mi-hauteur, la première colonne est rouge et la dernière vide.
+    // On lit à gauche de la première colonne : répétée, la texture y touche l'autre bord.
+    let uv = [[0.1 / 16.0, 0.5]; 3];
+    let repeat = (2 << 12) | (2 << 8);
+    let color_with = |config: u32| {
+        let mut capture = build_textured(uv, config, 0);
+        capture.regs[0x107] = 0x1F11; // un modèle 3D : le test de profondeur est actif
+        capture.seen[0x107] = 1;
+        let mut pica = replay(&capture, 2, false)?;
+        pica.finish();
+        let rgba = tiles(&pica, B);
+        let at = (14 * 16 + 1) * 4;
+        Some([rgba[at], rgba[at + 1], rgba[at + 2], rgba[at + 3]])
+    };
+    let Some(ours) = color_with(repeat) else {
+        eprintln!("test sauté : pas de GPU Vulkan");
+        return;
+    };
+    assert_eq!(ours, [255, 0, 0, 255], "le jeu demande le point le plus proche : rien du bord opposé");
+    let asked = color_with(repeat | 2).unwrap();
+    assert!(asked[0] < 255, "le jeu demande le lissage : il franchit le bord, comme la console ({asked:?})");
+}
