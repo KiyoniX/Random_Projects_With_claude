@@ -34,6 +34,7 @@ struct Draw {
     tex_dim: array<vec4<f32>, 3>,   // largeur, hauteur, linéaire (0/1), mode (0 vide, 2 échantillonner)
     tex_wrap: array<vec4<u32>, 3>,  // mode s, mode t
     tex_border: array<vec4<f32>, 3>,
+    tex_lod: array<vec4<f32>, 3>,   // biais, niveau minimal, niveau maximal, réduction linéaire ; < 0 : pas de filtre de réduction
     alpha_test: vec4<u32>,    // actif, fonction, référence
     fog: array<vec4<f32>, 64>,      // (valeur, différence) x 2 par vecteur
     light: array<vec4<u32>, 48>,    // les registres 0x140 à 0x1FF (éclairage), lus tels quels

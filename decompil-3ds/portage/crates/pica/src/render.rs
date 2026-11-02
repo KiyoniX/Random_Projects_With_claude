@@ -52,6 +52,7 @@ struct DrawUniform {
     tex_dim: [[f32; 4]; 3],
     tex_wrap: [[u32; 4]; 3],
     tex_border: [[f32; 4]; 3],
+    tex_lod: [[f32; 4]; 3],
     alpha_test: [u32; 4],
     fog: [[f32; 4]; 64],
     light: [[u32; 4]; 48],
@@ -196,6 +197,7 @@ struct MeshEntry {
 struct TextureEntry {
     /// Sa taille sur le GPU, plus grande que dans le jeu avec un filtre ou un pack.
     stored: [f32; 2],
+    levels: u32,
     id: u64,
     crc: u32,
     /// Horloge de la mémoire quand le contenu a été vérifié pour la dernière fois.
@@ -203,6 +205,12 @@ struct TextureEntry {
     texture: wgpu::Texture,
     view: wgpu::TextureView,
 }
+
+/// Au-delà, les pipelines les moins récents sont oubliés : le pilote en garde plusieurs Mo chacun, mesuré sur 1 401 pipelines
+/// et 6 Go après une heure de jeu, alors qu'une scène n'en utilise qu'une centaine.
+const MAX_PIPELINES: usize = 256;
+/// Le registre des niveaux de chaque unité de texture (`GPUREG_TEXUNITi_LOD`).
+const LOD_REGS: [usize; 3] = [0x84, 0x94, 0x9C];
 
 #[derive(Clone, PartialEq, Eq, Hash)]
 struct PipelineKey {
@@ -256,7 +264,8 @@ pub struct Renderer {
     fs_ids: HashMap<String, u64>,
     fs_by_key: HashMap<[u32; 30], u64>,
     fs_modules: HashMap<u64, wgpu::ShaderModule>,
-    pipelines: HashMap<PipelineKey, wgpu::RenderPipeline>,
+    /// Avec le dernier dessin qui s'en est servi, pour oublier les plus anciens (`MAX_PIPELINES`).
+    pipelines: HashMap<PipelineKey, (wgpu::RenderPipeline, u64)>,
     textures: HashMap<(u32, usize, usize, u32), TextureEntry>,
     color_surfaces: Vec<ColorSurface>,
     depth_surfaces: Vec<DepthSurface>,
@@ -1078,6 +1087,7 @@ struct Out { @builtin(frag_depth) d: f32 }
 
     // --- les textures ---
 
+    #[allow(clippy::type_complexity)]
     fn get_texture(&mut self, state: &GpuState, memory: &mut Memory, unit: usize, target: usize) -> Option<(wgpu::TextureView, u64, [f32; 4], [u32; 4], [f32; 4])> {
         let regs = &state.regs;
         let (border_reg, address_reg, format_reg) = [(0x81usize, 0x85usize, 0x8Eusize), (0x91, 0x95, 0x96), (0x99, 0x9D, 0x9E)][unit];
@@ -1089,7 +1099,11 @@ struct Out { @builtin(frag_depth) d: f32 }
         if width == 0 || height == 0 {
             return None;
         }
-        let size = formats::texture_size(fmt, width, height);
+        // les niveaux suivent le premier en mémoire, chacun deux fois plus petit ; le matériel ne descend pas sous 8 points
+        let lod_config = regs[border_reg + 2 + 1];
+        let wanted = (lod_config >> 16) & 15;
+        let levels = (0..=wanted).take_while(|&n| width >> n >= 8 && height >> n >= 8).count().max(1) as u32;
+        let size: usize = (0..levels).map(|n| formats::texture_size(fmt, width >> n, height >> n)).sum();
         // Un modèle 3D (test de profondeur actif) dont la texture demande le point le plus proche : à la définition de la console
         // chaque point couvre à peu près un point d'écran, mais en plus grand il devient un bloc (flammes de Salamèche, personnages).
         // Répétée sur ses deux axes seulement : les décors sont faits de morceaux bord à bord, où le filtre ferait des coutures.
@@ -1170,7 +1184,7 @@ struct Out { @builtin(frag_depth) d: f32 }
             }
             self.flush_depth(i, memory);
         }
-        let key = (address, width, height, regs[format_reg] & 15);
+        let key = (address, width, height, regs[format_reg] & 15 | levels << 8);
         if self.trace_textures {
             eprintln!("texture {unit} {:x} {width}x{height} {:?}", address, fmt);
         }
@@ -1193,7 +1207,8 @@ struct Out { @builtin(frag_depth) d: f32 }
         }
         if fresh {
             let raw = memory.read(address, size).expect("plage lue");
-            let pixels = match formats::decode_texture(fmt, &raw, width, height) {
+            let base_size = formats::texture_size(fmt, width, height);
+            let pixels = match formats::decode_texture(fmt, &raw[..base_size], width, height) {
                 Ok(p) => p,
                 Err(e) => {
                     self.note(format!("texture illisible : {e}"));
@@ -1210,9 +1225,28 @@ struct Out { @builtin(frag_depth) d: f32 }
             // assez petite pour en valoir la peine : les grandes textures sont des images déjà détaillées
             let upscale = self.texture_filter != crate::upscale::TextureFilter::None && width <= 512 && height <= 512;
             let (mut stored_width, mut stored_height) = if upscale { (width * 2, height * 2) } else { (width, height) };
-            let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height, (matches!((config >> 12) & 7, 2 | 6 | 7), matches!((config >> 8) & 7, 2 | 6 | 7))) } else { pixels };
+            let repeats = (matches!((config >> 12) & 7, 2 | 6 | 7), matches!((config >> 8) & 7, 2 | 6 | 7));
+            let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height, repeats) } else { pixels };
+            let mut stored_levels = levels;
             if let Some(replacement) = self.texture_pack.as_ref().and_then(|folder| crate::images::load_png(&folder.join(format!("{new_crc:08x}.png")))) {
                 (stored_width, stored_height, pixels) = replacement;
+                stored_levels = 1; // une image de pack n'a que son niveau
+            } else {
+                let mut at = base_size;
+                for n in 1..levels {
+                    let (w, h) = (width >> n, height >> n);
+                    let level_size = formats::texture_size(fmt, w, h);
+                    let Ok(level) = formats::decode_texture(fmt, &raw[at..at + level_size], w, h) else {
+                        stored_levels = n;
+                        break;
+                    };
+                    at += level_size;
+                    if upscale {
+                        pixels.extend_from_slice(&crate::upscale::upscale2x(self.texture_filter, &level, w, h, repeats));
+                    } else {
+                        pixels.extend_from_slice(&level);
+                    }
+                }
             }
             if self.textures.len() > 200 {
                 self.textures.clear();
@@ -1225,7 +1259,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 &wgpu::TextureDescriptor {
                     label: Some("texture du jeu"),
                     size: wgpu::Extent3d { width: stored_width as u32, height: stored_height as u32, depth_or_array_layers: 1 },
-                    mip_level_count: 1,
+                    mip_level_count: stored_levels,
                     sample_count: 1,
                     dimension: wgpu::TextureDimension::D2,
                     format: COLOR_FORMAT,
@@ -1236,7 +1270,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 &pixels,
             );
             let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-            self.textures.insert(key, TextureEntry { stored: [stored_width as f32, stored_height as f32], id, crc: new_crc, checked: clock, texture, view });
+            self.textures.insert(key, TextureEntry { stored: [stored_width as f32, stored_height as f32], levels: stored_levels, id, crc: new_crc, checked: clock, texture, view });
         }
         let entry = &self.textures[&key];
         let _ = &entry.texture;
@@ -1244,7 +1278,8 @@ struct Out { @builtin(frag_depth) d: f32 }
             entry.view.clone(),
             entry.id,
             [entry.stored[0], entry.stored[1], linear, 2.0],
-            [(config >> 12) & 7, (config >> 8) & 7, 0, 0],
+            // z : le mélange entre niveaux (bit 24) ; w : les niveaux réellement stockés
+            [(config >> 12) & 7, (config >> 8) & 7, (config >> 24) & 1, entry.levels],
             byte_color(regs[border_reg]),
         ))
     }
@@ -1416,7 +1451,6 @@ struct Out { @builtin(frag_depth) d: f32 }
             (regs[0x100] & 3 != 0, "mode ombre ou gaz du tampon de couleur (0x100) non fait"),
             (regs[0xE0] & 7 == 7, "brouillard de gaz (0xE0) non fait"),
             
-            ((regs[0x84] >> 16) & 15 != 0, "texture 0 à plusieurs niveaux (0x84) : seul le premier est lu"),
             (state.seen[0x6D] && regs[0x6D] & 1 == 0, "tampon W (0x6D) non fait"),
             (regs[0x47] & 1 != 0, "plan de coupe utilisateur (0x47) non fait"),
         ] {
@@ -1447,6 +1481,17 @@ struct Out { @builtin(frag_depth) d: f32 }
                         uniform.tex_dim[unit] = dim;
                         uniform.tex_wrap[unit] = wrap;
                         uniform.tex_border[unit] = border;
+                        // biais signé en 1/256 (bits 0-12), niveaux max (16-19) et min (24-27) ; les tampons de rendu n'ont qu'un niveau
+                        let (lod, config) = (regs[LOD_REGS[unit]], regs[LOD_REGS[unit] - 1]);
+                        let last = wrap[3].saturating_sub(1).min((lod >> 16) & 15);
+                        let forced = dim[2] > 0.5 && (config >> 1) & 1 == 0;
+                        let min_linear = (config >> 2) & 1 != 0 || forced;
+                        uniform.tex_lod[unit] = [
+                            ((lod << 19) as i32 >> 19) as f32 / 256.0,
+                            ((lod >> 24) & 15).min(last) as f32,
+                            last as f32,
+                            if wrap[3] == 0 { -1.0 } else if min_linear { 1.0 } else { 0.0 },
+                        ];
                     }
                     None => {
                         // comme Azahar (NULL_SURFACE) : une texture sans adresse se lit en noir transparent (mode 0)
@@ -1576,11 +1621,21 @@ struct Out { @builtin(frag_depth) d: f32 }
         let stencil_reference = (regs[0x105] >> 16) & 255;
         let key = PipelineKey { vs: vs_id, fs: fs_id, blend, write_mask, depth: depth_state, cull: (regs[0x40] & 3) as u8 };
         if !self.pipelines.contains_key(&key) {
+            if self.pipelines.len() >= MAX_PIPELINES {
+                // la moitié la plus ancienne : un lieu quitté, recréé vite si on y revient grâce au cache sur disque
+                let mut uses: Vec<u64> = self.pipelines.values().map(|p| p.1).collect();
+                uses.sort_unstable();
+                let oldest = uses[uses.len() / 2];
+                self.pipelines.retain(|_, p| p.1 > oldest);
+            }
             let pipeline = self.build_pipeline(&key);
-            self.pipelines.insert(key.clone(), pipeline);
+            self.pipelines.insert(key.clone(), (pipeline, 0));
             self.stats.pipelines += 1;
         }
-        let pipeline = self.pipelines[&key].clone();
+        let draws = self.stats.draws;
+        let entry = self.pipelines.get_mut(&key).unwrap();
+        entry.1 = draws;
+        let pipeline = entry.0.clone();
         self.tick("pipeline", t);
         let t = self.now();
 

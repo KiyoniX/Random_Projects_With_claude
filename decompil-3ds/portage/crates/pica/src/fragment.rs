@@ -192,27 +192,52 @@ fn wrap_index(i: i32, size: i32, mode: u32) -> vec2<i32> {
     return vec2<i32>(select(md, 2 * size - 1 - md, md >= size), 1);
 }
 
-fn fetch_texel(unit: u32, ix: vec2<i32>, iy: vec2<i32>) -> vec4<f32> {
+fn fetch_texel(unit: u32, ix: vec2<i32>, iy: vec2<i32>, level: i32) -> vec4<f32> {
     var texel: vec4<f32>;
     let p = vec2<i32>(ix.x, iy.x);
-    if unit == 0u { texel = textureLoad(tex0, p, 0); }
-    else if unit == 1u { texel = textureLoad(tex1, p, 0); }
-    else { texel = textureLoad(tex2, p, 0); }
+    if unit == 0u { texel = textureLoad(tex0, p, level); }
+    else if unit == 1u { texel = textureLoad(tex1, p, level); }
+    else { texel = textureLoad(tex2, p, level); }
     if ix.y == 0 || iy.y == 0 { texel = u.tex_border[unit]; }
     return texel;
 }
 
+// Le niveau voulu d'après la réduction à l'écran : `getLod` d'Azahar, en points de la texture stockée (log2 de 0 : -inf, écrêté ensuite).
+fn texture_lod(unit: u32, uv: vec2<f32>) -> f32 {
+    let size = u.tex_dim[unit].xy;
+    let dx = abs(dpdx(uv)) * size;
+    let dy = abs(dpdy(uv)) * size;
+    return log2(max(max(dx.x, dx.y), max(dy.x, dy.y)));
+}
+
 // Échantillonnage fait à la main, comme le banc : la ligne 0 de la mémoire est le haut de l'image (v = 1).
-fn sample_unit(unit: u32, uv: vec2<f32>) -> vec4<f32> {
+fn sample_unit(unit: u32, uv: vec2<f32>, raw_lod: f32) -> vec4<f32> {
     let d = u.tex_dim[unit];
     if d.w < 0.5 { return vec4<f32>(0.0); }
-    let size = vec2<i32>(i32(d.x), i32(d.y));
-    var x = uv.x * d.x;
-    var y = d.y - uv.y * d.y;
+    let l = u.tex_lod[unit];
+    let lod = clamp(raw_lod + l.x, l.y, l.z);
+    // réduite : le filtre de réduction, sinon celui d'agrandissement
+    var mode = d.z;
+    if lod > 0.0 && l.w >= 0.0 { mode = select(0.0, max(d.z, 1.0), l.w > 0.5); }
+    if u.tex_wrap[unit].z != 0u {
+        let low = floor(lod);
+        let part = lod - low;
+        if part > 0.0 && low < l.z {
+            return mix(sample_level(unit, uv, i32(low), mode), sample_level(unit, uv, i32(low) + 1, mode), part);
+        }
+    }
+    return sample_level(unit, uv, i32(floor(lod + 0.5)), mode);
+}
+
+fn sample_level(unit: u32, uv: vec2<f32>, level: i32, mode: f32) -> vec4<f32> {
+    let d = u.tex_dim[unit];
+    let size = max(vec2<i32>(i32(d.x), i32(d.y)) >> vec2<u32>(u32(level)), vec2<i32>(1));
+    var x = uv.x * f32(size.x);
+    var y = f32(size.y) - uv.y * f32(size.y);
     let ws = u.tex_wrap[unit].x;
     let wt = u.tex_wrap[unit].y;
-    if d.z < 0.5 {
-        return fetch_texel(unit, wrap_index(i32(floor(x)), size.x, ws), wrap_index(i32(floor(y)), size.y, wt));
+    if mode < 0.5 {
+        return fetch_texel(unit, wrap_index(i32(floor(x)), size.x, ws), wrap_index(i32(floor(y)), size.y, wt), level);
     }
     x = x - 0.5;
     y = y - 0.5;
@@ -224,17 +249,17 @@ fn sample_unit(unit: u32, uv: vec2<f32>) -> vec4<f32> {
     let ix1 = wrap_index(i32(x0) + 1, size.x, ws);
     let iy0 = wrap_index(i32(y0), size.y, wt);
     let iy1 = wrap_index(i32(y0) + 1, size.y, wt);
-    let c00 = fetch_texel(unit, ix0, iy0);
-    let c10 = fetch_texel(unit, ix1, iy0);
-    let c01 = fetch_texel(unit, ix0, iy1);
-    let c11 = fetch_texel(unit, ix1, iy1);
+    let c00 = fetch_texel(unit, ix0, iy0, level);
+    let c10 = fetch_texel(unit, ix1, iy0, level);
+    let c01 = fetch_texel(unit, ix0, iy1, level);
+    let c11 = fetch_texel(unit, ix1, iy1, level);
     let w00 = (1.0 - fx) * (1.0 - fy);
     let w10 = fx * (1.0 - fy);
     let w01 = (1.0 - fx) * fy;
     let w11 = fx * fy;
     let plain = c00 * w00 + c10 * w10 + c01 * w01 + c11 * w11;
     // découpe en haute définition : les points nuls comptent pour la forme, et ne déteignent pas sur ce qui reste
-    if d.z > 1.5 {
+    if mode > 1.5 {
         let m00 = w00 * select(0.0, 1.0, c00.w > 0.0);
         let m10 = w10 * select(0.0, 1.0, c10.w > 0.0);
         let m01 = w01 * select(0.0, 1.0, c01.w > 0.0);
@@ -497,9 +522,11 @@ fn fs_main(in: FsIn) -> FsOut {
             if unit == 0 && (regs[0x83] >> 28) & 7 == 3 {
                 // texture projetée : coordonnées divisées par le w de la texture 0 (case 10), zéro si w est nul
                 let _ = writeln!(s, "    let pw = at[10];");
-                let _ = writeln!(s, "    let t0 = sample_unit(0u, select(vec2<f32>(at[{u}], at[{v}]) / pw, vec2<f32>(0.0), pw == 0.0));");
+                let _ = writeln!(s, "    let uv0 = select(vec2<f32>(at[{u}], at[{v}]) / pw, vec2<f32>(0.0), pw == 0.0);");
+                let _ = writeln!(s, "    let t0 = sample_unit(0u, uv0, texture_lod(0u, uv0));");
             } else {
-                let _ = writeln!(s, "    let t{unit} = sample_unit({unit}u, vec2<f32>(at[{u}], at[{v}]));");
+                let _ = writeln!(s, "    let uv{unit} = vec2<f32>(at[{u}], at[{v}]);");
+                let _ = writeln!(s, "    let t{unit} = sample_unit({unit}u, uv{unit}, texture_lod({unit}u, uv{unit}));");
             }
         } else {
             let _ = writeln!(s, "    let t{unit} = zero4;");

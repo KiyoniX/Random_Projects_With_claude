@@ -173,6 +173,8 @@ pub struct Kernel {
     pub process: ObjId,
     pub resource_limit: ObjId,
     pub threads: Vec<ObjId>,
+    /// Sans les fils finis : l'ordonnanceur les parcourt à chaque tour, et le jeu en crée plusieurs par seconde.
+    pub alive_threads: Vec<ObjId>,
     thread_ids: u32,
     /// Le fil dont le contexte est dans le processeur.
     pub loaded: Option<ObjId>,
@@ -217,6 +219,7 @@ impl Kernel {
             process: 0,
             resource_limit: 0,
             threads: Vec::new(),
+            alive_threads: Vec::new(),
             thread_ids: 0x40,
             loaded: None,
             current: None,
@@ -477,6 +480,7 @@ impl Kernel {
         thread.context = Some(context);
         thread.ready_since = ready;
         self.threads.push(id);
+        self.alive_threads.push(id);
         id
     }
 
@@ -569,7 +573,7 @@ impl Kernel {
     pub fn wake_waiters(&mut self) {
         loop {
             let mut waiting: Vec<ObjId> = self
-                .threads
+                .alive_threads
                 .iter()
                 .copied()
                 .filter(|&t| {
@@ -611,7 +615,7 @@ impl Kernel {
     }
 
     pub fn ready_threads(&self) -> Vec<ObjId> {
-        self.threads.iter().copied().filter(|&t| self.thread(t).state == ThreadState::Ready).collect()
+        self.alive_threads.iter().copied().filter(|&t| self.thread(t).state == ThreadState::Ready).collect()
     }
 
     pub fn pick(&self) -> Option<ObjId> {
@@ -620,14 +624,20 @@ impl Kernel {
 
     pub fn switch_to(&mut self, thread: ObjId) {
         if self.loaded != Some(thread) {
+            let mut finished = None;
             if let Some(loaded) = self.loaded {
                 if self.thread(loaded).state != ThreadState::Dead {
                     let saved = self.cpu.save();
                     self.thread_mut(loaded).context = saved;
+                } else {
+                    finished = self.thread_mut(loaded).context.take();
                 }
             }
             let context: CtxId = self.thread(thread).context.expect("fil sans contexte");
             self.cpu.restore(context);
+            if let Some(old) = finished {
+                self.cpu.free_context(old);
+            }
             let tls = self.thread(thread).tls;
             self.cpu.set(Reg::Tls, tls);
             self.loaded = Some(thread);

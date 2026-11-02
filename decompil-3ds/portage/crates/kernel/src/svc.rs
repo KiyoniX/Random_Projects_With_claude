@@ -264,6 +264,7 @@ impl Kernel {
     fn svc_exit_thread(&mut self, thread: ObjId) -> SvcResult {
         let tls = self.thread(thread).tls;
         self.thread_mut(thread).state = ThreadState::Dead;
+        self.alive_threads.retain(|&t| t != thread);
         self.tls_used.remove(&((tls - TLS_BASE) / TLS_SLOT));
         let (pc, lr, now, id) = (self.cpu.get(Reg::Pc).wrapping_sub(4), self.cpu.get(Reg::Lr), self.now, self.thread(thread).thread_id);
         self.journal.svc(now, id, 9, pc, lr, "ExitThread");
@@ -619,7 +620,7 @@ impl Kernel {
         };
         if kind == 0 {
             let mut waiting: Vec<ObjId> = self
-                .threads
+                .alive_threads
                 .iter()
                 .copied()
                 .filter(|&t| {
@@ -889,7 +890,7 @@ impl Kernel {
         let used = |name: u32| -> u64 {
             match name {
                 1 => self.committed() as u64 + self.code_size as u64,
-                2 => self.threads.iter().filter(|&&t| self.thread(t).state != ThreadState::Dead).count() as u64,
+                2 => self.alive_threads.len() as u64,
                 _ => 0,
             }
         };

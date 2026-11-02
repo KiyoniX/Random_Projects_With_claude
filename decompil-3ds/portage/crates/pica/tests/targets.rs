@@ -42,6 +42,11 @@ fn put_floats(memory: &mut [u8], at: usize, values: &[f32]) {
 
 /// `sample_uv` : les coordonnées de texture des trois sommets du second triangle.
 fn build(sample_uv: [[f32; 2]; 3]) -> Capture {
+    build_textured(sample_uv, 0, 0)
+}
+
+/// `config` et `lod` : les registres 0x83 et 0x84 de la texture du second triangle.
+fn build_textured(sample_uv: [[f32; 2]; 3], config: u32, lod: u32) -> Capture {
     let mut c = Capture::default();
     let mut set = |reg: usize, value: u32| {
         c.regs[reg] = value;
@@ -102,7 +107,8 @@ fn build(sample_uv: [[f32; 2]; 3]) -> Capture {
         write(0x52, 0x1F1F_0D0C),
         write(0x80, 1),
         write(0x82, (16 << 16) | 16),
-        write(0x83, 0),
+        write(0x83, config),
+        write(0x84, lod),
         write(0x85, 0x2001_0000 >> 3),
         write(0x8E, 0),
         write(0xC0, 0x0003_0003), // couleur et alpha : la texture 0 (les autres sources ne servent pas)
@@ -461,4 +467,29 @@ fn display_transfer_images_follow_the_memory_path_for_every_output_format() {
         assert_eq!(lazy_image, eager_image, "drapeaux {flags:#x} : image");
         assert_eq!(lazy_crc, eager_crc, "drapeaux {flags:#x} : mémoire");
     }
+}
+
+#[test]
+fn a_shrunken_texture_reads_its_next_level() {
+    // huit répétitions sur les seize points : très réduite. Le niveau 1 (8 x 8, juste après le niveau 0) est tout vert.
+    let uv = [[0.0, 0.0], [8.0, 0.0], [0.0, 8.0]];
+    let repeat = (2 << 12) | (2 << 8);
+    let color_at = |lod: u32| {
+        let mut capture = build_textured(uv, repeat, lod);
+        let region = capture.regions.iter_mut().find(|r| r.address == A).unwrap();
+        for texel in region.data[0x400..0x500].chunks_exact_mut(4) {
+            texel.copy_from_slice(&[255, 0, 255, 0]); // A, B, G, R en mémoire
+        }
+        let mut pica = replay(&capture, 1, false)?;
+        pica.finish();
+        let rgba = tiles(&pica, B);
+        let at = (14 * 16 + 1) * 4;
+        Some([rgba[at], rgba[at + 1], rgba[at + 2], rgba[at + 3]])
+    };
+    let Some(second) = color_at(1 << 16) else {
+        eprintln!("test sauté : pas de GPU Vulkan");
+        return;
+    };
+    assert_eq!(second, [0, 255, 0, 255], "niveau maximal 1 : le second niveau");
+    assert_ne!(color_at(0).unwrap()[1], 255, "niveau maximal 0 : jamais le vert du niveau 1");
 }

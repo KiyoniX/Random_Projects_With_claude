@@ -278,7 +278,9 @@ impl Drop for Context {
 pub struct NativeCpu {
     lib: Lib,
     modules: Rc<RefCell<Modules>>,
-    contexts: Vec<Context>,
+    /// Par `CtxId` ; vide quand le fil est fini (une fibre et 256 Ko de pile d'adresses de retour chacun, et le jeu crée
+    /// plusieurs fils par seconde).
+    contexts: Vec<Option<Context>>,
     cur: Option<CtxId>,
     request: bool,
     /// Budget restant de la tranche interrompue par un repère.
@@ -306,12 +308,12 @@ impl NativeCpu {
     }
 
     fn ctx(&self) -> &Context {
-        &self.contexts[self.cur.expect("aucun contexte chargé")]
+        self.contexts[self.cur.expect("aucun contexte chargé")].as_ref().expect("contexte rendu")
     }
 
     fn ctx_mut(&mut self) -> &mut Context {
         let i = self.cur.expect("aucun contexte chargé");
-        &mut self.contexts[i]
+        self.contexts[i].as_mut().expect("contexte rendu")
     }
 
     fn run_loop(&mut self, mut left: i64) -> Stop {
@@ -322,7 +324,7 @@ impl NativeCpu {
                 let pc = self.get(Reg::Pc);
                 return Stop::Limit { pc };
             }
-            let ctx = &mut self.contexts[index];
+            let ctx = self.contexts[index].as_mut().expect("contexte rendu");
             if !ctx.started {
                 ctx.started = true;
                 if unsafe { (lib.rt_has_entry)(ctx.entry) } == 0 {
@@ -336,7 +338,7 @@ impl NativeCpu {
             let budget = (left / BACKEDGE_WEIGHT as i64).max(1) as i32;
             let status = unsafe { (lib.host_resume)(ctx.ptr, cmd, arg, budget) };
             self.reprises += 1;
-            let ctx = &mut self.contexts[index];
+            let ctx = self.contexts[index].as_mut().expect("contexte rendu");
             let used = ((budget - ctx.st().budget.max(0)) as i64 * BACKEDGE_WEIGHT as i64).max(1);
             left -= used;
             ctx.next_cmd = (CMD_CONTINUE, 0);
@@ -440,7 +442,7 @@ impl Cpu for NativeCpu {
         st.fpexc = 0x4000_0000; // la VFP est ouverte et FPSCR vaut ce que pose le noyau de la console
         st.fpscr = 0x03C0_0000;
         st.excl_addr = 0xFFFF_FFFF;
-        self.contexts.push(ctx);
+        self.contexts.push(Some(ctx));
         self.contexts.len() - 1
     }
 
@@ -450,6 +452,11 @@ impl Cpu for NativeCpu {
 
     fn restore(&mut self, ctx: CtxId) {
         self.cur = Some(ctx);
+    }
+
+    fn free_context(&mut self, ctx: CtxId) {
+        debug_assert_ne!(self.cur, Some(ctx));
+        self.contexts[ctx] = None;
     }
 
     fn run(&mut self, max_instructions: u64) -> Stop {

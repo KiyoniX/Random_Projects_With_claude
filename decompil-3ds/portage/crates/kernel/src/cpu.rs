@@ -78,6 +78,8 @@ pub trait Cpu {
     /// Le contexte en cours (rien n'est copié : le fil reste « chargé » dans le processeur).
     fn save(&mut self) -> Option<CtxId>;
     fn restore(&mut self, ctx: CtxId);
+    /// Le fil de ce contexte est fini et un autre est chargé : ce qu'il occupe peut être rendu.
+    fn free_context(&mut self, _ctx: CtxId) {}
 
     /// Fait tourner le fil en cours pendant au plus `max_instructions` instructions comptées comme le banc.
     fn run(&mut self, max_instructions: u64) -> Stop;
