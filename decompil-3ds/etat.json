@@ -2219,6 +2219,10 @@
     {
       "date": "2026-11-01",
       "texte": "Plantage de l'utilisateur corrigé : toute adresse citée par un pointeur a son entrée (2 568 de plus sur code.bin). Audit du PICA : shader de géométrie sur le processeur, tables d'éclairage, quaternions opposés, transferts linéaires et petits écarts corrigés. Fenêtre de combat au premier menu, filtres ScaleForce et Anime4K, répétition respectée par les filtres. 88 noms du rendu relus et versés."
+    },
+    {
+      "date": "2026-11-02",
+      "texte": "Une partie depuis zéro de l'utilisateur jusqu'à la première arène, à ×5 (portage play --nouvelle-partie --vitesse 5, aussi dans le launcher), rejouée à l'identique grâce à l'heure, au mod et aux archives de départ. Une sauvegarde jamais formatée répond « non formatée », le jeu la crée. Fuite trouvée par mesure : chaque fil gardait sa fibre et 256 Ko ; 5,9 Go ramenés à 1,95 Go sur une heure de jeu, et l'ordonnanceur ne parcourt plus les fils morts. Combats double, triple et rotatif joués par des mods d'essai ; menu et colonne de 88 points dans le coin. Mipmaps et filtre de réduction dans le moteur."
     }
   ],
   "dump": {

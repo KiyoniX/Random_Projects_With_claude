@@ -55,6 +55,10 @@ impl Memory {
     /// Retire toutes les plages qui regardent l'un de ces tampons (le déchargement d'un module).
     pub fn remove_regions_of(&mut self, buffers: &[usize]) {
         self.regions.retain(|r| !buffers.contains(&r.buffer));
+        // plus rien ne les lit : sans ça, chaque module chargé garde une copie de son fichier jusqu'à la fin de la partie
+        for &buffer in buffers {
+            self.buffers[buffer] = Vec::new();
+        }
     }
 
     /// Où se trouve l'adresse : (numéro du tampon, décalage dans ce tampon), ou `None` (`Memory.locate`).

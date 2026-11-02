@@ -45,6 +45,10 @@ struct Settings {
     player: String,
     /// Le pack de textures : un dossier de `local/mods-build/textures`.
     texture_pack: Option<String>,
+    /// La partie à part, commencée de zéro, plutôt que celle de la console.
+    new_game: bool,
+    /// Le jeu avance tant de fois plus vite ; le son se coupe au-delà de 1.
+    speed: u32,
 }
 
 /// Les filtres de texture : (nom pour `portage play`, ce qu'on affiche).
@@ -52,7 +56,7 @@ const TEXTURE_FILTERS: [(&str, &str); 6] = [("aucun", "Aucun"), ("scale2x", "Sca
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100, texture_filter: "aucun".to_string(), smooth: false, texture_pack: None, archipelago: String::new(), player: String::new() }
+        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100, texture_filter: "aucun".to_string(), smooth: false, texture_pack: None, archipelago: String::new(), player: String::new(), new_game: false, speed: 1 }
     }
 }
 
@@ -77,6 +81,12 @@ impl Settings {
         }
         if let Some(name) = &self.game_mod {
             out.extend(["--mod".to_string(), root.join("local/mods-build").join(name).display().to_string()]);
+        }
+        if self.new_game {
+            out.push("--nouvelle-partie".to_string());
+        }
+        if self.speed > 1 {
+            out.extend(["--vitesse".to_string(), self.speed.to_string()]);
         }
         out
     }
@@ -208,6 +218,12 @@ impl eframe::App for Launcher {
                 ui.label("Volume");
                 ui.add(egui::Slider::new(&mut self.settings.volume, 0..=100));
                 ui.end_row();
+                ui.label("Vitesse");
+                ui.add(egui::Slider::new(&mut self.settings.speed, 1..=5).suffix(" x"));
+                ui.end_row();
+                ui.label("Partie");
+                ui.checkbox(&mut self.settings.new_game, "À part, commencée de zéro");
+                ui.end_row();
                 ui.label("Archipelago");
                 ui.horizontal(|ui| {
                     ui.add(egui::TextEdit::singleline(&mut self.settings.archipelago).hint_text("adresse:port").desired_width(170.0));
@@ -260,17 +276,19 @@ mod tests {
     fn arguments_follow_the_settings() {
         let root = Path::new("R");
         assert_eq!(Settings::default().arguments(root), ["play", "--scale", "2", "--combat", "coin", "--volume", "100", "--filtre-texture", "aucun"]);
-        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()), volume: 30, texture_filter: "mmpx".into(), smooth: true, texture_pack: None, archipelago: "h:1".into(), player: "K".into() };
+        let settings = Settings { scale: 4, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("pc".into()), volume: 30, texture_filter: "mmpx".into(), smooth: true, texture_pack: None, archipelago: "h:1".into(), player: "K".into(), ..Settings::default() };
         let arguments = settings.arguments(root);
         assert_eq!(&arguments[..16], ["play", "--scale", "4", "--combat", "menu", "--volume", "30", "--filtre-texture", "mmpx", "--lissage", "--ecrans", "deux", "--archipelago", "h:1", "--joueur", "K"]);
         assert_eq!(arguments[16], "--mod");
         assert!(arguments[17].ends_with("pc"));
+        let fast = Settings { new_game: true, speed: 5, ..Settings::default() }.arguments(root);
+        assert!(fast.ends_with(&["--nouvelle-partie".to_string(), "--vitesse".to_string(), "5".to_string()]));
     }
 
     #[test]
     fn settings_survive_a_file_and_a_missing_field() {
         let path = std::env::temp_dir().join(format!("reglages-{}/r.json", std::process::id()));
-        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()), volume: 7, texture_filter: "mmpx".into(), smooth: true, texture_pack: Some("hd".into()), archipelago: String::new(), player: String::new() };
+        let settings = Settings { scale: 3, screens: Screens::Both, combat: CombatUi::Menu, game_mod: Some("x".into()), volume: 7, texture_filter: "mmpx".into(), smooth: true, texture_pack: Some("hd".into()), archipelago: String::new(), player: String::new(), ..Settings::default() };
         save(&path, &settings).unwrap();
         assert_eq!(load(&path), settings);
         std::fs::write(&path, r#"{"scale": 1}"#).unwrap();

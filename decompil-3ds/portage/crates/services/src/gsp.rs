@@ -166,6 +166,13 @@ pub trait GpuBackend {
     fn vblank(&mut self, _k: &mut Kernel, _gsp: &Gsp) {}
 }
 
+/// Ces listes ne servent qu'à regarder les dernières entrées : une longue partie en ajoute des millions.
+fn keep_recent<T>(list: &mut Vec<T>) {
+    if list.len() >= 8192 {
+        list.drain(..4096);
+    }
+}
+
 pub struct Gsp {
     me: Weak<RefCell<Gsp>>,
     hid: Rc<RefCell<Hid>>,
@@ -484,6 +491,7 @@ impl Gsp {
             i += 2 + extra + (extra & 1);
         }
         self.lists.push((k.now, address, size, writes, draws.iter().map(|d| d.1).sum()));
+        keep_recent(&mut self.lists);
         let shown = if draws.is_empty() {
             "aucun".to_string()
         } else {
@@ -508,6 +516,7 @@ impl Gsp {
         k.shared(shared).write(base + 1, &[0]);
         self.current[screen] = Some((left, format, stride));
         self.frames[screen].push((k.now, left, format, stride));
+        keep_recent(&mut self.frames[screen]);
         if self.frames[screen].len() <= 3 {
             let text = format!("gsp : image annoncée pour l'écran du {} : {:#x}, {}, ligne de {} octets, format {:#x}",
                 if screen == 0 { "haut" } else { "bas" }, left, format_name(format & 7), stride, format);
