@@ -3,7 +3,7 @@
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-11-02",
-  "prochaine_action": "Pokémon X se joue en natif et tient sur la durée. À faire essayer par l'utilisateur : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Prochains chantiers : refonte des menus quand il aura validé l'esthétique, reverse du jeu (combat, sac, drapeaux) pour Archipelago, mods, nouveaux Pokémon.",
+  "prochaine_action": "L'utilisateur relit les modèles (page locale de outils/revue_modeles.py) ; traiter ses Non par cause commune. À lui faire essayer : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Couverture : dérouler les événements des zones, pas seulement les charger. Puis refonte des menus quand il aura validé l'esthétique, reverse du jeu pour Archipelago, mods, nouveaux Pokémon.",
   "fonctions": {
     "total": 254375,
     "identifiees": 254375,
@@ -2227,6 +2227,10 @@
     {
       "date": "2026-11-02",
       "texte": "Le cache de sommets survit à touch_all par une empreinte du contenu : étape de 179 à 11 s, images identiques. En fenêtre cachée, 4,5 fois le temps réel à l'échelle 2, 4,1 fois à l'échelle 4 sur 1 h 42 de jeu sans arrêt, 2,8 Go au plus, aucun à-coup de plus de 112 ms. Visée à la souris pour Otto Focus : le gyroscope et la pesanteur suivent la souris, à faire essayer à l'utilisateur."
+    },
+    {
+      "date": "2026-11-02",
+      "texte": "Le jeu lancé dans les 361 zones par une sauvegarde téléportée : 356 tiennent 60 s, et la 303 tient par ses vraies portes. Revue des 884 modèles dans une page locale : les avis de l'utilisateur ont mené à la ligne au milieu des modèles, un lissage de notre moteur qui franchissait le bord des textures, corrigé."
     }
   ],
   "dump": {
