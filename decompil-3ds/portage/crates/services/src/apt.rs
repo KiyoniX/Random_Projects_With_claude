@@ -5,8 +5,11 @@
 //! ReceiveParameter, la police partagée (un vrai bloc de mémoire partagée, premier mot à 2, police à +0x80, pointeurs
 //! laissés tels qu'ils sont dans le fichier : c'est le jeu qui les reloge).
 //! Simplifié : les commandes du bouton HOME, des applets, de la veille et de la sortie répondent 0 sans rien lancer ;
-//! aucune notification n'est jamais déposée (piège 2 du contrat).
+//! aucune notification n'est jamais déposée (piège 2 du contrat). Le saut d'application (PrepareToDoApplicationJump puis
+//! DoApplicationJump) est seulement noté : à l'ExitProcess qui suit, un saut vers soi relance le jeu, un autre l'arrête ;
+//! le paramètre et le hachage passés au titre suivant ne sont pas gardés.
 
+use kernel::bench::AppJump;
 use kernel::ipc::{Reply, Request, Service, unknown_command};
 use kernel::kernel::Kernel;
 use kernel::object::ObjId;
@@ -42,6 +45,8 @@ pub struct Apt {
     font: Option<(ObjId, String)>,
     pub startup_answers: Vec<String>,
     pub registered: bool,
+    /// Le saut préparé, que DoApplicationJump confirme.
+    jump: Option<AppJump>,
 }
 
 impl Apt {
@@ -59,12 +64,28 @@ impl Apt {
             font: None,
             startup_answers: Vec::new(),
             registered: false,
+            jump: None,
         }
     }
 
     fn note_startup(&mut self, k: &mut Kernel, name: &str) {
         self.startup_answers.push(name.to_string());
         k.on_apt_answer(name);
+    }
+
+    /// 3dbrew, APT PrepareToDoApplicationJump : drapeaux 0 = le titre donné, 1 = celui que garde ns (non servi),
+    /// 2 = le titre courant ; puis le titre (u64) et le média.
+    fn prepare_jump(&mut self, k: &mut Kernel, req: &Request) -> Reply {
+        let (flags, title) = (req.word(1) & 0xFF, req.word(2) as u64 | (req.word(3) as u64) << 32);
+        let jump = match flags {
+            2 => AppJump::Myself,
+            0 if title == k.bench.title_id => AppJump::Myself,
+            0 => AppJump::Elsewhere(format!("le titre {title:016x}")),
+            _ => AppJump::Elsewhere(format!("le titre gardé par ns (drapeaux {flags})")),
+        };
+        let note = format!("saut préparé : {jump:?}");
+        self.jump = Some(jump);
+        Reply::new(0).with_note(note)
     }
 
     fn get_lock_handle(&mut self, k: &mut Kernel, req: &Request) -> Reply {
@@ -248,7 +269,16 @@ impl Service for Apt {
             0x0D => self.receive_parameter(k, req),
             0x0E => self.glance_parameter(k, req),
             0x0F => self.cancel_parameter(req),
-            0x18 | 0x19 | 0x1E | 0x1F | 0x2B | 0x2C | 0x31 | 0x32 | 0x3B | 0x3E | 0x3F | 0x40 | 0x42 => ok_reply(),
+            0x18 | 0x19 | 0x1E | 0x1F | 0x2B | 0x2C | 0x3B | 0x3E | 0x3F | 0x40 | 0x42 => ok_reply(),
+            0x31 => self.prepare_jump(k, req),
+            0x32 => {
+                let Some(jump) = self.jump.take() else {
+                    return Reply::new(0).with_note("aucun saut préparé");
+                };
+                let note = format!("saut confirmé : {jump:?}, servi à la sortie du jeu");
+                k.bench.app_jump = Some(jump);
+                Reply::new(0).with_note(note)
+            }
             0x22 => {
                 k.note_event("le jeu prépare sa fermeture (PrepareToCloseApplication)");
                 Reply::new(0)
@@ -266,5 +296,57 @@ impl Service for Apt {
             0x4D => Reply::with_words(0xC880_CFFA, &[0]).with_note(format!("applet {:#x} absent du banc", req.word(1))),
             _ => unknown_command(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use kernel::cpu::Stop;
+    use kernel::testing::{Step, call, header, test_kernel, test_main_thread};
+    use std::cell::RefCell;
+    use std::rc::Rc;
+
+    const TITLE: u64 = 0x0004_0000_0005_5D00;
+
+    /// PrepareToDoApplicationJump (drapeaux, titre), DoApplicationJump comme le jeu l'envoie, puis svcExitProcess : rend la
+    /// raison de l'arrêt et la demande de relance.
+    fn jump_then_exit(flags: u32, title: u64) -> (String, bool) {
+        let (mut k, script) = test_kernel();
+        k.bench.title_id = TITLE;
+        let thread = test_main_thread(&mut k);
+        let apt: kernel::object::SharedService = Rc::new(RefCell::new(Apt::new(&mut k)));
+        let session = k.new_session(apt, "APT:U");
+        k.add_handle(session);
+        call(&mut k, thread, session, &[header(0x31, 4, 0), flags, title as u32, (title >> 32) as u32, 0]);
+        call(&mut k, thread, session, &[header(0x32, 2, 4), 0, 0, 2, 0, 0x802, 0]);
+        script.borrow_mut().push_back(Step { regs: vec![], stop: Stop::Svc { number: 3, pc: 0x10_0004 } });
+        let reason = k.run(1_000_000_000, &mut |_| None);
+        (reason, k.bench.restart_requested)
+    }
+
+    #[test]
+    fn a_jump_to_itself_then_exit_asks_for_a_restart() {
+        // drapeaux 2 : le titre courant, comme le jeu à la fin de la Ligue ; drapeaux 0 avec notre titre : pareil
+        assert_eq!(jump_then_exit(2, u64::MAX), (kernel::bench::RESTART.to_string(), true));
+        assert_eq!(jump_then_exit(0, TITLE), (kernel::bench::RESTART.to_string(), true));
+    }
+
+    #[test]
+    fn a_jump_elsewhere_keeps_the_stop_and_says_why() {
+        let (reason, restart) = jump_then_exit(0, 0x0004_0000_0005_5E00);
+        assert!(!restart);
+        assert!(reason.contains("0004000000055e00") && reason.contains("ne sait pas servir"), "{reason}");
+        let (reason, restart) = jump_then_exit(1, 0);
+        assert!(!restart && reason.contains("gardé par ns"), "{reason}");
+    }
+
+    #[test]
+    fn exit_without_a_jump_is_the_plain_stop() {
+        let (mut k, script) = test_kernel();
+        test_main_thread(&mut k);
+        script.borrow_mut().push_back(Step { regs: vec![], stop: Stop::Svc { number: 3, pc: 0x10_0004 } });
+        assert_eq!(k.run(1_000_000_000, &mut |_| None), "le jeu a appelé svcExitProcess");
+        assert!(!k.bench.restart_requested);
     }
 }

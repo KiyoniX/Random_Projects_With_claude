@@ -27,6 +27,8 @@ pub struct ExHeader {
     pub stack: u32,
     pub bss: u32,
     pub priority: u32,
+    /// Le titre (ARM11 Local System Capabilities, +0x200).
+    pub title_id: u64,
 }
 
 fn le32(data: &[u8], at: usize) -> u32 {
@@ -42,6 +44,7 @@ pub fn read_exheader(data: &[u8]) -> ExHeader {
         stack: le32(data, 0x1C),
         bss: le32(data, 0x3C),
         priority: data[0x20F] as u32,
+        title_id: le32(data, 0x200) as u64 | (le32(data, 0x204) as u64) << 32,
     }
 }
 
@@ -156,6 +159,8 @@ pub struct Bench {
     pub services: Vec<(String, SharedService)>,
     /// Avec `draw` : les chiffres du dessin, les dernières images des écrans et le GPU.
     pub drawing: Option<Shared>,
+    /// Les heures (ns du banc) où le jeu s'est relancé lui-même (`restart`).
+    pub restarts: Vec<u64>,
 }
 
 /// À côté du journal d'une partie : ses archives au départ, pour la rejouer.
@@ -200,19 +205,30 @@ fn days_since_1900(year: i64, month: i64, day: i64) -> i64 {
 
 impl Bench {
     pub fn new(options: Options) -> Result<Bench, String> {
-        let paths = options.paths();
         let names = Names::load(&options.root.join("fiches/pokemon-x.noms.tsv"),
             &options.root.join("local/analyse/maj/gh/funcs.tsv"),
             &options.root.parent().unwrap_or(Path::new(".")).join("carte-des-services/donnees.js"));
         let journal = Journal::new(Some(&options.out.join("journal.txt")), names, options.max_lines)
             .map_err(|e| format!("journal illisible : {e}"))?;
-        let code = std::fs::read(&paths.code).map_err(|e| format!("{} : {e}", paths.code.display()))?;
-        let exheader_bytes = std::fs::read(&paths.exheader).map_err(|e| format!("{} : {e}", paths.exheader.display()))?;
+        Bench::build(options, journal, None).map_err(|(e, _)| e)
+    }
+
+    /// `restart` passe `now` : le journal et l'horloge continuent, rien du départ (sauvegarde, notes du rejeu) n'est refait.
+    /// En cas d'échec, le journal revient avec l'erreur : la relance y écrit pourquoi elle s'arrête.
+    fn build(options: Options, journal: Journal, now: Option<u64>) -> Result<Bench, (String, Journal)> {
+        let paths = options.paths();
+        let read = |path: &Path| std::fs::read(path).map_err(|e| format!("{} : {e}", path.display()));
+        let loaded = (|| Ok::<_, String>((read(&paths.code)?, read(&paths.exheader)?, NativeCpu::load(&options.dll)?)))();
+        let (code, exheader_bytes, cpu) = match loaded {
+            Ok(loaded) => loaded,
+            Err(e) => return Err((e, journal)),
+        };
         let exheader = read_exheader(&exheader_bytes);
-        let cpu = NativeCpu::load(&options.dll)?;
         let mut memory = AddressSpace::new();
         memory.set_sink(cpu.page_sink());
         let mut kernel = Kernel::new(memory, Box::new(cpu), journal);
+        kernel.now = now.unwrap_or(0);
+        kernel.bench.title_id = exheader.title_id;
         kernel.log_all_svc = options.log_all_svc;
         kernel.bench.paths = paths;
         kernel.bench.presses = options.presses.clone();
@@ -235,14 +251,15 @@ impl Bench {
         }
         kernel.bench.region = 2;
         kernel.bench.turns_limit = options.turns;
-        let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None };
-        bench.map_program()?;
-        bench.register_services()?;
-        bench.kernel.watch_milestones()?;
-        Ok(bench)
+        let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None, restarts: Vec::new() };
+        let first = now.is_none();
+        match bench.map_program(first).and_then(|_| bench.register_services(first)).and_then(|_| bench.kernel.watch_milestones()) {
+            Ok(()) => Ok(bench),
+            Err(e) => Err((e, std::mem::replace(&mut bench.kernel.journal, Journal::in_memory(Names::default())))),
+        }
     }
 
-    fn map_program(&mut self) -> Result<(), String> {
+    fn map_program(&mut self, first: bool) -> Result<(), String> {
         let ex = self.exheader.clone();
         let k = &mut self.kernel;
         let mut offset = 0usize;
@@ -270,10 +287,10 @@ impl Bench {
         k.memory.map(SHARED_PAGE, PAGE, PERM_RW, "page partagée", None).map_err(|e| e.to_string())?;
         k.memory.map(0x1F00_0000, 0x60_0000, PERM_RW, "mémoire vidéo", None).map_err(|e| e.to_string())?;
         k.memory.map(0x1FF0_0000, 0x8_0000, PERM_RW, "mémoire du DSP", None).map_err(|e| e.to_string())?;
-        self.fill_config_pages()
+        self.fill_config_pages(first)
     }
 
-    fn fill_config_pages(&mut self) -> Result<(), String> {
+    fn fill_config_pages(&mut self, first: bool) -> Result<(), String> {
         let k = &mut self.kernel;
         let mut page = vec![0u8; PAGE as usize];
         let put32 = |page: &mut Vec<u8>, at: usize, v: u32| page[at..at + 4].copy_from_slice(&v.to_le_bytes());
@@ -294,12 +311,19 @@ impl Bench {
         let mut shared = vec![0u8; PAGE as usize];
         // en millisecondes depuis 1900 ; 2026-10-14 12:00:00 sauf en jeu : le banc et le rejeu ne dépendent pas du jour
         let milliseconds = self.options.clock_milliseconds.unwrap_or((days_since_1900(2026, 10, 14) * 86400 + 12 * 3600) as u64 * 1000);
-        shared[0x20..0x28].copy_from_slice(&milliseconds.to_le_bytes()); // DATETIME_0 : l'heure, et le tick de la mise à jour
-        shared[0x40..0x48].copy_from_slice(&milliseconds.to_le_bytes());
+        // à la relance, l'heure a avancé du temps du banc (`on_vblank` la tient ensuite au même compte)
+        let current = milliseconds + k.now / 1_000_000;
+        shared[0x20..0x28].copy_from_slice(&current.to_le_bytes()); // DATETIME_0 : l'heure, et le tick de la mise à jour
+        shared[0x40..0x48].copy_from_slice(&current.to_le_bytes());
         shared[0x04] = 1; // RUNNING_HW : console du commerce
         shared[0x67] = 0; // pas de réseau
         k.memory.write(SHARED_PAGE, &shared).map_err(|e| e.to_string())?;
         k.bench.start_milliseconds = milliseconds;
+        // à la relance, l'heure de la page partagée reprend d'elle-même (départ + temps du banc) ; le rejeu ne lit ces
+        // notes qu'au départ
+        if !first {
+            return Ok(());
+        }
         if self.options.clock_milliseconds.is_some() {
             k.journal.write(0, &format!("{}{milliseconds}", crate::replay::CLOCK_NOTE));
         }
@@ -309,11 +333,13 @@ impl Bench {
         Ok(())
     }
 
-    fn register_services(&mut self) -> Result<(), String> {
+    fn register_services(&mut self, first: bool) -> Result<(), String> {
         use services::{apt::Apt, dsp::Dsp, fs::FsUser, gsp::Gsp, ldr_ro::LdrRo, small::{Cfg, ErrF, Hid, Ptm}, srv::Srv};
         let k = &mut self.kernel;
         let paths = k.bench.paths.clone();
-        let note = if let Some(start) = &self.options.start_archives {
+        let note = if !first {
+            "sauvegarde gardée telle que le jeu l'a laissée (relance)".to_string()
+        } else if let Some(start) = &self.options.start_archives {
             let _ = std::fs::remove_dir_all(&paths.archives);
             services::fs::copy_tree(start, &paths.archives).map_err(|e| format!("{} : {e}", start.display()))?;
             format!("sauvegarde de départ reprise de {}", start.display())
@@ -322,12 +348,13 @@ impl Bench {
         } else {
             services::fs::prepare_archives(&paths, (!self.options.empty_save).then_some(&paths.save), Some(&paths.extdata))
         };
-        if self.options.keep_archives {
+        if self.options.keep_archives && first {
             let start = self.options.out.join(START_ARCHIVES);
             let _ = std::fs::remove_dir_all(&start);
             services::fs::copy_tree(&paths.archives, &start).map_err(|e| format!("{} : {e}", start.display()))?;
         }
-        k.bench.events.push((0, note));
+        let now = k.now;
+        k.bench.events.push((now, note));
         let srv = Rc::new(RefCell::new(Srv::new(k)));
         let errf = Rc::new(RefCell::new(ErrF));
         let add = |k: &mut Kernel, name: &str, service: SharedService, list: &mut Vec<(String, SharedService)>| {
@@ -347,6 +374,12 @@ impl Bench {
         // écrire la mémoire : le journal reste identique, l'image n'existe pas.
         let backend: Box<dyn GpuBackend> = if self.options.draw {
             let folder = (!self.options.live).then(|| self.options.out.join("images"));
+            // les images d'avant une relance restent : c'est la même partie
+            if let Some(entries) = folder.as_ref().filter(|_| first).and_then(|f| std::fs::read_dir(f).ok()) {
+                for entry in entries.flatten().filter(|e| e.path().extension().is_some_and(|x| x == "png")) {
+                    let _ = std::fs::remove_file(entry.path());
+                }
+            }
             let cache = self.options.root.join("local/portage/cache");
             let backend = PicaBackend::new(k, self.options.scale, folder, Some(&cache), &self.options.textures)?;
             self.drawing = Some(backend.shared());
@@ -402,7 +435,14 @@ impl Bench {
             }
             None
         };
-        let reason = self.kernel.run(limit, &mut should_stop);
+        let mut reason = self.kernel.run(limit, &mut should_stop);
+        while self.kernel.bench.restart_requested {
+            if let Err(e) = self.restart() {
+                reason = format!("relance impossible : {e}");
+                break;
+            }
+            reason = self.kernel.run(limit, &mut should_stop);
+        }
         self.elapsed = started.elapsed().as_secs_f64();
         let now = self.kernel.now;
         self.kernel.journal.write(now, &format!("=== arrêt : {reason}"));
@@ -415,7 +455,45 @@ impl Bench {
     pub fn run_slice(&mut self, limit_ns: u64) -> Option<String> {
         let mut should_stop = |k: &mut Kernel| k.bench.stop_request.clone();
         let reason = self.kernel.run(limit_ns, &mut should_stop);
+        if self.kernel.bench.restart_requested {
+            // la tranche suivante repart du jeu relancé
+            return self.restart().err().map(|e| format!("relance impossible : {e}"));
+        }
         (self.kernel.now < limit_ns).then_some(reason)
+    }
+
+    /// Le jeu a sauté vers lui-même : comme la console, un nouveau processus repart de zéro (mémoire, noyau, services,
+    /// processeur), avec les archives telles que le jeu les a laissées, le même journal et la même horloge.
+    /// Simplifié : le paramètre du saut (DeliverArg) n'est pas transmis et le menu HOME n'est pas traversé.
+    pub fn restart(&mut self) -> Result<(), String> {
+        let now = self.kernel.now;
+        // le C recompilé (repères, modules, pages) vit dans la DLL et sert au jeu relancé : il faut le rendre d'abord
+        self.kernel.release_cpu();
+        let mut journal = std::mem::replace(&mut self.kernel.journal, Journal::in_memory(Names::default()));
+        journal.write(now, kernel::bench::RESTART);
+        let mut options = std::mem::replace(&mut self.options, Options::new(Path::new(".")));
+        // la session Archipelago passe telle quelle au jeu relancé (`take_over`) : pas une seconde
+        let archipelago = options.archipelago.take();
+        let built = Bench::build(options, journal, Some(now));
+        let mut next = match built {
+            Ok(next) => next,
+            Err((e, journal)) => {
+                // plus de processeur pour continuer : l'arrêt est écrit dans le vrai journal
+                self.kernel.journal = journal;
+                return Err(e);
+            }
+        };
+        next.options.archipelago = archipelago;
+        next.kernel.take_over(&mut self.kernel);
+        // les images de la même partie continuent leur numéro : l'ordre trié reste celui du temps
+        if let (Some(old), Some(new)) = (&self.drawing, &next.drawing) {
+            new.take_over(old);
+        }
+        next.restarts = std::mem::take(&mut self.restarts);
+        next.restarts.push(now);
+        *self = next;
+        self.start();
+        Ok(())
     }
 
     /// Le résumé en texte (palier, arrêt, fils, comptes) : l'équivalent court de `resume.md`.
@@ -424,6 +502,10 @@ impl Bench {
         lines.push(format!("Palier atteint : {}", self.kernel.highest_milestone()));
         lines.push(format!("Arrêt : {reason}"));
         lines.push(format!("Temps du banc {:.3} s, temps du PC {:.1} s", self.kernel.now as f64 / 1e9, self.elapsed));
+        if !self.restarts.is_empty() {
+            let at: Vec<String> = self.restarts.iter().map(|t| format!("{:.3} s", *t as f64 / 1e9)).collect();
+            lines.push(format!("Relances du jeu : {} (à {}) ; paliers du premier processus, fils du dernier", at.len(), at.join(", ")));
+        }
         for (key, when, text) in &self.kernel.journal.milestones {
             lines.push(format!("  {:.3} ms  {key} : {text}", *when as f64 / 1e6));
         }

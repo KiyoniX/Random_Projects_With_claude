@@ -238,7 +238,17 @@ impl Kernel {
         let (pc, lr, now) = (self.cpu.get(Reg::Pc).wrapping_sub(4), self.cpu.get(Reg::Lr), self.now);
         let id = self.thread(thread).thread_id;
         self.journal.svc(now, id, 3, pc, lr, "ExitProcess");
-        Err(Stopped("le jeu a appelé svcExitProcess".into()).into())
+        let reason = match self.bench.app_jump.clone() {
+            Some(crate::bench::AppJump::Myself) => {
+                self.bench.restart_requested = true;
+                crate::bench::RESTART.to_string()
+            }
+            Some(crate::bench::AppJump::Elsewhere(target)) => {
+                format!("le jeu a appelé svcExitProcess pour sauter vers {target}, ce que le portage ne sait pas servir")
+            }
+            None => "le jeu a appelé svcExitProcess".to_string(),
+        };
+        Err(Stopped(reason).into())
     }
 
     // 0x08

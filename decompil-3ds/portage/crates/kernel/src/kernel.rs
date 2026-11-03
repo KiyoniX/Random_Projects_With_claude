@@ -659,6 +659,17 @@ impl Kernel {
         Ok(())
     }
 
+    /// Rend le processeur et sa table de pages comme neufs avant qu'un autre processus du jeu les reprenne : le C
+    /// recompilé garde ses repères, ses modules branchés et ses pages dans la DLL, qui reste chargée.
+    pub fn release_cpu(&mut self) {
+        for key in std::mem::take(&mut self.watchers).into_keys() {
+            self.cpu.unwatch(key);
+        }
+        // débrancher les pages débranche aussi les modules qui y sont ; le jeu relancé recharge les siens
+        self.memory.unmap_all();
+        self.journal.names.modules.clear();
+    }
+
     fn fire_watchers(&mut self, pc: u32) {
         let key = pc & !1;
         let Some(entries) = self.watchers.get_mut(&key) else { return };

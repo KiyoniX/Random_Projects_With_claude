@@ -21,6 +21,17 @@ const AMX_EXEC: u32 = 0x4cd938;
 const G_MODE_HASH: u32 = 0xd7477c97;
 /// Le pointeur vers l'objet qui porte le numéro de la zone courante, à +0x38.
 const ZONE_HOLDER: u32 = 0x5b1748;
+/// La raison d'arrêt d'un saut de l'application vers elle-même : le banc relance le jeu (`Bench::restart`).
+pub const RESTART: &str = "relance demandée par le jeu (saut vers lui-même puis svcExitProcess)";
+
+/// Un saut d'application demandé par le jeu (APT DoApplicationJump), servi à l'ExitProcess qui suit.
+#[derive(Clone, Debug, PartialEq)]
+pub enum AppJump {
+    Myself,
+    /// Un autre titre, ou une demande que le portage ne sait pas servir : sa description.
+    Elsewhere(String),
+}
+
 /// La requête de l'écran du bas qui ouvre la Carte dresseur : un `field::EventAppCall` de genre 5, créé et poussé par le
 /// terrain comme le font les natifs (local/analyse/pokemon-x/lancement-modules.md).
 pub const TRAINER_CARD_REQUEST: u32 = 8;
@@ -112,6 +123,11 @@ pub struct BenchState {
     /// Le stylet tenu en direct (la souris de la fenêtre) : X et Y sur l'écran du bas.
     pub touch: Option<(u16, u16)>,
     pub turns_limit: u64,
+    /// Le titre du jeu (exheader +0x200) : celui d'un saut « vers soi ».
+    pub title_id: u64,
+    pub app_jump: Option<AppJump>,
+    /// Le jeu est sorti après un saut vers lui-même : le banc doit le relancer.
+    pub restart_requested: bool,
 }
 
 impl BenchState {
@@ -323,6 +339,17 @@ impl Kernel {
                 self.bench.stop_request = Some(text);
             }
         }
+    }
+
+    /// Un processus relancé reprend du précédent ce qui n'est pas au jeu : les files de `--requete`, `--appli` et des dons
+    /// là où elles en étaient (un élément servi ne revient pas), la session Archipelago et ce que la fenêtre tient en direct.
+    pub fn take_over(&mut self, previous: &mut Kernel) {
+        let (old, new) = (&mut previous.bench, &mut self.bench);
+        new.requests = std::mem::take(&mut old.requests);
+        new.apps = std::mem::take(&mut old.apps);
+        new.gifts = std::mem::take(&mut old.gifts);
+        new.vblank_hook = old.vblank_hook.take();
+        (new.buttons, new.touch, new.circle, new.gyro) = (old.buttons, old.touch, old.circle, old.gyro);
     }
 
     /// Ouvre l'appli de `--appli` à la place de la Carte dresseur que la requête vient de demander : même événement, même

@@ -232,6 +232,8 @@ struct Play {
     smooth: bool,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
     touch_scene: bool,
+    /// Les relances du jeu déjà suivies (`Bench::restarts`).
+    restarts: usize,
 }
 
 /// Ce que `portage play` reçoit de la ligne de commande (les réglages du launcher).
@@ -294,6 +296,9 @@ impl Play {
             let start = Instant::now();
             if let Some(reason) = self.bench.run_slice(target) {
                 self.stopped = Some(reason);
+            }
+            if self.bench.restarts.len() != self.restarts {
+                self.follow_restart();
             }
             let spent = start.elapsed().as_secs_f64();
             self.second.run_seconds += spent;
@@ -463,6 +468,22 @@ impl Play {
     }
 }
 
+impl Play {
+    /// Le jeu s'est relancé : son GPU est neuf, la même fenêtre se rebranche dessus.
+    fn follow_restart(&mut self) {
+        self.restarts = self.bench.restarts.len();
+        let Some(shared) = self.bench.drawing.clone() else { return };
+        self.shared = shared;
+        let Some(window) = self.window.clone() else { return };
+        // la surface de l'ancien GPU rend la fenêtre avant que le nouveau ne la prenne
+        self.screens = None;
+        match Screens::new(window, self.shared.gpu.clone()) {
+            Ok(screens) => self.screens = Some(screens),
+            Err(e) => self.stopped = Some(e),
+        }
+    }
+}
+
 impl ApplicationHandler for Play {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_some() {
@@ -620,6 +641,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         both_screens,
         smooth,
         touch_scene: false,
+        restarts: 0,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());

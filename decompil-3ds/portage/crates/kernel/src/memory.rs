@@ -228,6 +228,13 @@ impl AddressSpace {
         Ok(region)
     }
 
+    /// Retire tout, et les pages données au processeur avec : sa table de pages vit plus longtemps que cet espace.
+    pub fn unmap_all(&mut self) {
+        for region in std::mem::take(&mut self.regions) {
+            self.sink_clear(region.start, region.size);
+        }
+    }
+
     /// Retire `[start, start+size)` ; une plage coupée en deux garde ses deux morceaux.
     pub fn unmap(&mut self, start: u32, size: u32) {
         let end = start as u64 + size as u64;
@@ -494,6 +501,26 @@ mod tests {
         assert_eq!(space.find(0x1000_2000).unwrap().perms, PERM_R);
         assert_eq!(space.find(0x1000_3000).unwrap().perms, PERM_RW);
         assert_eq!(space.u8(0x1000_3000).unwrap(), 7);
+    }
+
+    #[test]
+    fn unmap_all_hands_every_page_back_to_the_processor() {
+        // la table de pages du processeur : nombre de pages branchées
+        struct Count(Rc<std::cell::Cell<i64>>);
+        impl PageSink for Count {
+            fn map_pages(&mut self, _first: u32, pages: u32, host: *mut u8, _perms: u32) {
+                self.0.set(self.0.get() + if host.is_null() { -(pages as i64) } else { pages as i64 });
+            }
+        }
+        let live = Rc::new(std::cell::Cell::new(0));
+        let mut space = AddressSpace::new();
+        space.set_sink(Box::new(Count(live.clone())));
+        space.map(0x1000_0000, 0x4000, PERM_RW, "a", None).unwrap();
+        space.map(0x2000_0000, 0x1000, PERM_RW, "b", None).unwrap();
+        assert_eq!(live.get(), 5);
+        space.unmap_all();
+        assert_eq!(live.get(), 0);
+        assert!(!space.is_mapped(0x1000_0000, 1) && !space.is_mapped(0x2000_0000, 1));
     }
 
     #[test]

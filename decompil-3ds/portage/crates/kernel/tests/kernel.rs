@@ -459,3 +459,24 @@ fn exit_thread_releases_held_mutexes() {
     assert!(!k.is_free(mutex, dying), "le mutex est à son nouveau propriétaire");
     assert!(k.is_free(mutex, waiter));
 }
+
+#[test]
+fn a_restarted_process_does_not_serve_twice_what_was_served() {
+    let (mut previous, _) = test_kernel();
+    previous.bench.requests = [(10.0, 8), (20.0, 5)].into_iter().collect();
+    previous.bench.apps = [9, 0x15].into_iter().collect();
+    previous.bench.gifts = [(0.0, 17, 1), (0.0, 18, 2)].into_iter().collect();
+    previous.bench.buttons = 0x1;
+    // le premier de chaque file a été servi avant la sortie du jeu
+    previous.bench.requests.pop_front();
+    previous.bench.apps.pop_front();
+    previous.bench.gifts.pop_front();
+    let (mut next, _) = test_kernel();
+    next.bench.requests = [(10.0, 8), (20.0, 5)].into_iter().collect(); // ce que les options redonneraient
+    next.take_over(&mut previous);
+    assert_eq!(next.bench.requests.iter().copied().collect::<Vec<_>>(), [(20.0, 5)]);
+    assert_eq!(next.bench.apps.iter().copied().collect::<Vec<_>>(), [0x15]);
+    assert_eq!(next.bench.gifts.iter().copied().collect::<Vec<_>>(), [(0.0, 18, 2)]);
+    assert_eq!(next.bench.buttons, 0x1);
+    assert!(previous.bench.requests.is_empty() && previous.bench.gifts.is_empty());
+}

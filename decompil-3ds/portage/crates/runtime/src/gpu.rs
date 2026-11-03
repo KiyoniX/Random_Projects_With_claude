@@ -55,6 +55,13 @@ pub struct Shared {
     pub gpu: pica::render::Gpu,
 }
 
+impl Shared {
+    /// Le GPU du jeu relancé reprend le compte des images de la partie : leurs noms restent dans l'ordre du temps.
+    pub fn take_over(&self, previous: &Shared) {
+        self.stats.borrow_mut().snapshots = previous.stats.borrow().snapshots;
+    }
+}
+
 /// Ce que le rendu fait des textures du jeu.
 #[derive(Clone, Default)]
 pub struct TextureOptions {
@@ -101,11 +108,6 @@ impl PicaBackend {
             memory.map_external(VRAM, vram.host_pointer(), vram.size as usize, vram.backing.clone());
         }
         if let Some(folder) = &folder {
-            if let Ok(entries) = std::fs::read_dir(folder) {
-                for entry in entries.flatten().filter(|e| e.path().extension().is_some_and(|x| x == "png")) {
-                    let _ = std::fs::remove_file(entry.path());
-                }
-            }
             std::fs::create_dir_all(folder).map_err(|e| format!("{} : {e}", folder.display()))?;
         }
         let mut pica = Pica::live(memory, scale)?;
@@ -325,6 +327,25 @@ mod tests {
         let read = |name: &str| std::fs::read(folder.join(name)).unwrap();
         assert_ne!(read("003-002.60s-haut.png"), read("002-001.50s-haut.png"));
         assert_eq!(read("003-002.60s-bas.png"), read("002-001.50s-bas.png"));
+        let _ = std::fs::remove_dir_all(&folder);
+    }
+
+    #[test]
+    fn a_restarted_game_numbers_its_images_after_the_previous_ones() {
+        let folder = std::env::temp_dir().join(format!("runtime-relance-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&folder);
+        let Some((_, old)) = rig(Some(folder.clone())) else { return };
+        old.stats.borrow_mut().snapshots = 41;
+        let Some((mut k, mut gpu)) = rig(Some(folder.clone())) else { return };
+        gpu.shared().take_over(&old.shared());
+        let hid = Rc::new(RefCell::new(Hid::new(&mut k)));
+        let mut gsp = Gsp::new(&k, hid);
+        gsp.frames[1].push((0, LINEAR, 0, 960));
+        gsp.transfers = 1;
+        k.now = 700_000_000_000;
+        gpu.vblank(&mut k, &gsp);
+        let names: Vec<String> = std::fs::read_dir(&folder).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
+        assert_eq!(names, ["042-700.00s-bas.png"]);
         let _ = std::fs::remove_dir_all(&folder);
     }
 }
