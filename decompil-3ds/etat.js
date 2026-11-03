@@ -4,7 +4,7 @@ window.ETAT = {
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
  "mise_a_jour": "2026-11-03",
- "prochaine_action": "Couverture : 3 198 événements sur 3 226 (99,1 %), 1 069 modes d'entrée sur 1 080, 616 capacités sur 617, les 182 talents et 181 objets tenus que le combat sait brancher. Reste : 28 scripts (zones sans personnage, zones 251 à 254 dont le seul personnage ne répond pas), Éructation, 73 modules jamais chargés (27 DllTest*, réseau, et des applis comme DllConfig, DllReport, DllKawaigari). À l'utilisateur : relire les modèles (page locale de outils/revue_modeles.py), essayer la visée à la souris d'Otto Focus, choisir les contrôles d'Archipelago. Puis refonte des menus, mods, nouveaux Pokémon.",
+ "prochaine_action": "Couverture : 3 198 événements sur 3 226 (99,1 %), 1 069 modes d'entrée sur 1 080, 616 capacités sur 617, les 182 talents et 181 objets tenus que le combat sait brancher. Reste : 28 scripts (zones sans personnage, zones 251 à 254 dont le seul personnage ne répond pas), Éructation, 56 modules sur 133 jamais chargés (23 DllTest* et 4 de debug sans référence de chargement, réseau, mini-jeux de la Poké Récré) ; la hauteur des meubles et déclencheurs que teleporter lit en i32 (sans doute deux demi-mots : 273 meubles et 54 déclencheurs aberrants, presque tous muets). À l'utilisateur : relire les modèles (page locale de outils/revue_modeles.py), essayer la visée à la souris d'Otto Focus, choisir les contrôles d'Archipelago. Puis refonte des menus, mods, nouveaux Pokémon.",
  "fonctions": {
   "total": 264215,
   "identifiees": 264215,
@@ -2240,6 +2240,10 @@ window.ETAT = {
   {
    "date": "2026-11-03",
    "texte": "La couverture du jeu passe de 79,5 % à 99,1 % des événements (3 198 sur 3 226) et de 437 à 1 069 modes d'entrée sur 1 080. Un script qu'aucune entité ne lance est prêté à un personnage de sa zone (583 scripts, à part des 2 615 déroulés par leur vrai déclencheur) ; les modes d'entrée 0 et 1 viennent du vrai changement de zone, forcé par la sauvegarde. Le combat est mesuré à son tour : le runtime note chaque capacité lancée, talent et objet branché (trois guets dans DllBattle), et 616 capacités sur 617, 182 talents et 181 objets tenus passent dans le vrai moteur, sans un arrêt anormal."
+  },
+  {
+   "date": "2026-11-03",
+   "texte": "Les 617 capacités essayées dans les quatre formats de combat (simple, double, triple, rotation, par un mod qui change le dresseur 86) : 616 lancées dans chacun, sans un arrêt anormal. La fin du jeu jouée jusqu'au générique, puis le jeu relancé par lui-même comme sur console. Relu par un verificateur avant de pousser : guet du terrain borné à son miroir, test de combats sans local/, chiffres des modules (133, pas 135) et des applis (26 genres sur 34) corrigés."
   }
  ],
  "dump": {
@@ -2258,8 +2262,20 @@ window.ETAT = {
   "present": true,
   "code_octets": 5156864
  },
- "mise_a_jour_heure": "02/11/2026 à 23:13",
+ "mise_a_jour_heure": "03/11/2026",
  "commits": [
+  [
+   "2026-11-03",
+   "Décompil 3DS : la fin du jeu jouée jusqu'au bout, et le jeu qui se relance après le générique"
+  ],
+  [
+   "2026-11-03",
+   "Décompil 3DS : ouvrir les applis du terrain par leur genre (runtime --appli), 73 modules sur 135, et les capacités en double, triple, rotation"
+  ],
+  [
+   "2026-11-03",
+   "Décompil 3DS : couverture du jeu à 99,1 % des événements, et le combat mesuré (616 capacités, 182 talents, 181 objets tenus)"
+  ],
   [
    "2026-11-03",
    "Décompil 3DS : dérouler chaque événement des zones, 2 566 sur 3 226"

@@ -1,7 +1,7 @@
 """Un Pokémon de l'équipe dans la sauvegarde de Pokémon X : le lire et le changer (espèce, forme, capacités, talent, objet).
 
 Format d'après PKHeX, faits seulement ; vérifié sur les parties de l'utilisateur : la somme tombe juste, et les capacités lues
-sont celles des Pokémon de la partie (Feunnec : Griffe, Mimi-Queue, Flammèche, Nitrocharge). 0x104 octets : clé u32 à +0, somme
+sont celles des Pokémon de la partie. 0x104 octets : clé u32 à +0, somme
 u16 à +6, puis de +8 à +0xE8 des mots chiffrés par le générateur 0x41C64E6D, 0x6073 de graine la clé, dont le XOR est les 16
 bits hauts. Quatre blocs de 0x38 octets, mélangés selon (clé >> 13) & 31 modulo 24. Dans le bloc A : espèce u16 à +0, forme
 dans les 5 bits hauts de l'octet +0x15, objet tenu u16 à +0x2, talent u8 à +0xC (et à +0xD le numéro du talent pour

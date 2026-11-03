@@ -40,7 +40,7 @@ MODULE = os.path.join(revue_modeles.RACINE, 'local', 'extrait', 'maj', 'romfs', 
 TABLES = (0xD3848, 0xD5128)
 CASES = 182
 DERNIERE = 617
-# Le PP le plus bas d'une capacité : plus, et le jeu montrerait un compte faux
+# Les PP donnés à la capacité essayée ; assez pour un combat, la mesure ne regarde pas le compte
 PP = 5
 # le combat attend devant son menu à 27 s (revue_modeles.journal_de_depart)
 PREMIER_A_MS = 28000
@@ -167,9 +167,20 @@ def bilan(sortie):
     print('sans effet noté :', ', '.join(f"{n} {noms[int(n)]}" if '-' not in n else n for n in ratees))
 
 def test():
-    lignes = journal(40).split('\n')
+    import tempfile
+    # le journal de départ est fabriqué : les tests ne lisent rien de local/
+    with tempfile.TemporaryDirectory() as d:
+        with open(os.path.join(d, 'journal.txt'), 'w', encoding='utf-8') as f:
+            f.write('[     0.000 ms] horloge au départ : 0\n[  1000.000 ms] hid : boutons tenus 0x1\n'
+                    '[  1100.000 ms] hid : boutons tenus 0x0\n[ 99000.000 ms] hid : boutons tenus 0x1\n')
+        partie, revue_modeles.PARTIE = revue_modeles.PARTIE, d
+        try:
+            lignes = journal(40).split('\n')
+            avec_mod = journal(40, 'M').split('\n')
+        finally:
+            revue_modeles.PARTIE = partie
     assert 'mod :' not in lignes[1] and lignes[-2].endswith('boutons tenus 0x0'), 'sans mod, et A relâché à la fin'
-    assert journal(40, 'M').split('\n')[1] == '[     0.000 ms] mod : M'
+    assert avec_mod[1] == '[     0.000 ms] mod : M'
     assert mod_du_format('double').endswith(os.path.join('build-double', 'pc')) and mod_du_format('simple') is None
     heures = [float(l[1:l.index(' ms]')]) for l in lignes if ' ms]' in l]
     assert heures == sorted(heures) and heures[-1] < 40000, 'le rejeu lit les entrées dans l\'ordre'

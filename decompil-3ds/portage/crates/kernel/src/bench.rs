@@ -309,14 +309,15 @@ impl Kernel {
     /// entre deux images, d'où l'écriture juste avant la lecture. Un repère dans un module ne se pose qu'une fois celui-ci chargé.
     pub fn watch_requests(&mut self) {
         use std::rc::Rc;
-        let in_field = self.journal.names.modules.iter().any(|m| m.2 == "DllField");
+        // FIELD_TURN ne vaut que pour DllField chargé à 0x6a9000 : à un autre miroir, le guet tomberait dans un autre code
+        let in_field = self.journal.names.modules.iter().any(|m| m.2 == "DllField" && m.0 == 0x6a9000);
         if self.bench.requests_watched || self.bench.requests.is_empty() || !in_field {
             return;
         }
         self.bench.requests_watched = true;
         let watched = self.watch(FIELD_TURN, false, Rc::new(|k: &mut Kernel, _| {
             let Some(&(at, request)) = k.bench.requests.front() else { return };
-            let in_field = k.journal.names.modules.iter().any(|m| m.2 == "DllField");
+            let in_field = k.journal.names.modules.iter().any(|m| m.2 == "DllField" && m.0 == 0x6a9000);
             if !in_field || (k.now as f64 / 1e9) < at {
                 return;
             }
@@ -395,8 +396,9 @@ impl Kernel {
             7 => vec![(0, first), (4, 1)],
             8 | 9 => vec![(0, first)],
             // CallBoxSelect (0x3e4794) : des places dans la sauvegarde, l'équipe, le mode 6 et 3
-            0x15 => vec![(0, save + 0x3558), (4, save + 0x1ef38), (8, save + 0x399c), (0xc, party), (0x10, save + 0x129a8),
-                (0x14, save + 0x2d4), (0x18, save + 0xe78), (0x1c, word(self, data.wrapping_add(0x184))), (0x20, save + 0x3410),
+            0x15 => vec![(0, save.wrapping_add(0x3558)), (4, save.wrapping_add(0x1ef38)), (8, save.wrapping_add(0x399c)), (0xc, party),
+                (0x10, save.wrapping_add(0x129a8)), (0x14, save.wrapping_add(0x2d4)), (0x18, save.wrapping_add(0xe78)),
+                (0x1c, word(self, data.wrapping_add(0x184))), (0x20, save.wrapping_add(0x3410)),
                 (0x24, 6), (0x28, 0x0003_0000)],
             _ => vec![],
         };
