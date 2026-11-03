@@ -10,10 +10,7 @@ Pour chaque Pokémon, on rejoue la partie de `PARTIE` jusqu'au combat contre le 
 Pokémon (`a/0/4/0`), et une sauvegarde où il est aussi en tête de notre équipe. Tout ce que ça produit reste dans
 `local/analyse/modeles/` : les images viennent du jeu et la page n'est servie qu'à cette machine.
 
-Un Pokémon de l'équipe (0x104 octets, d'après PKHeX, faits seulement ; vérifié sur les parties de l'utilisateur : la somme
-tombe juste) : clé u32 à +0, somme u16 à +6, puis de +8 à +0xE8 des mots chiffrés par le générateur 0x41C64E6D, 0x6073 de
-graine la clé, dont le XOR est les 16 bits hauts. Quatre blocs de 0x38 octets, mélangés selon (clé >> 13) & 31 modulo 24. Dans
-le bloc A : espèce u16 à +0, forme dans les 5 bits hauts de l'octet +0x15.
+Le Pokémon de tête : `pk6.py`.
 
 Une équipe de dresseur à 8 octets par Pokémon (`a/0/4/0`) : niveau u16 à +2, espèce u16 à +4, forme u16 à +6.
 """
@@ -32,6 +29,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import garc
+import pk6
 import teleporter
 import texte
 
@@ -53,49 +51,11 @@ ECHELLE = 4
 # La caméra d'attente du combat tourne autour des deux Pokémon : une image toutes les deux secondes, dès qu'ils sont sortis.
 PREMIERE_VUE = 30
 PAS_DES_VUES = 2
-EQUIPE = 0x14200
-TAILLE_POKEMON = 0x104
-# Où est le bloc A parmi les quatre, pour chacun des 24 mélanges.
-BLOC_A = (0, 0, 0, 0, 0, 0, 1, 1, 2, 3, 2, 3, 1, 1, 2, 3, 2, 3, 1, 1, 2, 3, 2, 3)
-
-
-def chiffre(pokemon):
-    """Le chiffrement est un XOR : la même fonction déchiffre et chiffre le corps de 0xE0 octets."""
-    graine = struct.unpack_from('<I', pokemon, 0)[0]
-    rendu = bytearray(pokemon)
-    for i in range(8, 0xE8, 2):
-        graine = (graine * 0x41C64E6D + 0x6073) & 0xFFFFFFFF
-        struct.pack_into('<H', rendu, i, struct.unpack_from('<H', pokemon, i)[0] ^ (graine >> 16))
-    return bytes(rendu)
-
-
-def bloc_a(pokemon):
-    return 8 + BLOC_A[((struct.unpack_from('<I', pokemon, 0)[0] >> 13) & 31) % 24] * 0x38
-
-
-def somme(clair):
-    return sum(struct.unpack_from('<112H', clair, 8)) & 0xFFFF
-
-
-def changer_pokemon(pokemon, espece, forme):
-    """Rend ce Pokémon d'équipe (chiffré) devenu cette espèce et cette forme, la somme à jour."""
-    clair = bytearray(chiffre(pokemon))
-    if somme(clair) != struct.unpack_from('<H', clair, 6)[0]:
-        raise ValueError('Pokémon illisible : la somme ne tombe pas juste')
-    a = bloc_a(pokemon)
-    struct.pack_into('<H', clair, a, espece)
-    clair[a + 0x15] = (clair[a + 0x15] & 7) | (forme << 3)
-    struct.pack_into('<H', clair, 6, somme(clair))
-    return chiffre(bytes(clair))
 
 
 def sauvegarde_avec(sauvegarde, espece, forme):
     """La sauvegarde, ce Pokémon en tête d'équipe, le CRC du bloc de l'équipe à jour."""
-    copie = bytearray(sauvegarde)
-    copie[EQUIPE:EQUIPE + TAILLE_POKEMON] = changer_pokemon(sauvegarde[EQUIPE:EQUIPE + TAILLE_POKEMON], espece, forme)
-    longueur = struct.unpack_from('<I', copie, teleporter.PIED + 0x14 + 18 * 8)[0]
-    struct.pack_into('<H', copie, teleporter.PIED + 0x14 + 18 * 8 + 6, teleporter.crc16(copie[EQUIPE:EQUIPE + longueur]))
-    return bytes(copie)
+    return pk6.avec_tete(sauvegarde, lambda p: pk6.changer_pokemon(p, espece, forme))
 
 
 def equipes_avec(garc_equipes, espece, forme):
@@ -132,7 +92,8 @@ def journal_de_depart(mod):
                 if float(ligne[1:ligne.index(' ms]')]) > ENTREE_COMBAT_MS:
                     break
                 lignes.append(ligne.rstrip('\n'))
-    lignes.insert(1, f'[     0.000 ms] mod : {mod}')
+    if mod:
+        lignes.insert(1, f'[     0.000 ms] mod : {mod}')
     # A passe le « veut se battre », et le combat attend devant son menu
     # (la partie tenait A et B à la coupure : relâcher d'abord, sinon A n'est pas un nouvel appui)
     lignes += ['[ 21700.000 ms] hid : boutons tenus 0x0', '[ 27000.000 ms] hid : boutons tenus 0x1', '[ 27100.000 ms] hid : boutons tenus 0x0']
@@ -367,35 +328,6 @@ def test():
         assert lire_avis(chemin)['5:0']['note'] == 'coupé en travers', "l'avis est sur le disque"
         serv.shutdown()
         serv.server_close()
-    # un Pokémon fabriqué : la clé donne le mélange 8 (bloc A en troisième place)
-    cle = 8 << 13
-    clair = bytearray(TAILLE_POKEMON)
-    struct.pack_into('<I', clair, 0, cle)
-    a = 8 + 2 * 0x38
-    struct.pack_into('<H', clair, a, 25)
-    clair[a + 0x15] = 0b00001_010
-    clair[0x60] = 7
-    struct.pack_into('<H', clair, 6, somme(clair))
-    pokemon = chiffre(bytes(clair))
-    assert chiffre(pokemon) == bytes(clair), 'le chiffrement se défait'
-    assert bloc_a(pokemon) == a
-    change = chiffre(changer_pokemon(pokemon, 5, 3))
-    assert struct.unpack_from('<H', change, a) == (5,)
-    assert change[a + 0x15] == 0b00011_010, 'les bits bas de cet octet (sexe, rencontre) ne bougent pas'
-    assert change[0x60] == 7, 'le reste ne bouge pas'
-    assert somme(change) == struct.unpack_from('<H', change, 6)[0]
-    try:
-        changer_pokemon(bytes(TAILLE_POKEMON - 1) + b'\x01', 1, 0)
-    except (ValueError, struct.error):
-        pass
-    else:
-        raise AssertionError('un Pokémon illisible est refusé')
-    # une sauvegarde fabriquée : le bloc de l'équipe se recalcule
-    sauvegarde = bytearray(teleporter.TAILLE)
-    sauvegarde[EQUIPE:EQUIPE + TAILLE_POKEMON] = pokemon
-    struct.pack_into('<I', sauvegarde, teleporter.PIED + 0x14 + 18 * 8, 0x61C)
-    rendu = sauvegarde_avec(bytes(sauvegarde), 5, 0)
-    assert struct.unpack_from('<H', rendu, teleporter.PIED + 0x14 + 18 * 8 + 6) == (teleporter.crc16(rendu[EQUIPE:EQUIPE + 0x61C]),)
     # un GARC d'équipes et une table « personal » fabriqués
     entrees = [[bytes(8)] for _ in range(DRESSEUR + 1)]
     version = 0x0400

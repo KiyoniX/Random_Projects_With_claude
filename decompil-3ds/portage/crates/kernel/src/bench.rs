@@ -21,6 +21,15 @@ const AMX_EXEC: u32 = 0x4cd938;
 const G_MODE_HASH: u32 = 0xd7477c97;
 /// Le pointeur vers l'objet qui porte le numéro de la zone courante, à +0x38.
 const ZONE_HOLDER: u32 = 0x5b1748;
+// Décalages dans DllBattle des guets du combat (local/analyse/DllBattle/capacites.md).
+/// Appelée une seule fois par capacité lancée, à la fin de la fonction qui la déroule (DllBattle+0x1b028, seul appel en
+/// +0x1bda4) : r1 la capacité vraiment lancée, et, laissés par l'appelant, r11 celle qui était choisie et r6 le Pokémon.
+const MOVE_DONE: u32 = 0x1fc58;
+/// Branche un gestionnaire d'effets du combat : r0 son genre (4 un talent, 5 un objet tenu ; 0 à 3 capacité, place, camp,
+/// terrain), r1 le talent ou l'objet, [sp] le Pokémon.
+const FACTOR_ADD: u32 = 0x4d308;
+/// Annonce qu'un Pokémon a consommé son objet (Baie mangée, Herbe Blanche) : r1 le Pokémon, r2 l'objet.
+const ITEM_CONSUMED: u32 = 0x6b550;
 
 pub const APT_STARTUP: [&str; 9] = ["GetLockHandle", "Initialize", "Enable", "NotifyToWait", "GlanceParameter",
     "ReceiveParameter", "AppletUtility(7)", "AppletUtility(4)", "GetSharedFont"];
@@ -78,6 +87,8 @@ pub struct BenchState {
     /// Les requêtes de l'écran du bas à poser (`--requete`) : heure en s, numéro.
     pub requests: std::collections::VecDeque<(f64, u32)>,
     pub requests_watched: bool,
+    /// Les adresses de DllBattle où les guets du combat sont déjà posés : le module revient au même miroir à chaque combat.
+    pub battle_watched: Vec<u32>,
     /// Le pad circulaire tenu en direct (Shift et la croix du clavier) : X et Y, Y vers le haut.
     pub circle: (i16, i16),
     /// (début en s, durée en s, X, Y) : le pad circulaire programmé
@@ -143,6 +154,9 @@ impl Kernel {
         self.bench.cros.push((now, name.to_string(), address));
         // le processeur natif branche le C recompilé du module, s'il en a un pour ce code exact
         self.cpu.module_loaded(name, address, &self.memory);
+        if name == "DllBattle" {
+            self.watch_battle(address);
+        }
         self.check_milestones();
     }
 
@@ -294,6 +308,71 @@ impl Kernel {
         if let Err(text) = watched {
             self.bench.stop_request = Some(text);
         }
+    }
+
+    /// Pose les guets du combat dans DllBattle chargé à `base`. Le miroir dépend de ce qui est déjà chargé (0x6a9000
+    /// après le terrain, 0x6d1000 vu sous l'évolution), d'où une base lue au chargement plutôt qu'une constante.
+    fn watch_battle(&mut self, base: u32) {
+        use std::rc::Rc;
+        if self.bench.battle_watched.contains(&base) {
+            return;
+        }
+        self.bench.battle_watched.push(base);
+        let notes: [(u32, fn(&mut Kernel)); 3] =
+            [(MOVE_DONE, Kernel::note_move), (FACTOR_ADD, Kernel::note_factor), (ITEM_CONSUMED, Kernel::note_item_consumed)];
+        for (offset, note) in notes {
+            let watched = self.watch(base + offset, false, Rc::new(move |k: &mut Kernel, _| {
+                // le guet reste posé quand le module part : un autre module peut avoir une fonction à cette adresse
+                if k.journal.names.modules.iter().any(|m| m.0 == base && m.2 == "DllBattle") {
+                    note(k);
+                }
+            }));
+            if let Err(text) = watched {
+                self.note(&format!("combat : pas de guet à DllBattle+{offset:#x} ({text})"));
+            }
+        }
+    }
+
+    /// « par joueur (Pokémon 0) » : l'identifiant du Pokémon dans le combat, 0 à 5 l'équipe du joueur, 12 à 17 celle d'en
+    /// face, 6 à 11 et 18 à 23 celles des deux autres dresseurs d'un combat à quatre (premier identifiant de chaque
+    /// dresseur : DllBattle+0xd10db).
+    fn by_pokemon(id: u32) -> String {
+        format!("par {} (Pokémon {id})", if id < 12 { "joueur" } else { "adversaire" })
+    }
+
+    /// Note au journal chaque capacité que le moteur de combat lance, ce qui mesure les capacités vraiment jouées. Une
+    /// capacité qui en appelle une autre (Métronome) donne la capacité appelée, suivie de « appelée par » celle qui était choisie.
+    fn note_move(&mut self) {
+        let used = self.cpu.get(Reg::R(1)) & 0xffff;
+        let chosen = self.cpu.get(Reg::R(11)) & 0xffff;
+        let id = self.memory.u8(self.cpu.get(Reg::R(6)).wrapping_add(0x19)).unwrap_or(0xff);
+        let mut text = format!("capacité : {used} {}", Self::by_pokemon(id.into()));
+        if chosen != used {
+            text += &format!(" appelée par {chosen}");
+        }
+        let now = self.now;
+        self.journal.write(now, &text);
+    }
+
+    /// Note le talent ou l'objet tenu dont le combat branche les effets sur un Pokémon : à son entrée, et quand il change
+    /// (Calque, Passe-Passe). Seuls ceux qui ont des effets en combat sont branchés, les autres ne sont pas notés.
+    fn note_factor(&mut self) {
+        let kind = match self.cpu.get(Reg::R(0)) {
+            4 => "talent",
+            5 => "objet tenu",
+            _ => return,
+        };
+        let value = self.cpu.get(Reg::R(1)) & 0xffff;
+        let id = self.memory.u32(self.cpu.get(Reg::Sp)).unwrap_or(0xff) & 0xff;
+        let now = self.now;
+        self.journal.write(now, &format!("{kind} : {value} {}", Self::by_pokemon(id)));
+    }
+
+    fn note_item_consumed(&mut self) {
+        let item = self.cpu.get(Reg::R(2)) & 0xffff;
+        let id = self.memory.u8(self.cpu.get(Reg::R(1)).wrapping_add(0x19)).unwrap_or(0xff);
+        let now = self.now;
+        self.journal.write(now, &format!("objet consommé : {item} {}", Self::by_pokemon(id.into())));
     }
 
     /// Note au journal chaque script lancé : ce qui mesure les événements déroulés. Un script est un fichier et une valeur

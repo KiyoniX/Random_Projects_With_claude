@@ -105,10 +105,12 @@ def enregistrements(donnees_joueur, fichier, zone, x, hauteur, z, rail=None):
     return bytes(bloc + joueur)
 
 
-def placer(sauvegarde, zone, x, hauteur, z, fichier=None, compteurs=None, drapeaux=None, rail=None):
+def placer(sauvegarde, zone, x, hauteur, z, fichier=None, compteurs=None, drapeaux=None, rail=None, changement=False):
     """Rend une copie de la sauvegarde, le joueur à cette position, le CRC du bloc recalculé. Sans le fichier de la zone,
     ses personnages sont absents. `compteurs` et `drapeaux` (numéro : valeur) changent l'avancement de l'histoire. `rail`
-    (ligne, clé, front, côté) remplace la position dans les zones à rails."""
+    (ligne, clé, front, côté) remplace la position dans les zones à rails. `changement` : l'octet +0x14e du bloc 4 posé, la
+    Location de +0x70 (type 3) reprise de la première ; le jeu passe par le changement de zone, et la section 1 tourne en
+    modes 0 et 1 au lieu de 2 (essayé sur les zones 13, 53, 100 et 120) ; le joueur arrive alors à la porte."""
     if len(sauvegarde) != TAILLE or sauvegarde[PIED + 0x10:PIED + 0x14] != b'FEEB':
         raise ValueError("pas une sauvegarde de Pokémon X (taille ou signature)")
     copie = bytearray(sauvegarde)
@@ -128,6 +130,9 @@ def placer(sauvegarde, zone, x, hauteur, z, fichier=None, compteurs=None, drapea
     if rail:
         for champ in (debut + 0xC, debut + 0x100):
             ecrire_rail(copie, champ, rail, CASE)
+    if changement:
+        copie[debut + 0x14E] = 1
+        copie[debut + 0x70:debut + 0xA8] = struct.pack('<H', 3) + copie[debut + 2:debut + 0x38]
     for numero, valeur in (compteurs or {}).items():
         struct.pack_into('<H', copie, COMPTEURS + (numero - PREMIER_COMPTEUR) * 2, valeur)
     for numero, valeur in (drapeaux or {}).items():
@@ -258,6 +263,18 @@ def declencheurs(fichier):
     return rendu
 
 
+def preter(fichier, indice, script):
+    """Le fichier de zone décompressé, le personnage `indice` portant le script `script` : le bloc 10 que `placer` en tire
+    le lance quand on lui parle, pour essayer un script qu'aucune entité ne désigne."""
+    donnees = bytearray(lz11.decompresser(fichier) if fichier[0] == 0x11 else fichier)
+    debut, _ = struct.unpack_from('<II', donnees, 8)
+    meubles, nombre = donnees[debut + 4:debut + 6]
+    if indice >= nombre:
+        raise IndexError(f'la zone a {nombre} personnages')
+    struct.pack_into('<H', donnees, debut + 0xC + meubles * 0x14 + indice * 0x30 + 0xA, script)
+    return bytes(donnees)
+
+
 def premier_personnage(fichier):
     """La case du premier personnage d'un fichier de zone, ou None."""
     donnees = lz11.decompresser(fichier) if fichier[0] == 0x11 else fichier
@@ -299,6 +316,9 @@ def test():
     assert struct.unpack_from('<fff', rendu, 0x1410) == (8811, 36, 10611) == struct.unpack_from('<fff', rendu, 0x1504)
     assert struct.unpack_from('<H', rendu, PIED + 0x14 + 4 * 8 + 6) == (crc16(rendu[0x1400:0x1550]),)
     assert len(rendu) == TAILLE and rendu[:0x1400] == bytes(0x1400), 'le reste ne bouge pas'
+    change = placer(bytes(sauvegarde), 53, 8811, 36, 10611, changement=True)
+    assert change[0x154E] == 1 and change[0x1470:0x1474] == b'\x03\x00\x35\x00' and change[0x1474:0x14A8] == change[0x1404:0x1438]
+    assert struct.unpack_from('<H', change, PIED + 0x14 + 4 * 8 + 6) == (crc16(change[0x1400:0x1550]),)
     sauvegarde[0x2000] = 3
     assert placer(bytes(sauvegarde), 53, 0, 0, 0)[0x2000:0x4100] == bytes(0x2100), 'les personnages sont vidés'
     try:
@@ -317,6 +337,8 @@ def test():
     struct.pack_into('<HHf', fichier, 16 + 0xC + 0x28, 7, 8, 36.0)
     rendu = placer(bytes(sauvegarde), 53, 18, 36, 90, bytes(fichier))
     assert struct.unpack_from('<IHH', rendu, 0x2000) == (0x08010003, 0, 53) and struct.unpack_from('<H', rendu, 0x2010) == (77,)
+    assert placer(bytes(sauvegarde), 53, 18, 36, 90, preter(bytes(fichier), 0, 4321))[0x2010:0x2012] == struct.pack('<H', 4321)
+    assert personnages(preter(bytes(fichier), 0, 4321))[0][0] == 4321
     assert struct.unpack_from('<fff', rendu, 0x2040) == (7, 2, 8) == struct.unpack_from('<fff', rendu, 0x206C)
     assert rendu[0x2108 + 4] == 0xFF and struct.unpack_from('<H', rendu, 0x2108 + 6) == (53,)
     assert struct.unpack_from('<fff', rendu, 0x2108 + 0x40) == (1, 2, 5)

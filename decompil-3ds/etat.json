@@ -3,7 +3,7 @@
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
   "mise_a_jour": "2026-11-03",
-  "prochaine_action": "L'utilisateur relit les modèles (page locale de outils/revue_modeles.py) ; traiter ses Non par cause commune. À lui faire essayer : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Couverture : 2 566 événements déroulés sur 3 226 ; il reste surtout les scripts sans entité (réservations, appels en dur) et les meubles muets, puis les meubles et sorties des zones à rails. Puis refonte des menus quand il aura validé l'esthétique, Archipelago (catalogue prêt, contrôles à choisir), mods, nouveaux Pokémon.",
+  "prochaine_action": "Couverture : 3 198 événements sur 3 226 (99,1 %), 1 069 modes d'entrée sur 1 080, 616 capacités sur 617, les 182 talents et 181 objets tenus que le combat sait brancher. Reste : 28 scripts (zones sans personnage, zones 251 à 254 dont le seul personnage ne répond pas), Éructation, 73 modules jamais chargés (27 DllTest*, réseau, et des applis comme DllConfig, DllReport, DllKawaigari). À l'utilisateur : relire les modèles (page locale de outils/revue_modeles.py), essayer la visée à la souris d'Otto Focus, choisir les contrôles d'Archipelago. Puis refonte des menus, mods, nouveaux Pokémon.",
   "fonctions": {
     "total": 264215,
     "identifiees": 264215,
@@ -2235,6 +2235,10 @@
     {
       "date": "2026-11-03",
       "texte": "Les événements déroulés, pas seulement les zones chargées : chaque personnage, meuble, déclencheur, objet caché et scène d'entrée essayé un à un depuis une sauvegarde téléportée, 3 534 parties de 60 s sans une faute. 2 566 événements sur 3 226 (79,5 %). Les rues d'Illumis, sur rails, sont maintenant atteignables."
+    },
+    {
+      "date": "2026-11-03",
+      "texte": "La couverture du jeu passe de 79,5 % à 99,1 % des événements (3 198 sur 3 226) et de 437 à 1 069 modes d'entrée sur 1 080. Un script qu'aucune entité ne lance est prêté à un personnage de sa zone (583 scripts, à part des 2 615 déroulés par leur vrai déclencheur) ; les modes d'entrée 0 et 1 viennent du vrai changement de zone, forcé par la sauvegarde. Le combat est mesuré à son tour : le runtime note chaque capacité lancée, talent et objet branché (trois guets dans DllBattle), et 616 capacités sur 617, 182 talents et 181 objets tenus passent dans le vrai moteur, sans un arrêt anormal."
     }
   ],
   "dump": {

@@ -1,5 +1,6 @@
 """Lance les tests de tous les lecteurs de formats et du repérage des graines de Ghidra : python outils/tests.py"""
 import couverture
+import combats
 import cro_loader
 import elfer
 import firm
@@ -12,6 +13,7 @@ import ipc_trace
 import lz11
 import nand
 import oracles
+import pk6
 import revue_modeles
 import svc_check
 import texte
@@ -22,6 +24,8 @@ if __name__ == '__main__':
     garc.test()
     teleporter.test()
     tournee.test()
+    pk6.test()
+    combats.test()
     revue_modeles.test()
     inspecter.test()
     texte.test()

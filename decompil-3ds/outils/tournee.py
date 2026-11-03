@@ -8,6 +8,10 @@
     python tournee.py caches SORTIE [--secondes 70] [--travailleurs 10]              au sud de chaque objet caché, A
     python tournee.py rails SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]     les personnages sur rail, de part et d'autre
     python tournee.py declencheurs SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]  ceux que garde un compteur, à la bonne valeur
+    python tournee.py forcer SORTIE [--secondes 70] [--travailleurs 10] ESSAIS PARLER RAILS [--tous]  chaque (zone, script)
+                                                    d'ESSAIS (JSON) prêté à un personnage qui a répondu dans PARLER ou RAILS
+    python tournee.py arrivees SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]  chaque zone par le changement de zone
+                                                    (modes d'entrée 0 et 1 de la section 1), le robot ensuite
     python tournee.py bilan SORTIE
     python tournee.py test
 
@@ -95,7 +99,7 @@ def jouer_zone(sortie, zone, porte, secondes):
     jouer(os.path.join(sortie, f'{zone:03d}'), zone, porte or (360, 0, 360), entrees(zone, secondes), secondes)
 
 
-def jouer(d, zone, place, lignes, secondes, fichier=None, compteurs=None, drapeaux=None, rail=None):
+def jouer(d, zone, place, lignes, secondes, fichier=None, compteurs=None, drapeaux=None, rail=None, changement=False):
     if os.path.exists(os.path.join(d, 'verdict.json')):
         return
     shutil.rmtree(d, ignore_errors=True)
@@ -103,7 +107,8 @@ def jouer(d, zone, place, lignes, secondes, fichier=None, compteurs=None, drapea
     shutil.copytree(DEPART, os.path.join(d, 'in', 'depart', 'sauvegarde'))
     with open(os.path.join(DEPART, 'main'), 'rb') as f:
         depart = f.read()
-    placee = teleporter.placer(depart, zone, *place, fichier=fichier, compteurs=compteurs, drapeaux=drapeaux, rail=rail)
+    placee = teleporter.placer(depart, zone, *place, fichier=fichier, compteurs=compteurs, drapeaux=drapeaux, rail=rail,
+                               changement=changement)
     with open(os.path.join(d, 'in', 'depart', 'sauvegarde', 'main'), 'wb') as f:
         f.write(placee)
     journal = os.path.join(d, 'in', 'journal.txt')
@@ -148,6 +153,17 @@ def lancer(sortie, secondes, travailleurs, choisies):
     portes = teleporter.zones()
     with ThreadPoolExecutor(travailleurs) as ex:
         list(ex.map(lambda z: jouer_zone(sortie, z, portes[z], secondes), choisies or range(len(portes))))
+
+
+def arrivees(sortie, secondes, travailleurs, choisies):
+    os.makedirs(sortie, exist_ok=True)
+    portes = teleporter.zones()
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    # sans sortie ni personnage, la place par défaut de `jouer_zone`
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda z: jouer(os.path.join(sortie, f'{z:03d}'), z, portes[z] or (360, 0, 360), entrees(z, secondes), secondes,
+                                    fichiers[z][0], changement=True), choisies or range(len(portes))))
 
 
 def parler(sortie, secondes, travailleurs, choisies):
@@ -288,6 +304,93 @@ def rails(sortie, secondes, travailleurs, choisies):
         list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}-{e[2]}'), e[0], (0, 0, 0), entrees_parler(secondes, vers=e[4]), secondes, fichiers[e[0]][0], rail=e[3]), essais))
 
 
+COTES = ((1, -PAD), (-1, PAD))
+
+
+def personnes(fichier):
+    """Les personnages d'un fichier de zone que le bloc 10 peut porter : (indice, script, sur rail, champs de +0x28)."""
+    d = teleporter.lz11.decompresser(fichier) if fichier[0] == 0x11 else fichier
+    if d[:2] != b'ZO':
+        return []
+    debut, _ = struct.unpack_from('<II', d, 8)
+    meubles, nombre = d[debut + 4:debut + 6]
+    rendu = []
+    for i in range(min(nombre, teleporter.PERSONNAGES[2] // teleporter.ENREGISTREMENT - 1)):
+        q = debut + 0xC + meubles * 0x14 + i * 0x30
+        rendu.append((i, struct.unpack_from('<H', d, q + 0xA)[0], d[q + 0x24] == 1, d[q + 0x28:q + 0x30]))
+    return rendu
+
+
+def repondants(fichiers, parler_dossier, rails_dossier, tous=False):
+    """Pour chaque zone, où se poser pour parler à un personnage : (indice, place, rail, sens du pad). D'abord ceux qui ont
+    répondu dans les tournées `parler` et `rails`, puis, à défaut, le premier personnage hors rail de la zone, même sans
+    script (aucun n'a répondu : caché, ou mal placé ; on essaie quand même). `tous` : chaque personnage hors rail de la zone
+    vient ensuite, pour les scripts que le premier n'a pas lancés, puis chaque personnage sur rail, des deux côtés."""
+    rendu = collections.defaultdict(list)
+
+    def sud(champs):
+        x, z, h = struct.unpack('<HHf', champs)
+        return (x * teleporter.CASE + teleporter.CASE // 2, h, (z + 1) * teleporter.CASE + teleporter.CASE // 2)
+
+    for dossier in (parler_dossier, rails_dossier):
+        for p in sorted(glob.glob(os.path.join(dossier, '*', 'verdict.json'))):
+            with open(p, encoding='utf-8') as f:
+                v = json.load(f)
+            zone, script, *cote = map(int, v['dossier'].split('-'))
+            if [zone, 3, script] not in v['scripts']:
+                continue
+            for i, s, rail, champs in personnes(fichiers[zone][0]):
+                if s != script or rail != bool(cote):
+                    continue
+                if cote:
+                    ligne, front, c, cle = struct.unpack('<IhbB', champs)
+                    pas, vers = COTES[cote[0]]
+                    rendu[zone].append((i, (0, 0, 0), (ligne, cle, front, c + pas), vers))
+                else:
+                    rendu[zone].append((i, sud(champs), None, PAD))
+                break
+    for zone, (fichier, *_) in enumerate(fichiers):
+        if tous or not rendu[zone]:
+            deja = {e[0] for e in rendu[zone]}
+            rendu[zone] += [(i, sud(champs), None, PAD) for i, _, rail, champs in personnes(fichier) if not rail and i not in deja]
+            rendu[zone] = rendu[zone][:None if tous else 1]
+        if tous:
+            # sur rail, des deux côtés (zone 69 : sa scène d'entrée avait pris la main pendant la tournée `rails`)
+            for i, _, rail, champs in personnes(fichier):
+                if rail and i not in {e[0] for e in rendu[zone] if e[2]}:
+                    ligne, front, c, cle = struct.unpack('<IhbB', champs)
+                    rendu[zone] += [(i, (0, 0, 0), (ligne, cle, front, c + pas), vers) for pas, vers in COTES]
+    return rendu
+
+
+def forcer(sortie, secondes, travailleurs, essais, parler_dossier, rails_dossier, tous=False):
+    """Un script qu'aucune entité ne désigne (ou qu'aucune n'a lancé) est prêté à un personnage qui répond : on lui parle.
+    Le script tourne alors hors de son contexte d'origine ; il compte comme déroulé sans dire que son vrai déclencheur l'est.
+    Un personnage venu d'une autre zone ne se prête pas : recopié dans le bloc 10, il fait tomber le jeu sur un écran noir
+    (essayé sur les zones 5, 14, 89 et 107). `tous` : chaque personnage de la zone essayé, dossiers ZONE-SCRIPT-K. Les scènes
+    d'entrée de la zone sont désamorcées (leur compteur à la valeur suivante) : sinon la scène prend la main à l'arrivée et le
+    personnage ne parle plus (vu sur les zones 14, 89, 107, 182, 192 et 262, où le script 1 tournait à la place)."""
+    os.makedirs(sortie, exist_ok=True)
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    with open(essais, encoding='utf-8') as f:
+        demandes = json.load(f)
+    pretes = repondants(fichiers, parler_dossier, rails_dossier, tous)
+    travail = []
+    for zone, script in demandes:
+        if not pretes[zone]:
+            print('zone', zone, ': aucun personnage, script', script, 'laissé', flush=True)
+            continue
+        for k, (i, place, rail, vers) in enumerate(pretes[zone] if tous else pretes[zone][:1]):
+            nom = f'{zone:03d}-{script}' + (f'-{k}' if k else '')
+            calmes = {c: v + 1 for s, c, v in teleporter.scenes(fichiers[zone][0]) if s != script}
+            travail.append((nom, zone, place, teleporter.preter(fichiers[zone][0], i, script), rail, entrees_parler(secondes, vers=vers),
+                            calmes))
+    print(len(travail), 'essais', flush=True)
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(os.path.join(sortie, e[0]), e[1], e[2], e[5], secondes, e[3], e[6], rail=e[4]), travail))
+
+
 def bilan(sortie):
     vs = []
     for p in glob.glob(os.path.join(sortie, '*', 'verdict.json')):
@@ -327,6 +430,24 @@ def test():
     struct.pack_into('<6H', table, CACHES[0] - 0x100000 + 14, 9, 3, 40, 36, 50, 53)
     assert lire_caches(bytes(table))[1] == (53, 8009, 40, 36, 50)
     assert f'pad circulaire (0, {-PAD})' in entrees_parler(60, vers=-PAD)[4]
+    # deux zones fabriquées : la 0, un personnage sans script et un sur rail qui a répondu ; la 1, un seul, jamais essayé
+    import tempfile
+    entites = bytearray(0xC + 2 * 0x30)
+    entites[5] = 2
+    struct.pack_into('<HHf', entites, 0xC + 0x28, 3, 4, 36.0)
+    struct.pack_into('<H', entites, 0xC + 0x30 + 0xA, 12)
+    entites[0xC + 0x30 + 0x24] = 1
+    struct.pack_into('<IhbB', entites, 0xC + 0x30 + 0x28, 0x305AC3B, 3, -8, 1)
+    zone = b'ZO' + bytes(6) + struct.pack('<II', 16, 16 + len(entites)) + bytes(entites)
+    assert [p[:3] for p in personnes(zone)] == [(0, 0, False), (1, 12, True)]
+    with tempfile.TemporaryDirectory() as racine:
+        os.makedirs(os.path.join(racine, 'rails', '000-12-1'))
+        with open(os.path.join(racine, 'rails', '000-12-1', 'verdict.json'), 'w') as f:
+            json.dump({'dossier': '000-12-1', 'scripts': [[0, 3, 12]]}, f)
+        pretes = repondants([[zone], [zone]], os.path.join(racine, 'parler'), os.path.join(racine, 'rails'))
+        assert [e[0] for e in repondants([[zone]], os.path.join(racine, 'parler'), os.path.join(racine, 'rails'), True)[0]] == [1, 0], 'tous : le rail qui répond, puis les autres (sauf lui)'
+    assert pretes[0] == [(1, (0, 0, 0), (0x305AC3B, 1, 3, -9), PAD)], 'le côté - 1, le pad vers +PAD'
+    assert pretes[1] == [(0, (63, 36.0, 99), None, PAD)], 'à défaut, au sud du premier personnage hors rail'
     pas = entrees_parler(60, 700)
     assert 'pad circulaire (0, 0)' in pas[5] and pas[5].startswith(f'[{DEBUT_ROBOT_MS + 700:10.3f}'), 'le pas se tient 700 ms'
 
@@ -338,7 +459,7 @@ if __name__ == '__main__':
         print('ok  tournee')
     elif arg[0] == 'bilan':
         bilan(arg[1])
-    elif arg[0] in ('lancer', 'parler', 'fouiller', 'scenes', 'muets', 'caches', 'rails', 'declencheurs'):
+    elif arg[0] in ('lancer', 'parler', 'fouiller', 'scenes', 'muets', 'caches', 'rails', 'declencheurs', 'forcer', 'arrivees'):
         reste, secondes, travailleurs = arg[2:], 180 if arg[0] == 'lancer' else 70, 10
         for nom in ('--secondes', '--travailleurs'):
             if nom in reste:
@@ -351,7 +472,10 @@ if __name__ == '__main__':
                     travailleurs = valeur
         if arg[0] == 'muets':
             muets(arg[1], secondes, travailleurs, reste[0])
+        elif arg[0] == 'forcer':
+            forcer(arg[1], secondes, travailleurs, reste[0], reste[1], reste[2], '--tous' in reste)
         else:
-            {'lancer': lancer, 'parler': parler, 'fouiller': fouiller, 'scenes': scenes, 'caches': caches, 'rails': rails, 'declencheurs': declencheurs}[arg[0]](arg[1], secondes, travailleurs, [int(z) for z in reste])
+            {'lancer': lancer, 'parler': parler, 'fouiller': fouiller, 'scenes': scenes, 'caches': caches, 'rails': rails, 'declencheurs': declencheurs,
+             'arrivees': arrivees}[arg[0]](arg[1], secondes, travailleurs, [int(z) for z in reste])
     else:
         sys.exit(__doc__)
