@@ -3,8 +3,8 @@ window.ETAT = {
  "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
- "mise_a_jour": "2026-11-02",
- "prochaine_action": "L'utilisateur relit les modèles (page locale de outils/revue_modeles.py) ; traiter ses Non par cause commune. À lui faire essayer : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Couverture : dérouler les événements des zones, pas seulement les charger. Puis refonte des menus quand il aura validé l'esthétique, reverse du jeu pour Archipelago, mods, nouveaux Pokémon.",
+ "mise_a_jour": "2026-11-03",
+ "prochaine_action": "L'utilisateur relit les modèles (page locale de outils/revue_modeles.py) ; traiter ses Non par cause commune. À lui faire essayer : la visée à la souris d'Otto Focus, et ce qui reste en REPRISE §5. Couverture : 2 566 événements déroulés sur 3 226 ; il reste surtout les scripts sans entité (réservations, appels en dur) et les meubles muets, puis les meubles et sorties des zones à rails. Puis refonte des menus quand il aura validé l'esthétique, Archipelago (catalogue prêt, contrôles à choisir), mods, nouveaux Pokémon.",
  "fonctions": {
   "total": 264215,
   "identifiees": 264215,
@@ -2232,6 +2232,10 @@ window.ETAT = {
   {
    "date": "2026-11-02",
    "texte": "Le jeu lancé dans les 361 zones par une sauvegarde téléportée : 356 tiennent 60 s, et la 303 tient par ses vraies portes. Revue des 884 modèles dans une page locale : les avis de l'utilisateur ont mené à la ligne au milieu des modèles, un lissage de notre moteur qui franchissait le bord des textures, corrigé."
+  },
+  {
+   "date": "2026-11-03",
+   "texte": "Les événements déroulés, pas seulement les zones chargées : chaque personnage, meuble, déclencheur, objet caché et scène d'entrée essayé un à un depuis une sauvegarde téléportée, 3 534 parties de 60 s sans une faute. 2 566 événements sur 3 226 (79,5 %). Les rues d'Illumis, sur rails, sont maintenant atteignables."
   }
  ],
  "dump": {
@@ -2252,6 +2256,10 @@ window.ETAT = {
  },
  "mise_a_jour_heure": "02/11/2026 à 23:13",
  "commits": [
+  [
+   "2026-11-02",
+   "Décompil 3DS : mesurer les événements déroulés et ouvrir les applis du terrain sans leurs boutons"
+  ],
   [
    "2026-11-02",
    "Décompil 3DS : notes de reprise, la couverture des zones et la revue des modèles"

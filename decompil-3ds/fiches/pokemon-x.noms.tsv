@@ -1129,11 +1129,14 @@
 0x3ddd1c	function	script_file_cache_load
 0x3de330	function	script_work_get
 0x3de3dc	function	script_work_set
+0x3de4c0	function	global_set_child_param
+0x3de4f4	function	global_get_parent_param
 0x3de6c4	function	script_launch
 0x3de7c4	function	script_run_init_file32
 0x3de9ac	function	script_push_new
 0x3debcc	function	script_run_init_mode1
 0x3dee18	function	script_run_init_mode0
+0x3defd0	function	global_call
 0x3df164	function	script_run_init_mode2
 0x3df2d0	function	script_reserve
 0x3df818	function	script_zone_load
@@ -1190,6 +1193,7 @@
 0x4a6414	function	object_get_trainer_id
 0x4acd6c	function	script_file_cache_find
 0x4acfa0	function	script_flag_read
+0x4ad47c	function	hideitem_init_flags
 0x4b0e54	function	misc_get_badge
 0x4b0e9c	function	misc_get_badge_count
 0x4b0fe0	function	misc_get_bp

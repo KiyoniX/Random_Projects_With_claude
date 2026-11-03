@@ -2,6 +2,12 @@
 
     python tournee.py lancer SORTIE [--secondes 180] [--travailleurs 10] [ZONE...]   reprend là où il s'est arrêté
     python tournee.py parler SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]    le joueur posé devant chaque personnage, A
+    python tournee.py fouiller SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]  devant chaque meuble et déclencheur : un pas au nord, A
+    python tournee.py scenes SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]    chaque scène d'entrée, son compteur à la bonne valeur
+    python tournee.py muets SORTIE [--secondes 70] [--travailleurs 10] DOSSIER       les personnages muets de DOSSIER, scènes passées, leur drapeau inversé
+    python tournee.py caches SORTIE [--secondes 70] [--travailleurs 10]              au sud de chaque objet caché, A
+    python tournee.py rails SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]     les personnages sur rail, de part et d'autre
+    python tournee.py declencheurs SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]  ceux que garde un compteur, à la bonne valeur
     python tournee.py bilan SORTIE
     python tournee.py test
 
@@ -17,6 +23,7 @@ import os
 import random
 import re
 import shutil
+import struct
 import subprocess
 import sys
 import time
@@ -34,6 +41,7 @@ PAD = 156
 # Les deux appuis sur A de l'écran titre, relevés sur une vraie partie : à ces heures, le rejeu arrive à la partie sauvegardée.
 TITRE = ((21838.295, A), (21939.679, 0), (24258.088, A), (24358.378, 0))
 DEBUT_ROBOT_MS = 36000
+CACHES = (0x547118, 151)
 
 
 def entrees(graine, secondes):
@@ -54,11 +62,12 @@ def entrees(graine, secondes):
     return lignes
 
 
-def entrees_parler(secondes):
-    """Se tourner vers le nord, où est le personnage, puis A sans s'arrêter : il répond, et le dialogue défile."""
+def entrees_parler(secondes, tenu=120, vers=PAD):
+    """Se tourner vers le nord, où est le personnage, puis A sans s'arrêter : il répond, et le dialogue défile. Un nord tenu
+    plus longtemps fait un pas : c'est ce qui fait entrer sur un déclencheur, et un meuble ne laisse que se tourner."""
     lignes = [f'[{t:10.3f} ms] hid : boutons tenus {b:#x}' for t, b in TITRE]
-    lignes += [f'[{DEBUT_ROBOT_MS:10.3f} ms] hid : pad circulaire (0, {PAD})', f'[{DEBUT_ROBOT_MS + 120:10.3f} ms] hid : pad circulaire (0, 0)']
-    t = DEBUT_ROBOT_MS + 1000
+    lignes += [f'[{DEBUT_ROBOT_MS:10.3f} ms] hid : pad circulaire (0, {vers})', f'[{DEBUT_ROBOT_MS + tenu:10.3f} ms] hid : pad circulaire (0, 0)']
+    t = DEBUT_ROBOT_MS + tenu + 880
     while t < secondes * 1000:
         lignes.append(f'[{t:10.3f} ms] hid : boutons tenus {A:#x}')
         lignes.append(f'[{t + 150:10.3f} ms] hid : boutons tenus 0x0')
@@ -86,14 +95,15 @@ def jouer_zone(sortie, zone, porte, secondes):
     jouer(os.path.join(sortie, f'{zone:03d}'), zone, porte or (360, 0, 360), entrees(zone, secondes), secondes)
 
 
-def jouer(d, zone, place, lignes, secondes, fichier=None):
+def jouer(d, zone, place, lignes, secondes, fichier=None, compteurs=None, drapeaux=None, rail=None):
     if os.path.exists(os.path.join(d, 'verdict.json')):
         return
     shutil.rmtree(d, ignore_errors=True)
     os.makedirs(os.path.join(d, 'in', 'depart'))
     shutil.copytree(DEPART, os.path.join(d, 'in', 'depart', 'sauvegarde'))
     with open(os.path.join(DEPART, 'main'), 'rb') as f:
-        placee = teleporter.placer(f.read(), zone, *place, fichier=fichier)
+        depart = f.read()
+    placee = teleporter.placer(depart, zone, *place, fichier=fichier, compteurs=compteurs, drapeaux=drapeaux, rail=rail)
     with open(os.path.join(d, 'in', 'depart', 'sauvegarde', 'main'), 'wb') as f:
         f.write(placee)
     journal = os.path.join(d, 'in', 'journal.txt')
@@ -148,7 +158,7 @@ def parler(sortie, secondes, travailleurs, choisies):
     essais = []
     for zone in choisies or range(len(fichiers)):
         vus = set()
-        for script, x, z, h in teleporter.personnages(fichiers[zone][0]):
+        for script, x, z, h, _ in teleporter.personnages(fichiers[zone][0]):
             if script not in vus:
                 vus.add(script)
                 # sur la case au sud du personnage
@@ -157,6 +167,125 @@ def parler(sortie, secondes, travailleurs, choisies):
     lignes = entrees_parler(secondes)
     with ThreadPoolExecutor(travailleurs) as ex:
         list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}'), e[0], e[2], lignes, secondes, fichiers[e[0]][0]), essais))
+
+
+def fouiller(sortie, secondes, travailleurs, choisies):
+    os.makedirs(sortie, exist_ok=True)
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    essais = []
+    for zone in choisies or range(len(fichiers)):
+        vus = set()
+        for script, x, z, profondeur, h in teleporter.objets(fichiers[zone][0]):
+            if script not in vus:
+                vus.add(script)
+                # sur la case au sud de l'objet
+                essais.append((zone, script, (x * teleporter.CASE + teleporter.CASE // 2, h, (z + profondeur) * teleporter.CASE + teleporter.CASE // 2)))
+    print(len(essais), 'essais', flush=True)
+    lignes = entrees_parler(secondes, 700)
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}'), e[0], e[2], lignes, secondes, fichiers[e[0]][0]), essais))
+
+
+def declencheurs(sortie, secondes, travailleurs, choisies):
+    os.makedirs(sortie, exist_ok=True)
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    with open(os.path.join(DEPART, 'main'), 'rb') as f:
+        depart = f.read()
+    essais = []
+    for zone in choisies or range(len(fichiers)):
+        for i, (script, x, z, profondeur, h, compteur, valeur) in enumerate(teleporter.declencheurs(fichiers[zone][0])):
+            if struct.unpack_from('<H', depart, teleporter.COMPTEURS + (compteur - teleporter.PREMIER_COMPTEUR) * 2)[0] != valeur:
+                place = (x * teleporter.CASE + teleporter.CASE // 2, h, (z + profondeur) * teleporter.CASE + teleporter.CASE // 2)
+                essais.append((zone, script, i, place, {compteur: valeur}))
+    print(len(essais), 'essais', flush=True)
+    lignes = entrees_parler(secondes, 700)
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}-{e[2]}'), e[0], e[3], lignes, secondes, fichiers[e[0]][0], e[4]), essais))
+
+
+def scenes(sortie, secondes, travailleurs, choisies):
+    os.makedirs(sortie, exist_ok=True)
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    essais = []
+    for zone in choisies or range(len(fichiers)):
+        for i, (script, compteur, valeur) in enumerate(teleporter.scenes(fichiers[zone][0])):
+            essais.append((zone, script, i, compteur, valeur, teleporter.position(fichiers[zone][0]) or (360, 0, 360)))
+    print(len(essais), 'essais', flush=True)
+    lignes = entrees_parler(secondes)
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}-{e[2]}'), e[0], e[5], lignes, secondes, fichiers[e[0]][0], {e[3]: e[4]}), essais))
+
+
+def muets(sortie, secondes, travailleurs, dossier):
+    """Une scène d'entrée prend la main avant le personnage : ses compteurs sont mis après leur dernière valeur. Le drapeau
+    d'un personnage décide peut-être de sa présence (sens non établi : muets et parlants l'ont posé ou baissé) : il est inversé."""
+    os.makedirs(sortie, exist_ok=True)
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    with open(os.path.join(DEPART, 'main'), 'rb') as f:
+        depart = f.read()
+    essais = []
+    for p in glob.glob(os.path.join(dossier, '*', 'verdict.json')):
+        with open(p, encoding='utf-8') as f:
+            v = json.load(f)
+        zone, script = (int(x) for x in v['dossier'].split('-')[:2])
+        if any(s[0] == zone and s[2] == script for s in v['scripts']):
+            continue
+        compteurs = {}
+        for _, compteur, valeur in teleporter.scenes(fichiers[zone][0]):
+            compteurs[compteur] = max(compteurs.get(compteur, 0), valeur + 1)
+        x, z, h, drapeau = next((x, z, h, d) for s, x, z, h, d in teleporter.personnages(fichiers[zone][0]) if s == script)
+        drapeaux = {drapeau: not depart[teleporter.DRAPEAUX + drapeau // 8] >> (drapeau % 8) & 1} if 0 < drapeau < teleporter.NOMBRE_DRAPEAUX else {}
+        essais.append((zone, script, (x * teleporter.CASE + teleporter.CASE // 2, h, (z + 1) * teleporter.CASE + teleporter.CASE // 2), compteurs, drapeaux))
+    print(len(essais), 'essais', flush=True)
+    lignes = entrees_parler(secondes)
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}'), e[0], e[2], lignes, secondes, fichiers[e[0]][0], e[3], e[4]), essais))
+
+
+def lire_caches(code):
+    """La table des objets cachés lue par 0x4ad2dc : (zone, script, case X, hauteur, case Z). 14 octets par objet : script
+    moins 8000 à +0, X, hauteur, Z à +4, zone à +0xA."""
+    rendu = []
+    for i in range(CACHES[1]):
+        numero, _, x, h, z, zone = struct.unpack_from('<HHHhHH', code, CACHES[0] - 0x100000 + i * 14)
+        rendu.append((zone, 8000 + numero, x, h, z))
+    return rendu
+
+
+def caches(sortie, secondes, travailleurs, _):
+    os.makedirs(sortie, exist_ok=True)
+    with open(os.path.join(RACINE, 'local', 'extrait', 'maj', 'exefs', 'code.bin'), 'rb') as f:
+        essais = lire_caches(f.read())
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    print(len(essais), 'essais', flush=True)
+    lignes = entrees_parler(secondes)
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}'), e[0],
+                                    (e[2] * teleporter.CASE + teleporter.CASE // 2, e[3], (e[4] + 1) * teleporter.CASE + teleporter.CASE // 2),
+                                    lignes, secondes, fichiers[e[0]][0]), essais))
+
+
+def rails(sortie, secondes, travailleurs, choisies):
+    """Essayé sur la zone 63 : d'un côté du personnage (côté + 1 ou - 1), le regard vers lui, il répond. Le sens du côté
+    s'inverse peut-être avec la clé (0x5483f4, supposé) : les deux essais couvrent les deux cas."""
+    os.makedirs(sortie, exist_ok=True)
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    essais = []
+    for zone in choisies or range(len(fichiers)):
+        vus = set()
+        for script, ligne, cle, front, cote in teleporter.personnages_rail(fichiers[zone][0]):
+            if script not in vus:
+                vus.add(script)
+                essais += [(zone, script, i, (ligne, cle, front, cote + pas), vers) for i, (pas, vers) in enumerate(((1, -PAD), (-1, PAD)))]
+    print(len(essais), 'essais', flush=True)
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}-{e[2]}'), e[0], (0, 0, 0), entrees_parler(secondes, vers=e[4]), secondes, fichiers[e[0]][0], rail=e[3]), essais))
 
 
 def bilan(sortie):
@@ -179,8 +308,8 @@ def bilan(sortie):
         ecarts.update(v['ecarts'])
     print('écarts :', ecarts.most_common(20))
     print(f'scripts de zone lancés : {len({(s[0], s[2]) for v in vs for s in v.get("scripts", ()) if s[1] == 3})}')
-    # chaque essai de « parler » porte zone-script dans son nom : a-t-il lancé le script visé ?
-    essais = [(int(m.group(1)), int(m.group(2)), v) for v, m in ((v, re.match(r'(\d+)-(\d+)$', v.get('dossier', ''))) for v in vs) if m]
+    # chaque essai de « parler » et de « fouiller » porte zone-script dans son nom : a-t-il lancé le script visé ?
+    essais = [(int(m.group(1)), int(m.group(2)), v) for v, m in ((v, re.match(r'(\d+)-(\d+)(?:-\d+)?$', v.get('dossier', ''))) for v in vs) if m]
     if essais:
         print(f'personnages qui ont répondu : {sum(any(s[0] == z and s[2] == c for s in v["scripts"]) for z, c, v in essais)} / {len(essais)}')
 
@@ -194,6 +323,12 @@ def test():
     assert a[-1].endswith('0x0'), 'le robot ne finit pas un bouton tenu'
     b = [float(re.match(r'\[\s*([\d.]+) ms\]', l).group(1)) for l in entrees_parler(60)]
     assert b == sorted(b)
+    table = bytearray(CACHES[0] - 0x100000 + 14 * CACHES[1])
+    struct.pack_into('<6H', table, CACHES[0] - 0x100000 + 14, 9, 3, 40, 36, 50, 53)
+    assert lire_caches(bytes(table))[1] == (53, 8009, 40, 36, 50)
+    assert f'pad circulaire (0, {-PAD})' in entrees_parler(60, vers=-PAD)[4]
+    pas = entrees_parler(60, 700)
+    assert 'pad circulaire (0, 0)' in pas[5] and pas[5].startswith(f'[{DEBUT_ROBOT_MS + 700:10.3f}'), 'le pas se tient 700 ms'
 
 
 if __name__ == '__main__':
@@ -203,7 +338,7 @@ if __name__ == '__main__':
         print('ok  tournee')
     elif arg[0] == 'bilan':
         bilan(arg[1])
-    elif arg[0] in ('lancer', 'parler'):
+    elif arg[0] in ('lancer', 'parler', 'fouiller', 'scenes', 'muets', 'caches', 'rails', 'declencheurs'):
         reste, secondes, travailleurs = arg[2:], 180 if arg[0] == 'lancer' else 70, 10
         for nom in ('--secondes', '--travailleurs'):
             if nom in reste:
@@ -214,6 +349,9 @@ if __name__ == '__main__':
                     secondes = valeur
                 else:
                     travailleurs = valeur
-        (lancer if arg[0] == 'lancer' else parler)(arg[1], secondes, travailleurs, [int(z) for z in reste])
+        if arg[0] == 'muets':
+            muets(arg[1], secondes, travailleurs, reste[0])
+        else:
+            {'lancer': lancer, 'parler': parler, 'fouiller': fouiller, 'scenes': scenes, 'caches': caches, 'rails': rails, 'declencheurs': declencheurs}[arg[0]](arg[1], secondes, travailleurs, [int(z) for z in reste])
     else:
         sys.exit(__doc__)
