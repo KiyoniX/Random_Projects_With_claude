@@ -21,6 +21,14 @@ const AMX_EXEC: u32 = 0x4cd938;
 const G_MODE_HASH: u32 = 0xd7477c97;
 /// Le pointeur vers l'objet qui porte le numéro de la zone courante, à +0x38.
 const ZONE_HOLDER: u32 = 0x5b1748;
+/// La requête de l'écran du bas qui ouvre la Carte dresseur : un `field::EventAppCall` de genre 5, créé et poussé par le
+/// terrain comme le font les natifs (local/analyse/pokemon-x/lancement-modules.md).
+pub const TRAINER_CARD_REQUEST: u32 = 8;
+/// `field::EventAppCall` crée le Proc de son genre : r0 l'événement, genre à +0x1c, bloc de paramètres à +0x20.
+const APP_CREATE_PROC: u32 = 0x3b389c;
+/// Le bloc de paramètres donné aux applis de `--appli` : une plage que le jeu ne projette pas (vérifié au moment de la poser).
+const APP_BLOCK: u32 = 0x0f00_0000;
+const APP_BLOCK_SIZE: u32 = 0x1000;
 // Décalages dans DllBattle des guets du combat (local/analyse/DllBattle/capacites.md).
 /// Appelée une seule fois par capacité lancée, à la fin de la fonction qui la déroule (DllBattle+0x1b028, seul appel en
 /// +0x1bda4) : r1 la capacité vraiment lancée, et, laissés par l'appelant, r11 celle qui était choisie et r6 le Pokémon.
@@ -87,6 +95,8 @@ pub struct BenchState {
     /// Les requêtes de l'écran du bas à poser (`--requete`) : heure en s, numéro.
     pub requests: std::collections::VecDeque<(f64, u32)>,
     pub requests_watched: bool,
+    /// Les genres de `--appli` dans l'ordre : chacun remplace le genre de la prochaine Carte dresseur.
+    pub apps: std::collections::VecDeque<u32>,
     /// Les adresses de DllBattle où les guets du combat sont déjà posés : le module revient au même miroir à chaque combat.
     pub battle_watched: Vec<u32>,
     /// Le pad circulaire tenu en direct (Shift et la croix du clavier) : X et Y, Y vers le haut.
@@ -308,6 +318,65 @@ impl Kernel {
         if let Err(text) = watched {
             self.bench.stop_request = Some(text);
         }
+        if !self.bench.apps.is_empty() {
+            if let Err(text) = self.watch(APP_CREATE_PROC, false, Rc::new(|k: &mut Kernel, _| k.swap_app())) {
+                self.bench.stop_request = Some(text);
+            }
+        }
+    }
+
+    /// Ouvre l'appli de `--appli` à la place de la Carte dresseur que la requête vient de demander : même événement, même
+    /// retour au menu du terrain, seuls le genre et le bloc de paramètres changent, juste avant que l'aiguillage les lise.
+    /// Le bloc est à zéro sauf ce que `app_block` sait des natifs : une faute peut venir de lui plutôt que du portage.
+    fn swap_app(&mut self) {
+        let event = self.cpu.get(Reg::R(0));
+        if self.memory.u8(event.wrapping_add(0x1c)).unwrap_or(0) != 5 {
+            return;
+        }
+        let Some(kind) = self.bench.apps.pop_front() else { return };
+        const NAME: &str = "bloc de --appli";
+        match self.memory.find(APP_BLOCK).map(|r| r.name.to_string()) {
+            Some(name) if name == NAME => {}
+            Some(name) => return self.request_stop(&format!("appli : {APP_BLOCK:#x} est déjà pris par le jeu ({name})")),
+            None => {
+                if let Err(e) = self.memory.map(APP_BLOCK, APP_BLOCK_SIZE, crate::memory::PERM_RW, NAME, None) {
+                    return self.request_stop(&format!("appli : bloc de paramètres impossible à projeter ({e})"));
+                }
+            }
+        }
+        let _ = self.memory.fill(APP_BLOCK, APP_BLOCK_SIZE, 0);
+        let block = self.app_block(kind);
+        let _ = self.memory.w8(event.wrapping_add(0x1c), kind);
+        let _ = self.memory.w32(event.wrapping_add(0x20), block);
+        let now = self.now;
+        self.journal.write(now, &format!("appli : genre {kind} à la place de la Carte dresseur (événement {event:#x}, bloc {block:#x})"));
+    }
+
+    /// Le bloc de paramètres d'un genre, rempli comme le natif qui le pousse le remplit (adresses dans
+    /// local/analyse/pokemon-x/lancement-modules.md, section du 3/11) ; zéro pour les genres non relus. Rend son adresse.
+    fn app_block(&mut self, kind: u32) -> u32 {
+        let word = |k: &Kernel, a: u32| k.memory.u32(a).unwrap_or(0);
+        // [[0x5b1748]+0xc] : le gestionnaire de jeu que lisent les natifs ; +0x1c les données de la partie
+        let data = word(self, word(self, word(self, ZONE_HOLDER).wrapping_add(0xc)).wrapping_add(0x1c));
+        let save = word(self, data);
+        let party = word(self, data.wrapping_add(0x14));
+        let first = word(self, party);
+        let fields: Vec<(u32, u32)> = match kind {
+            // CallPC et _CallPhotoViewer ne donnent pas de bloc
+            4 | 0x21 => return 0,
+            // _CallWazaApps : le Pokémon (membre 0 de l'équipe), et pour 7 la capacité à apprendre (1, supposé)
+            7 => vec![(0, first), (4, 1)],
+            8 | 9 => vec![(0, first)],
+            // CallBoxSelect (0x3e4794) : des places dans la sauvegarde, l'équipe, le mode 6 et 3
+            0x15 => vec![(0, save + 0x3558), (4, save + 0x1ef38), (8, save + 0x399c), (0xc, party), (0x10, save + 0x129a8),
+                (0x14, save + 0x2d4), (0x18, save + 0xe78), (0x1c, word(self, data.wrapping_add(0x184))), (0x20, save + 0x3410),
+                (0x24, 6), (0x28, 0x0003_0000)],
+            _ => vec![],
+        };
+        for (offset, value) in fields {
+            let _ = self.memory.w32(APP_BLOCK + offset, value);
+        }
+        APP_BLOCK
     }
 
     /// Pose les guets du combat dans DllBattle chargé à `base`. Le miroir dépend de ce qui est déjà chargé (0x6a9000

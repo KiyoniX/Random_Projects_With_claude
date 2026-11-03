@@ -1,6 +1,6 @@
 """Chaque capacité du jeu lancée une fois en combat, dans le vrai moteur : ce qui mesure les capacités déroulées.
 
-    python combats.py capacites SORTIE [--travailleurs 6] [--secondes 100] [CAPACITE...]
+    python combats.py capacites SORTIE [--travailleurs 6] [--secondes 100] [--format double] [CAPACITE...]
     python combats.py tenues SORTIE [--travailleurs 6] [--secondes 100] [K...]   talent et objet tenu de la case K des tables
     python combats.py bilan SORTIE
     python combats.py test
@@ -12,6 +12,8 @@ DllBattle+0x1fc58, local/analyse/DllBattle/capacites.md). Une capacité notée a
 Les talents et les objets tenus de même (« talent : N », « objet tenu : N », branchés à l'entrée en combat ; « objet consommé :
 N »), local/analyse/DllBattle/talents.md : l'essai K donne au Pokémon de tête la case K de chacune des deux tables de 182
 gestionnaires de DllBattle. Le combat lit l'octet du talent lui-même : un talent que l'espèce n'a pas est accepté.
+`--format` double, triple ou rotation : le même combat, changé par le mod de `local/analyse/rendu/mods-test/build-FORMAT`
+(octet 2 du dresseur 86 ; notre Pokémon de tête est le seul à porter la capacité essayée).
 Rien de ceci n'est versionné : tout est écrit dans local/.
 """
 import glob
@@ -43,11 +45,16 @@ PP = 5
 # le combat attend devant son menu à 27 s (revue_modeles.journal_de_depart)
 PREMIER_A_MS = 28000
 PAS_A_MS = 700
+FORMATS = ('simple', 'double', 'triple', 'rotation')
 
 
-def journal(secondes):
+def mod_du_format(format):
+    return None if format == 'simple' else os.path.join(revue_modeles.RACINE, 'local', 'analyse', 'rendu', 'mods-test', f'build-{format}', 'pc')
+
+
+def journal(secondes, mod=None):
     """Les entrées jusqu'au combat, puis A toutes les 700 ms."""
-    lignes = revue_modeles.journal_de_depart(None).rstrip('\n').split('\n')
+    lignes = revue_modeles.journal_de_depart(mod).rstrip('\n').split('\n')
     t = PREMIER_A_MS
     while t + 150 < secondes * 1000:
         lignes += [f'[{t:10.3f} ms] hid : boutons tenus 0x1', f'[{t + 150:10.3f} ms] hid : boutons tenus 0x0']
@@ -111,12 +118,12 @@ def essayer(sortie, nom, changer, attendu, sauvegarde, lignes, secondes):
     print(nom, code, v['pc'], 's', 'faite' if v['faite'] else 'NON', arret[:60], flush=True)
 
 
-def tourner(sortie, secondes, travailleurs, essais):
+def tourner(sortie, secondes, travailleurs, essais, format='simple'):
     """`essais` : (nom, changer, attendu)."""
     os.makedirs(sortie, exist_ok=True)
     with open(os.path.join(revue_modeles.PARTIE, 'depart', 'sauvegarde', 'main'), 'rb') as f:
         sauvegarde = f.read()
-    lignes = journal(secondes)
+    lignes = journal(secondes, mod_du_format(format))
     with ThreadPoolExecutor(travailleurs) as ex:
         list(ex.map(lambda e: essayer(sortie, *e, sauvegarde, lignes, secondes), essais))
 
@@ -132,13 +139,13 @@ def essai_tenue(k, objets, talents):
     return f'{k:03d}-{talents[k]}-{objets[k]}', lambda p: pk6.changer_tenue(p, talents[k], objets[k]), attendu
 
 
-def capacites(sortie, secondes, travailleurs, choisies):
-    tourner(sortie, secondes, travailleurs, [essai_capacite(c) for c in choisies or range(1, DERNIERE + 1)])
+def capacites(sortie, secondes, travailleurs, choisies, format='simple'):
+    tourner(sortie, secondes, travailleurs, [essai_capacite(c) for c in choisies or range(1, DERNIERE + 1)], format)
 
 
-def tenues(sortie, secondes, travailleurs, choisies):
+def tenues(sortie, secondes, travailleurs, choisies, format='simple'):
     objets, talents = tables()
-    tourner(sortie, secondes, travailleurs, [essai_tenue(k, objets, talents) for k in choisies or range(CASES)])
+    tourner(sortie, secondes, travailleurs, [essai_tenue(k, objets, talents) for k in choisies or range(CASES)], format)
 
 
 def bilan(sortie):
@@ -162,6 +169,8 @@ def bilan(sortie):
 def test():
     lignes = journal(40).split('\n')
     assert 'mod :' not in lignes[1] and lignes[-2].endswith('boutons tenus 0x0'), 'sans mod, et A relâché à la fin'
+    assert journal(40, 'M').split('\n')[1] == '[     0.000 ms] mod : M'
+    assert mod_du_format('double').endswith(os.path.join('build-double', 'pc')) and mod_du_format('simple') is None
     heures = [float(l[1:l.index(' ms]')]) for l in lignes if ' ms]' in l]
     assert heures == sorted(heures) and heures[-1] < 40000, 'le rejeu lit les entrées dans l\'ordre'
     import tempfile
@@ -185,13 +194,15 @@ if __name__ == '__main__':
     elif arg[0] == 'bilan':
         bilan(arg[1])
     elif arg[0] in ('capacites', 'tenues'):
-        reste, secondes, travailleurs = arg[2:], 100, 6
-        for nom in ('--secondes', '--travailleurs'):
+        reste, options = arg[2:], {'--secondes': '100', '--travailleurs': '6', '--format': 'simple'}
+        for nom in options:
             if nom in reste:
                 i = reste.index(nom)
-                valeur = int(reste[i + 1])
+                options[nom] = reste[i + 1]
                 reste = reste[:i] + reste[i + 2:]
-                secondes, travailleurs = (valeur, travailleurs) if nom == '--secondes' else (secondes, valeur)
-        {'capacites': capacites, 'tenues': tenues}[arg[0]](arg[1], secondes, travailleurs, [int(c) for c in reste])
+        if options['--format'] not in FORMATS:
+            sys.exit(f"format inconnu : {options['--format']} ({', '.join(FORMATS)})")
+        {'capacites': capacites, 'tenues': tenues}[arg[0]](arg[1], int(options['--secondes']), int(options['--travailleurs']),
+                                                         [int(c) for c in reste], options['--format'])
     else:
         sys.exit(__doc__)

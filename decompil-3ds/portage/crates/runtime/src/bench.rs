@@ -57,6 +57,8 @@ pub struct Options {
     pub touches: Vec<(f64, f64, u16, u16)>,
     pub gifts: Vec<(f64, u32, u32)>,
     pub requests: Vec<(f64, u32)>,
+    /// (heure en s, genre) : les applis du terrain à ouvrir (`--appli`).
+    pub apps: Vec<(f64, u32)>,
     pub circles: Vec<(f64, f64, i16, i16)>,
     pub gyros: Vec<(f64, f64, [i16; 3])>,
     pub mod_dir: Option<PathBuf>,
@@ -107,6 +109,7 @@ impl Options {
             touches: Vec::new(),
             gifts: Vec::new(),
             requests: Vec::new(),
+            apps: Vec::new(),
             circles: Vec::new(),
             gyros: Vec::new(),
             mod_dir: None,
@@ -215,7 +218,14 @@ impl Bench {
         kernel.bench.presses = options.presses.clone();
         kernel.bench.touches = options.touches.clone();
         kernel.bench.gifts = options.gifts.iter().copied().collect();
-        kernel.bench.requests = options.requests.iter().copied().collect();
+        // une appli passe par la requête de la Carte dresseur, dont le genre est changé au moment de créer le Proc
+        let mut requests = options.requests.clone();
+        requests.extend(options.apps.iter().map(|&(at, _)| (at, kernel::bench::TRAINER_CARD_REQUEST)));
+        requests.sort_by(|a, b| a.0.total_cmp(&b.0));
+        kernel.bench.requests = requests.into_iter().collect();
+        let mut apps = options.apps.clone();
+        apps.sort_by(|a, b| a.0.total_cmp(&b.0));
+        kernel.bench.apps = apps.into_iter().map(|(_, kind)| kind).collect();
         kernel.bench.circles = options.circles.clone();
         kernel.bench.gyros = options.gyros.clone();
         kernel.bench.audio = options.audio.clone();
