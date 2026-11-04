@@ -64,6 +64,9 @@ pub fn upscale2x(filter: TextureFilter, rgba: &[u8], width: usize, height: usize
     for _ in 0..2 {
         bleed(&mut bled, &mut filled, width, height);
     }
+    // répétée pour le jeu ne veut pas dire faite pour l'être : une moitié de visage que le modèle reflète au milieu (Passerouge)
+    // a deux bords qui ne se raccordent pas, et les lire l'un après l'autre traçait un trait au milieu de la tête
+    let repeat = (repeat.0 && joins(&bled, width, height, true), repeat.1 && joins(&bled, width, height, false));
     let source = Source { rgba: &bled, width, height, repeat };
     let lines = if filter == TextureFilter::Anime4k { line_map(&source) } else { Vec::new() };
     let mut out = vec![0u8; width * height * 16];
@@ -84,6 +87,21 @@ pub fn upscale2x(filter: TextureFilter, rgba: &[u8], width: usize, height: usize
         }
     }
     out
+}
+
+/// Les deux bords opposés (gauche et droite si `across`, sinon haut et bas) se raccordent comme deux colonnes (lignes)
+/// voisines : leur écart moyen ne dépasse pas deux fois celui des voisines de l'image (plus un peu, pour les aplats).
+fn joins(rgba: &[u8], width: usize, height: usize, across: bool) -> bool {
+    let (n, along) = if across { (width, height) } else { (height, width) };
+    if n < 2 {
+        return true;
+    }
+    let at = |line: usize, k: usize| if across { (k * width + line) * 4 } else { (line * width + k) * 4 };
+    let gap = |a: usize, b: usize| -> f64 {
+        (0..along).map(|k| (0..3).map(|c| (rgba[at(a, k) + c] as f64 - rgba[at(b, k) + c] as f64).abs()).sum::<f64>()).sum::<f64>() / along as f64
+    };
+    let inner = (0..n - 1).map(|i| gap(i, i + 1)).sum::<f64>() / (n - 1) as f64;
+    gap(0, n - 1) <= 2.0 * inner + 12.0
 }
 
 /// Une passe : chaque point pas encore coloré prend la moyenne des couleurs de ses huit voisins colorés (s'il en a), son
@@ -412,19 +430,31 @@ mod tests {
 
     #[test]
     fn a_repeated_texture_reads_across_its_edge() {
-        // une colonne noire à gauche : répétée, le bord droit voit du noir et Catmull-Rom le suit
+        // un dégradé qui se raccorde (noir, gris, blanc, gris) : répété, le bord droit voit le noir de gauche
+        let mut pixels = Vec::new();
+        for _ in 0..4 {
+            pixels.extend_from_slice(&[K, G, W, G]);
+        }
+        let clamped = upscale2x(TextureFilter::Bicubic, &image(&pixels), 4, 4, CLAMP);
+        let repeated = upscale2x(TextureFilter::Bicubic, &image(&pixels), 4, 4, (true, false));
+        assert!(pixel(&repeated, 8, 7, 4)[0] < pixel(&clamped, 8, 7, 4)[0]);
+    }
+
+    #[test]
+    fn edges_that_do_not_join_are_not_wrapped() {
+        // une colonne noire à gauche, du blanc ailleurs (une moitié reflétée) : lue comme bordée, même répétée
         let mut pixels = Vec::new();
         for _ in 0..4 {
             pixels.extend_from_slice(&[K, W, W, W]);
         }
         let clamped = upscale2x(TextureFilter::Bicubic, &image(&pixels), 4, 4, CLAMP);
         let repeated = upscale2x(TextureFilter::Bicubic, &image(&pixels), 4, 4, (true, false));
-        assert_eq!(pixel(&clamped, 8, 7, 4), W);
-        assert!(pixel(&repeated, 8, 7, 4)[0] < 255);
+        assert_eq!(clamped, repeated);
     }
 
     const W: Pixel = [255, 255, 255, 255];
     const K: Pixel = [0, 0, 0, 255];
+    const G: Pixel = [128, 128, 128, 255];
 
     fn image(pixels: &[Pixel]) -> Vec<u8> {
         pixels.iter().flatten().copied().collect()
