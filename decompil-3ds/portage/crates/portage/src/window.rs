@@ -58,9 +58,10 @@ pub enum Layout {
     /// Pokémon de droite et l'ennemi de droite s'arrêtent vers x = 310.
     SmallCorner,
     SmallMoves,
-    /// Les boutons dessinés par la fenêtre (`ui`) : le menu du combat (Attaque, Pokémon, Sac, Fuite) ou les capacités et le
-    /// retour, en colonne en bas à droite ; vrai : plus étroite, avec plusieurs Pokémon de chaque côté. Chaque bouton garde
-    /// la zone que le jeu touche (`local/analyse/DllBattle/boutons-natifs.md`).
+    /// Les boutons dessinés par la fenêtre (`ui`) : le menu du combat (Attaque, Pokémon, Sac, Fuite) ou les quatre
+    /// capacités et le retour, en colonne en bas à droite ; vrai : plus étroite, avec plusieurs Pokémon de chaque côté.
+    /// Chaque bouton garde la zone que le jeu touche (`local/analyse/DllBattle/boutons-natifs.md`). La Méga-Évolution et
+    /// « Déplacer » du triple n'ont pas encore de pastille (quand le jeu les montre n'est pas lu) : Échap.
     NativeMenu(bool),
     NativeMoves(bool),
 }
@@ -169,8 +170,10 @@ impl Layout {
 
     /// Où vont les boutons dessinés par la fenêtre, dans l'ordre (vide hors de `NativeMenu` et `NativeMoves`).
     pub fn native_places(self) -> Vec<[f32; 4]> {
+        let bottom = self.pieces().into_iter().filter(|p| p.bottom).map(|p| p.to);
         match self {
-            Layout::NativeMenu(_) | Layout::NativeMoves(_) => self.pieces().iter().filter(|p| p.bottom).map(|p| p.to).collect(),
+            Layout::NativeMenu(_) => bottom.collect(),
+            Layout::NativeMoves(_) => bottom.collect(),
             _ => Vec::new(),
         }
     }
@@ -288,8 +291,9 @@ impl Screens {
         self.overlay = overlay.filter(|_| self.ui.is_some());
     }
 
-    /// L'image des boutons à la taille où la fenêtre les montre, refaite seulement si eux ou cette taille changent.
-    fn update_overlay(&mut self, layout: Layout) {
+    /// L'image des boutons à la taille où la fenêtre les montre, refaite seulement si eux ou cette taille changent : avant
+    /// de dessiner ou de capturer.
+    pub fn update_overlay(&mut self, layout: Layout) {
         let (Some((pills, area)), Some(ui)) = (&self.overlay, &self.ui) else { return };
         let (f, _, _) = layout.fit(self.config.width as f32, self.config.height as f32);
         let px = ((area[2] - area[0]) * f) as u32;
@@ -360,10 +364,11 @@ impl Screens {
             })
         };
         let overlay = self.overlay.as_ref().and(self.overlay_image.as_ref());
+        let natives = layout.native_places();
         let mut binds = Vec::new();
         for (piece, rect) in layout.pieces().iter().zip(&self.rects) {
             let Some(texture) = textures[piece.bottom as usize] else { continue };
-            if piece.bottom && overlay.is_some() {
+            if piece.bottom && overlay.is_some() && natives.contains(&piece.to) {
                 continue;
             }
             let (w, h) = if piece.bottom { (320.0, 240.0) } else { (400.0, 240.0) };
@@ -613,6 +618,8 @@ mod tests {
             assert!(places.windows(2).all(|w| w[0][3] <= w[1][1] + 0.01));
         }
         assert_eq!(Layout::NativeMoves(false).native_places().len(), 5, "quatre capacités et le retour");
+        // la dernière ligne touche le retour (panneau 0x7f, 250..320 x 190..240)
+        assert_eq!(Layout::NativeMoves(false).bottom_point(800.0, 480.0, 700.0, 466.0).map(|p| p.0 >= 250 && p.1 >= 190), Some(true));
         assert!(Layout::Moves.native_places().is_empty());
     }
 

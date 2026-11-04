@@ -1,5 +1,6 @@
 //! Ce que la fenêtre lit elle-même dans les fichiers du jeu pour dessiner les boutons du combat : les noms des capacités
-//! (texte 13 de `a/0/7/5`, le français) et leurs données (`a/2/1/2` : type à l'octet 0, catégorie à l'octet 2, voir
+//! (texte 13 de `a/0/7/5`, le français, quelle que soit la langue choisie au lancement du jeu : à suivre si l'on joue dans
+//! une autre langue) et leurs données (`a/2/1/2` : type à l'octet 0, catégorie à l'octet 2, voir
 //! `mods/modkit/formats/moves.py`). Les formats sont ceux d'`outils/garc.py` et d'`outils/texte.py`, en lecture seule.
 
 const GARC: u32 = 0x4741_5243;

@@ -114,7 +114,7 @@ fn battle_screen(memory: &AddressSpace, base: u32) -> Option<BattleScreen> {
 fn battle_moves(memory: &AddressSpace, base: u32) -> Option<[(u16, u8, u8); 4]> {
     let objects = battle_objects(memory, base)?;
     let place = memory.u8(objects.wrapping_add(0x40)).ok()? as u32;
-    let pokemon = memory.u32(objects.wrapping_add(0x884 + 4 * place.min(5))).ok().filter(|&p| p != 0)?;
+    let pokemon = memory.u32(objects.wrapping_add(0x884 + 4 * place)).ok().filter(|&p| p != 0 && place < 6)?;
     let mut moves = [(0, 0, 0); 4];
     for (i, m) in moves.iter_mut().enumerate() {
         let at = pokemon.wrapping_add(0x11C + 0xE * i as u32);
@@ -123,7 +123,8 @@ fn battle_moves(memory: &AddressSpace, base: u32) -> Option<[(u16, u8, u8); 4]> 
     moves.iter().any(|m| m.0 != 0).then_some(moves)
 }
 
-/// Les pastilles du menu du combat, dans l'ordre de `MENU_BUTTONS`.
+/// Les pastilles du menu du combat, dans l'ordre de `MENU_BUTTONS` ; en double et en triple, le jeu montre un retour à la
+/// place de Fuite pour les Pokémon après le premier (`local/analyse/DllBattle/boutons-natifs.md`).
 const MENU_PILLS: [(&str, [u8; 3]); 4] = [("Attaque", [204, 62, 56]), ("Pokémon", [72, 162, 84]), ("Sac", [222, 160, 40]), ("Fuite", [64, 112, 206])];
 
 /// Les scènes qui se jouent au stylet : l'écran du bas s'y ouvre tout seul, sans Échap (saisie d'un nom, boîtes, Poké
@@ -419,7 +420,8 @@ impl Play {
         let memory = &self.bench.kernel.memory;
         battle_objects(memory, base).is_some_and(|objects| {
             let byte = |offset: u32| memory.u8(objects.wrapping_add(offset)).unwrap_or(0xFF);
-            byte(0x93) == 1 && byte(0xF0) == 0 && byte(0x1B3) == 0 && byte(0x1E8) == 0 && memory.u32(objects.wrapping_add(0x26C)).unwrap_or(1) == 0
+            // 4 : la première ouverture, 5 : la fermeture du menu (sans eux, la fenêtre clignoterait vers le coin)
+            matches!(byte(0x93), 1 | 4 | 5) && byte(0xF0) == 0 && byte(0x1B3) == 0 && byte(0x1E8) == 0 && memory.u32(objects.wrapping_add(0x26C)).unwrap_or(1) == 0
         })
     }
 
@@ -442,7 +444,14 @@ impl Play {
         let area = places.iter().fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |a, p| [a[0].min(p[0]), a[1].min(p[1]), a[2].max(p[2]), a[3].max(p[3])]);
         let pill = |to, color, label: &str, detail: String, category| Pill { to, color, label: label.to_string(), detail, category };
         let pills = match layout {
-            Layout::NativeMenu(_) => places.iter().zip(MENU_PILLS).map(|(&to, (label, color))| pill(to, color, label, String::new(), None)).collect(),
+            Layout::NativeMenu(_) => {
+                let memory = &self.bench.kernel.memory;
+                let later = battle_objects(memory, self.battle_base()?).and_then(|o| memory.u8(o.wrapping_add(0x40)).ok()).is_some_and(|p| p != 0);
+                places.iter().zip(MENU_PILLS).map(|(&to, (label, color))| {
+                    let label = if label == "Fuite" && later { "Retour" } else { label };
+                    pill(to, color, label, String::new(), None)
+                }).collect()
+            }
             Layout::NativeMoves(_) => {
                 let infos = self.move_infos.as_ref()?;
                 let moves = battle_moves(&self.bench.kernel.memory, self.battle_base()?)?;
@@ -504,6 +513,8 @@ impl Play {
         let overlay = self.native_pills(layout);
         let Some(screens) = self.screens.as_mut() else { return };
         screens.set_overlay(overlay);
+        // avant la capture comme avant le dessin : l'image des boutons est celle de cette image du jeu
+        screens.update_overlay(layout);
         let images = self.shared.screens.borrow();
         if let Some((_, top)) = &images[0] {
             if top.index != self.last_top {
