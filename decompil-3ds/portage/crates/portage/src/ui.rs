@@ -43,6 +43,8 @@ pub const TYPE_COLORS: [[u8; 3]; 18] = [
 
 pub struct Ui {
     font: FontVec,
+    /// Pour les caractères que la police n'a pas (♂, ♀) : Segoe UI Symbol.
+    symbols: Option<FontVec>,
     icons: Vec<usvg::Tree>,
 }
 
@@ -54,6 +56,7 @@ impl Ui {
             .find_map(|path| std::fs::read(path).ok().and_then(|bytes| FontVec::try_from_vec(bytes).ok()))
             .map(|font| Ui {
                 font,
+                symbols: std::fs::read("C:/Windows/Fonts/seguisym.ttf").ok().and_then(|bytes| FontVec::try_from_vec(bytes).ok()),
                 icons: TYPE_ICONS.iter().map(|svg| usvg::Tree::from_str(svg, &usvg::Options::default()).expect("icône de type lisible")).collect(),
             })
     }
@@ -115,24 +118,35 @@ impl Ui {
         self.text(image, &pill.label, x, r[1] + height * 0.5 + size * 0.36, size, right);
     }
 
+    /// La police qui a ce caractère : la principale, sinon celle des symboles.
+    fn font_for(&self, c: char) -> &FontVec {
+        match &self.symbols {
+            Some(symbols) if self.font.glyph_id(c).0 == 0 && symbols.glyph_id(c).0 != 0 => symbols,
+            _ => &self.font,
+        }
+    }
+
     fn width(&self, text: &str, size: f32) -> f32 {
-        let font = self.font.as_scaled(PxScale::from(size));
-        text.chars().map(|c| font.h_advance(font.glyph_id(c))).sum()
+        text.chars().map(|c| {
+            let font = self.font_for(c).as_scaled(PxScale::from(size));
+            font.h_advance(font.glyph_id(c))
+        }).sum()
     }
 
     /// Le texte en blanc avec une ombre, coupé à `right`.
     fn text(&self, image: &mut Image, text: &str, x: f32, baseline: f32, size: f32, right: f32) {
-        let font = self.font.as_scaled(PxScale::from(size));
         for (dx, dy, color) in [(size * 0.06, size * 0.06, [0u8, 0, 0, 150]), (0.0, 0.0, [255, 255, 255, 255])] {
             let mut pen = x + dx;
             for c in text.chars() {
+                let base = self.font_for(c);
+                let font = base.as_scaled(PxScale::from(size));
                 let id = font.glyph_id(c);
                 let advance = font.h_advance(id);
                 if pen + advance > right + dx {
                     break;
                 }
                 let glyph = id.with_scale_and_position(PxScale::from(size), ab_glyph::point(pen, baseline + dy));
-                if let Some(outline) = self.font.outline_glyph(glyph) {
+                if let Some(outline) = base.outline_glyph(glyph) {
                     let bounds = outline.px_bounds();
                     outline.draw(|gx, gy, coverage| {
                         image.blend(bounds.min.x as i32 + gx as i32, bounds.min.y as i32 + gy as i32, color, coverage);

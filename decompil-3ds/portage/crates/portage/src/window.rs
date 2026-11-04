@@ -70,6 +70,16 @@ pub enum Layout {
     /// L'apprentissage d'une capacité après une montée de niveau : la question (deux boutons, plus larges), la liste d'oubli
     /// (quatre capacités, la nouvelle, le retour) ou la fiche d'une capacité (`local/analyse/DllBattle/apprendre-natif.md`).
     NativeLearn(LearnPage, bool),
+    /// L'équipe : la liste des six (menu, remplacement après un K.O., objet du sac) ou la fiche d'un Pokémon
+    /// (`local/analyse/DllBattle/equipe-natif.md`).
+    NativeParty(PartyPage, bool),
+}
+
+/// L'écran de l'équipe montré.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum PartyPage {
+    List,
+    Command,
 }
 
 /// L'étape de l'apprentissage montrée.
@@ -138,6 +148,10 @@ pub const BAG_ITEM_BUTTONS: [[f32; 4]; 2] = [[0.0, 160.0, 250.0, 240.0], [250.0,
 pub const LEARN_QUESTION: [[f32; 4]; 2] = [[20.0, 80.0, 300.0, 140.0], [20.0, 150.0, 300.0, 210.0]];
 pub const LEARN_FORGET: [[f32; 4]; 6] = [[0.0, 49.0, 160.0, 103.0], [160.0, 49.0, 320.0, 103.0], [0.0, 113.0, 160.0, 167.0], [160.0, 113.0, 320.0, 167.0], [80.0, 176.0, 240.0, 236.0], [250.0, 190.0, 320.0, 240.0]];
 pub const LEARN_INFO: [[f32; 4]; 2] = [[10.0, 179.0, 250.0, 239.0], [250.0, 190.0, 320.0, 240.0]];
+/// L'équipe : les six cases (table +0xce490, la case k est l'entrée [L+0x134 + 0x44 k]) puis le retour ; la fiche (CLYT
+/// 0x147085a8) : Changer, Soigner, Résumé et Capacités sur une ligne, Retour.
+pub const PARTY_LIST: [[f32; 4]; 7] = [[0.0, 5.0, 160.0, 55.0], [160.0, 8.0, 320.0, 58.0], [0.0, 65.0, 160.0, 115.0], [160.0, 68.0, 320.0, 118.0], [0.0, 125.0, 160.0, 175.0], [160.0, 128.0, 320.0, 178.0], [250.0, 190.0, 320.0, 240.0]];
+pub const PARTY_COMMAND: [[f32; 4]; 5] = [[5.0, 41.0, 315.0, 151.0], [4.0, 160.0, 250.0, 190.0], [4.0, 195.0, 124.0, 225.0], [130.0, 195.0, 250.0, 225.0], [255.0, 190.0, 320.0, 240.0]];
 /// La largeur des deux boutons de la question, aux libellés longs.
 const QUESTION_WIDTH: f32 = 190.0;
 /// La hauteur d'une ligne de la liste du sac, plus serrée (sept lignes).
@@ -184,7 +198,7 @@ impl Layout {
                 let height = SMALL_WIDTH * 240.0 / 320.0;
                 vec![top, bottom([400.0 - SMALL_WIDTH, 240.0 - height, 400.0, 240.0])]
             }
-            Layout::NativeMenu(small) | Layout::NativeMoves(small) | Layout::NativeBag(_, small) | Layout::NativeLearn(_, small) => {
+            Layout::NativeMenu(small) | Layout::NativeMoves(small) | Layout::NativeBag(_, small) | Layout::NativeLearn(_, small) | Layout::NativeParty(_, small) => {
                 // la question garde sa taille : ses libellés sont longs
                 let question = matches!(self, Layout::NativeLearn(LearnPage::Question, _));
                 let k = if small && !question { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
@@ -200,6 +214,13 @@ impl Layout {
                     Layout::NativeLearn(LearnPage::Question, _) => LEARN_QUESTION.map(row(NATIVE_ROW)).to_vec(),
                     Layout::NativeLearn(LearnPage::Forget, _) => LEARN_FORGET.map(row(NATIVE_ROW)).to_vec(),
                     Layout::NativeLearn(LearnPage::Info, _) => LEARN_INFO.map(row(NATIVE_ROW)).to_vec(),
+                    Layout::NativeParty(PartyPage::List, _) => PARTY_LIST.map(row(BAG_ROW)).to_vec(),
+                    Layout::NativeParty(PartyPage::Command, _) => vec![
+                        (NATIVE_ROW, vec![PARTY_COMMAND[0]]),
+                        (NATIVE_ROW, vec![PARTY_COMMAND[1]]),
+                        (NATIVE_ROW, vec![PARTY_COMMAND[2], PARTY_COMMAND[3]]),
+                        (NATIVE_ROW, vec![PARTY_COMMAND[4]]),
+                    ],
                     _ => BAG_ITEM_BUTTONS.map(row(NATIVE_ROW)).to_vec(),
                 };
                 // de bas en haut : la dernière ligne touche le bas de l'image, ou le haut de la boîte de dialogue pour la
@@ -224,7 +245,7 @@ impl Layout {
     pub fn native_places(self) -> Vec<[f32; 4]> {
         let bottom = self.pieces().into_iter().filter(|p| p.bottom).map(|p| p.to);
         match self {
-            Layout::NativeMenu(_) | Layout::NativeMoves(_) | Layout::NativeBag(..) | Layout::NativeLearn(..) => bottom.collect(),
+            Layout::NativeMenu(_) | Layout::NativeMoves(_) | Layout::NativeBag(..) | Layout::NativeLearn(..) | Layout::NativeParty(..) => bottom.collect(),
             _ => Vec::new(),
         }
     }
@@ -652,7 +673,7 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MOVES_BACK, MOVE_BUTTONS};
+    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MOVES_BACK, MOVE_BUTTONS, PARTY_COMMAND, PARTY_LIST, PartyPage};
 
     #[test]
     fn native_buttons_touch_the_game_buttons() {
@@ -667,6 +688,8 @@ mod tests {
             (Layout::NativeLearn(LearnPage::Question, true), LEARN_QUESTION.to_vec()),
             (Layout::NativeLearn(LearnPage::Forget, false), LEARN_FORGET.to_vec()),
             (Layout::NativeLearn(LearnPage::Info, false), LEARN_INFO.to_vec()),
+            (Layout::NativeParty(PartyPage::List, true), PARTY_LIST.to_vec()),
+            (Layout::NativeParty(PartyPage::Command, false), PARTY_COMMAND.to_vec()),
         ] {
             assert_eq!(layout.native_places().len(), buttons.len());
             let places = layout.native_places();

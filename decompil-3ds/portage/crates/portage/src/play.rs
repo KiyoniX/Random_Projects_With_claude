@@ -24,7 +24,7 @@ use pica::images::save_png;
 
 use crate::gamedata::MoveInfo;
 use crate::ui::{Pill, TYPE_COLORS};
-use crate::window::{BagPage, Layout, LearnPage, Screens, open};
+use crate::window::{BagPage, Layout, LearnPage, PartyPage, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -208,9 +208,93 @@ fn battle_learn(memory: &AddressSpace, base: u32) -> Option<Learn> {
     }
 }
 
+/// Un Pokémon de l'équipe tel que le montre sa case.
+struct Card {
+    name: String,
+    level: u8,
+    hp: u16,
+    max: u16,
+    /// 0 aucun, 1 paralysie, 2 sommeil, 3 gel, 4 brûlure, 5 poison (2 et 3 supposés).
+    status: u8,
+    egg: bool,
+    gender: u8,
+    /// Au combat (octet +0 de sa case dans la liste).
+    fighting: bool,
+}
+
+/// L'équipe ouverte (`local/analyse/DllBattle/equipe-natif.md`).
+enum Party {
+    /// Les six cases dans l'ordre de l'écran (`None` : case vide), et si le retour est permis (pas au remplacement forcé).
+    List { cards: Vec<Option<Card>>, back: bool },
+    /// La fiche d'un Pokémon : `change` dit pourquoi « Changer » ne change pas (0 il peut, 1 au combat, 2 K.O. ou 3 œuf,
+    /// 4 partenaire, 6 en attente), puis Soigner, Résumé, Capacités permis.
+    Command { card: Card, change: u8, heal: bool, summary: bool, moves: bool },
+}
+
+/// Un Pokémon de combat (bpp) : espèce u16 `+0xC`, PV max `+0xE`, PV `+0x10`, niveau `+0x18`, statuts `+0x1C + 4 s` ; le
+/// PokemonParam `[bpp]` garde le pk6 chiffré en `[pp + 4]` (surnom, œuf, genre).
+fn battle_card(memory: &AddressSpace, bpp: u32, fighting: bool, species: &[String]) -> Option<Card> {
+    let u16_at = |offset: u32| memory.u16(bpp.wrapping_add(offset)).ok();
+    let kind = u16_at(0xC)?;
+    let pk6 = memory.u32(bpp).ok().and_then(|pp| memory.u32(pp.wrapping_add(4)).ok()).and_then(|at| {
+        let bytes: Option<Vec<u8>> = (0..0xE8).map(|i| memory.u8(at.wrapping_add(i)).ok()).collect();
+        crate::gamedata::pk6(&bytes?)
+    });
+    let status = (1..=5).find(|s| memory.u8(bpp.wrapping_add(0x1C + 4 * s)).is_ok_and(|v| v & 7 != 0)).unwrap_or(0) as u8;
+    let fallback = species.get(kind as usize).cloned().unwrap_or_else(|| format!("Pokémon {kind}"));
+    Some(Card {
+        name: pk6.as_ref().map(|p| p.nickname.clone()).filter(|n| !n.is_empty()).unwrap_or(fallback),
+        level: memory.u8(bpp.wrapping_add(0x18)).ok()?,
+        hp: u16_at(0x10)?,
+        max: u16_at(0xE)?,
+        status,
+        egg: pk6.as_ref().is_some_and(|p| p.egg),
+        gender: pk6.as_ref().map_or(2, |p| p.gender),
+        fighting,
+    })
+}
+
+/// L'écran de l'équipe ouvert, d'un des trois chemins : le bouton Pokémon (`+0xF0` : 1 la liste en `[+0xF8]`, 2 la fiche en
+/// `[+0xFC]`), le remplacement forcé (`+0x1B3` : 1 en `[+0x194]`, 2 en `[+0x198]`), le sac (`+0x1E8` à 4, la liste en `[+0x1FC]`).
+/// La liste : les cases à L+0xE0 + 8 i (octet au combat, bpp en +4), l'ordre de l'écran en L+0x134 + 0x44 k, le retour permis
+/// en L+0xD7 ; la fiche : C+0xD4 le Pokémon, C+0xDC..C+0xDF le refus de Changer et les trois autres boutons.
+fn battle_party(memory: &AddressSpace, base: u32, species: &[String]) -> Option<Party> {
+    let objects = battle_objects(memory, base)?;
+    let byte = |address: u32| memory.u8(address).ok();
+    let word = |address: u32| memory.u32(address).ok().filter(|&w| w != 0);
+    let at = |offset: u32| objects.wrapping_add(offset);
+    let (list, command) = match (byte(at(0xF0))?, byte(at(0x1B3))?, byte(at(0x1E8))?) {
+        (1, _, _) => (word(at(0xF8)), None),
+        (2, _, _) => (None, word(at(0xFC))),
+        (0, 1, _) => (word(at(0x194)), None),
+        (0, 2, _) => (None, word(at(0x198))),
+        (0, 0, 4) => (word(at(0x1FC)), None),
+        _ => return None,
+    };
+    if let Some(l) = list {
+        let cards = (0..6)
+            .map(|k| {
+                let entry = byte(l.wrapping_add(0x134 + 0x44 * k)).filter(|&e| e < 6)? as u32;
+                let case = l.wrapping_add(0xE0 + 8 * entry);
+                battle_card(memory, word(case.wrapping_add(4))?, byte(case)? == 1, species)
+            })
+            .collect();
+        return Some(Party::List { cards, back: byte(l.wrapping_add(0xD7))? != 0 });
+    }
+    let c = command?;
+    Some(Party::Command {
+        card: battle_card(memory, word(c.wrapping_add(0xD4))?, false, species)?,
+        change: byte(c.wrapping_add(0xDC))?,
+        heal: byte(c.wrapping_add(0xDD))? != 0,
+        summary: byte(c.wrapping_add(0xDE))? != 0,
+        moves: byte(c.wrapping_add(0xDF))? != 0,
+    })
+}
+
 /// Le temps (du jeu) pendant lequel la fenêtre garde le sac quand il retombe à zéro le temps d'une transition (deux images
 /// en l'ouvrant, environ 200 ms au retour vers le menu, `sac-natif.md`), et la question de l'apprentissage avant sa liste
-/// (environ 67 ms, `apprendre-natif.md`).
+/// (environ 67 ms, `apprendre-natif.md`), l'équipe (une image en l'ouvrant, environ 234 ms au retour vers le menu,
+/// `equipe-natif.md`).
 const BAG_HOLD_NS: u64 = 250_000_000;
 
 /// Les pastilles du menu du combat, dans l'ordre de `MENU_BUTTONS` ; en double et en triple, le jeu montre un retour à la
@@ -348,6 +432,7 @@ struct Play {
     /// illisibles, la fenêtre garde alors les morceaux de l'écran du bas).
     move_infos: Option<Vec<MoveInfo>>,
     item_names: Vec<String>,
+    species_names: Vec<String>,
     /// Le dernier sac ou la dernière question dessinés et leur temps : gardés pendant les transitions (`BAG_HOLD_NS`).
     held_bag: Option<(Layout, (Vec<Pill>, [f32; 4]), u64)>,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
@@ -508,6 +593,10 @@ impl Play {
                     Some(Learn::Info { .. }) => (Layout::NativeLearn(LearnPage::Info, many), true),
                     _ => (Layout::NativeLearn(LearnPage::Forget, many), true),
                 },
+                Some(BattleScreen::Menu) if native && battle_party(memory, base, &self.species_names).is_some() => match battle_party(memory, base, &self.species_names) {
+                    Some(Party::Command { .. }) => (Layout::NativeParty(PartyPage::Command, many), true),
+                    _ => (Layout::NativeParty(PartyPage::List, many), true),
+                },
                 Some(BattleScreen::Menu) if native => match battle_bag(memory, base) {
                     Some(Bag::Pockets { .. }) => (Layout::NativeBag(BagPage::Pockets, many), true),
                     Some(Bag::List { .. }) => (Layout::NativeBag(BagPage::List, many), true),
@@ -545,7 +634,9 @@ impl Play {
             eprintln!("boutons du combat : noms ou données des capacités illisibles, l'écran du bas reste affiché");
         }
         self.move_infos = Some(infos.unwrap_or_default());
-        self.item_names = read("a/0/7/5").and_then(|names| crate::gamedata::item_names(&names)).unwrap_or_default();
+        let texts = read("a/0/7/5");
+        let text = |n| texts.as_deref().and_then(|t| crate::gamedata::game_text(t, n)).unwrap_or_default();
+        (self.item_names, self.species_names) = (text(96), text(80));
     }
 
     /// Les pastilles de la disposition et la zone qu'elles couvrent, pour la fenêtre (`None` hors des boutons dessinés).
@@ -603,9 +694,50 @@ impl Play {
                     }
                 }
             }
+            Layout::NativeParty(..) => {
+                let back = [92, 92, 104];
+                let off = [58, 58, 66];
+                // la couleur d'une case : bleue au combat, grise K.O., beige pour un œuf, verte sinon
+                let color = |c: &Card| if c.egg { [176, 150, 110] } else if c.hp == 0 { off } else if c.fighting { [64, 112, 206] } else { [72, 162, 84] };
+                let detail = |c: &Card| {
+                    if c.egg {
+                        String::new()
+                    } else if c.hp == 0 {
+                        "K.O.".to_string()
+                    } else {
+                        let status = ["", "PAR ", "SOM ", "GEL ", "BRU ", "PSN "][c.status.min(5) as usize];
+                        format!("{status}N.{} {}/{}", c.level, c.hp, c.max)
+                    }
+                };
+                let title = |c: &Card| format!("{}{}", c.name, ["\u{2009}♂", "\u{2009}♀", ""][c.gender.min(2) as usize]);
+                match battle_party(&self.bench.kernel.memory, self.battle_base()?, &self.species_names)? {
+                    Party::List { cards, back: can_back } => {
+                        let mut pills: Vec<Pill> = places.iter().zip(&cards).filter_map(|(&to, c)| c.as_ref().map(|c| pill(to, color(c), &title(c), detail(c), None))).collect();
+                        pills.push(pill(*places.get(6)?, if can_back { back } else { off }, "Retour", String::new(), None));
+                        pills
+                    }
+                    Party::Command { card, change, heal, summary, moves } => {
+                        let label = match change {
+                            0 => format!("Changer : {}", title(&card)),
+                            1 => format!("{} : au combat", title(&card)),
+                            4 => format!("{} : partenaire", title(&card)),
+                            6 => format!("{} : en attente", title(&card)),
+                            _ => format!("{} : ne peut pas se battre", title(&card)),
+                        };
+                        let on = |yes: bool, color| if yes { color } else { off };
+                        vec![
+                            pill(*places.first()?, on(change == 0, [64, 112, 206]), &label, String::new(), None),
+                            pill(*places.get(1)?, on(heal, [72, 162, 84]), "Soigner", String::new(), None),
+                            pill(*places.get(2)?, on(summary, [150, 92, 190]), "Résumé", String::new(), None),
+                            pill(*places.get(3)?, on(moves, [222, 140, 40]), "Capacités", String::new(), None),
+                            pill(*places.get(4)?, back, "Retour", String::new(), None),
+                        ]
+                    }
+                }
+            }
             Layout::NativeBag(..) => {
                 let name = |item: u16| self.item_names.get(item as usize).cloned().unwrap_or_else(|| format!("Objet {item}"));
-                let off = [96, 96, 104];
+                let off = [58, 58, 66];
                 match battle_bag(&self.bench.kernel.memory, self.battle_base()?)? {
                     Bag::Pockets { last } => {
                         let (label, color) = if last != 0 { (name(last), [70, 130, 200]) } else { ("Dernier objet".to_string(), off) };
@@ -674,7 +806,7 @@ impl Play {
         // le sac retombe à zéro le temps d'une transition : la fenêtre garde ses boutons, sans rien de touchable
         let now = self.bench.kernel.now;
         match (&overlay, layout) {
-            (Some(o), Layout::NativeBag(..) | Layout::NativeLearn(LearnPage::Question, _)) => self.held_bag = Some((layout, o.clone(), now)),
+            (Some(o), Layout::NativeBag(..) | Layout::NativeParty(..) | Layout::NativeLearn(LearnPage::Question, _)) => self.held_bag = Some((layout, o.clone(), now)),
             (None, _) if self.battle_base().is_some() && (!shown || matches!(layout, Layout::Corner | Layout::SmallCorner)) => {
                 if let Some((held, o, _)) = self.held_bag.as_ref().filter(|h| now.saturating_sub(h.2) < BAG_HOLD_NS) {
                     (layout, shown, overlay) = (*held, true, Some(o.clone()));
@@ -910,6 +1042,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         smooth,
         move_infos: None,
         item_names: Vec::new(),
+        species_names: Vec::new(),
         held_bag: None,
         touch_scene: false,
         restarts: 0,

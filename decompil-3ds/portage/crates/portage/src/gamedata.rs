@@ -67,13 +67,7 @@ pub fn text_lines(d: &[u8]) -> Option<Vec<String>> {
                     k += 2 + plain.get(k + 1).copied().unwrap_or(0) as usize;
                     continue;
                 }
-                out.push(match plain[k] {
-                    0xE08E => '♂',
-                    0xE08F => '♀',
-                    0xE08D => '…',
-                    0xE07F => '\u{202F}',
-                    w => char::from_u32(w as u32).unwrap_or('?'),
-                });
+                out.push(game_char(plain[k]));
                 k += 1;
             }
             Some(out)
@@ -88,9 +82,59 @@ pub struct MoveInfo {
     pub pp: u8,
 }
 
-/// Les noms des objets, par numéro (texte 96 du même fichier, `local/analyse/DllBattle/sac-natif.md`).
-pub fn item_names(names: &[u8]) -> Option<Vec<String>> {
-    text_lines(garc_files(names)?.get(96)?)
+/// Un caractère du jeu : l'UTF-16, sauf ses symboles privés.
+fn game_char(w: u16) -> char {
+    match w {
+        0xE08E => '♂',
+        0xE08F => '♀',
+        0xE08D => '…',
+        0xE07F => '\u{202F}',
+        w => char::from_u32(w as u32).unwrap_or('?'),
+    }
+}
+
+/// Le texte `n` du fichier de textes (`a/0/7/5`) : 96 les noms des objets (`local/analyse/DllBattle/sac-natif.md`), 80 ceux
+/// des espèces (`equipe-natif.md`).
+pub fn game_text(names: &[u8], n: usize) -> Option<Vec<String>> {
+    text_lines(garc_files(names)?.get(n)?)
+}
+
+/// Ce qu'on lit d'un Pokémon chiffré (format pk6 de PKHeX, comme `outils/pk6.py`) : surnom, œuf, genre (0 mâle, 1 femelle,
+/// 2 aucun).
+pub struct Pk6 {
+    pub nickname: String,
+    pub egg: bool,
+    pub gender: u8,
+}
+
+/// La place de chaque bloc A, B, C, D pour chacun des 24 mélanges (PKHeX, BlockPosition).
+const PK6_PLACES: [u8; 96] = [
+    0, 1, 2, 3, 0, 1, 3, 2, 0, 2, 1, 3, 0, 3, 1, 2, 0, 2, 3, 1, 0, 3, 2, 1, 1, 0, 2, 3, 1, 0, 3, 2, 2, 0, 1, 3, 3, 0, 1, 2,
+    2, 0, 3, 1, 3, 0, 2, 1, 1, 2, 0, 3, 1, 3, 0, 2, 2, 1, 0, 3, 3, 1, 0, 2, 2, 3, 0, 1, 3, 2, 0, 1, 1, 2, 3, 0, 1, 3, 2, 0,
+    2, 1, 3, 0, 3, 1, 2, 0, 2, 3, 1, 0, 3, 2, 1, 0,
+];
+
+/// Déchiffre les 0xE8 premiers octets d'un pk6 : clé u32 à +0, mots de +8 à +0xE8 XOR les 16 bits hauts du générateur
+/// 0x41C64E6D, 0x6073 ; blocs de 0x38 mélangés selon (clé >> 13) & 31 modulo 24. Surnom UTF-16 au bloc B (12 caractères),
+/// œuf au bit 30 de l'u32 bloc B + 0x34, genre aux bits 1-2 de l'octet bloc A + 0x15 (`equipe-natif.md`).
+pub fn pk6(data: &[u8]) -> Option<Pk6> {
+    let key = u32_at(data, 0)?;
+    let mut plain = data.get(..0xE8)?.to_vec();
+    let mut seed = key;
+    for i in (8..0xE8).step_by(2) {
+        seed = seed.wrapping_mul(0x41C6_4E6D).wrapping_add(0x6073);
+        let w = u16::from_le_bytes([plain[i], plain[i + 1]]) ^ (seed >> 16) as u16;
+        plain[i..i + 2].copy_from_slice(&w.to_le_bytes());
+    }
+    // la somme des mots du corps : un Pokémon mal lu ne donne rien
+    let sum = (8..0xE8).step_by(2).fold(0u16, |s, i| s.wrapping_add(u16::from_le_bytes([plain[i], plain[i + 1]])));
+    (sum == u16_at(&plain, 6)?).then_some(())?;
+    let shuffle = ((key >> 13) & 31) as usize % 24;
+    let block = |k: usize| 8 + PK6_PLACES[shuffle * 4 + k] as usize * 0x38;
+    let (a, b) = (block(0), block(1));
+    let nickname = (0..12).map(|k| u16_at(&plain, b + 2 * k).unwrap_or(0)).take_while(|&w| w != 0).map(game_char).collect();
+    let egg = u32_at(&plain, b + 0x34)? >> 30 & 1 == 1;
+    Some(Pk6 { nickname, egg, gender: if egg { 2 } else { plain[a + 0x15] >> 1 & 3 } })
 }
 
 /// Les capacités du jeu, par numéro.
@@ -210,7 +254,34 @@ mod tests {
         assert_eq!((moves[1].name.as_str(), moves[1].kind), ("Charge", 0));
         assert_eq!((moves[2].name.as_str(), moves[2].kind, moves[2].pp), ("Flammèche", 9, 25));
         assert_eq!(moves[3].name, "AB♀");
-        assert_eq!(item_names(&names_garc).unwrap()[1], "Potion");
+        assert_eq!(game_text(&names_garc, 96).unwrap()[1], "Potion");
         assert!(garc_files(b"pas un GARC").is_none());
+    }
+
+    #[test]
+    fn a_pk6_gives_its_nickname() {
+        // un Pokémon fabriqué en clair (mélange 5 : B est le quatrième bloc), puis chiffré comme le jeu
+        let key: u32 = 5 << 13;
+        let mut plain = vec![0u8; 0xE8];
+        plain[..4].copy_from_slice(&key.to_le_bytes());
+        let b = 8 + PK6_PLACES[5 * 4 + 1] as usize * 0x38;
+        let a = 8 + PK6_PLACES[5 * 4] as usize * 0x38;
+        for (k, w) in "Goat".encode_utf16().enumerate() {
+            plain[b + 2 * k..b + 2 * k + 2].copy_from_slice(&w.to_le_bytes());
+        }
+        plain[a + 0x15] = 1 << 1;
+        let sum = (8..0xE8).step_by(2).fold(0u16, |s, i| s.wrapping_add(u16::from_le_bytes([plain[i], plain[i + 1]])));
+        plain[6..8].copy_from_slice(&sum.to_le_bytes());
+        let mut data = plain.clone();
+        let mut seed = key;
+        for i in (8..0xE8).step_by(2) {
+            seed = seed.wrapping_mul(0x41C6_4E6D).wrapping_add(0x6073);
+            let w = u16::from_le_bytes([plain[i], plain[i + 1]]) ^ (seed >> 16) as u16;
+            data[i..i + 2].copy_from_slice(&w.to_le_bytes());
+        }
+        let p = pk6(&data).unwrap();
+        assert_eq!((p.nickname.as_str(), p.egg, p.gender), ("Goat", false, 1));
+        data[0x20] ^= 1;
+        assert!(pk6(&data).is_none(), "la somme ne tombe plus juste");
     }
 }
