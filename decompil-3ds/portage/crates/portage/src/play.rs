@@ -24,7 +24,7 @@ use pica::images::save_png;
 
 use crate::gamedata::MoveInfo;
 use crate::ui::{Pill, TYPE_COLORS};
-use crate::window::{BagPage, Layout, Screens, open};
+use crate::window::{BagPage, Layout, LearnPage, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -170,8 +170,47 @@ fn battle_bag(memory: &AddressSpace, base: u32) -> Option<Bag> {
     }
 }
 
+/// L'apprentissage d'une capacité (`local/analyse/DllBattle/apprendre-natif.md`).
+enum Learn {
+    /// La question : `+0x248` en choisit les libellés (3 : oublier ou garder, 0 : oui ou non).
+    Question { kind: u8 },
+    /// La liste d'oubli : les quatre capacités du Pokémon (numéro, PP, PP max) et la nouvelle.
+    Forget { moves: [(u16, u8, u8); 4], new: u16 },
+    /// La fiche d'une capacité : la montrée, et si c'est la nouvelle (le bouton dit alors « Arrêter »).
+    Info { shown: u16, stop: bool },
+}
+
+/// L'étape ouverte : `+0x244` à 1 la question ; le mot `+0x26C` la liste d'oubli (le Pokémon en `+0xF4`, la nouvelle en
+/// `+0xF8`), `+0x267` à 1 sa fiche (`[+0x270] + 0xF8` la capacité montrée), `+0x266` la case choisie (4 la nouvelle).
+fn battle_learn(memory: &AddressSpace, base: u32) -> Option<Learn> {
+    let objects = battle_objects(memory, base)?;
+    let byte = |offset: u32| memory.u8(objects.wrapping_add(offset)).ok();
+    let word = |address: u32| memory.u32(address).ok();
+    if byte(0x244)? == 1 {
+        return Some(Learn::Question { kind: byte(0x248)? });
+    }
+    let list = word(objects.wrapping_add(0x26C)).filter(|&l| l != 0)?;
+    match byte(0x267)? {
+        0 => {
+            let pokemon = word(list.wrapping_add(0xF4)).filter(|&p| p != 0)?;
+            let mut moves = [(0, 0, 0); 4];
+            for (i, m) in moves.iter_mut().enumerate() {
+                let at = pokemon.wrapping_add(0x11C + 0xE * i as u32);
+                *m = (memory.u16(at).ok()?, memory.u8(at.wrapping_add(2)).ok()?, memory.u8(at.wrapping_add(3)).ok()?);
+            }
+            Some(Learn::Forget { moves, new: memory.u16(list.wrapping_add(0xF8)).ok()? })
+        }
+        1 => {
+            let info = word(objects.wrapping_add(0x270)).filter(|&i| i != 0)?;
+            Some(Learn::Info { shown: memory.u16(info.wrapping_add(0xF8)).ok()?, stop: byte(0x266)? == 4 })
+        }
+        _ => None,
+    }
+}
+
 /// Le temps (du jeu) pendant lequel la fenêtre garde le sac quand il retombe à zéro le temps d'une transition (deux images
-/// en l'ouvrant, environ 200 ms au retour vers le menu, `sac-natif.md`).
+/// en l'ouvrant, environ 200 ms au retour vers le menu, `sac-natif.md`), et la question de l'apprentissage avant sa liste
+/// (environ 67 ms, `apprendre-natif.md`).
 const BAG_HOLD_NS: u64 = 250_000_000;
 
 /// Les pastilles du menu du combat, dans l'ordre de `MENU_BUTTONS` ; en double et en triple, le jeu montre un retour à la
@@ -287,6 +326,8 @@ struct Play {
     /// `--screenshot-at` : (heure du jeu en ns, préfixe des PNG) ; la capture se fait juste avant la première fin
     /// d'image à cette heure ou après, au moment où le banc `--dessiner` prend les siennes.
     shot: Option<(u64, String)>,
+    /// Un rejeu : la fenêtre reste derrière, sans prendre la main (les tests ne gênent pas ce qu'on fait à côté).
+    background: bool,
     /// La fin d'image visée est atteinte : la prochaine présentation est capturée.
     shot_ready: bool,
     forward: Option<f64>,
@@ -307,7 +348,7 @@ struct Play {
     /// illisibles, la fenêtre garde alors les morceaux de l'écran du bas).
     move_infos: Option<Vec<MoveInfo>>,
     item_names: Vec<String>,
-    /// Le dernier sac dessiné et son temps : gardé pendant les transitions (`BAG_HOLD_NS`).
+    /// Le dernier sac ou la dernière question dessinés et leur temps : gardés pendant les transitions (`BAG_HOLD_NS`).
     held_bag: Option<(Layout, (Vec<Pill>, [f32; 4]), u64)>,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
     touch_scene: bool,
@@ -355,7 +396,9 @@ impl Play {
             self.dropped = 0;
             if let Some(window) = &self.window {
                 window.set_visible(true);
-                window.focus_window();
+                if !self.background {
+                    window.focus_window();
+                }
             }
         }
         let mut target = (self.started.elapsed().as_nanos() as u64 * self.speed).saturating_sub(self.dropped);
@@ -456,10 +499,15 @@ impl Play {
                 Some(BattleScreen::Moves) if native && battle_moves(memory, base).is_some() => (Layout::NativeMoves(many), true),
                 Some(BattleScreen::Moves) if many => (Layout::SmallMoves, true),
                 Some(BattleScreen::Moves) => (Layout::Moves, true),
+                Some(BattleScreen::YesNo) if native && matches!(battle_learn(memory, base), Some(Learn::Question { kind: 0 | 3 })) => (Layout::NativeLearn(LearnPage::Question, many), true),
                 Some(BattleScreen::YesNo) => (Layout::YesNo, true),
                 // le premier menu d'un Pokémon : `+0x93` à 1 ; les autres écrans comptés comme menu (sac, équipe…) gardent
                 // l'écran du bas en coin
                 Some(BattleScreen::Menu) if native && self.action_menu(base) => (Layout::NativeMenu(many), true),
+                Some(BattleScreen::Menu) if native && battle_learn(memory, base).is_some() => match battle_learn(memory, base) {
+                    Some(Learn::Info { .. }) => (Layout::NativeLearn(LearnPage::Info, many), true),
+                    _ => (Layout::NativeLearn(LearnPage::Forget, many), true),
+                },
                 Some(BattleScreen::Menu) if native => match battle_bag(memory, base) {
                     Some(Bag::Pockets { .. }) => (Layout::NativeBag(BagPage::Pockets, many), true),
                     Some(Bag::List { .. }) => (Layout::NativeBag(BagPage::List, many), true),
@@ -526,6 +574,34 @@ impl Play {
                 }).collect();
                 pills.push(pill(*places.last()?, [92, 92, 104], "Retour", String::new(), None));
                 pills
+            }
+            Layout::NativeLearn(..) => {
+                let infos = self.move_infos.as_ref()?;
+                let back = [92, 92, 104];
+                // une capacité : couleur et icône de son type, nom, PP
+                let move_pill = |to, id: u16, label: String, pp: String| {
+                    let kind = infos.get(id as usize).map(|i| i.kind as usize).filter(|&k| k < TYPE_COLORS.len());
+                    pill(to, kind.map_or([128, 128, 128], |k| TYPE_COLORS[k]), &label, pp, kind)
+                };
+                let name = |id: u16| infos.get(id as usize).map_or_else(|| format!("Capacité {id}"), |i| i.name.clone());
+                match battle_learn(&self.bench.kernel.memory, self.battle_base()?)? {
+                    Learn::Question { kind } => {
+                        let labels = if kind == 3 { ["Oublier une capacité", "Garder les anciennes"] } else { ["Oui", "Non"] };
+                        places.iter().zip(labels).zip([[72, 162, 84], [204, 62, 56]]).map(|((&to, label), color)| pill(to, color, label, String::new(), None)).collect()
+                    }
+                    Learn::Forget { moves, new } => {
+                        let mut pills: Vec<Pill> = places.iter().zip(moves).filter(|(_, m)| m.0 != 0).map(|(&to, (id, pp, max))| move_pill(to, id, name(id), format!("{pp}/{max}"))).collect();
+                        let pp = infos.get(new as usize).map_or(0, |i| i.pp);
+                        // la nouvelle, marquée d'un plus
+                        pills.push(move_pill(*places.get(4)?, new, format!("+ {}", name(new)), format!("{pp}/{pp}")));
+                        pills.push(pill(*places.get(5)?, back, "Retour", String::new(), None));
+                        pills
+                    }
+                    Learn::Info { shown, stop } => {
+                        let label = if stop { "Ne pas l'apprendre".to_string() } else { format!("Oublier {}", name(shown)) };
+                        vec![move_pill(*places.first()?, shown, label, String::new()), pill(*places.get(1)?, back, "Retour", String::new(), None)]
+                    }
+                }
             }
             Layout::NativeBag(..) => {
                 let name = |item: u16| self.item_names.get(item as usize).cloned().unwrap_or_else(|| format!("Objet {item}"));
@@ -598,7 +674,7 @@ impl Play {
         // le sac retombe à zéro le temps d'une transition : la fenêtre garde ses boutons, sans rien de touchable
         let now = self.bench.kernel.now;
         match (&overlay, layout) {
-            (Some(o), Layout::NativeBag(..)) => self.held_bag = Some((layout, o.clone(), now)),
+            (Some(o), Layout::NativeBag(..) | Layout::NativeLearn(LearnPage::Question, _)) => self.held_bag = Some((layout, o.clone(), now)),
             (None, _) if self.battle_base().is_some() && (!shown || matches!(layout, Layout::Corner | Layout::SmallCorner)) => {
                 if let Some((held, o, _)) = self.held_bag.as_ref().filter(|h| now.saturating_sub(h.2) < BAG_HOLD_NS) {
                     (layout, shown, overlay) = (*held, true, Some(o.clone()));
@@ -680,7 +756,7 @@ impl ApplicationHandler for Play {
         if self.window.is_some() {
             return;
         }
-        let window = open(event_loop, "Pokémon X, portage PC", 800.0, if self.both_screens { 960.0 } else { 480.0 });
+        let window = open(event_loop, "Pokémon X, portage PC", 800.0, if self.both_screens { 960.0 } else { 480.0 }, self.background);
         window.set_visible(self.forward.is_none());
         match Screens::new(window.clone(), self.shared.gpu.clone()) {
             Ok(screens) => self.screens = Some(screens),
@@ -821,6 +897,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         first_frame: None,
         stopped: None,
         shot: shot.map(|(at, prefix)| ((at * 1e9) as u64, prefix)),
+        background: replay.is_some(),
         shot_ready: false,
         scale: scale.clamp(1, 4),
         menu: false,

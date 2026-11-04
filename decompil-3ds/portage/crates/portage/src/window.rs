@@ -67,6 +67,17 @@ pub enum Layout {
     /// Le sac du combat, dessiné de même : ses catégories, la liste d'une catégorie (six objets, les pages, le retour) ou la
     /// fiche d'un objet (`local/analyse/DllBattle/sac-natif.md`).
     NativeBag(BagPage, bool),
+    /// L'apprentissage d'une capacité après une montée de niveau : la question (deux boutons, plus larges), la liste d'oubli
+    /// (quatre capacités, la nouvelle, le retour) ou la fiche d'une capacité (`local/analyse/DllBattle/apprendre-natif.md`).
+    NativeLearn(LearnPage, bool),
+}
+
+/// L'étape de l'apprentissage montrée.
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum LearnPage {
+    Question,
+    Forget,
+    Info,
 }
 
 /// L'écran du sac montré (`+0x1E8` des objets du combat : 1, 2, 3).
@@ -122,6 +133,13 @@ pub const BAG_ITEMS: [[f32; 4]; 6] = [[3.0, 10.0, 157.0, 60.0], [163.0, 10.0, 31
 pub const BAG_LIST_BOTTOM: [[f32; 4]; 3] = [[5.0, 185.0, 55.0, 235.0], [70.0, 185.0, 120.0, 235.0], [250.0, 190.0, 320.0, 240.0]];
 /// La fiche : Utiliser, Retour.
 pub const BAG_ITEM_BUTTONS: [[f32; 4]; 2] = [[0.0, 160.0, 250.0, 240.0], [250.0, 180.0, 320.0, 240.0]];
+/// L'apprentissage : les deux boutons de la question (table +0xced38), la liste d'oubli (+0xd0e30 : les quatre capacités,
+/// la nouvelle, le retour), la fiche (+0xd0d0c : oublier ou arrêter, le retour).
+pub const LEARN_QUESTION: [[f32; 4]; 2] = [[20.0, 80.0, 300.0, 140.0], [20.0, 150.0, 300.0, 210.0]];
+pub const LEARN_FORGET: [[f32; 4]; 6] = [[0.0, 49.0, 160.0, 103.0], [160.0, 49.0, 320.0, 103.0], [0.0, 113.0, 160.0, 167.0], [160.0, 113.0, 320.0, 167.0], [80.0, 176.0, 240.0, 236.0], [250.0, 190.0, 320.0, 240.0]];
+pub const LEARN_INFO: [[f32; 4]; 2] = [[10.0, 179.0, 250.0, 239.0], [250.0, 190.0, 320.0, 240.0]];
+/// La largeur des deux boutons de la question, aux libellés longs.
+const QUESTION_WIDTH: f32 = 190.0;
 /// La hauteur d'une ligne de la liste du sac, plus serrée (sept lignes).
 const BAG_ROW: f32 = 26.0;
 
@@ -166,9 +184,12 @@ impl Layout {
                 let height = SMALL_WIDTH * 240.0 / 320.0;
                 vec![top, bottom([400.0 - SMALL_WIDTH, 240.0 - height, 400.0, 240.0])]
             }
-            Layout::NativeMenu(small) | Layout::NativeMoves(small) | Layout::NativeBag(_, small) => {
-                let k = if small { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
-                let left = 400.0 - NATIVE_WIDTH * k - 2.0;
+            Layout::NativeMenu(small) | Layout::NativeMoves(small) | Layout::NativeBag(_, small) | Layout::NativeLearn(_, small) => {
+                // la question garde sa taille : ses libellés sont longs
+                let question = matches!(self, Layout::NativeLearn(LearnPage::Question, _));
+                let k = if small && !question { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
+                let width = if question { QUESTION_WIDTH } else { NATIVE_WIDTH * k };
+                let left = 400.0 - width - 2.0;
                 // les lignes de la colonne (hauteur, boutons côte à côte)
                 let row = |height: f32| move |from: [f32; 4]| (height, vec![from]);
                 let rows: Vec<(f32, Vec<[f32; 4]>)> = match self {
@@ -176,10 +197,14 @@ impl Layout {
                     Layout::NativeMoves(_) => MOVE_BUTTONS.iter().copied().map(row(NATIVE_ROW)).chain([row(NATIVE_BACK)(MOVES_BACK)]).collect(),
                     Layout::NativeBag(BagPage::Pockets, _) => BAG_POCKETS.map(row(NATIVE_ROW)).to_vec(),
                     Layout::NativeBag(BagPage::List, _) => BAG_ITEMS.iter().copied().map(row(BAG_ROW)).chain([(BAG_ROW, BAG_LIST_BOTTOM.to_vec())]).collect(),
+                    Layout::NativeLearn(LearnPage::Question, _) => LEARN_QUESTION.map(row(NATIVE_ROW)).to_vec(),
+                    Layout::NativeLearn(LearnPage::Forget, _) => LEARN_FORGET.map(row(NATIVE_ROW)).to_vec(),
+                    Layout::NativeLearn(LearnPage::Info, _) => LEARN_INFO.map(row(NATIVE_ROW)).to_vec(),
                     _ => BAG_ITEM_BUTTONS.map(row(NATIVE_ROW)).to_vec(),
                 };
-                // de bas en haut : la dernière ligne touche le bas de l'image
-                let mut y = 238.0;
+                // de bas en haut : la dernière ligne touche le bas de l'image, ou le haut de la boîte de dialogue pour la
+                // question (qu'on lise ce qu'elle demande)
+                let mut y = if question { DIALOG_TOP - 2.0 } else { 238.0 };
                 let mut pieces = Vec::new();
                 for (height, froms) in rows.iter().rev() {
                     y -= height * k;
@@ -199,7 +224,7 @@ impl Layout {
     pub fn native_places(self) -> Vec<[f32; 4]> {
         let bottom = self.pieces().into_iter().filter(|p| p.bottom).map(|p| p.to);
         match self {
-            Layout::NativeMenu(_) | Layout::NativeMoves(_) | Layout::NativeBag(..) => bottom.collect(),
+            Layout::NativeMenu(_) | Layout::NativeMoves(_) | Layout::NativeBag(..) | Layout::NativeLearn(..) => bottom.collect(),
             _ => Vec::new(),
         }
     }
@@ -223,12 +248,13 @@ impl Layout {
     }
 }
 
-pub fn open(event_loop: &ActiveEventLoop, title: &str, width: f64, height: f64) -> Arc<Window> {
-    Arc::new(
-        event_loop
-            .create_window(Window::default_attributes().with_title(title).with_inner_size(LogicalSize::new(width, height)))
-            .expect("fenêtre"),
-    )
+/// `background` : une fenêtre de rejeu (tests, captures), qui s'ouvre derrière les autres sans prendre la main.
+pub fn open(event_loop: &ActiveEventLoop, title: &str, width: f64, height: f64, background: bool) -> Arc<Window> {
+    let mut attributes = Window::default_attributes().with_title(title).with_inner_size(LogicalSize::new(width, height));
+    if background {
+        attributes = attributes.with_active(false).with_window_level(winit::window::WindowLevel::AlwaysOnBottom);
+    }
+    Arc::new(event_loop.create_window(attributes).expect("fenêtre"))
 }
 
 /// L'affichage des deux écrans dans une fenêtre.
@@ -568,7 +594,7 @@ impl App {
 impl ApplicationHandler for App {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         if self.window.is_none() {
-            self.window = Some(open(event_loop, "Pokémon X, portage PC", 800.0, 960.0));
+            self.window = Some(open(event_loop, "Pokémon X, portage PC", 800.0, 960.0, false));
             self.replay();
         }
     }
@@ -626,7 +652,7 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, Layout, MENU_BUTTONS, MOVES_BACK, MOVE_BUTTONS};
+    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MOVES_BACK, MOVE_BUTTONS};
 
     #[test]
     fn native_buttons_touch_the_game_buttons() {
@@ -638,6 +664,9 @@ mod tests {
             (Layout::NativeBag(BagPage::Pockets, false), BAG_POCKETS.to_vec()),
             (Layout::NativeBag(BagPage::List, true), list),
             (Layout::NativeBag(BagPage::Item, false), BAG_ITEM_BUTTONS.to_vec()),
+            (Layout::NativeLearn(LearnPage::Question, true), LEARN_QUESTION.to_vec()),
+            (Layout::NativeLearn(LearnPage::Forget, false), LEARN_FORGET.to_vec()),
+            (Layout::NativeLearn(LearnPage::Info, false), LEARN_INFO.to_vec()),
         ] {
             assert_eq!(layout.native_places().len(), buttons.len());
             let places = layout.native_places();
@@ -648,7 +677,7 @@ mod tests {
                 assert!((from[1] + from[3]) / 2.0 - 1.0 <= by as f32 && by as f32 <= (from[1] + from[3]) / 2.0 + 1.0, "{from:?} : {by}");
             }
             // la colonne reste dans l'image, à droite, sans chevauchement
-            assert!(places.iter().all(|p| p[0] > 250.0 && p[2] <= 400.0 && p[3] <= 240.0));
+            assert!(places.iter().all(|p| p[0] > 200.0 && p[2] <= 400.0 && p[3] <= 240.0));
             assert!(places.windows(2).all(|w| w[0][3] <= w[1][1] + 0.01 || (w[0][1] == w[1][1] && w[0][2] <= w[1][0] + 0.01)));
         }
         assert_eq!(Layout::NativeMoves(false).native_places().len(), 5, "quatre capacités et le retour");

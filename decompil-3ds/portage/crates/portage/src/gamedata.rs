@@ -81,10 +81,11 @@ pub fn text_lines(d: &[u8]) -> Option<Vec<String>> {
         .collect()
 }
 
-/// Une capacité telle que la montrent les boutons : nom, type (ordre du jeu).
+/// Une capacité telle que la montrent les boutons : nom, type (ordre du jeu), PP de base (octet 5).
 pub struct MoveInfo {
     pub name: String,
     pub kind: u8,
+    pub pp: u8,
 }
 
 /// Les noms des objets, par numéro (texte 96 du même fichier, `local/analyse/DllBattle/sac-natif.md`).
@@ -101,7 +102,8 @@ pub fn moves(names: &[u8], data: &[u8]) -> Option<Vec<MoveInfo>> {
             .into_iter()
             .enumerate()
             .map(|(i, name)| {
-                MoveInfo { name, kind: data.get(i).and_then(|e| e.first()).copied().unwrap_or(0) }
+                let byte = |at: usize| data.get(i).and_then(|e| e.get(at)).copied().unwrap_or(0);
+                MoveInfo { name, kind: byte(0), pp: byte(5) }
             })
             .collect(),
     )
@@ -206,7 +208,7 @@ mod tests {
         let moves = moves(&names_garc, &data_garc).unwrap();
         assert_eq!(moves.len(), 4);
         assert_eq!((moves[1].name.as_str(), moves[1].kind), ("Charge", 0));
-        assert_eq!((moves[2].name.as_str(), moves[2].kind), ("Flammèche", 9));
+        assert_eq!((moves[2].name.as_str(), moves[2].kind, moves[2].pp), ("Flammèche", 9, 25));
         assert_eq!(moves[3].name, "AB♀");
         assert_eq!(item_names(&names_garc).unwrap()[1], "Potion");
         assert!(garc_files(b"pas un GARC").is_none());
