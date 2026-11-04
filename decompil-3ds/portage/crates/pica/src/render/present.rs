@@ -468,6 +468,7 @@ impl Renderer {
             buffers.push((buffer, row, size));
         }
         self.submit();
+        self.submitter.wait();
         let t0 = self.now();
         for (buffer, _, _) in &buffers {
             buffer.slice(..).map_async(wgpu::MapMode::Read, |r| r.expect("relecture du GPU"));
@@ -816,6 +817,7 @@ impl Renderer {
     /// Envoie le travail au GPU et attend qu'il soit fini (sans rien écrire en mémoire).
     pub fn wait_idle(&mut self) {
         self.submit();
+        self.submitter.wait();
         let t = self.now();
         let _ = self.device.poll(wgpu::PollType::wait_indefinitely());
         self.tick("attente", t);

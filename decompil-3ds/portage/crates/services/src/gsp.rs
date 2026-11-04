@@ -100,7 +100,8 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
     let mut scratch = BTreeMap::new();
     let stats = stats.unwrap_or(&mut scratch);
     let mut out: Vec<u8> = Vec::new();
-    let mut regs: BTreeMap<u32, u32> = BTreeMap::new();
+    // seuls comptent les registres de saut 0x238..0x23B (tailles, adresses), à 0 tant qu'ils n'ont pas été écrits
+    let mut regs = [0u32; 4];
     let mut data = data.to_vec();
     for _ in 0..=MAX_JUMPS {
         let words: Vec<u32> = data.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect();
@@ -116,11 +117,18 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
                 i = words.len();
                 break;
             }
-            for k in 0..=extra {
+            let last = register + if consecutive { extra as u32 } else { 0 };
+            // un paquet qui ne touche aucun registre de saut n'est pas parcouru
+            let touched = if last < 0x238 || register > 0x23D { 0..0 } else { 0..extra + 1 };
+            for k in touched {
                 let reg = register + if consecutive { k as u32 } else { 0 };
+                if !(0x238..=0x23D).contains(&reg) {
+                    continue;
+                }
                 let value = if k == 0 { words[i] } else { words[i + 1 + k] };
-                regs.insert(reg, value);
-                if (reg == 0x23C || reg == 0x23D) && value & 1 != 0 {
+                if reg < 0x23C {
+                    regs[(reg - 0x238) as usize] = value;
+                } else if value & 1 != 0 {
                     target = Some(reg - 0x23C);
                 }
             }
@@ -131,8 +139,8 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
             break;
         };
         out.extend_from_slice(&data[..(i * 4).min(data.len())]);
-        let physical = regs.get(&(0x23A + t)).copied().unwrap_or(0) as u64 * 8;
-        let size = regs.get(&(0x238 + t)).copied().unwrap_or(0) as u64 * 8;
+        let physical = regs[2 + t as usize] as u64 * 8;
+        let size = regs[t as usize] as u64 * 8;
         let address = PHYSICAL_RANGES.iter()
             .find(|(low, high, _)| *low <= physical && physical < *high)
             .map(|(low, _, virt)| virt + physical - low)
@@ -182,7 +190,6 @@ pub struct Gsp {
     pub right: bool,
     pub first_result: u32,
     pub stats: BTreeMap<String, u64>,
-    pub registers: BTreeMap<u32, u64>,
     /// (heure, adresse, taille, écritures de registres, dessins)
     pub lists: Vec<(u64, u32, u32, u64, u64)>,
     /// écran -> [(heure, adresse, format, largeur de ligne)]
@@ -211,7 +218,6 @@ impl Gsp {
             right: false,
             first_result: k.bench.gsp_first_result,
             stats: BTreeMap::new(),
-            registers: BTreeMap::new(),
             lists: Vec::new(),
             frames: [Vec::new(), Vec::new()],
             current: [None, None],
@@ -479,7 +485,6 @@ impl Gsp {
             let consecutive = header >> 31 != 0;
             for n in 0..=extra {
                 let reg = register + if consecutive { n as u32 } else { 0 };
-                *self.registers.entry(reg).or_insert(0) += 1;
                 writes += 1;
                 if let Some(name) = draw_register_name(reg) {
                     match draws.iter_mut().find(|(d, _)| *d == name) {
@@ -1041,8 +1046,6 @@ mod tests {
         assert!(r.has_line("gsp file : ProcessCommandList 0x14000000, 0x20 octets : 11 écritures de registres, dessins : {'DrawArrays': 2, 'DrawElements': 1}"));
         let gsp = r.gsp.borrow();
         assert_eq!(gsp.stats["sauts de liste suivis"], 2);
-        assert_eq!(gsp.registers[&0x22E], 2);
-        assert_eq!(gsp.registers[&0x238], 2);
         assert_eq!(gsp.lists, vec![(0, LINEAR, size, 11, 3)]);
         drop(gsp);
         assert_eq!(r.k.bench.command_lists, 1);

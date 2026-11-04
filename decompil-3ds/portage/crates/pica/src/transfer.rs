@@ -227,15 +227,7 @@ pub fn memory_fill(memory: &mut Memory, words: &[u32; 8]) {
     for (start, size, value, control) in fill_zones(words) {
         let width = ((control >> 8) & 3).min(2) as usize;
         let pattern = &value.to_le_bytes()[..[2usize, 3, 4][width]];
-        // le motif répété : on le recopie par doublement (bien plus vite qu'un octet à la fois)
-        let mut data: Vec<u8> = Vec::with_capacity(size + 4);
-        data.extend_from_slice(pattern);
-        while data.len() < size {
-            let n = data.len().min(size - data.len());
-            data.extend_from_within(..n);
-        }
-        data.truncate(size);
-        memory.write(start, &data);
+        memory.fill(start, size, pattern);
     }
 }
 

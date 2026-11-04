@@ -14,6 +14,7 @@ import lz11
 import nand
 import oracles
 import pk6
+import profil
 import revue_modeles
 import svc_check
 import texte
@@ -25,6 +26,7 @@ if __name__ == '__main__':
     teleporter.test()
     tournee.test()
     pk6.test()
+    profil.test()
     combats.test()
     revue_modeles.test()
     inspecter.test()

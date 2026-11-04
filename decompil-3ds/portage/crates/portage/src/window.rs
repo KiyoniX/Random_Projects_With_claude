@@ -243,6 +243,8 @@ impl Screens {
 
     /// Encode les écrans du haut et du bas (s'ils existent) dans `view`, une image de `width` x `height`.
     fn compose(&self, view: &wgpu::TextureView, width: u32, height: u32, textures: [Option<&wgpu::Texture>; 2], smooth: bool, layout: Layout) -> wgpu::CommandEncoder {
+        // les écrans viennent du moteur : son travail doit être dans la file avant celui de la fenêtre
+        self.gpu.submitter.wait();
         let (ww, wh) = (width as f32, height as f32);
         let (f, ox, oy) = layout.fit(ww, wh);
         let mut binds = Vec::new();

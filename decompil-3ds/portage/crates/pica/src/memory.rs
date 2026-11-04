@@ -52,6 +52,10 @@ pub struct Memory {
     regions: Vec<Region>,
     /// Horloge des écritures : monte à chaque écriture ou ajout de région.
     clock: u64,
+    /// L'heure du dernier [`Memory::touch_all`] : chaque page compte comme écrite au moins à cette heure. Une seule
+    /// valeur plutôt que tous les instants remis à jour : gsp appelle `touch_all` à chaque commande, et remplir les
+    /// 34 000 instants du tas linéaire et de la mémoire vidéo y coûtait 2 % du fil principal (profil du 4/11).
+    touched: u64,
 }
 
 /// Adresse physique du GPU (déjà multipliée par 8) -> adresse du jeu (mémoire vidéo et tas linéaire), ou `None`.
@@ -110,9 +114,7 @@ impl Memory {
     /// Pour la mémoire que le jeu écrit sans passer par ici.
     pub fn touch_all(&mut self) {
         self.clock += 1;
-        for region in &mut self.regions {
-            region.stamps.fill(self.clock);
-        }
+        self.touched = self.clock;
     }
 
     /// Les régions (adresse, octets) : pour écrire un instantané de la mémoire.
@@ -157,7 +159,7 @@ impl Memory {
             }
             at = region.start as usize + stop;
         }
-        best
+        best.max(self.touched)
     }
 
     fn find(&self, address: u32, len: usize) -> Option<&Region> {
@@ -188,6 +190,38 @@ impl Memory {
             at += take;
         }
         Some(Cow::Owned(out))
+    }
+
+    /// Écrit `len` octets du motif répété (comme `write` du motif recopié bout à bout), en place quand la plage tient
+    /// dans une région : un remplissage de gsp efface souvent tout un tampon d'image, et le construire à part puis le
+    /// recopier coûtait 6 % du fil principal (profil du 4/11).
+    pub fn fill(&mut self, address: u32, len: usize, pattern: &[u8]) -> bool {
+        if len == 0 {
+            return true;
+        }
+        let Some(i) = self.regions.iter().position(|r| {
+            address >= r.start && (address as usize - r.start as usize) + len <= r.data().len()
+        }) else {
+            let data: Vec<u8> = pattern.iter().copied().cycle().take(len).collect();
+            return self.write(address, &data);
+        };
+        self.clock += 1;
+        let region = &mut self.regions[i];
+        let offset = (address - region.start) as usize;
+        let out = &mut region.data.as_mut_slice()[offset..offset + len];
+        let first = pattern.len().min(len);
+        out[..first].copy_from_slice(&pattern[..first]);
+        // par doublement : chaque copie double la partie déjà écrite
+        let mut done = first;
+        while done < len {
+            let n = done.min(len - done);
+            out.copy_within(..n, done);
+            done += n;
+        }
+        for page in offset / PAGE..=(offset + len - 1) / PAGE {
+            region.stamps[page] = self.clock;
+        }
+        true
     }
 
     pub fn write(&mut self, address: u32, bytes: &[u8]) -> bool {
@@ -236,6 +270,25 @@ mod tests {
         assert_eq!(&*m.read(0x1000_0ffe, 4).unwrap(), &[9, 9, 9, 9]);
         assert!(m.read(0x2000_0000, 1).is_none());
         assert!(!m.write(0x1000_1fff, &[0, 0]));
+    }
+
+    #[test]
+    fn fill_is_a_repeated_write() {
+        let mut a = Memory::default();
+        a.map(0x1000_0000, &[7; 0x3000]);
+        let mut b = Memory::default();
+        b.map(0x1000_0000, &[7; 0x3000]);
+        let data: Vec<u8> = [1u8, 2, 3].iter().copied().cycle().take(0x1801).collect();
+        assert!(a.write(0x1000_0ffd, &data));
+        let before = b.clock();
+        assert!(b.fill(0x1000_0ffd, 0x1801, &[1, 2, 3]));
+        assert_eq!(a.regions().map(|(_, d)| d.to_vec()).collect::<Vec<_>>(), b.regions().map(|(_, d)| d.to_vec()).collect::<Vec<_>>());
+        assert!(b.stamp(0x1000_0000, 0x10) > before && b.stamp(0x1000_2000, 0x1000) > before);
+        // à cheval sur deux régions, et hors de la mémoire
+        b.map(0x1000_3000, &[0; 0x1000]);
+        assert!(b.fill(0x1000_2ffe, 4, &[9, 8]));
+        assert_eq!(&*b.read(0x1000_2ffe, 4).unwrap(), &[9, 8, 9, 8]);
+        assert!(!b.fill(0x2000_0000, 4, &[1]));
     }
 
     #[test]

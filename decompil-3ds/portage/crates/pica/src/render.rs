@@ -11,8 +11,14 @@
 //! `render/present.rs`.
 
 mod present;
+mod submit;
 
-use std::collections::{BTreeMap, HashMap};
+pub use submit::Submitter;
+
+use std::collections::BTreeMap;
+
+// FxHash : les clés sont nos propres valeurs, pas une entrée hostile ; SipHash prenait 2 % du fil principal (profil du 4/11)
+use rustc_hash::FxHashMap as HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Instant;
@@ -69,6 +75,8 @@ pub struct Stats {
     pub fragment_programs: u64,
     pub textures_decoded: u64,
     pub flushes: u64,
+    /// Envois de travail au GPU (`queue.submit`).
+    pub submits: u64,
     pub clears: u64,
     /// Textures prises directement dans un tampon de rendu vivant (sans passer par la mémoire).
     pub live_textures: u64,
@@ -153,12 +161,14 @@ struct Arena {
     offset: u64,
     /// Ce qui est écrit dans le tampon, rangé d'abord ici puis envoyé d'un seul coup à l'envoi du travail au GPU.
     cpu: Vec<u8>,
+    /// Des octets rendus par le fil d'envoi, pour le prochain `cpu` (sans les remettre à zéro).
+    spare: Option<Vec<u8>>,
 }
 
 impl Arena {
     fn new(device: &wgpu::Device, label: &str, size: u64, usage: wgpu::BufferUsages) -> Arena {
         let buffer = device.create_buffer(&wgpu::BufferDescriptor { label: Some(label), size, usage: usage | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
-        Arena { buffer, size, offset: 0, cpu: Vec::new() }
+        Arena { buffer, size, offset: 0, cpu: Vec::new(), spare: None }
     }
 
     fn alloc(&mut self, bytes: u64, align: u64) -> Option<u64> {
@@ -176,10 +186,11 @@ impl Arena {
         self.cpu[at as usize..at as usize + bytes.len()].copy_from_slice(bytes);
     }
 
-    /// Envoie à la file ce qui a été écrit, puis repart de zéro.
-    fn upload(&mut self, queue: &wgpu::Queue) {
+    /// Donne au fil d'envoi ce qui a été écrit (tampon, octets, longueur, `index` de l'arène), puis repart de zéro.
+    fn upload(&mut self, index: usize, uploads: &mut Vec<(wgpu::Buffer, Vec<u8>, usize, usize)>) {
         if self.offset > 0 {
-            queue.write_buffer(&self.buffer, 0, &self.cpu[..self.offset as usize]);
+            let bytes = std::mem::replace(&mut self.cpu, self.spare.take().unwrap_or_default());
+            uploads.push((self.buffer.clone(), bytes, self.offset as usize, index));
         }
         self.offset = 0;
     }
@@ -252,6 +263,8 @@ pub struct Gpu {
     pub adapter: wgpu::Adapter,
     pub device: wgpu::Device,
     pub queue: wgpu::Queue,
+    /// Le fil d'envoi du moteur : attendre ([`Submitter::wait`]) avant de toucher à la file.
+    pub submitter: Submitter,
 }
 
 pub struct Renderer {
@@ -283,6 +296,7 @@ pub struct Renderer {
     color_surfaces: Vec<ColorSurface>,
     depth_surfaces: Vec<DepthSurface>,
     encoder: Option<wgpu::CommandEncoder>,
+    submitter: Submitter,
     dummy_view: wgpu::TextureView,
     depth_upload: HashMap<wgpu::TextureFormat, wgpu::RenderPipeline>,
     stencil_supported: bool,
@@ -462,6 +476,7 @@ impl Renderer {
         let uniform_align = device.limits().min_uniform_buffer_offset_alignment as u64;
         let lut_align = device.limits().min_storage_buffer_offset_alignment as u64;
         let device_lut = device.clone();
+        let submitter = Submitter::new(queue.clone());
         Ok(Renderer {
             device,
             queue,
@@ -475,39 +490,40 @@ impl Renderer {
             texture_dump: None,
             layout,
             pipeline_layout,
-            vs_by_version: HashMap::new(),
-            vs_by_key: HashMap::new(),
-            vs_modules: HashMap::new(),
-            fs_ids: HashMap::new(),
-            fs_by_key: HashMap::new(),
-            fs_modules: HashMap::new(),
-            pipelines: HashMap::new(),
-            textures: HashMap::new(),
+            vs_by_version: HashMap::default(),
+            vs_by_key: HashMap::default(),
+            vs_modules: HashMap::default(),
+            fs_ids: HashMap::default(),
+            fs_by_key: HashMap::default(),
+            fs_modules: HashMap::default(),
+            pipelines: HashMap::default(),
+            textures: HashMap::default(),
             color_surfaces: Vec::new(),
             depth_surfaces: Vec::new(),
             encoder: None,
             dummy_view,
-            depth_upload: HashMap::new(),
+            depth_upload: HashMap::default(),
             stencil_supported,
             lut_arena: Arena::new(&device_lut, "tables d'éclairage", LUT_BYTES * 64, wgpu::BufferUsages::STORAGE),
             lut_align: lut_align,
             lut_at: None,
             lut_copies: Vec::new(),
             pass: None,
-            meshes: HashMap::new(),
+            meshes: HashMap::default(),
             mesh_bytes: 0,
             trace: std::env::var_os("PORTAGE_TRACE").is_some(),
             trace_textures: std::env::var_os("PORTAGE_TRACE_TEX").is_some(),
             passes: None,
+            submitter,
             pending: Vec::new(),
-            readback_pool: HashMap::new(),
+            readback_pool: HashMap::default(),
             uniform_arena,
             input_arena,
             index_arena,
             uniform_align,
             arena_generation: 1,
             next_id: 1,
-            bind_groups: HashMap::new(),
+            bind_groups: HashMap::default(),
             clock: 0,
             attributed: 0.0,
             stats: Stats::default(),
@@ -553,7 +569,13 @@ impl Renderer {
     }
 
     pub fn gpu(&self) -> Gpu {
-        Gpu { instance: self.instance.clone(), adapter: self.adapter.clone(), device: self.device.clone(), queue: self.queue.clone() }
+        Gpu {
+            instance: self.instance.clone(),
+            adapter: self.adapter.clone(),
+            device: self.device.clone(),
+            queue: self.queue.clone(),
+            submitter: self.submitter.clone(),
+        }
     }
 
     fn now(&self) -> (Instant, f64) {
@@ -590,16 +612,29 @@ impl Renderer {
     pub fn submit(&mut self) {
         self.pass = None;
         // ce que les dessins ont écrit dans les grands tampons part avant leurs commandes ; les tampons repartent de zéro
-        self.uniform_arena.upload(&self.queue);
-        self.input_arena.upload(&self.queue);
-        self.index_arena.upload(&self.queue);
-        self.lut_arena.upload(&self.queue);
+        for (index, bytes) in self.submitter.take_returned() {
+            let [a, b, c, d] = [&mut self.uniform_arena, &mut self.input_arena, &mut self.index_arena, &mut self.lut_arena];
+            let arena = match index { 0 => a, 1 => b, 2 => c, _ => d };
+            if arena.spare.as_ref().is_none_or(|s| s.len() < bytes.len()) {
+                arena.spare = Some(bytes);
+            }
+        }
+        let mut uploads = Vec::new();
+        for (index, arena) in [&mut self.uniform_arena, &mut self.input_arena, &mut self.index_arena, &mut self.lut_arena].into_iter().enumerate() {
+            arena.upload(index, &mut uploads);
+        }
         self.lut_at = None;
         self.lut_copies.clear();
-        if let Some(e) = self.encoder.take() {
+        let encoder = match self.encoder.take() {
+            Some(e) => Some(e),
+            // des écritures sans commandes : elles partent quand même, dans l'ordre
+            None => (!uploads.is_empty()).then(|| self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: Some("pica") })),
+        };
+        if let Some(e) = encoder {
             let t = self.now();
-            self.queue.submit(Some(e.finish()));
+            self.submitter.send(uploads, e);
             self.tick("envoi", t);
+            self.stats.submits += 1;
         }
     }
 
