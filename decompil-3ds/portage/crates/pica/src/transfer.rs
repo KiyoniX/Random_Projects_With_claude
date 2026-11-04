@@ -223,12 +223,16 @@ pub fn copy_span(size: u32, dim: u32) -> usize {
 }
 
 /// Commande 2 : remplissages de mémoire.
-pub fn memory_fill(memory: &mut Memory, words: &[u32; 8]) {
-    for (start, size, value, control) in fill_zones(words) {
-        let width = ((control >> 8) & 3).min(2) as usize;
-        let pattern = &value.to_le_bytes()[..[2usize, 3, 4][width]];
-        memory.fill(start, size, pattern);
-    }
+/// Rend les plages vraiment écrites, dans l'ordre (début, longueur, motif de 2, 3 ou 4 octets) : une plage que la
+/// mémoire refuse n'en est pas.
+pub fn memory_fill(memory: &mut Memory, words: &[u32; 8]) -> Vec<(u32, usize, Vec<u8>)> {
+    fill_zones(words)
+        .map(|(start, size, value, control)| {
+            let width = ((control >> 8) & 3).min(2) as usize;
+            (start, size, value.to_le_bytes()[..[2usize, 3, 4][width]].to_vec())
+        })
+        .filter(|(start, size, pattern)| memory.fill(*start, *size, pattern))
+        .collect()
 }
 
 /// Les morceaux (source, destination, longueur) de la commande 4, dans l'ordre : `size` octets d'un coup, ou par lignes
@@ -304,7 +308,10 @@ mod tests {
     fn fill_and_copy() {
         let mut m = Memory::default();
         m.map(0x1400_0000, &vec![0u8; 0x1000]);
-        memory_fill(&mut m, &[2, 0x1400_0000, 0x1122_3344, 0x1400_0008, 0, 0, 0, 0x0200]);
+        let written = memory_fill(&mut m, &[2, 0x1400_0000, 0x1122_3344, 0x1400_0008, 0, 0, 0, 0x0200]);
+        assert_eq!(written, vec![(0x1400_0000, 8, vec![0x44, 0x33, 0x22, 0x11])]);
+        // une plage qui sort de la mémoire n'est pas écrite, et n'est pas rendue
+        assert!(memory_fill(&mut m, &[2, 0x1400_0ffc, 1, 0x1400_1004, 0, 0, 0, 0x0200]).is_empty());
         assert_eq!(&*m.read(0x1400_0000, 8).unwrap(), &[0x44, 0x33, 0x22, 0x11, 0x44, 0x33, 0x22, 0x11]);
         texture_copy(&mut m, 0x1400_0000, 0x1400_0100, 8, 0, 0).unwrap();
         assert_eq!(texture_copy(&mut m, 0x1400_0000, 0x1400_0ff8, 0x10, 0, 0), Err(OUTSIDE.to_string()));

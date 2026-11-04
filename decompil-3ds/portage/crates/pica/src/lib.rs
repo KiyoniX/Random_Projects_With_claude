@@ -125,6 +125,7 @@ impl Pica {
         for &(start, len) in &writes {
             self.renderer.after_write(&mut self.memory, start, len);
         }
+        self.renderer.fills.clear();
         result
     }
 
@@ -138,7 +139,8 @@ impl Pica {
                 }
             }
             1 => self.process_list(&command.data),
-            2 => transfer::memory_fill(&mut self.memory, words),
+            // le motif est connu : un tampon effacé n'a pas à être relu pour savoir qu'il est uniforme (`after_write`)
+            2 => self.renderer.fills = transfer::memory_fill(&mut self.memory, words),
             3 => {
                 let (source, destination, in_dim, out_dim, flags) = (words[1], words[2], words[3], words[4], words[5]);
                 transfer::display_transfer(&mut self.memory, source, destination, in_dim, out_dim, flags)?;

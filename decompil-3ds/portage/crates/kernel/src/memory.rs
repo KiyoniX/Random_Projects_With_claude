@@ -102,10 +102,17 @@ impl Backing {
     }
 
     pub fn read(&self, offset: usize, len: usize) -> Vec<u8> {
-        assert!(offset + len <= self.size);
-        let mut out = vec![0u8; len];
-        unsafe { std::ptr::copy_nonoverlapping(self.ptr.add(offset), out.as_mut_ptr(), len) };
+        let mut out = Vec::with_capacity(len);
+        self.append(offset, len, &mut out);
         out
+    }
+
+    /// Ajoute `len` octets à `out`, copiés une seule fois (sans tampon remis à zéro puis recopié : les lectures de la
+    /// mémoire du jeu par les services en faisaient trois passes, profil du 4/11).
+    pub fn append(&self, offset: usize, len: usize, out: &mut Vec<u8>) {
+        assert!(offset + len <= self.size);
+        // SAFETY : la plage est dans la réserve (vérifié ci-dessus), qui vit autant que `self`
+        out.extend_from_slice(unsafe { std::slice::from_raw_parts(self.ptr.add(offset), len) });
     }
 
     pub fn write(&self, offset: usize, data: &[u8]) {
@@ -375,7 +382,7 @@ impl AddressSpace {
             let region = self.find(address).ok_or_else(|| out_of_memory(address, false))?;
             let at = region.offset + (address - region.start) as usize;
             let step = (left as u64).min(region.end() - address as u64) as u32;
-            out.extend_from_slice(&region.backing.read(at, step as usize));
+            region.backing.append(at, step as usize, &mut out);
             address = address.wrapping_add(step);
             left -= step;
         }

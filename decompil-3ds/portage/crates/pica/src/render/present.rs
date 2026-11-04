@@ -671,7 +671,7 @@ impl Renderer {
             && !overlaps(source, source_len, destination, dest_len)
             && !self.color_surfaces.iter().any(|s| overlaps(s.address, s.bytes(), destination, dest_len))
             && !self.depth_surfaces.iter().any(|s| overlaps(s.address, s.bytes(), destination, dest_len));
-        if std::env::var_os("PORTAGE_TRACE").is_some() {
+        if self.trace {
             eprintln!("présenter : source {source:x} {in_w}x{in_h} lignes dispo {available} valide {valid} lossless {lossless} image_ok {image_ok} pending_ok {pending_ok}");
         }
         if !pending_ok || !(image_ok || !want_pixels) {

@@ -2251,7 +2251,7 @@ window.ETAT = {
   },
   {
    "date": "2026-11-04",
-   "texte": "Le moteur 44 % plus rapide en fenêtre (558 s de jeu en une minute au lieu de 387), images et journal identiques : l'envoi au GPU sur un fil à lui, la file de gsp et la mémoire du GPU allégées, mesurées par un profileur maison (outils/profil.py). Relecture des modèles par l'utilisateur : 883 bons sur 884, le #134 (Aquali) a un trait noir sur la crête. Le trait d'Aquali vient de sa texture : il disparaît quand on l'efface de la texture, reste le même aux échelles 1 et 4, et manque avec une texture grise."
+   "texte": "Le moteur 44 % plus rapide en fenêtre (558 s de jeu en une minute au lieu de 387), images et journal identiques : l'envoi au GPU sur un fil à lui, la file de gsp et la mémoire du GPU allégées, mesurées par un profileur maison (outils/profil.py). Relecture des modèles par l'utilisateur : 883 bons sur 884, le #134 (Aquali) a un trait noir sur la crête. Le trait d'Aquali vient de sa texture : il disparaît quand on l'efface de la texture, reste le même aux échelles 1 et 4, et manque avec une texture grise. Seconde vague : la fenêtre environ 1,5 fois plus rapide que la version d'avant l'optimisation, toujours à l'identique."
   }
  ],
  "dump": {
@@ -2272,6 +2272,10 @@ window.ETAT = {
  },
  "mise_a_jour_heure": "04/11/2026",
  "commits": [
+  [
+   "2026-11-04",
+   "Décompil 3DS : le trait d'Aquali vient de sa texture, pas du rendu"
+  ],
   [
    "2026-11-04",
    "Décompil 3DS : le moteur 44 % plus rapide en fenêtre, images et journal identiques"

@@ -175,21 +175,32 @@ impl Arena {
         let at = self.offset.div_ceil(align) * align;
         (at + bytes <= self.size).then(|| {
             self.offset = at + bytes;
-            if self.cpu.len() < self.offset as usize {
-                self.cpu.resize(self.offset as usize, 0);
-            }
             at
         })
     }
 
+    /// Les octets sont ajoutés au bout plutôt que remis à zéro puis recopiés (`resize` prenait 1,7 % du fil principal) ;
+    /// seuls les trous d'alignement sont mis à zéro.
     fn write(&mut self, at: u64, bytes: &[u8]) {
-        self.cpu[at as usize..at as usize + bytes.len()].copy_from_slice(bytes);
+        let at = at as usize;
+        if self.cpu.len() < at {
+            self.cpu.resize(at, 0);
+        }
+        let inside = (self.cpu.len() - at).min(bytes.len());
+        self.cpu[at..at + inside].copy_from_slice(&bytes[..inside]);
+        self.cpu.extend_from_slice(&bytes[inside..]);
     }
 
     /// Donne au fil d'envoi ce qui a été écrit (tampon, octets, longueur, `index` de l'arène), puis repart de zéro.
     fn upload(&mut self, index: usize, uploads: &mut Vec<(wgpu::Buffer, Vec<u8>, usize, usize)>) {
         if self.offset > 0 {
-            let bytes = std::mem::replace(&mut self.cpu, self.spare.take().unwrap_or_default());
+            // une place prise sans écriture compte pour des zéros
+            if self.cpu.len() < self.offset as usize {
+                self.cpu.resize(self.offset as usize, 0);
+            }
+            // sans octets rendus à temps par le fil d'envoi, un neuf de même capacité (sans croître par à-coups)
+            let fresh = self.spare.take().unwrap_or_else(|| Vec::with_capacity(self.cpu.capacity()));
+            let bytes = std::mem::replace(&mut self.cpu, fresh);
             uploads.push((self.buffer.clone(), bytes, self.offset as usize, index));
         }
         self.offset = 0;
@@ -297,6 +308,11 @@ pub struct Renderer {
     depth_surfaces: Vec<DepthSurface>,
     encoder: Option<wgpu::CommandEncoder>,
     submitter: Submitter,
+    /// Chronométrer chaque étape du dessin (`Stats::time`) : vrai par défaut ; la fenêtre en direct s'en passe (dix-huit
+    /// lectures de l'horloge par dessin, 2,5 % du fil principal, profil du 4/11).
+    pub timing: bool,
+    /// Pendant `after_write` d'un remplissage : ses plages et motifs (voir `uniform_unit`).
+    pub fills: Vec<(u32, usize, Vec<u8>)>,
     dummy_view: wgpu::TextureView,
     depth_upload: HashMap<wgpu::TextureFormat, wgpu::RenderPipeline>,
     stencil_supported: bool,
@@ -515,6 +531,8 @@ impl Renderer {
             trace_textures: std::env::var_os("PORTAGE_TRACE_TEX").is_some(),
             passes: None,
             submitter,
+            fills: Vec::new(),
+            timing: true,
             pending: Vec::new(),
             readback_pool: HashMap::default(),
             uniform_arena,
@@ -578,13 +596,14 @@ impl Renderer {
         }
     }
 
-    fn now(&self) -> (Instant, f64) {
-        (Instant::now(), self.attributed)
+    fn now(&self) -> (Option<Instant>, f64) {
+        (self.timing.then(Instant::now), self.attributed)
     }
 
     /// Ajoute au compteur de l'étape le temps écoulé depuis `since`, moins celui déjà compté par les étapes imbriquées.
-    fn tick(&mut self, name: &'static str, since: (Instant, f64)) {
-        let exclusive = since.0.elapsed().as_secs_f64() - (self.attributed - since.1);
+    fn tick(&mut self, name: &'static str, since: (Option<Instant>, f64)) {
+        let Some(start) = since.0 else { return };
+        let exclusive = start.elapsed().as_secs_f64() - (self.attributed - since.1);
         self.attributed += exclusive;
         *self.stats.time.entry(name).or_insert(0.0) += exclusive;
     }
@@ -1010,9 +1029,18 @@ struct Out { @builtin(frag_depth) d: f32 }
 
     /// Le point répété qui remplit tout le tampon (de `bytes` octets à `address`), si la plage écrite le recouvre
     /// entièrement et qu'il n'a qu'une valeur.
-    fn uniform_unit(memory: &Memory, address: u32, bytes: usize, unit: usize, start: u32, len: usize) -> Option<Vec<u8>> {
+    fn uniform_unit(&self, memory: &Memory, address: u32, bytes: usize, unit: usize, start: u32, len: usize) -> Option<Vec<u8>> {
         if !(start <= address && address as u64 + bytes as u64 <= start as u64 + len as u64) {
             return None;
+        }
+        // écrit en dernier par un remplissage (la seconde plage d'une commande passe après la première) dont le motif tient
+        // dans un point : le point se lit dans le motif ; sinon la mémoire est relue
+        let last = self.fills.iter().rev().find(|(fill_start, fill_len, _)| {
+            *fill_start <= address && address as u64 + bytes as u64 <= *fill_start as u64 + *fill_len as u64
+        });
+        if let Some((fill_start, _, pattern)) = last.filter(|(_, _, pattern)| unit % pattern.len() == 0) {
+            let phase = (address - fill_start) as usize;
+            return Some((0..unit).map(|k| pattern[(phase + k) % pattern.len()]).collect());
         }
         let raw = memory.read(address, bytes)?;
         // un point répété : le tampon est égal à lui-même décalé d'un point (comparaison d'octets rapide)
@@ -1027,7 +1055,7 @@ struct Out { @builtin(frag_depth) d: f32 }
         if !valid {
             return false;
         }
-        let Some(unit) = Self::uniform_unit(memory, address, bytes, fmt.bytes_per_pixel(), start, len) else { return false };
+        let Some(unit) = self.uniform_unit(memory, address, bytes, fmt.bytes_per_pixel(), start, len) else { return false };
         let px = formats::decode_pixels(fmt, &unit);
         let color = wgpu::Color { r: px[0] as f64 / 255.0, g: px[1] as f64 / 255.0, b: px[2] as f64 / 255.0, a: px[3] as f64 / 255.0 };
         let view = self.color_surfaces[index].view.clone();
@@ -1060,7 +1088,7 @@ struct Out { @builtin(frag_depth) d: f32 }
             return false;
         }
         let unit = depth_unit(fmt);
-        let Some(first) = Self::uniform_unit(memory, address, bytes, unit, start, len) else { return false };
+        let Some(first) = self.uniform_unit(memory, address, bytes, unit, start, len) else { return false };
         let mut v = 0u32;
         for (k, &b) in first.iter().enumerate() {
             v |= (b as u32) << (8 * k);

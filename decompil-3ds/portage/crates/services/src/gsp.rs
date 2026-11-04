@@ -78,6 +78,11 @@ pub fn transfer_screen(out_dim: u32) -> Option<usize> {
     (out_dim & 0xFFFF == 240).then_some(if out_dim >> 16 == 400 { 0 } else { 1 })
 }
 
+/// Le mot `i` (32 bits, petit-boutiste) des octets d'une liste.
+fn word(data: &[u8], i: usize) -> u32 {
+    u32::from_le_bytes([data[4 * i], data[4 * i + 1], data[4 * i + 2], data[4 * i + 3]])
+}
+
 fn draw_register_name(register: u32) -> Option<&'static str> {
     match register {
         0x022E => Some("DrawArrays"),
@@ -99,22 +104,23 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
                     stats: Option<&mut BTreeMap<String, u64>>) -> Vec<u8> {
     let mut scratch = BTreeMap::new();
     let stats = stats.unwrap_or(&mut scratch);
-    let mut out: Vec<u8> = Vec::new();
+    let mut out: Vec<u8> = Vec::with_capacity(data.len());
     // seuls comptent les registres de saut 0x238..0x23B (tailles, adresses), à 0 tant qu'ils n'ont pas été écrits
     let mut regs = [0u32; 4];
-    let mut data = data.to_vec();
+    // les mots sont lus dans les octets mêmes : ni copie de la liste, ni tableau de mots (profil du 4/11)
+    let mut data = std::borrow::Cow::Borrowed(data);
     for _ in 0..=MAX_JUMPS {
-        let words: Vec<u32> = data.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect();
+        let count = data.len() / 4;
         let mut i = 0usize;
         let mut target: Option<u32> = None;
-        while i + 1 < words.len() && target.is_none() {
-            let header = words[i + 1];
+        while i + 1 < count && target.is_none() {
+            let header = word(&data, i + 1);
             let register = header & 0xFFFF;
             let extra = (header >> 20 & 0x7FF) as usize;
             let consecutive = header >> 31 != 0;
-            if i + 2 + extra > words.len() {
+            if i + 2 + extra > count {
                 // paquet coupé par la fin du tampon : on l'ignore
-                i = words.len();
+                i = count;
                 break;
             }
             let last = register + if consecutive { extra as u32 } else { 0 };
@@ -125,7 +131,7 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
                 if !(0x238..=0x23D).contains(&reg) {
                     continue;
                 }
-                let value = if k == 0 { words[i] } else { words[i + 1 + k] };
+                let value = if k == 0 { word(&data, i) } else { word(&data, i + 1 + k) };
                 if reg < 0x23C {
                     regs[(reg - 0x238) as usize] = value;
                 } else if value & 1 != 0 {
@@ -154,7 +160,7 @@ pub fn follow_jumps(read: &mut dyn FnMut(u32, u32) -> Option<Vec<u8>>, data: &[u
             bump(stats, "sauts de liste vers une adresse illisible", 1);
             break;
         }
-        data = next;
+        data = std::borrow::Cow::Owned(next);
         bump(stats, "sauts de liste suivis", 1);
     }
     out
@@ -474,22 +480,29 @@ impl Gsp {
             }
         };
         let data = self.follow_jumps(k, &data);
-        let words: Vec<u32> = data.chunks_exact(4).map(|c| u32::from_le_bytes([c[0], c[1], c[2], c[3]])).collect();
+        let count = data.len() / 4;
         let mut i = 0usize;
         let mut writes = 0u64;
         let mut draws: Vec<(&'static str, u64)> = Vec::new();
-        while i + 1 < words.len() {
-            let header = words[i + 1];
+        while i + 1 < count {
+            let header = word(&data, i + 1);
             let register = header & 0xFFFF;
             let extra = (header >> 20 & 0x7FF) as usize;
             let consecutive = header >> 31 != 0;
-            for n in 0..=extra {
-                let reg = register + if consecutive { n as u32 } else { 0 };
-                writes += 1;
-                if let Some(name) = draw_register_name(reg) {
+            writes += extra as u64 + 1;
+            // les ordres de dessin du paquet, comptés sans parcourir ses écritures : dans l'ordre des registres
+            for reg in [0x22E, 0x22F] {
+                let times = if consecutive {
+                    (register <= reg && reg <= register + extra as u32) as u64
+                } else if register == reg {
+                    extra as u64 + 1
+                } else {
+                    0
+                };
+                if let (Some(name), true) = (draw_register_name(reg), times > 0) {
                     match draws.iter_mut().find(|(d, _)| *d == name) {
-                        Some(entry) => entry.1 += 1,
-                        None => draws.push((name, 1)),
+                        Some(entry) => entry.1 += times,
+                        None => draws.push((name, times)),
                     }
                 }
             }

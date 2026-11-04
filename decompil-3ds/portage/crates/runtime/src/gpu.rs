@@ -113,6 +113,7 @@ impl PicaBackend {
         }
         let mut pica = Pica::live(memory, scale)?;
         pica.readback = folder.is_some();
+        pica.renderer.timing = folder.is_some();
         pica.renderer.texture_filter = textures.filter;
         pica.renderer.texture_pack = textures.pack.clone();
         if let Some(folder) = &textures.dump {
