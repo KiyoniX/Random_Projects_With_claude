@@ -24,7 +24,7 @@ use pica::images::save_png;
 
 use crate::gamedata::MoveInfo;
 use crate::ui::{Pill, TYPE_COLORS};
-use crate::window::{Layout, Screens, open};
+use crate::window::{BagPage, Layout, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -122,6 +122,57 @@ fn battle_moves(memory: &AddressSpace, base: u32) -> Option<[(u16, u8, u8); 4]> 
     }
     moves.iter().any(|m| m.0 != 0).then_some(moves)
 }
+
+/// Ce que montre le sac du combat (`local/analyse/DllBattle/sac-natif.md`).
+enum Bag {
+    /// Les catégories ; le dernier objet utilisé (0 : aucun, bouton grisé).
+    Pockets { last: u16 },
+    /// La liste d'une catégorie : son numéro (0 Soins PV/PP, 1 Soins statut, 2 Balls, 3 Objets combat), les objets de la
+    /// page (numéro, quantité), s'il y a une page avant, une après.
+    List { pocket: u8, items: Vec<(u16, u16)>, previous: bool, next: bool },
+    /// La fiche d'un objet, avec sa quantité prise dans la liste (toujours là dessous).
+    Item { item: u16, count: u16 },
+}
+
+/// L'écran du sac ouvert : `+0x1E8` des objets est l'écran (1 catégories, 2 liste, 3 fiche ; 4 et 5, le choix d'un Pokémon
+/// et d'une capacité, ne sont pas dessinés), `+0x1F4` l'appli de la liste, `+0x1F8` celle de la fiche.
+fn battle_bag(memory: &AddressSpace, base: u32) -> Option<Bag> {
+    let objects = battle_objects(memory, base)?;
+    let word = |address: u32| memory.u32(address).ok();
+    // la liste : la catégorie en +0xD4, à +0xF8 + 0x84 × catégorie un nombre puis les cases (objet, quantité), la page en +0x30C
+    let list = || -> Option<(u8, Vec<(u16, u16)>, u32)> {
+        let l = word(objects.wrapping_add(0x1F4)).filter(|&l| l != 0)?;
+        let pocket = memory.u8(l.wrapping_add(0xD4)).ok().filter(|&p| p < 4)?;
+        let at = l.wrapping_add(0xF8 + 0x84 * pocket as u32);
+        let count = word(at)?.min(32);
+        let items = (0..count).map(|i| Some((memory.u16(at + 4 + 4 * i).ok()?, memory.u16(at + 6 + 4 * i).ok()?))).collect::<Option<Vec<_>>>()?;
+        Some((pocket, items, memory.u8(l.wrapping_add(0x30C)).ok()? as u32))
+    };
+    match memory.u8(objects.wrapping_add(0x1E8)).ok()? {
+        1 => {
+            // l'objet de la sauvegarde [[[[0x5EDA08]+0x1C]+0x184]+0x32] (code principal 0x32974C)
+            let last = word(0x5EDA08).and_then(|a| word(a.wrapping_add(0x1C))).and_then(|a| word(a.wrapping_add(0x184))).and_then(|a| memory.u16(a.wrapping_add(0x32)).ok());
+            Some(Bag::Pockets { last: last.unwrap_or(0) })
+        }
+        2 => {
+            let (pocket, items, page) = list()?;
+            let pages = (items.len() as u32).div_ceil(6).max(1);
+            let shown = items.iter().skip(page as usize * 6).take(6).copied().collect();
+            Some(Bag::List { pocket, items: shown, previous: page != 0, next: page + 1 < pages })
+        }
+        3 => {
+            let i = word(objects.wrapping_add(0x1F8)).filter(|&i| i != 0)?;
+            let item = memory.u16(i.wrapping_add(0xD4)).ok()?;
+            let count = list().and_then(|(_, items, _)| items.iter().find(|e| e.0 == item).map(|e| e.1)).unwrap_or(0);
+            Some(Bag::Item { item, count })
+        }
+        _ => None,
+    }
+}
+
+/// Le temps (du jeu) pendant lequel la fenêtre garde le sac quand il retombe à zéro le temps d'une transition (deux images
+/// en l'ouvrant, environ 200 ms au retour vers le menu, `sac-natif.md`).
+const BAG_HOLD_NS: u64 = 250_000_000;
 
 /// Les pastilles du menu du combat, dans l'ordre de `MENU_BUTTONS` ; en double et en triple, le jeu montre un retour à la
 /// place de Fuite pour les Pokémon après le premier (`local/analyse/DllBattle/boutons-natifs.md`).
@@ -255,6 +306,9 @@ struct Play {
     /// Les noms et données des capacités, lus dans les fichiers du jeu au premier combat (`None` : pas encore lus ; vide :
     /// illisibles, la fenêtre garde alors les morceaux de l'écran du bas).
     move_infos: Option<Vec<MoveInfo>>,
+    item_names: Vec<String>,
+    /// Le dernier sac dessiné et son temps : gardé pendant les transitions (`BAG_HOLD_NS`).
+    held_bag: Option<(Layout, (Vec<Pill>, [f32; 4]), u64)>,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
     touch_scene: bool,
     /// Les relances du jeu déjà suivies (`Bench::restarts`).
@@ -406,6 +460,13 @@ impl Play {
                 // le premier menu d'un Pokémon : `+0x93` à 1 ; les autres écrans comptés comme menu (sac, équipe…) gardent
                 // l'écran du bas en coin
                 Some(BattleScreen::Menu) if native && self.action_menu(base) => (Layout::NativeMenu(many), true),
+                Some(BattleScreen::Menu) if native => match battle_bag(memory, base) {
+                    Some(Bag::Pockets { .. }) => (Layout::NativeBag(BagPage::Pockets, many), true),
+                    Some(Bag::List { .. }) => (Layout::NativeBag(BagPage::List, many), true),
+                    Some(Bag::Item { .. }) => (Layout::NativeBag(BagPage::Item, many), true),
+                    None if many => (Layout::SmallCorner, true),
+                    None => (Layout::Corner, true),
+                },
                 Some(BattleScreen::Menu) if many => (Layout::SmallCorner, true),
                 Some(BattleScreen::Menu) => (Layout::Corner, true),
                 _ => (Layout::Overlaid, false),
@@ -436,6 +497,7 @@ impl Play {
             eprintln!("boutons du combat : noms ou données des capacités illisibles, l'écran du bas reste affiché");
         }
         self.move_infos = Some(infos.unwrap_or_default());
+        self.item_names = read("a/0/7/5").and_then(|names| crate::gamedata::item_names(&names)).unwrap_or_default();
     }
 
     /// Les pastilles de la disposition et la zone qu'elles couvrent, pour la fenêtre (`None` hors des boutons dessinés).
@@ -464,6 +526,32 @@ impl Play {
                 }).collect();
                 pills.push(pill(*places.last()?, [92, 92, 104], "Retour", String::new(), None));
                 pills
+            }
+            Layout::NativeBag(..) => {
+                let name = |item: u16| self.item_names.get(item as usize).cloned().unwrap_or_else(|| format!("Objet {item}"));
+                let off = [96, 96, 104];
+                match battle_bag(&self.bench.kernel.memory, self.battle_base()?)? {
+                    Bag::Pockets { last } => {
+                        let (label, color) = if last != 0 { (name(last), [70, 130, 200]) } else { ("Dernier objet".to_string(), off) };
+                        let labels = [("Soins PV/PP", [72, 162, 84]), ("Balls", [204, 62, 56]), ("Soins statut", [150, 92, 190]), ("Objets combat", [222, 140, 40])];
+                        let mut pills: Vec<Pill> = places.iter().zip(labels).map(|(&to, (label, color))| pill(to, color, label, String::new(), None)).collect();
+                        pills.push(pill(*places.get(4)?, color, &label, String::new(), None));
+                        pills.push(pill(*places.get(5)?, [92, 92, 104], "Retour", String::new(), None));
+                        pills
+                    }
+                    Bag::List { pocket, items, previous, next } => {
+                        let color = [[72, 162, 84], [150, 92, 190], [204, 62, 56], [222, 140, 40]][pocket as usize];
+                        let mut pills: Vec<Pill> = places.iter().zip(&items).map(|(&to, &(item, count))| pill(to, color, &name(item), format!("×{count}"), None)).collect();
+                        pills.push(pill(*places.get(6)?, if previous { [70, 130, 200] } else { off }, "←", String::new(), None));
+                        pills.push(pill(*places.get(7)?, if next { [70, 130, 200] } else { off }, "→", String::new(), None));
+                        pills.push(pill(*places.get(8)?, [92, 92, 104], "Retour", String::new(), None));
+                        pills
+                    }
+                    Bag::Item { item, count } => vec![
+                        pill(*places.first()?, [72, 162, 84], &format!("Utiliser : {}", name(item)), format!("×{count}"), None),
+                        pill(*places.get(1)?, [92, 92, 104], "Retour", String::new(), None),
+                    ],
+                }
             }
             _ => return None,
         };
@@ -505,8 +593,19 @@ impl Play {
     fn draw(&mut self) {
         self.follow_touch_scenes();
         self.load_move_infos();
-        let (layout, shown) = self.layout();
-        let overlay = self.native_pills(layout);
+        let (mut layout, mut shown) = self.layout();
+        let mut overlay = self.native_pills(layout);
+        // le sac retombe à zéro le temps d'une transition : la fenêtre garde ses boutons, sans rien de touchable
+        let now = self.bench.kernel.now;
+        match (&overlay, layout) {
+            (Some(o), Layout::NativeBag(..)) => self.held_bag = Some((layout, o.clone(), now)),
+            (None, _) if self.battle_base().is_some() && (!shown || matches!(layout, Layout::Corner | Layout::SmallCorner)) => {
+                if let Some((held, o, _)) = self.held_bag.as_ref().filter(|h| now.saturating_sub(h.2) < BAG_HOLD_NS) {
+                    (layout, shown, overlay) = (*held, true, Some(o.clone()));
+                }
+            }
+            _ => self.held_bag = None,
+        }
         let Some(screens) = self.screens.as_mut() else { return };
         screens.set_overlay(overlay);
         // avant la capture comme avant le dessin : l'image des boutons est celle de cette image du jeu
@@ -733,6 +832,8 @@ pub fn run(settings: Settings) -> Result<(), String> {
         both_screens,
         smooth,
         move_infos: None,
+        item_names: Vec::new(),
+        held_bag: None,
         touch_scene: false,
         restarts: 0,
     };

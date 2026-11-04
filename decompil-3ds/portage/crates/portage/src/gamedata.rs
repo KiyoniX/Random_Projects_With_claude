@@ -87,6 +87,11 @@ pub struct MoveInfo {
     pub kind: u8,
 }
 
+/// Les noms des objets, par numéro (texte 96 du même fichier, `local/analyse/DllBattle/sac-natif.md`).
+pub fn item_names(names: &[u8]) -> Option<Vec<String>> {
+    text_lines(garc_files(names)?.get(96)?)
+}
+
 /// Les capacités du jeu, par numéro.
 pub fn moves(names: &[u8], data: &[u8]) -> Option<Vec<MoveInfo>> {
     let names = text_lines(garc_files(names)?.get(13)?)?;
@@ -192,8 +197,10 @@ mod tests {
         odd.extend([0x10, 1, 0x0107]);
         odd.extend(word("B♀").iter().map(|&w| if w == '♀' as u16 { 0xE08F } else { w }));
         let names = text(&[&empty, &charge, &flame, &odd]);
-        let mut texts: Vec<Option<&[u8]>> = vec![None; 13];
-        texts.push(Some(&names));
+        let items = text(&[&empty, &word("Potion")]);
+        let mut texts: Vec<Option<&[u8]>> = vec![None; 97];
+        texts[13] = Some(&names);
+        texts[96] = Some(&items);
         let names_garc = garc(&texts);
         let data_garc = garc(&[Some(&[0; 36]), Some(&[0, 0, 1, 40, 100, 35]), Some(&[9, 0, 2, 40, 100, 25]), None]);
         let moves = moves(&names_garc, &data_garc).unwrap();
@@ -201,6 +208,7 @@ mod tests {
         assert_eq!((moves[1].name.as_str(), moves[1].kind), ("Charge", 0));
         assert_eq!((moves[2].name.as_str(), moves[2].kind), ("Flammèche", 9));
         assert_eq!(moves[3].name, "AB♀");
+        assert_eq!(item_names(&names_garc).unwrap()[1], "Potion");
         assert!(garc_files(b"pas un GARC").is_none());
     }
 }

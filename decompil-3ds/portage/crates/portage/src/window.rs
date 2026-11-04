@@ -64,6 +64,17 @@ pub enum Layout {
     /// « Déplacer » du triple n'ont pas encore de pastille (quand le jeu les montre n'est pas lu) : Échap.
     NativeMenu(bool),
     NativeMoves(bool),
+    /// Le sac du combat, dessiné de même : ses catégories, la liste d'une catégorie (six objets, les pages, le retour) ou la
+    /// fiche d'un objet (`local/analyse/DllBattle/sac-natif.md`).
+    NativeBag(BagPage, bool),
+}
+
+/// L'écran du sac montré (`+0x1E8` des objets du combat : 1, 2, 3).
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum BagPage {
+    Pockets,
+    List,
+    Item,
 }
 
 /// Un morceau d'écran posé dans le repère : (x0, y0, x1, y1) dans la disposition, et ce qu'il montre en pixels de l'écran.
@@ -84,7 +95,7 @@ const MOVE_SCREEN_BOTTOM: [f32; 4] = [0.0, 160.0, 320.0, 240.0];
 const MOVE_ROW_HEIGHT: f32 = 34.0;
 const MOVE_ROW_WIDTH: f32 = 104.0;
 const MOVE_BOTTOM_HEIGHT: f32 = 26.0;
-const MAX_PIECES: usize = 6;
+const MAX_PIECES: usize = 12;
 /// Les deux boutons d'une question (`app::YesNo` de `DllBattle`), relevés sur une capture de l'utilisateur.
 const YES_NO_BUTTONS: [[f32; 4]; 2] = [[20.0, 90.0, 300.0, 128.0], [20.0, 160.0, 300.0, 198.0]];
 const YES_NO_WIDTH: f32 = 160.0;
@@ -103,6 +114,16 @@ const MOVES_BACK: [f32; 4] = [250.0, 190.0, 320.0, 240.0];
 const NATIVE_WIDTH: f32 = 124.0;
 const NATIVE_ROW: f32 = 30.0;
 const NATIVE_BACK: f32 = 22.0;
+/// Les boutons du sac dans l'écran du bas (CLYT de `DllBattle`, tables +0xce084, +0xce1a8, +0xce398), dans l'ordre de la
+/// colonne. Catégories : Soins PV/PP, Balls, Soins statut, Objets combat, Dernier objet, Retour.
+pub const BAG_POCKETS: [[f32; 4]; 6] = [[0.0, 10.0, 160.0, 90.0], [160.0, 10.0, 320.0, 90.0], [0.0, 96.0, 160.0, 176.0], [160.0, 95.0, 320.0, 175.0], [5.0, 185.0, 245.0, 245.0], [250.0, 185.0, 320.0, 245.0]];
+/// Les six cases d'objets (deux colonnes, la case i est l'objet page × 6 + i), puis précédente, suivante, retour.
+pub const BAG_ITEMS: [[f32; 4]; 6] = [[3.0, 10.0, 157.0, 60.0], [163.0, 10.0, 317.0, 60.0], [3.0, 70.0, 157.0, 120.0], [163.0, 70.0, 317.0, 120.0], [3.0, 130.0, 157.0, 180.0], [163.0, 130.0, 317.0, 180.0]];
+pub const BAG_LIST_BOTTOM: [[f32; 4]; 3] = [[5.0, 185.0, 55.0, 235.0], [70.0, 185.0, 120.0, 235.0], [250.0, 190.0, 320.0, 240.0]];
+/// La fiche : Utiliser, Retour.
+pub const BAG_ITEM_BUTTONS: [[f32; 4]; 2] = [[0.0, 160.0, 250.0, 240.0], [250.0, 180.0, 320.0, 240.0]];
+/// La hauteur d'une ligne de la liste du sac, plus serrée (sept lignes).
+const BAG_ROW: f32 = 26.0;
 
 impl Layout {
     /// Le repère (largeur, hauteur).
@@ -145,22 +166,28 @@ impl Layout {
                 let height = SMALL_WIDTH * 240.0 / 320.0;
                 vec![top, bottom([400.0 - SMALL_WIDTH, 240.0 - height, 400.0, 240.0])]
             }
-            Layout::NativeMenu(small) | Layout::NativeMoves(small) => {
+            Layout::NativeMenu(small) | Layout::NativeMoves(small) | Layout::NativeBag(_, small) => {
                 let k = if small { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
                 let left = 400.0 - NATIVE_WIDTH * k - 2.0;
-                let mut froms: Vec<([f32; 4], f32)> = Vec::new();
-                if matches!(self, Layout::NativeMenu(_)) {
-                    froms.extend(MENU_BUTTONS.map(|from| (from, NATIVE_ROW)));
-                } else {
-                    froms.extend(MOVE_BUTTONS.map(|from| (from, NATIVE_ROW)));
-                    froms.push((MOVES_BACK, NATIVE_BACK));
-                }
+                // les lignes de la colonne (hauteur, boutons côte à côte)
+                let row = |height: f32| move |from: [f32; 4]| (height, vec![from]);
+                let rows: Vec<(f32, Vec<[f32; 4]>)> = match self {
+                    Layout::NativeMenu(_) => MENU_BUTTONS.map(row(NATIVE_ROW)).to_vec(),
+                    Layout::NativeMoves(_) => MOVE_BUTTONS.iter().copied().map(row(NATIVE_ROW)).chain([row(NATIVE_BACK)(MOVES_BACK)]).collect(),
+                    Layout::NativeBag(BagPage::Pockets, _) => BAG_POCKETS.map(row(NATIVE_ROW)).to_vec(),
+                    Layout::NativeBag(BagPage::List, _) => BAG_ITEMS.iter().copied().map(row(BAG_ROW)).chain([(BAG_ROW, BAG_LIST_BOTTOM.to_vec())]).collect(),
+                    _ => BAG_ITEM_BUTTONS.map(row(NATIVE_ROW)).to_vec(),
+                };
                 // de bas en haut : la dernière ligne touche le bas de l'image
                 let mut y = 238.0;
-                let mut pieces: Vec<Piece> = froms.iter().rev().map(|&(from, height)| {
+                let mut pieces = Vec::new();
+                for (height, froms) in rows.iter().rev() {
                     y -= height * k;
-                    Piece { bottom: true, to: [left, y, 398.0, y + height * k], from }
-                }).collect();
+                    let w = (398.0 - left) / froms.len() as f32;
+                    for (i, &from) in froms.iter().enumerate().rev() {
+                        pieces.push(Piece { bottom: true, to: [left + i as f32 * w, y, left + (i + 1) as f32 * w, y + height * k], from });
+                    }
+                }
                 pieces.reverse();
                 pieces.insert(0, top);
                 pieces
@@ -172,8 +199,7 @@ impl Layout {
     pub fn native_places(self) -> Vec<[f32; 4]> {
         let bottom = self.pieces().into_iter().filter(|p| p.bottom).map(|p| p.to);
         match self {
-            Layout::NativeMenu(_) => bottom.collect(),
-            Layout::NativeMoves(_) => bottom.collect(),
+            Layout::NativeMenu(_) | Layout::NativeMoves(_) | Layout::NativeBag(..) => bottom.collect(),
             _ => Vec::new(),
         }
     }
@@ -600,12 +626,20 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Layout, MENU_BUTTONS, MOVE_BUTTONS};
+    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, Layout, MENU_BUTTONS, MOVES_BACK, MOVE_BUTTONS};
 
     #[test]
     fn native_buttons_touch_the_game_buttons() {
         // chaque pastille, touchée en son milieu, renvoie au milieu du bouton du jeu, dans l'ordre de la colonne
-        for (layout, buttons) in [(Layout::NativeMenu(false), MENU_BUTTONS.to_vec()), (Layout::NativeMoves(true), MOVE_BUTTONS.to_vec())] {
+        let list: Vec<[f32; 4]> = BAG_ITEMS.iter().chain(&BAG_LIST_BOTTOM).copied().collect();
+        for (layout, buttons) in [
+            (Layout::NativeMenu(false), MENU_BUTTONS.to_vec()),
+            (Layout::NativeMoves(true), MOVE_BUTTONS.iter().copied().chain([MOVES_BACK]).collect()),
+            (Layout::NativeBag(BagPage::Pockets, false), BAG_POCKETS.to_vec()),
+            (Layout::NativeBag(BagPage::List, true), list),
+            (Layout::NativeBag(BagPage::Item, false), BAG_ITEM_BUTTONS.to_vec()),
+        ] {
+            assert_eq!(layout.native_places().len(), buttons.len());
             let places = layout.native_places();
             for (to, from) in places.iter().zip(&buttons) {
                 let (x, y) = ((to[0] + to[2]) / 2.0 * 2.0, (to[1] + to[3]) / 2.0 * 2.0);
@@ -615,7 +649,7 @@ mod tests {
             }
             // la colonne reste dans l'image, à droite, sans chevauchement
             assert!(places.iter().all(|p| p[0] > 250.0 && p[2] <= 400.0 && p[3] <= 240.0));
-            assert!(places.windows(2).all(|w| w[0][3] <= w[1][1] + 0.01));
+            assert!(places.windows(2).all(|w| w[0][3] <= w[1][1] + 0.01 || (w[0][1] == w[1][1] && w[0][2] <= w[1][0] + 0.01)));
         }
         assert_eq!(Layout::NativeMoves(false).native_places().len(), 5, "quatre capacités et le retour");
         // la dernière ligne touche le retour (panneau 0x7f, 250..320 x 190..240)
