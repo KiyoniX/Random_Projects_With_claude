@@ -81,12 +81,10 @@ pub fn text_lines(d: &[u8]) -> Option<Vec<String>> {
         .collect()
 }
 
-/// Une capacité telle que la montrent les boutons : nom, type (ordre du jeu), catégorie (0 statut, 1 physique,
-/// 2 spéciale).
+/// Une capacité telle que la montrent les boutons : nom, type (ordre du jeu).
 pub struct MoveInfo {
     pub name: String,
     pub kind: u8,
-    pub category: u8,
 }
 
 /// Les capacités du jeu, par numéro.
@@ -98,8 +96,7 @@ pub fn moves(names: &[u8], data: &[u8]) -> Option<Vec<MoveInfo>> {
             .into_iter()
             .enumerate()
             .map(|(i, name)| {
-                let entry = data.get(i).filter(|e| e.len() >= 3);
-                MoveInfo { name, kind: entry.map_or(0, |e| e[0]), category: entry.map_or(0, |e| e[2]) }
+                MoveInfo { name, kind: data.get(i).and_then(|e| e.first()).copied().unwrap_or(0) }
             })
             .collect(),
     )
@@ -201,8 +198,8 @@ mod tests {
         let data_garc = garc(&[Some(&[0; 36]), Some(&[0, 0, 1, 40, 100, 35]), Some(&[9, 0, 2, 40, 100, 25]), None]);
         let moves = moves(&names_garc, &data_garc).unwrap();
         assert_eq!(moves.len(), 4);
-        assert_eq!((moves[1].name.as_str(), moves[1].kind, moves[1].category), ("Charge", 0, 1));
-        assert_eq!((moves[2].name.as_str(), moves[2].kind, moves[2].category), ("Flammèche", 9, 2));
+        assert_eq!((moves[1].name.as_str(), moves[1].kind), ("Charge", 0));
+        assert_eq!((moves[2].name.as_str(), moves[2].kind), ("Flammèche", 9));
         assert_eq!(moves[3].name, "AB♀");
         assert!(garc_files(b"pas un GARC").is_none());
     }

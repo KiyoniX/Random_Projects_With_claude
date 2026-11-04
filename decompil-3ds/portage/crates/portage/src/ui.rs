@@ -1,41 +1,49 @@
 //! Les boutons que la fenêtre dessine elle-même en combat, à la place des morceaux de l'écran du bas : des pastilles
-//! arrondies à la couleur du type de la capacité (ou du bouton du menu), le nom à gauche, les PP à droite, la catégorie
-//! dans une pastille ronde. L'image est faite sur le processeur, en RGBA à alpha prémultiplié, et la fenêtre la pose par-
-//! dessus le haut ; un clic dans une pastille reste un toucher de l'écran du bas (`Layout::bottom_point`).
+//! arrondies à la couleur du type de la capacité (ou du bouton du menu), l'icône du type à gauche, le nom, les PP à droite.
+//! L'image est faite sur le processeur, en RGBA à alpha prémultiplié, et la fenêtre la pose par-dessus le haut ; un clic
+//! dans une pastille reste un toucher de l'écran du bas (`Layout::bottom_point`).
 //!
-//! La police est celle de Windows (Segoe UI semi-gras, sinon Arial gras), lue au lancement : rien n'est embarqué.
+//! La police est celle de Windows (Segoe UI semi-gras, sinon Arial gras), lue au lancement. Les icônes des types sont des
+//! dessins vectoriels libres (`assets/types/`, licence MIT de partywhale/pokemon-type-icons), pas des fichiers du jeu.
 
 use ab_glyph::{Font, FontVec, PxScale, ScaleFont};
+use resvg::{tiny_skia, usvg};
 
-/// La catégorie d'une capacité, dans l'ordre des données du jeu (0 statut, 1 physique, 2 spéciale : supposé, voir
-/// `local/analyse/DllBattle/boutons-natifs.md`).
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub enum Category {
-    Status,
-    Physical,
-    Special,
-}
+/// Les icônes des dix-huit types, dans l'ordre du jeu.
+const TYPE_ICONS: [&str; 18] = [
+    include_str!("../../../assets/types/normal.svg"), include_str!("../../../assets/types/fighting.svg"),
+    include_str!("../../../assets/types/flying.svg"), include_str!("../../../assets/types/poison.svg"),
+    include_str!("../../../assets/types/ground.svg"), include_str!("../../../assets/types/rock.svg"),
+    include_str!("../../../assets/types/bug.svg"), include_str!("../../../assets/types/ghost.svg"),
+    include_str!("../../../assets/types/steel.svg"), include_str!("../../../assets/types/fire.svg"),
+    include_str!("../../../assets/types/water.svg"), include_str!("../../../assets/types/grass.svg"),
+    include_str!("../../../assets/types/electric.svg"), include_str!("../../../assets/types/psychic.svg"),
+    include_str!("../../../assets/types/ice.svg"), include_str!("../../../assets/types/dragon.svg"),
+    include_str!("../../../assets/types/dark.svg"), include_str!("../../../assets/types/fairy.svg"),
+];
 
-/// Une pastille : où elle va (dans le repère de la disposition, 400 x 240), sa couleur, ses textes.
+/// Une pastille : où elle va (dans le repère de la disposition, 400 x 240), sa couleur, ses textes, le type dont elle
+/// montre l'icône.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Pill {
     pub to: [f32; 4],
     pub color: [u8; 3],
     pub label: String,
     pub detail: String,
-    pub category: Option<Category>,
+    pub kind: Option<usize>,
 }
 
 /// Les couleurs des dix-huit types, dans l'ordre du jeu (Normal, Combat, Vol, Poison, Sol, Roche, Insecte, Spectre, Acier,
-/// Feu, Eau, Plante, Électrik, Psy, Glace, Dragon, Ténèbres, Fée) : les teintes habituelles des jeux.
+/// Feu, Eau, Plante, Électrik, Psy, Glace, Dragon, Ténèbres, Fée) : celles du fond des icônes.
 pub const TYPE_COLORS: [[u8; 3]; 18] = [
-    [146, 146, 120], [190, 50, 44], [140, 128, 220], [150, 64, 150], [212, 178, 96], [176, 152, 64],
-    [150, 168, 32], [104, 88, 150], [160, 160, 192], [234, 116, 48], [86, 132, 230], [102, 180, 76],
-    [232, 192, 40], [236, 82, 128], [120, 200, 200], [104, 56, 236], [100, 80, 68], [226, 140, 200],
+    [0x82, 0x82, 0x82], [0xe4, 0x90, 0x21], [0x74, 0xaa, 0xd0], [0x93, 0x54, 0xcb], [0xa4, 0x73, 0x3c], [0xa9, 0xa4, 0x81],
+    [0x9f, 0x9f, 0x28], [0x6f, 0x45, 0x70], [0x77, 0xb2, 0xcb], [0xe4, 0x61, 0x3e], [0x3a, 0x9d, 0xe2], [0x43, 0x98, 0x37],
+    [0xdf, 0xbc, 0x28], [0xe9, 0x6c, 0x8c], [0x47, 0xc8, 0xc8], [0x57, 0x6f, 0xbc], [0x4f, 0x47, 0x47], [0xe1, 0x8c, 0xe1],
 ];
 
 pub struct Ui {
     font: FontVec,
+    icons: Vec<usvg::Tree>,
 }
 
 impl Ui {
@@ -44,7 +52,10 @@ impl Ui {
         ["C:/Windows/Fonts/seguisb.ttf", "C:/Windows/Fonts/segoeuib.ttf", "C:/Windows/Fonts/arialbd.ttf"]
             .iter()
             .find_map(|path| std::fs::read(path).ok().and_then(|bytes| FontVec::try_from_vec(bytes).ok()))
-            .map(|font| Ui { font })
+            .map(|font| Ui {
+                font,
+                icons: TYPE_ICONS.iter().map(|svg| usvg::Tree::from_str(svg, &usvg::Options::default()).expect("icône de type lisible")).collect(),
+            })
     }
 
     /// L'image des pastilles sur `area` (repère de la disposition), à `scale` pixels par unité : (largeur, hauteur, RGBA
@@ -73,19 +84,14 @@ impl Ui {
             [shade(cr, k), shade(cg, k), shade(cb, k), 235]
         });
         image.rounded_ring(r, radius, height * 0.06, [shade(cr, 0.6), shade(cg, 0.6), shade(cb, 0.6), 255]);
-        let mut x = r[0] + radius * 0.6;
-        if let Some(category) = pill.category {
-            // la catégorie : une pastille ronde à gauche
-            let d = height * 0.5;
-            let c = [x + d / 2.0, (r[1] + r[3]) / 2.0];
-            let color = match category {
-                Category::Physical => [236, 96, 40, 255],
-                Category::Special => [70, 110, 220, 255],
-                Category::Status => [150, 150, 150, 255],
-            };
-            image.rounded([c[0] - d / 2.0, c[1] - d / 2.0, c[0] + d / 2.0, c[1] + d / 2.0], d / 2.0, |_| color);
-            image.rounded_ring([c[0] - d / 2.0, c[1] - d / 2.0, c[0] + d / 2.0, c[1] + d / 2.0], d / 2.0, d * 0.12, [255, 255, 255, 230]);
-            x += d + radius * 0.35;
+        let mut x = r[0] + radius * 0.35;
+        if let Some(tree) = pill.kind.and_then(|k| self.icons.get(k)) {
+            // l'icône du type, ronde, à gauche, cerclée de blanc
+            let d = height * 0.72;
+            let (ix, iy) = (x, (r[1] + r[3] - d) / 2.0);
+            image.icon(tree, ix, iy, d);
+            image.rounded_ring([ix, iy, ix + d, iy + d], d / 2.0, d * 0.07, [255, 255, 255, 220]);
+            x += d + radius * 0.3;
         }
         // les PP à droite, en plus petit ; le nom prend la place qui reste, rapetissé s'il le faut
         let small = height * 0.34;
@@ -103,7 +109,7 @@ impl Ui {
             width = self.width(&pill.label, size);
         }
         // un bouton sans PP ni catégorie (le menu, le retour) : le nom au milieu
-        if pill.detail.is_empty() && pill.category.is_none() {
+        if pill.detail.is_empty() && pill.kind.is_none() {
             x = ((r[0] + r[2] - width) / 2.0).max(x);
         }
         self.text(image, &pill.label, x, r[1] + height * 0.5 + size * 0.36, size, right);
@@ -163,6 +169,28 @@ impl Image {
         self.rgba[i + 3] = (255.0 * alpha + self.rgba[i + 3] as f32 * (1.0 - alpha)).round() as u8;
     }
 
+    /// Une icône vectorielle dans le carré de côté `d` en (`x`, `y`), par-dessus ce qui est là.
+    fn icon(&mut self, tree: &usvg::Tree, x: f32, y: f32, d: f32) {
+        let (px, py) = (x.floor(), y.floor());
+        let side = (d + 2.0).ceil() as u32;
+        let Some(mut pixmap) = tiny_skia::Pixmap::new(side, side) else { return };
+        let size = tree.size();
+        let transform = tiny_skia::Transform::from_translate(x - px, y - py).pre_scale(d / size.width(), d / size.height());
+        resvg::render(tree, transform, &mut pixmap.as_mut());
+        // tiny-skia est déjà en alpha prémultiplié : source par-dessus
+        for (i, src) in pixmap.data().chunks_exact(4).enumerate() {
+            let (dx, dy) = (px as i32 + (i as u32 % side) as i32, py as i32 + (i as u32 / side) as i32);
+            if src[3] == 0 || dx < 0 || dy < 0 || dx as usize >= self.w || dy as usize >= self.h {
+                continue;
+            }
+            let at = (dy as usize * self.w + dx as usize) * 4;
+            let keep = 1.0 - src[3] as f32 / 255.0;
+            for k in 0..4 {
+                self.rgba[at + k] = (src[k] as f32 + self.rgba[at + k] as f32 * keep).round().min(255.0) as u8;
+            }
+        }
+    }
+
     /// La couverture d'un point par un rectangle arrondi (distance signée, adoucie sur un pixel).
     fn coverage(r: [f32; 4], radius: f32, px: f32, py: f32) -> f32 {
         let (cx, cy) = ((r[0] + r[2]) / 2.0, (r[1] + r[3]) / 2.0);
@@ -208,7 +236,7 @@ mod tests {
     #[test]
     fn a_pill_is_drawn_inside_its_place_only() {
         let Some(ui) = Ui::new() else { return }; // sans police de Windows : rien à dessiner
-        let pill = Pill { to: [10.0, 10.0, 110.0, 40.0], color: TYPE_COLORS[9], label: "Flammèche".into(), detail: "25/25".into(), category: Some(Category::Special) };
+        let pill = Pill { to: [10.0, 10.0, 110.0, 40.0], color: TYPE_COLORS[9], label: "Flammèche".into(), detail: "25/25".into(), kind: Some(9) };
         let (w, h, rgba) = ui.raster(&[pill], [0.0, 0.0, 120.0, 50.0], 2.0);
         assert_eq!((w, h), (240, 100));
         let alpha = |x: usize, y: usize| rgba[(y * w + x) * 4 + 3];
@@ -217,5 +245,8 @@ mod tests {
         assert!(alpha(120, 50) > 200, "au milieu : la couleur");
         // du blanc (le texte) quelque part dans la pastille
         assert!((0..w * h).any(|i| rgba[i * 4] > 240 && rgba[i * 4 + 1] > 240 && rgba[i * 4 + 2] > 240));
+        // les dix-huit icônes se lisent et tiennent dans leur carré
+        assert_eq!(ui.icons.len(), 18);
+        assert!(ui.icons.iter().all(|t| t.size().width() > 0.0));
     }
 }

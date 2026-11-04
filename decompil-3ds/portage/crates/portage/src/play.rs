@@ -23,7 +23,7 @@ use winit::window::{CursorGrabMode, Window, WindowId};
 use pica::images::save_png;
 
 use crate::gamedata::MoveInfo;
-use crate::ui::{Category, Pill, TYPE_COLORS};
+use crate::ui::{Pill, TYPE_COLORS};
 use crate::window::{Layout, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
@@ -442,7 +442,7 @@ impl Play {
     fn native_pills(&self, layout: Layout) -> Option<(Vec<Pill>, [f32; 4])> {
         let places = layout.native_places();
         let area = places.iter().fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |a, p| [a[0].min(p[0]), a[1].min(p[1]), a[2].max(p[2]), a[3].max(p[3])]);
-        let pill = |to, color, label: &str, detail: String, category| Pill { to, color, label: label.to_string(), detail, category };
+        let pill = |to, color, label: &str, detail: String, kind| Pill { to, color, label: label.to_string(), detail, kind };
         let pills = match layout {
             Layout::NativeMenu(_) => {
                 let memory = &self.bench.kernel.memory;
@@ -457,14 +457,10 @@ impl Play {
                 let moves = battle_moves(&self.bench.kernel.memory, self.battle_base()?)?;
                 let mut pills: Vec<Pill> = places.iter().zip(moves).filter(|(_, m)| m.0 != 0).map(|(&to, (id, pp, max))| {
                     let info = infos.get(id as usize);
-                    let color = info.and_then(|i| TYPE_COLORS.get(i.kind as usize)).copied().unwrap_or([128, 128, 128]);
-                    let category = info.map(|i| match i.category {
-                        1 => Category::Physical,
-                        2 => Category::Special,
-                        _ => Category::Status,
-                    });
+                    let kind = info.map(|i| i.kind as usize).filter(|&k| k < TYPE_COLORS.len());
+                    let color = kind.map_or([128, 128, 128], |k| TYPE_COLORS[k]);
                     let name = info.map_or_else(|| format!("Capacité {id}"), |i| i.name.clone());
-                    pill(to, color, &name, format!("{pp}/{max}"), category)
+                    pill(to, color, &name, format!("{pp}/{max}"), kind)
                 }).collect();
                 pills.push(pill(*places.last()?, [92, 92, 104], "Retour", String::new(), None));
                 pills
