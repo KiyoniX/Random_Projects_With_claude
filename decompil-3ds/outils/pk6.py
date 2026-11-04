@@ -97,6 +97,15 @@ def pv_max(pokemon):
     return struct.unpack_from('<H', chiffre(pokemon), 0xF2)[0]
 
 
+def changer_niveau(pokemon, niveau, stat):
+    """Rend ce Pokémon d'équipe (chiffré) à ce niveau, chacune de ses stats (PV restants et PV max compris) à `stat` : ce que
+    le combat lit. L'expérience ne bouge pas : un combat gagné la fait monter jusqu'au niveau qu'elle donne."""
+    def faire(clair):
+        clair[0xEC] = niveau
+        struct.pack_into('<7H', clair, 0xF0, *[stat] * 7)
+    return _changer(pokemon, faire)
+
+
 def changer_pv(pokemon, pv):
     """Rend ce Pokémon d'équipe (chiffré) avec ces PV restants."""
     return _changer(pokemon, lambda clair: struct.pack_into('<H', clair, 0xF0, pv))
@@ -106,8 +115,7 @@ def avec_tete(sauvegarde, changer):
     """La sauvegarde, le Pokémon de tête passé par `changer`, le CRC du bloc de l'équipe à jour."""
     copie = bytearray(sauvegarde)
     copie[EQUIPE:EQUIPE + TAILLE] = changer(sauvegarde[EQUIPE:EQUIPE + TAILLE])
-    longueur = struct.unpack_from('<I', copie, teleporter.PIED + 0x14 + BLOC_EQUIPE * 8)[0]
-    struct.pack_into('<H', copie, teleporter.PIED + 0x14 + BLOC_EQUIPE * 8 + 6, teleporter.crc16(copie[EQUIPE:EQUIPE + longueur]))
+    teleporter.refaire_crc(copie, BLOC_EQUIPE, EQUIPE)
     return bytes(copie)
 
 
@@ -140,6 +148,8 @@ def test():
     blesse = changer_pv(pokemon, 1)
     assert struct.unpack_from('<H', chiffre(blesse), 0xF0) == (1,) and blesse[0xF0:0xF2] != b'\x01\x00', 'les PV sont chiffrés'
     assert chiffre(blesse)[:0xE8] == chiffre(pokemon)[:0xE8], 'le reste ne bouge pas'
+    fort = chiffre(changer_niveau(pokemon, 100, 999))
+    assert fort[0xEC] == 100 and struct.unpack_from('<7H', fort, 0xF0) == (999,) * 7 and fort[:0xE8] == chiffre(pokemon)[:0xE8]
     try:
         changer_pokemon(bytes(TAILLE - 1) + b'\x01', 1, 0)
     except (ValueError, struct.error):

@@ -59,6 +59,13 @@ def crc16(donnees):
     return registre
 
 
+def refaire_crc(copie, numero, debut):
+    """Le CRC du bloc `numero` (qui commence à `debut`) refait dans le pied de `copie`, sur la longueur que le pied donne."""
+    entree = PIED + 0x14 + numero * 8
+    longueur, = struct.unpack_from('<I', copie, entree)
+    struct.pack_into('<H', copie, entree + 6, crc16(copie[debut:debut + longueur]))
+
+
 def ecrire_rail(tampon, o, rail, echelle):
     """Une position sur rail à `o` ; `rail` : (ligne, clé, front, côté), en cases."""
     ligne, cle, front, cote = rail

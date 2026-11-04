@@ -2,6 +2,7 @@
 
     python combats.py capacites SORTIE [--travailleurs 6] [--secondes 100] [--format double] [CAPACITE...]
     python combats.py tenues SORTIE [--travailleurs 6] [--secondes 100] [K...]   talent et objet tenu de la case K des tables
+    python combats.py dresseurs SORTIE [--travailleurs 6] [--secondes 300] [N...]   chaque dresseur du jeu, à la place du 86
     python combats.py bilan SORTIE
     python combats.py test
 
@@ -12,6 +13,13 @@ DllBattle+0x1fc58, local/analyse/DllBattle/capacites.md). Une capacité notée a
 Les talents et les objets tenus de même (« talent : N », « objet tenu : N », branchés à l'entrée en combat ; « objet consommé :
 N »), local/analyse/DllBattle/talents.md : l'essai K donne au Pokémon de tête la case K de chacune des deux tables de 182
 gestionnaires de DllBattle. Le combat lit l'octet du talent lui-même : un talent que l'espèce n'a pas est accepté.
+`dresseurs` : un mod met les données et l'équipe du dresseur N (`a/0/3/8`, `a/0/4/0`) à la place de celles du 86 ; notre
+Pokémon de tête, niveau 100 à 999 partout, quatre Frappe Atlas et Querelleur (dégâts = niveau, Spectres compris), comme chacun de
+ses équipiers, au style « Défini » et sans animations, doit gagner. L'essai porte si le combat finit (DllBattle déchargé) :
+chaque équipe, chaque format et chaque fin de combat (local/analyse/pokemon-x/dresseurs.md). Une défaite déchargerait
+aussi DllBattle : supposée exclue à 999 PV. Le combat garde la mise en place du 86 (un seul Pokémon de notre côté) : en
+double, si un tour finit sans que les deux adverses tombent, l'écran de l'équipe s'ouvre et ne rend plus la main
+(dresseur 424 ; supposé : le jeu attend un second Pokémon), l'essai ne porte pas.
 `--format` double, triple ou rotation : le même combat, changé par le mod de `local/analyse/rendu/mods-test/build-FORMAT`
 (octet 2 du dresseur 86 ; notre Pokémon de tête est le seul à porter la capacité essayée).
 Rien de ceci n'est versionné : tout est écrit dans local/.
@@ -32,6 +40,7 @@ import garc
 import pk6
 import revue_modeles
 import texte
+import tournee
 
 RUNTIME = os.environ.get('RUNTIME', revue_modeles.RUNTIME)
 TEXTE_CAPACITES = 13
@@ -45,6 +54,26 @@ PP = 5
 # le combat attend devant son menu à 27 s (revue_modeles.journal_de_depart)
 PREMIER_A_MS = 28000
 PAS_A_MS = 700
+DONNEES_DRESSEURS = os.path.join(revue_modeles.RACINE, 'local', 'extrait', 'romfs', 'a', '0', '3', '8')
+FRAPPE_ATLAS, QUERELLEUR = 69, 113
+# Les réglages : bloc 23 de la sauvegarde, à 0x16200 (PKHeX, SaveBlockAccessor6XY et ConfigSave6) ; octet 0, bit 2 animations
+# coupées, bit 3 style « Défini ». En style « Choix », le jeu demande s'il faut changer de Pokémon quand le dresseur en envoie
+# un autre, A y dit oui, et l'écran de l'équipe ne rend plus la main (dresseur 1).
+REGLAGES, BLOC_REGLAGES = 0x16200, 23
+
+
+def combat_rapide(sauvegarde, changer):
+    """La sauvegarde au style « Défini », sans animations, chaque Pokémon de l'équipe (le compte u8 suit les six places) passé
+    par `changer` : Cyclone ou Hurlement font entrer un équipier, qui doit tenir aussi (dresseur 84 : Salamèche K.O., le
+    curseur reste sur lui et A ne choisit rien). Réduire le compte à 1 n'y change rien."""
+    copie = bytearray(sauvegarde)
+    copie[REGLAGES] |= 0x0C
+    for i in range(copie[pk6.EQUIPE + 6 * pk6.TAILLE]):
+        debut = pk6.EQUIPE + i * pk6.TAILLE
+        copie[debut:debut + pk6.TAILLE] = changer(sauvegarde[debut:debut + pk6.TAILLE])
+    pk6.teleporter.refaire_crc(copie, BLOC_REGLAGES, REGLAGES)
+    pk6.teleporter.refaire_crc(copie, pk6.BLOC_EQUIPE, pk6.EQUIPE)
+    return bytes(copie)
 FORMATS = ('simple', 'double', 'triple', 'rotation')
 
 
@@ -63,18 +92,19 @@ def journal(secondes, mod=None):
 
 
 def lancees(chemin):
-    """Ce que le journal note du combat : les capacités (capacité, joueur ou adversaire, appelée par), puis les talents et
-    objets (genre, numéro, joueur ou adversaire)."""
-    capacites, branches = [], []
+    """Ce que le journal note du combat : les capacités (capacité, joueur ou adversaire, appelée par), les talents et objets
+    (genre, numéro, joueur ou adversaire), et si le combat a fini (DllBattle déchargé)."""
+    capacites, branches, fini = [], [], False
     with open(chemin, encoding='utf-8', errors='replace') as f:
         for ligne in f:
+            fini = fini or 'module : DllBattle déchargé' in ligne
             m = re.search(r'capacité : (\d+) par (\w+) \(Pokémon \d+\)(?: appelée par (\d+))?', ligne)
             b = re.search(r'(talent|objet tenu|objet consommé) : (\d+) par (\w+) \(Pokémon', ligne)
             if m:
                 capacites.append((int(m.group(1)), m.group(2), int(m.group(3) or m.group(1))))
             elif b:
                 branches.append((b.group(1), int(b.group(2)), b.group(3)))
-    return capacites, branches
+    return capacites, branches, fini
 
 
 def tables():
@@ -84,7 +114,7 @@ def tables():
     return tuple([struct.unpack_from('<I', donnees, t + 8 * i)[0] for i in range(CASES)] for t in TABLES)
 
 
-def essayer(sortie, nom, changer, attendu, sauvegarde, lignes, secondes):
+def essayer(sortie, nom, changer, attendu, sauvegarde, lignes, secondes, rapide=False):
     """Une partie : le Pokémon de tête passé par `changer` ; `attendu(capacités, branches)` dit si l'essai a porté."""
     dossier = os.path.join(sortie, nom)
     if os.path.exists(os.path.join(dossier, 'verdict.json')):
@@ -93,7 +123,7 @@ def essayer(sortie, nom, changer, attendu, sauvegarde, lignes, secondes):
     entree = os.path.join(dossier, 'in')
     shutil.copytree(os.path.join(revue_modeles.PARTIE, 'depart'), os.path.join(entree, 'depart'))
     with open(os.path.join(entree, 'depart', 'sauvegarde', 'main'), 'wb') as f:
-        f.write(pk6.avec_tete(sauvegarde, changer))
+        f.write(combat_rapide(sauvegarde, changer) if rapide else pk6.avec_tete(sauvegarde, changer))
     with open(os.path.join(entree, 'journal.txt'), 'w', encoding='utf-8', newline='\n') as f:
         f.write(lignes)
     debut = time.time()
@@ -107,9 +137,9 @@ def essayer(sortie, nom, changer, attendu, sauvegarde, lignes, secondes):
     with open(os.path.join(dossier, 'sortie.txt'), encoding='utf-8', errors='replace') as f:
         arret = next((l.strip() for l in f if l.startswith('Arrêt')), '?')
     j = os.path.join(out, 'journal.txt')
-    liste, branches = lancees(j) if os.path.exists(j) else ([], [])
+    liste, branches, fini = lancees(j) if os.path.exists(j) else ([], [], False)
     v = {'essai': nom, 'code': code, 'arret': arret, 'pc': round(time.time() - debut), 'lancees': liste, 'branches': branches,
-         'faite': attendu(liste, branches)}
+         'fini': fini, 'faite': attendu(liste, branches, fini)}
     if code == 0 and 'limite de temps' in arret:
         shutil.rmtree(entree, ignore_errors=True)
         shutil.rmtree(out, ignore_errors=True)
@@ -119,13 +149,37 @@ def essayer(sortie, nom, changer, attendu, sauvegarde, lignes, secondes):
 
 
 def tourner(sortie, secondes, travailleurs, essais, format='simple'):
-    """`essais` : (nom, changer, attendu)."""
+    """`essais` : (nom, changer, attendu), ou (nom, changer, attendu, mod) pour un combat de dresseur, qui a son mod."""
     os.makedirs(sortie, exist_ok=True)
     with open(os.path.join(revue_modeles.PARTIE, 'depart', 'sauvegarde', 'main'), 'rb') as f:
         sauvegarde = f.read()
     lignes = journal(secondes, mod_du_format(format))
     with ThreadPoolExecutor(travailleurs) as ex:
-        list(ex.map(lambda e: essayer(sortie, *e, sauvegarde, lignes, secondes), essais))
+        list(ex.map(lambda e: essayer(sortie, *e[:3], sauvegarde, journal(secondes, e[3]), secondes, True) if len(e) > 3
+                    else essayer(sortie, *e, sauvegarde, lignes, secondes), essais))
+
+
+def fort(p):
+    p = pk6.changer_niveau(pk6.changer_capacites(p, [FRAPPE_ATLAS] * 4, 20), 100, 999)
+    return pk6.changer_tenue(p, QUERELLEUR, 0)
+
+
+def essai_dresseur(n, sortie, donnees, equipes):
+    """Le dresseur n à la place du 86 : son mod est fait ici, dans `sortie/mods`."""
+    d, e = list(donnees), list(equipes)
+    d[revue_modeles.DRESSEUR], e[revue_modeles.DRESSEUR] = donnees[n], equipes[n]
+    mod = tournee.mod_fichiers(os.path.join(sortie, 'mods', f'd{n:03d}'), {'a/0/3/8': garc.ecrire(d), 'a/0/4/0': garc.ecrire(e)})
+    return f'd{n:03d}', fort, lambda _l, _b, fini: fini, os.path.abspath(mod)
+
+
+def dresseurs(sortie, secondes, travailleurs, choisies):
+    with open(DONNEES_DRESSEURS, 'rb') as f:
+        donnees = garc.lire(f.read())[1]
+    with open(revue_modeles.EQUIPES, 'rb') as f:
+        equipes = garc.lire(f.read())[1]
+    # l'octet 3 compte les Pokémon : le dresseur 0 n'en a pas ; un verdict déjà là n'est pas rejoué (son mod n'est pas refait)
+    tourner(sortie, secondes, travailleurs, [essai_dresseur(n, sortie, donnees, equipes) for n in choisies or range(len(donnees))
+                                             if donnees[n][0][3] and not os.path.exists(os.path.join(sortie, f'd{n:03d}', 'verdict.json'))])
 
 
 # Éructation ne se lance qu'après une Baie mangée : la Baie Sitrus (158, texte 96 des objets), tenue à la moitié des PV, part
@@ -138,11 +192,11 @@ def essai_capacite(c):
         p = pk6.changer_capacites(p, [c] * 4, PP)
         return pk6.changer_pv(pk6.changer_tenue(p, pk6.tenue(p)[0], SITRUS), pk6.pv_max(p) // 2) if c == ERUCTATION else p
     return (f'{c:03d}', changer,
-            lambda liste, _: any(c in (u, appelee) and cote == 'joueur' for u, cote, appelee in liste))
+            lambda liste, _b, _f: any(c in (u, appelee) and cote == 'joueur' for u, cote, appelee in liste))
 
 
 def essai_tenue(k, objets, talents):
-    def attendu(_, branches):
+    def attendu(_, branches, _f):
         return {('talent', talents[k], 'joueur'), ('objet tenu', objets[k], 'joueur')} <= set(branches)
     return f'{k:03d}-{talents[k]}-{objets[k]}', lambda p: pk6.changer_tenue(p, talents[k], objets[k]), attendu
 
@@ -172,7 +226,7 @@ def bilan(sortie):
           sum(g == 'objet tenu' for g, _ in branches), 'objets tenus,', sum(g == 'objet consommé' for g, _ in branches), 'objets consommés')
     print('anormaux :', [(nom[id(v)], v['code'], v['arret'][:60]) for v in vs if v['code'] != 0 or 'limite de temps' not in v['arret']])
     ratees = sorted(nom[id(v)] for v in vs if not v['faite'])
-    print('sans effet noté :', ', '.join(f"{n} {noms[int(n)]}" if '-' not in n else n for n in ratees))
+    print('sans effet noté :', ', '.join(f"{n} {noms[int(n)]}" if n.isdigit() else n for n in ratees))
 
 def test():
     import tempfile
@@ -198,11 +252,35 @@ def test():
         with open(chemin, 'w', encoding='utf-8') as f:
             f.write('[ 1.000 ms] capacité : 45 par adversaire (Pokémon 12)\n[ 2.000 ms] capacité : 123 par joueur (Pokémon 0) appelée par 118\n')
             f.write('[ 3.000 ms] talent : 22 par joueur (Pokémon 0)\n[ 3.000 ms] objet tenu : 214 par joueur (Pokémon 0)\n')
-        capacites_vues, branches = lancees(chemin)
+        capacites_vues, branches, _ = lancees(chemin)
         assert capacites_vues == [(45, 'adversaire', 45), (123, 'joueur', 118)]
         assert branches == [('talent', 22, 'joueur'), ('objet tenu', 214, 'joueur')]
-    assert essai_capacite(118)[2](capacites_vues, branches) and not essai_capacite(45)[2](capacites_vues, branches)
-    assert essai_tenue(0, [214], [22])[2]([], branches) and not essai_tenue(0, [215], [22])[2]([], branches)
+    assert essai_capacite(118)[2](capacites_vues, branches, False) and not essai_capacite(45)[2](capacites_vues, branches, False)
+    assert essai_tenue(0, [214], [22])[2]([], branches, False) and not essai_tenue(0, [215], [22])[2]([], branches, False)
+    # les réglages et l'équipe d'une sauvegarde fabriquée, et leurs CRC
+    sauvegarde = bytearray(pk6.teleporter.TAILLE)
+    for bloc, longueur in ((BLOC_REGLAGES, 4), (pk6.BLOC_EQUIPE, 0x61C)):
+        struct.pack_into('<I', sauvegarde, pk6.teleporter.PIED + 0x14 + bloc * 8, longueur)
+    sauvegarde[REGLAGES], sauvegarde[pk6.EQUIPE + 6 * pk6.TAILLE] = 0x31, 3
+    rendu = combat_rapide(bytes(sauvegarde), lambda p: bytes([7]) * len(p))
+    assert rendu[REGLAGES] == 0x3D and rendu[pk6.EQUIPE + 6 * pk6.TAILLE] == 3
+    assert set(rendu[pk6.EQUIPE:pk6.EQUIPE + 3 * pk6.TAILLE]) == {7} and not any(rendu[pk6.EQUIPE + 3 * pk6.TAILLE:pk6.EQUIPE + 6 * pk6.TAILLE])
+    for bloc, debut, longueur in ((BLOC_REGLAGES, REGLAGES, 4), (pk6.BLOC_EQUIPE, pk6.EQUIPE, 0x61C)):
+        assert struct.unpack_from('<H', rendu, pk6.teleporter.PIED + 0x14 + bloc * 8 + 6) == \
+            (pk6.teleporter.crc16(rendu[debut:debut + longueur]),)
+    # un dresseur : ses deux entrées passent à la place du 86, les autres ne bougent pas
+    with tempfile.TemporaryDirectory() as d:
+        donnees = [[bytes([0, 1, 0, 1]) + bytes(16)] for _ in range(revue_modeles.DRESSEUR + 2)]
+        donnees[-1] = [bytes([0, 9, 2, 3]) + bytes(16)]
+        equipes = [[bytes(8)] for _ in donnees]
+        equipes[-1] = [bytes(range(24))]
+        nom, _, attendu, mod = essai_dresseur(len(donnees) - 1, d, donnees, equipes)
+        assert nom == 'd%03d' % (len(donnees) - 1) and attendu([], [], True) and not attendu([], [], False)
+        with open(os.path.join(mod, 'romfs', 'a', '0', '4', '0'), 'rb') as f:
+            e = garc.lire(f.read())[1]
+        with open(os.path.join(mod, 'overlay.json'), encoding='utf-8') as f:
+            assert set(json.load(f)['files']) == {'a/0/3/8', 'a/0/4/0'}
+        assert e[revue_modeles.DRESSEUR] == [bytes(range(24))] and e[-1] == [bytes(range(24))] and e[0] == [bytes(8)]
     print('combats : tests ok')
 
 
@@ -212,16 +290,23 @@ if __name__ == '__main__':
         test()
     elif arg[0] == 'bilan':
         bilan(arg[1])
-    elif arg[0] in ('capacites', 'tenues'):
-        reste, options = arg[2:], {'--secondes': '100', '--travailleurs': '6', '--format': 'simple'}
+    elif arg[0] in ('capacites', 'tenues', 'dresseurs'):
+        reste = arg[2:]
+        options = {'--secondes': '300' if arg[0] == 'dresseurs' else '100', '--travailleurs': '6', '--format': 'simple'}
         for nom in options:
             if nom in reste:
                 i = reste.index(nom)
                 options[nom] = reste[i + 1]
                 reste = reste[:i] + reste[i + 2:]
+        if arg[0] == 'dresseurs' and options['--format'] != 'simple':
+            sys.exit('dresseurs : le format est celui des données du dresseur')
         if options['--format'] not in FORMATS:
             sys.exit(f"format inconnu : {options['--format']} ({', '.join(FORMATS)})")
-        {'capacites': capacites, 'tenues': tenues}[arg[0]](arg[1], int(options['--secondes']), int(options['--travailleurs']),
-                                                         [int(c) for c in reste], options['--format'])
+        if arg[0] == 'dresseurs':
+            dresseurs(arg[1], int(options['--secondes']), int(options['--travailleurs']),
+                      [int(c) for c in reste])
+        else:
+            {'capacites': capacites, 'tenues': tenues}[arg[0]](arg[1], int(options['--secondes']), int(options['--travailleurs']),
+                                                             [int(c) for c in reste], options['--format'])
     else:
         sys.exit(__doc__)
