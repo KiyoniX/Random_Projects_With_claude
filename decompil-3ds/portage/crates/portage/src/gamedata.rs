@@ -75,11 +75,16 @@ pub fn text_lines(d: &[u8]) -> Option<Vec<String>> {
         .collect()
 }
 
-/// Une capacité telle que la montrent les boutons : nom, type (ordre du jeu), PP de base (octet 5).
+/// Une capacité telle que la montrent les boutons et sa fiche : nom, type (ordre du jeu), PP de base, catégorie (0 statut,
+/// 1 physique, 2 spéciale), puissance, précision (octets 0, 5, 2, 3, 4 de `a/2/1/2`), description (texte 15).
 pub struct MoveInfo {
     pub name: String,
     pub kind: u8,
     pub pp: u8,
+    pub category: u8,
+    pub power: u8,
+    pub accuracy: u8,
+    pub description: String,
 }
 
 /// Un caractère du jeu : l'UTF-16, sauf ses symboles privés.
@@ -100,11 +105,14 @@ pub fn game_text(names: &[u8], n: usize) -> Option<Vec<String>> {
 }
 
 /// Ce qu'on lit d'un Pokémon chiffré (format pk6 de PKHeX, comme `outils/pk6.py`) : surnom, œuf, genre (0 mâle, 1 femelle,
-/// 2 aucun).
+/// 2 aucun), forme (bloc A +0x15 >> 3), talent (bloc A +0xC), la clé (qui déchiffre aussi la partie d'équipe).
 pub struct Pk6 {
     pub nickname: String,
     pub egg: bool,
     pub gender: u8,
+    pub form: u8,
+    pub ability: u8,
+    pub key: u32,
 }
 
 /// La place de chaque bloc A, B, C, D pour chacun des 24 mélanges (PKHeX, BlockPosition).
@@ -134,12 +142,27 @@ pub fn pk6(data: &[u8]) -> Option<Pk6> {
     let (a, b) = (block(0), block(1));
     let nickname = (0..12).map(|k| u16_at(&plain, b + 2 * k).unwrap_or(0)).take_while(|&w| w != 0).map(game_char).collect();
     let egg = u32_at(&plain, b + 0x34)? >> 30 & 1 == 1;
-    Some(Pk6 { nickname, egg, gender: if egg { 2 } else { plain[a + 0x15] >> 1 & 3 } })
+    Some(Pk6 { nickname, egg, gender: if egg { 2 } else { plain[a + 0x15] >> 1 & 3 }, form: plain[a + 0x15] >> 3, ability: plain[a + 0xC], key })
+}
+
+/// Les stats de la partie d'équipe d'un pk6 (0x1C octets de +0xE8, chiffrés à part, le générateur repris de la clé), dans
+/// l'ordre du Résumé : Attaque, Défense, Atq. Spé., Déf. Spé., Vitesse (+0xF4, +0xF6, +0xFA, +0xFC, +0xF8).
+pub fn pk6_stats(key: u32, party: &[u8]) -> Option<[u16; 5]> {
+    let mut plain = party.get(..0x1C)?.to_vec();
+    let mut seed = key;
+    for i in (0..0x1C).step_by(2) {
+        seed = seed.wrapping_mul(0x41C6_4E6D).wrapping_add(0x6073);
+        let w = u16::from_le_bytes([plain[i], plain[i + 1]]) ^ (seed >> 16) as u16;
+        plain[i..i + 2].copy_from_slice(&w.to_le_bytes());
+    }
+    Some([0xC, 0xE, 0x12, 0x14, 0x10].map(|o| u16_at(&plain, o).unwrap_or(0)))
 }
 
 /// Les capacités du jeu, par numéro.
 pub fn moves(names: &[u8], data: &[u8]) -> Option<Vec<MoveInfo>> {
-    let names = text_lines(garc_files(names)?.get(13)?)?;
+    let texts = garc_files(names)?;
+    let names = text_lines(texts.get(13)?)?;
+    let descriptions = texts.get(15).and_then(|t| text_lines(t)).unwrap_or_default();
     let data = garc_files(data)?;
     Some(
         names
@@ -147,10 +170,88 @@ pub fn moves(names: &[u8], data: &[u8]) -> Option<Vec<MoveInfo>> {
             .enumerate()
             .map(|(i, name)| {
                 let byte = |at: usize| data.get(i).and_then(|e| e.get(at)).copied().unwrap_or(0);
-                MoveInfo { name, kind: byte(0), pp: byte(5) }
+                let description = descriptions.get(i).cloned().unwrap_or_default();
+                MoveInfo { name, kind: byte(0), pp: byte(5), category: byte(2), power: byte(3), accuracy: byte(4), description }
             })
             .collect(),
     )
+}
+
+/// LZ11 de Nintendo (`outils/lz11.py`) : octet 0x11, taille sur trois octets, blocs de huit éléments annoncés par un octet
+/// de drapeaux (bit à 1 : une référence arrière).
+pub fn lz11(d: &[u8]) -> Option<Vec<u8>> {
+    (*d.first()? == 0x11).then_some(())?;
+    let size = u32_at(d, 0)? as usize >> 8;
+    let mut out = Vec::with_capacity(size);
+    let mut p = 4;
+    while out.len() < size {
+        let flags = *d.get(p)?;
+        p += 1;
+        for bit in (0..8).rev() {
+            if out.len() >= size {
+                break;
+            }
+            if flags >> bit & 1 == 0 {
+                out.push(*d.get(p)?);
+                p += 1;
+                continue;
+            }
+            let b = |k: usize| d.get(p + k).map(|&v| v as usize);
+            let (length, distance) = match b(0)? >> 4 {
+                0 => {
+                    let r = (((b(0)? & 0xF) << 4 | b(1)? >> 4) + 0x11, ((b(1)? & 0xF) << 8 | b(2)?) + 1);
+                    p += 3;
+                    r
+                }
+                1 => {
+                    let r = (((b(0)? & 0xF) << 12 | b(1)? << 4 | b(2)? >> 4) + 0x111, ((b(2)? & 0xF) << 8 | b(3)?) + 1);
+                    p += 4;
+                    r
+                }
+                high => {
+                    let r = (high + 1, ((b(0)? & 0xF) << 8 | b(1)?) + 1);
+                    p += 2;
+                    r
+                }
+            };
+            (distance <= out.len()).then_some(())?;
+            for _ in 0..length {
+                out.push(out[out.len() - distance]);
+            }
+        }
+    }
+    Some(out)
+}
+
+/// Une icône des archives `a/0/9/3` (Pokémon, 40 x 30 dans 64 x 32) et `a/0/9/4` (objets, 30 x 30 dans 32 x 32), en RGBA :
+/// LZ11, puis u16 2, u16 n couleurs RGBA5551 (r 15..11, g 10..6, b 5..1, a bit 0), puis les indices en tuiles 8 x 8 (4 bits,
+/// demi-octet haut d'abord, si n <= 16, sinon 8 bits) ; l'indice 0 est transparent (`local/analyse/DllBattle/fiche-pokemon-natif.md`).
+pub fn icon(compressed: &[u8], width: usize, visible: (usize, usize)) -> Option<(usize, usize, Vec<u8>)> {
+    let d = lz11(compressed)?;
+    let count = u16_at(&d, 2)? as usize;
+    let colors: Vec<[u8; 4]> = (0..count)
+        .map(|i| {
+            let c = u16_at(&d, 4 + 2 * i).unwrap_or(0) as u32;
+            let five = |v: u32| (v << 3 | v >> 2) as u8;
+            [five(c >> 11 & 31), five(c >> 6 & 31), five(c >> 1 & 31), if c & 1 == 1 { 255 } else { 0 }]
+        })
+        .collect();
+    let start = 4 + 2 * count;
+    let points = width * 32;
+    let tiled: Vec<u8> = if count <= 16 {
+        d.get(start..start + points / 2)?.iter().flat_map(|&b| [b >> 4, b & 15]).collect()
+    } else {
+        d.get(start..start + points)?.to_vec()
+    };
+    let indices = formats::tiled_to_linear(&tiled, width, 32, 1);
+    let mut rgba = Vec::with_capacity(visible.0 * visible.1 * 4);
+    for y in 0..visible.1 {
+        for x in 0..visible.0 {
+            let i = indices[y * width + x] as usize;
+            rgba.extend(if i == 0 { [0; 4] } else { colors.get(i).copied().unwrap_or([0; 4]) });
+        }
+    }
+    Some((visible.0, visible.1, rgba))
 }
 
 #[cfg(test)]
@@ -259,6 +360,26 @@ mod tests {
     }
 
     #[test]
+    fn an_icon_is_unpacked_with_its_palette() {
+        // une icône d'objet 32 x 32 : deux couleurs (transparent, rouge opaque), le point (0, 0) rouge, LZ11 sans référence
+        let mut raw = vec![2, 0, 2, 0, 0, 0];
+        raw.extend(((31u16 << 11) | 1).to_le_bytes());
+        let mut indices = vec![0u8; 32 * 32 / 2];
+        indices[0] = 0x10; // demi-octet haut : le premier point
+        raw.extend(&indices);
+        let mut lz = vec![0x11, raw.len() as u8, (raw.len() >> 8) as u8, 0];
+        for chunk in raw.chunks(8) {
+            lz.push(0);
+            lz.extend(chunk);
+        }
+        let (w, h, rgba) = icon(&lz, 32, (30, 30)).unwrap();
+        assert_eq!((w, h), (30, 30));
+        assert_eq!(&rgba[..4], &[255, 0, 0, 255]);
+        assert_eq!(&rgba[4..8], &[0, 0, 0, 0], "l'indice 0 est transparent");
+        assert!(lz11(&[0x10, 1, 0, 0, 0, 7]).is_none(), "pas du LZ11");
+    }
+
+    #[test]
     fn a_pk6_gives_its_nickname() {
         // un Pokémon fabriqué en clair (mélange 5 : B est le quatrième bloc), puis chiffré comme le jeu
         let key: u32 = 5 << 13;
@@ -281,6 +402,16 @@ mod tests {
         }
         let p = pk6(&data).unwrap();
         assert_eq!((p.nickname.as_str(), p.egg, p.gender), ("Goat", false, 1));
+        // la partie d'équipe : Attaque 39 à +0xC, chiffrée du même générateur repris de la clé
+        let mut party = vec![0u8; 0x1C];
+        party[0xC] = 39;
+        let mut seed = key;
+        for i in (0..0x1C).step_by(2) {
+            seed = seed.wrapping_mul(0x41C6_4E6D).wrapping_add(0x6073);
+            let w = u16::from_le_bytes([party[i], party[i + 1]]) ^ (seed >> 16) as u16;
+            party[i..i + 2].copy_from_slice(&w.to_le_bytes());
+        }
+        assert_eq!(pk6_stats(p.key, &party).unwrap()[0], 39);
         data[0x20] ^= 1;
         assert!(pk6(&data).is_none(), "la somme ne tombe plus juste");
     }

@@ -22,15 +22,26 @@ const TYPE_ICONS: [&str; 18] = [
     include_str!("../../../assets/types/dark.svg"), include_str!("../../../assets/types/fairy.svg"),
 ];
 
+/// Une image du jeu (icône d'un Pokémon ou d'un objet), en RGBA non prémultiplié.
+#[derive(PartialEq, Debug)]
+pub struct Icon {
+    pub w: usize,
+    pub h: usize,
+    pub rgba: Vec<u8>,
+}
+
 /// Une pastille : où elle va (dans le repère de la disposition, 400 x 240), sa couleur, ses textes, le type dont elle
-/// montre l'icône.
-#[derive(Clone, PartialEq, Debug)]
+/// montre l'icône, ou l'image du jeu qu'elle montre à gauche. Avec des `lines`, c'est un panneau d'informations : le titre
+/// en haut, les lignes dessous.
+#[derive(Clone, PartialEq, Debug, Default)]
 pub struct Pill {
     pub to: [f32; 4],
     pub color: [u8; 3],
     pub label: String,
     pub detail: String,
     pub kind: Option<usize>,
+    pub image: Option<std::sync::Arc<Icon>>,
+    pub lines: Vec<String>,
 }
 
 /// Les couleurs des dix-huit types, dans l'ordre du jeu (Normal, Combat, Vol, Poison, Sol, Roche, Insecte, Spectre, Acier,
@@ -74,6 +85,9 @@ impl Ui {
     }
 
     fn pill(&self, image: &mut Image, r: [f32; 4], pill: &Pill) {
+        if !pill.lines.is_empty() {
+            return self.panel(image, r, pill);
+        }
         let height = r[3] - r[1];
         // un peu d'air entre deux pastilles voisines
         let r = [r[0] + height * 0.06, r[1] + height * 0.08, r[2] - height * 0.06, r[3] - height * 0.08];
@@ -95,6 +109,12 @@ impl Ui {
             image.icon(tree, ix, iy, d);
             image.rounded_ring([ix, iy, ix + d, iy + d], d / 2.0, d * 0.07, [255, 255, 255, 220]);
             x += d + radius * 0.3;
+        } else if let Some(icon) = &pill.image {
+            // l'icône du jeu, à sa hauteur dans la pastille (un peu plus haute : les icônes ont du vide autour)
+            let h = height * 1.05;
+            let w = h * icon.w as f32 / icon.h as f32;
+            image.picture(icon, x - radius * 0.15, (r[1] + r[3] - h) / 2.0, w, h);
+            x += w - radius * 0.1;
         }
         // les PP à droite, en plus petit ; le nom prend la place qui reste, rapetissé s'il le faut
         let small = height * 0.34;
@@ -108,11 +128,11 @@ impl Ui {
         let mut size = height * 0.44;
         let mut width = self.width(&pill.label, size);
         if x + width > right {
-            size = (size * (right - x) / width).max(height * 0.28);
+            size = (size * (right - x) / width).max(height * 0.2);
             width = self.width(&pill.label, size);
         }
         // un bouton sans PP ni catégorie (le menu, le retour) : le nom au milieu
-        if pill.detail.is_empty() && pill.kind.is_none() {
+        if pill.detail.is_empty() && pill.kind.is_none() && pill.image.is_none() {
             x = ((r[0] + r[2] - width) / 2.0).max(x);
         }
         self.text(image, &pill.label, x, r[1] + height * 0.5 + size * 0.36, size, right);
@@ -123,6 +143,44 @@ impl Ui {
         match &self.symbols {
             Some(symbols) if self.font.glyph_id(c).0 == 0 && symbols.glyph_id(c).0 != 0 => symbols,
             _ => &self.font,
+        }
+    }
+
+    /// Un panneau : coins moins ronds, le titre (et l'image) en haut, puis une ligne par entrée de `lines`.
+    fn panel(&self, image: &mut Image, r: [f32; 4], pill: &Pill) {
+        let r = [r[0] + 1.0, r[1] + 1.0, r[2] - 1.0, r[3] - 1.0];
+        let (width, height) = (r[2] - r[0], r[3] - r[1]);
+        let line = (height / (pill.lines.len() as f32 + 1.5)).min(width * 0.12);
+        let radius = line * 0.6;
+        let [cr, cg, cb] = pill.color;
+        image.rounded(r, radius, |y| {
+            let k = 1.05 - 0.15 * (y - r[1]) / height;
+            [shade(cr, k), shade(cg, k), shade(cb, k), 230]
+        });
+        image.rounded_ring(r, radius, line * 0.08, [shade(cr, 0.6), shade(cg, 0.6), shade(cb, 0.6), 255]);
+        let pad = line * 0.4;
+        let mut x = r[0] + pad;
+        let title = line * 0.75;
+        if let Some(icon) = &pill.image {
+            let h = line * 1.4;
+            let w = h * icon.w as f32 / icon.h as f32;
+            image.picture(icon, x - pad * 0.5, r[1] + pad * 0.2 - line * 0.1, w, h);
+            x += w;
+        } else if let Some(tree) = pill.kind.and_then(|k| self.icons.get(k)) {
+            let d = line * 0.9;
+            image.icon(tree, x, r[1] + pad * 0.5, d);
+            x += d + pad * 0.5;
+        }
+        self.text(image, &pill.label, x, r[1] + pad + title * 0.8, title, r[2] - pad);
+        if !pill.detail.is_empty() {
+            let small = line * 0.55;
+            let w = self.width(&pill.detail, small);
+            self.text(image, &pill.detail, r[2] - pad - w, r[1] + pad + title * 0.8, small, r[2]);
+        }
+        let small = line * 0.58;
+        for (i, text) in pill.lines.iter().enumerate() {
+            let baseline = r[1] + pad + line * (1.35 + i as f32) + small * 0.5;
+            self.text(image, text, r[0] + pad, baseline, small, r[2] - pad);
         }
     }
 
@@ -205,6 +263,23 @@ impl Image {
         }
     }
 
+    /// Une image du jeu agrandie au point le plus proche (dessin en pixels) dans le rectangle (x, y, w, h).
+    fn picture(&mut self, icon: &Icon, x: f32, y: f32, w: f32, h: f32) {
+        let (x0, y0) = (x.floor() as i32, y.floor() as i32);
+        for py in 0..h.ceil() as i32 {
+            for px in 0..w.ceil() as i32 {
+                let sx = ((px as f32 + 0.5) / w * icon.w as f32) as usize;
+                let sy = ((py as f32 + 0.5) / h * icon.h as f32) as usize;
+                if sx >= icon.w || sy >= icon.h {
+                    continue;
+                }
+                let i = (sy * icon.w + sx) * 4;
+                let p = &icon.rgba[i..i + 4];
+                self.blend(x0 + px, y0 + py, [p[0], p[1], p[2], p[3]], 1.0);
+            }
+        }
+    }
+
     /// La couverture d'un point par un rectangle arrondi (distance signée, adoucie sur un pixel).
     fn coverage(r: [f32; 4], radius: f32, px: f32, py: f32) -> f32 {
         let (cx, cy) = ((r[0] + r[2]) / 2.0, (r[1] + r[3]) / 2.0);
@@ -250,7 +325,7 @@ mod tests {
     #[test]
     fn a_pill_is_drawn_inside_its_place_only() {
         let Some(ui) = Ui::new() else { return }; // sans police de Windows : rien à dessiner
-        let pill = Pill { to: [10.0, 10.0, 110.0, 40.0], color: TYPE_COLORS[9], label: "Flammèche".into(), detail: "25/25".into(), kind: Some(9) };
+        let pill = Pill { to: [10.0, 10.0, 110.0, 40.0], color: TYPE_COLORS[9], label: "Flammèche".into(), detail: "25/25".into(), kind: Some(9), ..Default::default() };
         let (w, h, rgba) = ui.raster(&[pill], [0.0, 0.0, 120.0, 50.0], 2.0);
         assert_eq!((w, h), (240, 100));
         let alpha = |x: usize, y: usize| rgba[(y * w + x) * 4 + 3];

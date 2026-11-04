@@ -23,8 +23,8 @@ use winit::window::{CursorGrabMode, Window, WindowId};
 use pica::images::save_png;
 
 use crate::gamedata::MoveInfo;
-use crate::ui::{Pill, TYPE_COLORS};
-use crate::window::{BagPage, Layout, LearnPage, PartyPage, Screens, open};
+use crate::ui::{Icon, Pill, TYPE_COLORS};
+use crate::window::{BagPage, Layout, LearnPage, MoveExtras, PartyPage, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
 /// le QWERTY : sur un AZERTY, KeyW/KeyA/KeyS/KeyD sont Z/Q/S/D, KeyQ est A. A et B sont sur la souris (`MOUSE`).
@@ -139,16 +139,22 @@ enum Bag {
 fn battle_bag(memory: &AddressSpace, base: u32) -> Option<Bag> {
     let objects = battle_objects(memory, base)?;
     let word = |address: u32| memory.u32(address).ok();
+    // Soigner mène aux mêmes applis que le sac, rangées ailleurs (`fiche-pokemon-natif.md`) : 7 la liste, 8 la fiche
+    let (screen, list_at, info_at) = match memory.u8(objects.wrapping_add(0xF0)).ok()? {
+        7 => (2, 0x110, 0x114),
+        8 => (3, 0x110, 0x114),
+        _ => (memory.u8(objects.wrapping_add(0x1E8)).ok()?, 0x1F4, 0x1F8),
+    };
     // la liste : la catégorie en +0xD4, à +0xF8 + 0x84 × catégorie un nombre puis les cases (objet, quantité), la page en +0x30C
     let list = || -> Option<(u8, Vec<(u16, u16)>, u32)> {
-        let l = word(objects.wrapping_add(0x1F4)).filter(|&l| l != 0)?;
+        let l = word(objects.wrapping_add(list_at)).filter(|&l| l != 0)?;
         let pocket = memory.u8(l.wrapping_add(0xD4)).ok().filter(|&p| p < 4)?;
         let at = l.wrapping_add(0xF8 + 0x84 * pocket as u32);
         let count = word(at)?.min(32);
         let items = (0..count).map(|i| Some((memory.u16(at + 4 + 4 * i).ok()?, memory.u16(at + 6 + 4 * i).ok()?))).collect::<Option<Vec<_>>>()?;
         Some((pocket, items, memory.u8(l.wrapping_add(0x30C)).ok()? as u32))
     };
-    match memory.u8(objects.wrapping_add(0x1E8)).ok()? {
+    match screen {
         1 => {
             // l'objet de la sauvegarde [[[[0x5EDA08]+0x1C]+0x184]+0x32] (code principal 0x32974C)
             let last = word(0x5EDA08).and_then(|a| word(a.wrapping_add(0x1C))).and_then(|a| word(a.wrapping_add(0x184))).and_then(|a| memory.u16(a.wrapping_add(0x32)).ok());
@@ -161,7 +167,7 @@ fn battle_bag(memory: &AddressSpace, base: u32) -> Option<Bag> {
             Some(Bag::List { pocket, items: shown, previous: page != 0, next: page + 1 < pages })
         }
         3 => {
-            let i = word(objects.wrapping_add(0x1F8)).filter(|&i| i != 0)?;
+            let i = word(objects.wrapping_add(info_at)).filter(|&i| i != 0)?;
             let item = memory.u16(i.wrapping_add(0xD4)).ok()?;
             let count = list().and_then(|(_, items, _)| items.iter().find(|e| e.0 == item).map(|e| e.1)).unwrap_or(0);
             Some(Bag::Item { item, count })
@@ -208,7 +214,7 @@ fn battle_learn(memory: &AddressSpace, base: u32) -> Option<Learn> {
     }
 }
 
-/// Un Pokémon de l'équipe tel que le montre sa case.
+/// Un Pokémon de l'équipe tel que le montrent sa case et ses fiches.
 struct Card {
     name: String,
     level: u8,
@@ -220,12 +226,26 @@ struct Card {
     gender: u8,
     /// Au combat (octet +0 de sa case dans la liste).
     fighting: bool,
+    species: u16,
+    form: u8,
+    /// L'objet tenu (u16 bpp+0x12), le talent (bloc A +0xC du pk6), les stats de la partie d'équipe.
+    item: u16,
+    ability: u8,
+    stats: [u16; 5],
+    /// Les capacités affichées par Capacités et sa fiche (copie de bpp+0x116 : numéro, PP, PP max).
+    moves: [(u16, u8, u8); 4],
 }
 
 /// L'équipe ouverte (`local/analyse/DllBattle/equipe-natif.md`).
 enum Party {
     /// Les six cases dans l'ordre de l'écran (`None` : case vide), et si le retour est permis (pas au remplacement forcé).
     List { cards: Vec<Option<Card>>, back: bool },
+    /// Résumé et Capacités : le Pokémon, et si précédent et suivant mènent quelque part (+0xD8, +0xD9 de l'appli).
+    Summary { card: Card, previous: bool, next: bool },
+    Moves { card: Card, previous: bool, next: bool },
+    /// La fiche d'une capacité : le Pokémon et la capacité montrée (0..3).
+    MoveInfo { card: Card, shown: usize },
+    Heal { card: Card },
     /// La fiche d'un Pokémon : `change` dit pourquoi « Changer » ne change pas (0 il peut, 1 au combat, 2 K.O. ou 3 œuf,
     /// 4 partenaire, 6 en attente), puis Soigner, Résumé, Capacités permis.
     Command { card: Card, change: u8, heal: bool, summary: bool, moves: bool },
@@ -241,6 +261,17 @@ fn battle_card(memory: &AddressSpace, bpp: u32, fighting: bool, species: &[Strin
         crate::gamedata::pk6(&bytes?)
     });
     let status = (1..=5).find(|s| memory.u8(bpp.wrapping_add(0x1C + 4 * s)).is_ok_and(|v| v & 7 != 0)).unwrap_or(0) as u8;
+    // les stats : la partie d'équipe du pk6, en [pp + 8]
+    let stats = pk6.as_ref().and_then(|p| {
+        let at = memory.u32(memory.u32(bpp).ok()?.wrapping_add(8)).ok()?;
+        let bytes: Option<Vec<u8>> = (0..0x1C).map(|i| memory.u8(at.wrapping_add(i)).ok()).collect();
+        crate::gamedata::pk6_stats(p.key, &bytes?)
+    });
+    let mut moves = [(0, 0, 0); 4];
+    for (i, m) in moves.iter_mut().enumerate() {
+        let at = bpp.wrapping_add(0x116 + 0xE * i as u32);
+        *m = (memory.u16(at).unwrap_or(0), memory.u8(at.wrapping_add(2)).unwrap_or(0), memory.u8(at.wrapping_add(3)).unwrap_or(0));
+    }
     let fallback = species.get(kind as usize).cloned().unwrap_or_else(|| format!("Pokémon {kind}"));
     Some(Card {
         name: pk6.as_ref().map(|p| p.nickname.clone()).filter(|n| !n.is_empty()).unwrap_or(fallback),
@@ -251,6 +282,12 @@ fn battle_card(memory: &AddressSpace, bpp: u32, fighting: bool, species: &[Strin
         egg: pk6.as_ref().is_some_and(|p| p.egg),
         gender: pk6.as_ref().map_or(2, |p| p.gender),
         fighting,
+        species: kind,
+        form: pk6.as_ref().map_or(0, |p| p.form),
+        item: u16_at(0x12)?,
+        ability: pk6.as_ref().map_or(0, |p| p.ability),
+        stats: stats.unwrap_or_default(),
+        moves,
     })
 }
 
@@ -263,6 +300,22 @@ fn battle_party(memory: &AddressSpace, base: u32, species: &[String]) -> Option<
     let byte = |address: u32| memory.u8(address).ok();
     let word = |address: u32| memory.u32(address).ok().filter(|&w| w != 0);
     let at = |offset: u32| objects.wrapping_add(offset);
+    // les sous-écrans de la fiche : l'appli en H+0x100..H+0x10C, son Pokémon en +0xD4
+    let app = |offset: u32| word(at(offset));
+    let card_of = |a: u32| battle_card(memory, word(a.wrapping_add(0xD4))?, false, species);
+    match byte(at(0xF0))? {
+        3 => return Some(Party::Heal { card: card_of(app(0x100)?)? }),
+        4 | 5 => {
+            let a = app(if byte(at(0xF0))? == 4 { 0x104 } else { 0x108 })?;
+            let (card, previous, next) = (card_of(a)?, byte(a.wrapping_add(0xD8))? != 0, byte(a.wrapping_add(0xD9))? != 0);
+            return Some(if byte(at(0xF0))? == 4 { Party::Summary { card, previous, next } } else { Party::Moves { card, previous, next } });
+        }
+        6 => {
+            let a = app(0x10C)?;
+            return Some(Party::MoveInfo { card: card_of(a)?, shown: byte(a.wrapping_add(0xD8))?.min(3) as usize });
+        }
+        _ => {}
+    }
     let (list, command) = match (byte(at(0xF0))?, byte(at(0x1B3))?, byte(at(0x1E8))?) {
         (1, _, _) => (word(at(0xF8)), None),
         (2, _, _) => (None, word(at(0xFC))),
@@ -296,6 +349,18 @@ fn battle_party(memory: &AddressSpace, base: u32, species: &[String]) -> Option<
 /// (environ 67 ms, `apprendre-natif.md`), l'équipe (une image en l'ouvrant, environ 234 ms au retour vers le menu,
 /// `equipe-natif.md`).
 const BAG_HOLD_NS: u64 = 250_000_000;
+
+/// Les boutons de plus de l'écran des capacités, d'après l'appli des capacités `[+0x80]` (`questions-mega-double.md`) :
+/// `+0xD5` ce Pokémon peut méga-évoluer, `+0xD6` le joueur l'a débloquée, `+0xD7` une Méga a déjà été choisie (grisé),
+/// `+0xE5` cochée ; « Déplacer » en triple (règle `+0xA1` à 2), actif si `+0xDB`. Rend (boutons, grisée, cochée, déplacer actif).
+fn move_extras(memory: &AddressSpace, base: u32) -> Option<(MoveExtras, bool, bool, bool)> {
+    let objects = battle_objects(memory, base)?;
+    let app = memory.u32(objects.wrapping_add(0x80)).ok().filter(|&a| a != 0)?;
+    let byte = |offset: u32| memory.u8(app.wrapping_add(offset)).unwrap_or(0);
+    let triple = memory.u8(objects.wrapping_add(0xA1)).ok()? == 2;
+    let extras = MoveExtras { mega: byte(0xD5) != 0 && byte(0xD6) != 0, shift: triple };
+    Some((extras, byte(0xD7) != 0, byte(0xE5) != 0, byte(0xDB) != 0))
+}
 
 /// Les pastilles du menu du combat, dans l'ordre de `MENU_BUTTONS` ; en double et en triple, le jeu montre un retour à la
 /// place de Fuite pour les Pokémon après le premier (`local/analyse/DllBattle/boutons-natifs.md`).
@@ -433,6 +498,14 @@ struct Play {
     move_infos: Option<Vec<MoveInfo>>,
     item_names: Vec<String>,
     species_names: Vec<String>,
+    /// Textes et données des fiches : noms des types (texte 17), des talents (34), types de chaque espèce (`a/2/1/8`).
+    type_names: Vec<String>,
+    ability_names: Vec<String>,
+    species_types: Vec<[u8; 2]>,
+    /// Les icônes compressées des Pokémon (`a/0/9/3`) et des objets (`a/0/9/4`), décodées à la demande.
+    pokemon_icons: Vec<Vec<u8>>,
+    item_icons: Vec<Vec<u8>>,
+    icon_cache: std::cell::RefCell<std::collections::HashMap<(bool, u32), Option<std::sync::Arc<Icon>>>>,
     /// Le dernier sac ou la dernière question dessinés et leur temps : gardés pendant les transitions (`BAG_HOLD_NS`).
     held_bag: Option<(Layout, (Vec<Pill>, [f32; 4]), u64)>,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
@@ -581,10 +654,12 @@ impl Play {
             // les boutons dessinés par la fenêtre quand elle a sa police et les données des capacités
             let native = self.screens.as_ref().is_some_and(|s| s.has_ui()) && self.move_infos.as_ref().is_some_and(|m| !m.is_empty());
             match battle_screen(memory, base) {
-                Some(BattleScreen::Moves) if native && battle_moves(memory, base).is_some() => (Layout::NativeMoves(many), true),
+                Some(BattleScreen::Moves) if native && battle_moves(memory, base).is_some() => {
+                    (Layout::NativeMoves(many, move_extras(memory, base).map(|e| e.0).unwrap_or_default()), true)
+                }
                 Some(BattleScreen::Moves) if many => (Layout::SmallMoves, true),
                 Some(BattleScreen::Moves) => (Layout::Moves, true),
-                Some(BattleScreen::YesNo) if native && matches!(battle_learn(memory, base), Some(Learn::Question { kind: 0 | 3 })) => (Layout::NativeLearn(LearnPage::Question, many), true),
+                Some(BattleScreen::YesNo) if native && matches!(battle_learn(memory, base), Some(Learn::Question { kind: 0..=3 })) => (Layout::NativeLearn(LearnPage::Question, many), true),
                 Some(BattleScreen::YesNo) => (Layout::YesNo, true),
                 // le premier menu d'un Pokémon : `+0x93` à 1 ; les autres écrans comptés comme menu (sac, équipe…) gardent
                 // l'écran du bas en coin
@@ -595,6 +670,10 @@ impl Play {
                 },
                 Some(BattleScreen::Menu) if native && battle_party(memory, base, &self.species_names).is_some() => match battle_party(memory, base, &self.species_names) {
                     Some(Party::Command { .. }) => (Layout::NativeParty(PartyPage::Command, many), true),
+                    Some(Party::Summary { .. }) => (Layout::NativeParty(PartyPage::Summary, many), true),
+                    Some(Party::Moves { .. }) => (Layout::NativeParty(PartyPage::Moves, many), true),
+                    Some(Party::MoveInfo { .. }) => (Layout::NativeParty(PartyPage::MoveInfo, many), true),
+                    Some(Party::Heal { .. }) => (Layout::NativeParty(PartyPage::Heal, many), true),
                     _ => (Layout::NativeParty(PartyPage::List, many), true),
                 },
                 Some(BattleScreen::Menu) if native => match battle_bag(memory, base) {
@@ -636,14 +715,52 @@ impl Play {
         self.move_infos = Some(infos.unwrap_or_default());
         let texts = read("a/0/7/5");
         let text = |n| texts.as_deref().and_then(|t| crate::gamedata::game_text(t, n)).unwrap_or_default();
-        (self.item_names, self.species_names) = (text(96), text(80));
+        (self.item_names, self.species_names, self.type_names, self.ability_names) = (text(96), text(80), text(17), text(34));
+        let files = |path: &str| read(path).and_then(|d| crate::gamedata::garc_files(&d)).unwrap_or_default();
+        self.species_types = files("a/2/1/8").iter().map(|e| [e.get(6).copied().unwrap_or(0), e.get(7).copied().unwrap_or(0)]).collect();
+        (self.pokemon_icons, self.item_icons) = (files("a/0/9/3"), files("a/0/9/4"));
+    }
+
+    /// L'icône d'un Pokémon : la fiche de 16 octets de son espèce dans le code (0x541A9C : numéro, numéro femelle, table des
+    /// formes, nombre de formes en +0xC), l'œuf 944 (`fiche-pokemon-natif.md` §5).
+    fn pokemon_icon(&self, card: &Card) -> Option<std::sync::Arc<Icon>> {
+        let memory = &self.bench.kernel.memory;
+        let index = if card.egg {
+            944
+        } else if card.species >= 0x2D2 {
+            0
+        } else {
+            let record = 0x541A9C + 16 * card.species as u32;
+            let forms = memory.u16(record + 0xC).ok()?;
+            if (card.form as u16) < forms {
+                memory.u16(memory.u32(record + 4).ok()?.wrapping_add(2 * card.form as u32)).ok()?
+            } else {
+                memory.u16(record + if card.gender == 1 { 2 } else { 0 }).ok()?
+            }
+        };
+        self.icon(false, index as u32)
+    }
+
+    /// L'icône d'un objet : son numéro dans la table du code à 0x540B78 (718 cases).
+    fn item_icon(&self, item: u16) -> Option<std::sync::Arc<Icon>> {
+        (item < 718).then_some(())?;
+        self.icon(true, self.bench.kernel.memory.u32(0x540B78 + 4 * item as u32).ok()?)
+    }
+
+    fn icon(&self, item: bool, index: u32) -> Option<std::sync::Arc<Icon>> {
+        self.icon_cache.borrow_mut().entry((item, index)).or_insert_with(|| {
+            let files = if item { &self.item_icons } else { &self.pokemon_icons };
+            let (width, visible) = if item { (32, (30, 30)) } else { (64, (40, 30)) };
+            let (w, h, rgba) = crate::gamedata::icon(files.get(index as usize)?, width, visible)?;
+            Some(std::sync::Arc::new(Icon { w, h, rgba }))
+        }).clone()
     }
 
     /// Les pastilles de la disposition et la zone qu'elles couvrent, pour la fenêtre (`None` hors des boutons dessinés).
     fn native_pills(&self, layout: Layout) -> Option<(Vec<Pill>, [f32; 4])> {
         let places = layout.native_places();
         let area = places.iter().fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |a, p| [a[0].min(p[0]), a[1].min(p[1]), a[2].max(p[2]), a[3].max(p[3])]);
-        let pill = |to, color, label: &str, detail: String, kind| Pill { to, color, label: label.to_string(), detail, kind };
+        let pill = |to, color, label: &str, detail: String, kind| Pill { to, color, label: label.to_string(), detail, kind, ..Default::default() };
         let pills = match layout {
             Layout::NativeMenu(_) => {
                 let memory = &self.bench.kernel.memory;
@@ -653,8 +770,9 @@ impl Play {
                     pill(to, color, label, String::new(), None)
                 }).collect()
             }
-            Layout::NativeMoves(_) => {
+            Layout::NativeMoves(_, extras) => {
                 let infos = self.move_infos.as_ref()?;
+                let (_, taken, on, can_shift) = move_extras(&self.bench.kernel.memory, self.battle_base()?).unwrap_or_default();
                 let moves = battle_moves(&self.bench.kernel.memory, self.battle_base()?)?;
                 let mut pills: Vec<Pill> = places.iter().zip(moves).filter(|(_, m)| m.0 != 0).map(|(&to, (id, pp, max))| {
                     let info = infos.get(id as usize);
@@ -663,6 +781,15 @@ impl Play {
                     let name = info.map_or_else(|| format!("Capacité {id}"), |i| i.name.clone());
                     pill(to, color, &name, format!("{pp}/{max}"), kind)
                 }).collect();
+                let off = [58, 58, 66];
+                if extras.mega {
+                    // cochée : en couleur ; sinon pâle ; grisée si un autre l'a déjà prise
+                    let (label, color) = if on { ("Méga-Évolution ✓", [230, 120, 40]) } else { ("Méga-Évolution", if taken { off } else { [120, 100, 150] }) };
+                    pills.push(pill(*places.get(4)?, color, label, String::new(), None));
+                }
+                if extras.shift {
+                    pills.push(pill(*places.get(places.len() - 2)?, if can_shift { [70, 130, 200] } else { off }, "Déplacer", String::new(), None));
+                }
                 pills.push(pill(*places.last()?, [92, 92, 104], "Retour", String::new(), None));
                 pills
             }
@@ -677,7 +804,13 @@ impl Play {
                 let name = |id: u16| infos.get(id as usize).map_or_else(|| format!("Capacité {id}"), |i| i.name.clone());
                 match battle_learn(&self.bench.kernel.memory, self.battle_base()?)? {
                     Learn::Question { kind } => {
-                        let labels = if kind == 3 { ["Oublier une capacité", "Garder les anciennes"] } else { ["Oui", "Non"] };
+                        // les libellés de 0x97F78 (texte 127, lignes 0x35..0x3C)
+                        let labels = match kind {
+                            1 => ["Envoyer un autre Pokémon", "Fuite"],
+                            2 => ["Changer de Pokémon", "Continuer sans changer"],
+                            3 => ["Oublier une capacité", "Garder les anciennes capacités"],
+                            _ => ["Oui", "Non"],
+                        };
                         places.iter().zip(labels).zip([[72, 162, 84], [204, 62, 56]]).map(|((&to, label), color)| pill(to, color, label, String::new(), None)).collect()
                     }
                     Learn::Forget { moves, new } => {
@@ -709,10 +842,11 @@ impl Play {
                         format!("{status}N.{} {}/{}", c.level, c.hp, c.max)
                     }
                 };
+                let on = |yes: bool, color: [u8; 3]| if yes { color } else { off };
                 let title = |c: &Card| format!("{}{}", c.name, ["\u{2009}♂", "\u{2009}♀", ""][c.gender.min(2) as usize]);
                 match battle_party(&self.bench.kernel.memory, self.battle_base()?, &self.species_names)? {
                     Party::List { cards, back: can_back } => {
-                        let mut pills: Vec<Pill> = places.iter().zip(&cards).filter_map(|(&to, c)| c.as_ref().map(|c| pill(to, color(c), &title(c), detail(c), None))).collect();
+                        let mut pills: Vec<Pill> = places.iter().zip(&cards).filter_map(|(&to, c)| c.as_ref().map(|c| Pill { image: self.pokemon_icon(c), ..pill(to, color(c), &title(c), detail(c), None) })).collect();
                         pills.push(pill(*places.get(6)?, if can_back { back } else { off }, "Retour", String::new(), None));
                         pills
                     }
@@ -724,13 +858,82 @@ impl Play {
                             6 => format!("{} : en attente", title(&card)),
                             _ => format!("{} : ne peut pas se battre", title(&card)),
                         };
-                        let on = |yes: bool, color| if yes { color } else { off };
                         vec![
-                            pill(*places.first()?, on(change == 0, [64, 112, 206]), &label, String::new(), None),
+                            Pill { image: self.pokemon_icon(&card), ..pill(*places.first()?, on(change == 0, [64, 112, 206]), &label, String::new(), None) },
                             pill(*places.get(1)?, on(heal, [72, 162, 84]), "Soigner", String::new(), None),
                             pill(*places.get(2)?, on(summary, [150, 92, 190]), "Résumé", String::new(), None),
                             pill(*places.get(3)?, on(moves, [222, 140, 40]), "Capacités", String::new(), None),
                             pill(*places.get(4)?, back, "Retour", String::new(), None),
+                        ]
+                    }
+                    Party::Summary { card, previous, next } => {
+                        let types = self.species_types.get(card.species as usize).copied().unwrap_or_default();
+                        let type_name = |t: u8| self.type_names.get(t as usize).cloned().unwrap_or_default();
+                        let types = if types[0] == types[1] { type_name(types[0]) } else { format!("{} / {}", type_name(types[0]), type_name(types[1])) };
+                        let status = ["", " · PAR", " · SOM", " · GEL", " · BRU", " · PSN"][card.status.min(5) as usize];
+                        let s = card.stats;
+                        let item = self.item_names.get(card.item as usize).cloned().unwrap_or_default();
+                        let lines = vec![
+                            format!("{types} · PV {}/{}{status}", card.hp, card.max),
+                            format!("Attaque {} · Défense {}", s[0], s[1]),
+                            format!("Atq. Spé. {} · Déf. Spé. {}", s[2], s[3]),
+                            format!("Vitesse {}", s[4]),
+                            format!("Talent : {}", self.ability_names.get(card.ability as usize).cloned().unwrap_or_default()),
+                            format!("Objet : {item}"),
+                        ];
+                        let panel = Pill { to: *places.first()?, color: [56, 74, 110], label: title(&card), detail: format!("N.{}", card.level), image: self.pokemon_icon(&card), lines, ..Default::default() };
+                        vec![
+                            panel,
+                            pill(*places.get(1)?, on(previous, [70, 130, 200]), "←", String::new(), None),
+                            pill(*places.get(2)?, on(next, [70, 130, 200]), "→", String::new(), None),
+                            pill(*places.get(3)?, [222, 140, 40], "Capacités", String::new(), None),
+                            pill(*places.get(4)?, back, "Retour", String::new(), None),
+                        ]
+                    }
+                    Party::Moves { card, previous, next } => {
+                        let infos = self.move_infos.as_ref()?;
+                        let mut pills: Vec<Pill> = places.iter().zip(card.moves).filter(|(_, m)| m.0 != 0).map(|(&to, (id, pp, max))| {
+                            let info = infos.get(id as usize);
+                            let kind = info.map(|i| i.kind as usize).filter(|&k| k < TYPE_COLORS.len());
+                            pill(to, kind.map_or([128, 128, 128], |k| TYPE_COLORS[k]), &info.map_or_else(|| format!("Capacité {id}"), |i| i.name.clone()), format!("{pp}/{max}"), kind)
+                        }).collect();
+                        pills.push(pill(*places.get(4)?, on(previous, [70, 130, 200]), "←", String::new(), None));
+                        pills.push(pill(*places.get(5)?, on(next, [70, 130, 200]), "→", String::new(), None));
+                        pills.push(pill(*places.get(6)?, [150, 92, 190], "Résumé", String::new(), None));
+                        pills.push(pill(*places.get(7)?, back, "Retour", String::new(), None));
+                        pills
+                    }
+                    Party::MoveInfo { card, shown } => {
+                        let infos = self.move_infos.as_ref()?;
+                        let (id, pp, max) = card.moves[shown];
+                        let info = infos.get(id as usize)?;
+                        let kind = Some(info.kind as usize).filter(|&k| k < TYPE_COLORS.len());
+                        let dash = |v: u8, none: bool| if none { "-".to_string() } else { v.to_string() };
+                        let category = ["Statut", "Physique", "Spéciale"].get(info.category as usize).copied().unwrap_or("");
+                        let mut lines = vec![format!("{category} · Puissance {} · Précision {}", dash(info.power, info.power <= 1), dash(info.accuracy, info.accuracy == 0 || info.accuracy > 100))];
+                        lines.extend(info.description.split('\n').map(str::to_string));
+                        let panel = Pill { to: *places.first()?, color: kind.map_or([96, 96, 104], |k| TYPE_COLORS[k]), label: info.name.clone(), detail: format!("PP {pp}/{max}"), kind, lines, ..Default::default() };
+                        let mut pills = vec![panel];
+                        for (i, &(id, _, _)) in card.moves.iter().enumerate() {
+                            let Some(to) = places.get(1 + i) else { continue };
+                            if id == 0 {
+                                continue;
+                            }
+                            let kind = infos.get(id as usize).map(|i| i.kind as usize).filter(|&k| k < TYPE_COLORS.len());
+                            let color = if i == shown { off } else { kind.map_or([128, 128, 128], |k| TYPE_COLORS[k]) };
+                            pills.push(pill(*to, color, &infos.get(id as usize).map_or(String::new(), |i| i.name.clone()), String::new(), None));
+                        }
+                        pills.push(pill(*places.get(5)?, back, "Retour", String::new(), None));
+                        pills
+                    }
+                    Party::Heal { card } => {
+                        let status = ["", " · PAR", " · SOM", " · GEL", " · BRU", " · PSN"][card.status.min(5) as usize];
+                        let panel = Pill { to: *places.first()?, color: [56, 74, 110], label: title(&card), detail: format!("N.{}", card.level), image: self.pokemon_icon(&card), lines: vec![format!("PV {}/{}{status}", card.hp, card.max)], ..Default::default() };
+                        vec![
+                            panel,
+                            pill(*places.get(1)?, [72, 162, 84], "Soins PV/PP", String::new(), None),
+                            pill(*places.get(2)?, [150, 92, 190], "Soins statut", String::new(), None),
+                            pill(*places.get(3)?, back, "Retour", String::new(), None),
                         ]
                     }
                 }
@@ -743,20 +946,20 @@ impl Play {
                         let (label, color) = if last != 0 { (name(last), [70, 130, 200]) } else { ("Dernier objet".to_string(), off) };
                         let labels = [("Soins PV/PP", [72, 162, 84]), ("Balls", [204, 62, 56]), ("Soins statut", [150, 92, 190]), ("Objets combat", [222, 140, 40])];
                         let mut pills: Vec<Pill> = places.iter().zip(labels).map(|(&to, (label, color))| pill(to, color, label, String::new(), None)).collect();
-                        pills.push(pill(*places.get(4)?, color, &label, String::new(), None));
+                        pills.push(Pill { image: (last != 0).then(|| self.item_icon(last)).flatten(), ..pill(*places.get(4)?, color, &label, String::new(), None) });
                         pills.push(pill(*places.get(5)?, [92, 92, 104], "Retour", String::new(), None));
                         pills
                     }
                     Bag::List { pocket, items, previous, next } => {
                         let color = [[72, 162, 84], [150, 92, 190], [204, 62, 56], [222, 140, 40]][pocket as usize];
-                        let mut pills: Vec<Pill> = places.iter().zip(&items).map(|(&to, &(item, count))| pill(to, color, &name(item), format!("×{count}"), None)).collect();
+                        let mut pills: Vec<Pill> = places.iter().zip(&items).map(|(&to, &(item, count))| Pill { image: self.item_icon(item), ..pill(to, color, &name(item), format!("×{count}"), None) }).collect();
                         pills.push(pill(*places.get(6)?, if previous { [70, 130, 200] } else { off }, "←", String::new(), None));
                         pills.push(pill(*places.get(7)?, if next { [70, 130, 200] } else { off }, "→", String::new(), None));
                         pills.push(pill(*places.get(8)?, [92, 92, 104], "Retour", String::new(), None));
                         pills
                     }
                     Bag::Item { item, count } => vec![
-                        pill(*places.first()?, [72, 162, 84], &format!("Utiliser : {}", name(item)), format!("×{count}"), None),
+                        Pill { image: self.item_icon(item), ..pill(*places.first()?, [72, 162, 84], &format!("Utiliser : {}", name(item)), format!("×{count}"), None) },
                         pill(*places.get(1)?, [92, 92, 104], "Retour", String::new(), None),
                     ],
                 }
@@ -806,7 +1009,8 @@ impl Play {
         // le sac retombe à zéro le temps d'une transition : la fenêtre garde ses boutons, sans rien de touchable
         let now = self.bench.kernel.now;
         match (&overlay, layout) {
-            (Some(o), Layout::NativeBag(..) | Layout::NativeParty(..) | Layout::NativeLearn(LearnPage::Question, _)) => self.held_bag = Some((layout, o.clone(), now)),
+            // toute disposition dessinée : le jeu retombe aussi à zéro entre deux Pokémon d'un double (environ 133 ms)
+            (Some(o), _) => self.held_bag = Some((layout, o.clone(), now)),
             (None, _) if self.battle_base().is_some() && (!shown || matches!(layout, Layout::Corner | Layout::SmallCorner)) => {
                 if let Some((held, o, _)) = self.held_bag.as_ref().filter(|h| now.saturating_sub(h.2) < BAG_HOLD_NS) {
                     (layout, shown, overlay) = (*held, true, Some(o.clone()));
@@ -1043,6 +1247,12 @@ pub fn run(settings: Settings) -> Result<(), String> {
         move_infos: None,
         item_names: Vec::new(),
         species_names: Vec::new(),
+        type_names: Vec::new(),
+        ability_names: Vec::new(),
+        species_types: Vec::new(),
+        pokemon_icons: Vec::new(),
+        item_icons: Vec::new(),
+        icon_cache: Default::default(),
         held_bag: None,
         touch_scene: false,
         restarts: 0,

@@ -63,7 +63,7 @@ pub enum Layout {
     /// Chaque bouton garde la zone que le jeu touche (`local/analyse/DllBattle/boutons-natifs.md`). La Méga-Évolution et
     /// « Déplacer » du triple n'ont pas encore de pastille (quand le jeu les montre n'est pas lu) : Échap.
     NativeMenu(bool),
-    NativeMoves(bool),
+    NativeMoves(bool, MoveExtras),
     /// Le sac du combat, dessiné de même : ses catégories, la liste d'une catégorie (six objets, les pages, le retour) ou la
     /// fiche d'un objet (`local/analyse/DllBattle/sac-natif.md`).
     NativeBag(BagPage, bool),
@@ -80,6 +80,11 @@ pub enum Layout {
 pub enum PartyPage {
     List,
     Command,
+    /// Les sous-écrans de la fiche (`fiche-pokemon-natif.md`) : Résumé, Capacités, la fiche d'une capacité, Soigner.
+    Summary,
+    Moves,
+    MoveInfo,
+    Heal,
 }
 
 /// L'étape de l'apprentissage montrée.
@@ -88,6 +93,14 @@ pub enum LearnPage {
     Question,
     Forget,
     Info,
+}
+
+/// Les boutons de plus de l'écran des capacités : la Méga-Évolution (si ce Pokémon peut méga-évoluer et que le joueur l'a
+/// débloquée), « Déplacer » (en triple) (`local/analyse/DllBattle/questions-mega-double.md`).
+#[derive(Clone, Copy, PartialEq, Debug, Default)]
+pub struct MoveExtras {
+    pub mega: bool,
+    pub shift: bool,
 }
 
 /// L'écran du sac montré (`+0x1E8` des objets du combat : 1, 2, 3).
@@ -152,6 +165,19 @@ pub const LEARN_INFO: [[f32; 4]; 2] = [[10.0, 179.0, 250.0, 239.0], [250.0, 190.
 /// 0x147085a8) : Changer, Soigner, Résumé et Capacités sur une ligne, Retour.
 pub const PARTY_LIST: [[f32; 4]; 7] = [[0.0, 5.0, 160.0, 55.0], [160.0, 8.0, 320.0, 58.0], [0.0, 65.0, 160.0, 115.0], [160.0, 68.0, 320.0, 118.0], [0.0, 125.0, 160.0, 175.0], [160.0, 128.0, 320.0, 178.0], [250.0, 190.0, 320.0, 240.0]];
 pub const PARTY_COMMAND: [[f32; 4]; 5] = [[5.0, 41.0, 315.0, 151.0], [4.0, 160.0, 250.0, 190.0], [4.0, 195.0, 124.0, 225.0], [130.0, 195.0, 250.0, 225.0], [255.0, 190.0, 320.0, 240.0]];
+/// Les sous-écrans de la fiche : chaque panneau d'informations touche une zone sans bouton de l'écran du jeu ; puis les
+/// boutons (tables 0xd0654, 0xd0738, 0xd095c, 0xd0578).
+pub const SUMMARY_PANEL: [f32; 4] = [10.0, 40.0, 310.0, 180.0];
+pub const SUMMARY_BUTTONS: [[f32; 4]; 4] = [[10.0, 185.0, 60.0, 235.0], [70.0, 185.0, 120.0, 235.0], [130.0, 195.0, 250.0, 225.0], [250.0, 190.0, 320.0, 240.0]];
+pub const PARTY_MOVES: [[f32; 4]; 4] = [[0.0, 46.0, 160.0, 106.0], [160.0, 46.0, 320.0, 106.0], [0.0, 110.0, 160.0, 170.0], [160.0, 110.0, 320.0, 170.0]];
+pub const PARTY_MOVES_BOTTOM: [[f32; 4]; 4] = [[10.0, 185.0, 60.0, 235.0], [70.0, 185.0, 120.0, 235.0], [130.0, 190.0, 250.0, 230.0], [250.0, 190.0, 320.0, 240.0]];
+pub const MOVE_INFO_PANEL: [f32; 4] = [10.0, 40.0, 310.0, 180.0];
+pub const MOVE_INFO_BUTTONS: [[f32; 4]; 4] = [[110.0, 190.0, 160.0, 210.0], [160.0, 190.0, 210.0, 210.0], [110.0, 210.0, 160.0, 230.0], [160.0, 210.0, 210.0, 230.0]];
+pub const HEAL_PANEL: [f32; 4] = [50.0, 32.0, 270.0, 132.0];
+pub const HEAL_BUTTONS: [[f32; 4]; 3] = [[4.0, 160.0, 250.0, 190.0], [4.0, 195.0, 250.0, 225.0], [255.0, 190.0, 320.0, 240.0]];
+/// La Méga-Évolution (85..235 x 150..240, mais en y 150..160 la capacité l'emporte) et « Déplacer » (0..80 x 200..240).
+pub const MEGA_BUTTON: [f32; 4] = [85.0, 160.0, 235.0, 240.0];
+pub const SHIFT_BUTTON: [f32; 4] = [0.0, 200.0, 80.0, 240.0];
 /// La largeur des deux boutons de la question, aux libellés longs.
 const QUESTION_WIDTH: f32 = 190.0;
 /// La hauteur d'une ligne de la liste du sac, plus serrée (sept lignes).
@@ -198,17 +224,25 @@ impl Layout {
                 let height = SMALL_WIDTH * 240.0 / 320.0;
                 vec![top, bottom([400.0 - SMALL_WIDTH, 240.0 - height, 400.0, 240.0])]
             }
-            Layout::NativeMenu(small) | Layout::NativeMoves(small) | Layout::NativeBag(_, small) | Layout::NativeLearn(_, small) | Layout::NativeParty(_, small) => {
-                // la question garde sa taille : ses libellés sont longs
+            Layout::NativeMenu(small) | Layout::NativeMoves(small, _) | Layout::NativeBag(_, small) | Layout::NativeLearn(_, small) | Layout::NativeParty(_, small) => {
+                // la question et les panneaux d'informations gardent leur taille : leurs textes sont longs
                 let question = matches!(self, Layout::NativeLearn(LearnPage::Question, _));
-                let k = if small && !question { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
-                let width = if question { QUESTION_WIDTH } else { NATIVE_WIDTH * k };
+                let wide = question || matches!(self, Layout::NativeParty(PartyPage::Summary | PartyPage::Moves | PartyPage::MoveInfo, _));
+                let k = if small && !wide { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
+                let width = if wide { QUESTION_WIDTH } else { NATIVE_WIDTH * k };
                 let left = 400.0 - width - 2.0;
                 // les lignes de la colonne (hauteur, boutons côte à côte)
                 let row = |height: f32| move |from: [f32; 4]| (height, vec![from]);
                 let rows: Vec<(f32, Vec<[f32; 4]>)> = match self {
                     Layout::NativeMenu(_) => MENU_BUTTONS.map(row(NATIVE_ROW)).to_vec(),
-                    Layout::NativeMoves(_) => MOVE_BUTTONS.iter().copied().map(row(NATIVE_ROW)).chain([row(NATIVE_BACK)(MOVES_BACK)]).collect(),
+                    Layout::NativeMoves(_, extras) => {
+                        let mut rows: Vec<(f32, Vec<[f32; 4]>)> = MOVE_BUTTONS.iter().copied().map(row(NATIVE_ROW)).collect();
+                        if extras.mega {
+                            rows.push((NATIVE_BACK, vec![MEGA_BUTTON]));
+                        }
+                        rows.push((NATIVE_BACK, if extras.shift { vec![SHIFT_BUTTON, MOVES_BACK] } else { vec![MOVES_BACK] }));
+                        rows
+                    }
                     Layout::NativeBag(BagPage::Pockets, _) => BAG_POCKETS.map(row(NATIVE_ROW)).to_vec(),
                     Layout::NativeBag(BagPage::List, _) => BAG_ITEMS.iter().copied().map(row(BAG_ROW)).chain([(BAG_ROW, BAG_LIST_BOTTOM.to_vec())]).collect(),
                     Layout::NativeLearn(LearnPage::Question, _) => LEARN_QUESTION.map(row(NATIVE_ROW)).to_vec(),
@@ -221,6 +255,10 @@ impl Layout {
                         (NATIVE_ROW, vec![PARTY_COMMAND[2], PARTY_COMMAND[3]]),
                         (NATIVE_ROW, vec![PARTY_COMMAND[4]]),
                     ],
+                    Layout::NativeParty(PartyPage::Summary, _) => vec![(150.0, vec![SUMMARY_PANEL]), (BAG_ROW, SUMMARY_BUTTONS.to_vec())],
+                    Layout::NativeParty(PartyPage::Moves, _) => PARTY_MOVES.map(row(NATIVE_ROW)).into_iter().chain([(BAG_ROW, PARTY_MOVES_BOTTOM.to_vec())]).collect(),
+                    Layout::NativeParty(PartyPage::MoveInfo, _) => vec![(128.0, vec![MOVE_INFO_PANEL]), (BAG_ROW, MOVE_INFO_BUTTONS.to_vec()), (BAG_ROW, vec![MOVES_BACK])],
+                    Layout::NativeParty(PartyPage::Heal, _) => vec![(60.0, vec![HEAL_PANEL]), (NATIVE_ROW, vec![HEAL_BUTTONS[0]]), (NATIVE_ROW, vec![HEAL_BUTTONS[1]]), (NATIVE_ROW, vec![HEAL_BUTTONS[2]])],
                     _ => BAG_ITEM_BUTTONS.map(row(NATIVE_ROW)).to_vec(),
                 };
                 // de bas en haut : la dernière ligne touche le bas de l'image, ou le haut de la boîte de dialogue pour la
@@ -245,7 +283,7 @@ impl Layout {
     pub fn native_places(self) -> Vec<[f32; 4]> {
         let bottom = self.pieces().into_iter().filter(|p| p.bottom).map(|p| p.to);
         match self {
-            Layout::NativeMenu(_) | Layout::NativeMoves(_) | Layout::NativeBag(..) | Layout::NativeLearn(..) | Layout::NativeParty(..) => bottom.collect(),
+            Layout::NativeMenu(_) | Layout::NativeMoves(..) | Layout::NativeBag(..) | Layout::NativeLearn(..) | Layout::NativeParty(..) => bottom.collect(),
             _ => Vec::new(),
         }
     }
@@ -673,7 +711,7 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MOVES_BACK, MOVE_BUTTONS, PARTY_COMMAND, PARTY_LIST, PartyPage};
+    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MEGA_BUTTON, MOVES_BACK, MOVE_BUTTONS, MoveExtras, SHIFT_BUTTON, PARTY_COMMAND, PARTY_LIST, PartyPage, SUMMARY_PANEL, SUMMARY_BUTTONS, PARTY_MOVES, PARTY_MOVES_BOTTOM, MOVE_INFO_PANEL, MOVE_INFO_BUTTONS, HEAL_PANEL, HEAL_BUTTONS};
 
     #[test]
     fn native_buttons_touch_the_game_buttons() {
@@ -681,7 +719,8 @@ mod tests {
         let list: Vec<[f32; 4]> = BAG_ITEMS.iter().chain(&BAG_LIST_BOTTOM).copied().collect();
         for (layout, buttons) in [
             (Layout::NativeMenu(false), MENU_BUTTONS.to_vec()),
-            (Layout::NativeMoves(true), MOVE_BUTTONS.iter().copied().chain([MOVES_BACK]).collect()),
+            (Layout::NativeMoves(true, MoveExtras::default()), MOVE_BUTTONS.iter().copied().chain([MOVES_BACK]).collect()),
+            (Layout::NativeMoves(false, MoveExtras { mega: true, shift: true }), MOVE_BUTTONS.iter().copied().chain([MEGA_BUTTON, SHIFT_BUTTON, MOVES_BACK]).collect()),
             (Layout::NativeBag(BagPage::Pockets, false), BAG_POCKETS.to_vec()),
             (Layout::NativeBag(BagPage::List, true), list),
             (Layout::NativeBag(BagPage::Item, false), BAG_ITEM_BUTTONS.to_vec()),
@@ -690,6 +729,10 @@ mod tests {
             (Layout::NativeLearn(LearnPage::Info, false), LEARN_INFO.to_vec()),
             (Layout::NativeParty(PartyPage::List, true), PARTY_LIST.to_vec()),
             (Layout::NativeParty(PartyPage::Command, false), PARTY_COMMAND.to_vec()),
+            (Layout::NativeParty(PartyPage::Summary, false), [SUMMARY_PANEL].iter().chain(&SUMMARY_BUTTONS).copied().collect()),
+            (Layout::NativeParty(PartyPage::Moves, true), PARTY_MOVES.iter().chain(&PARTY_MOVES_BOTTOM).copied().collect()),
+            (Layout::NativeParty(PartyPage::MoveInfo, false), [MOVE_INFO_PANEL].iter().chain(&MOVE_INFO_BUTTONS).chain(&[MOVES_BACK]).copied().collect()),
+            (Layout::NativeParty(PartyPage::Heal, true), [HEAL_PANEL].iter().chain(&HEAL_BUTTONS).copied().collect()),
         ] {
             assert_eq!(layout.native_places().len(), buttons.len());
             let places = layout.native_places();
@@ -703,9 +746,9 @@ mod tests {
             assert!(places.iter().all(|p| p[0] > 200.0 && p[2] <= 400.0 && p[3] <= 240.0));
             assert!(places.windows(2).all(|w| w[0][3] <= w[1][1] + 0.01 || (w[0][1] == w[1][1] && w[0][2] <= w[1][0] + 0.01)));
         }
-        assert_eq!(Layout::NativeMoves(false).native_places().len(), 5, "quatre capacités et le retour");
+        assert_eq!(Layout::NativeMoves(false, MoveExtras::default()).native_places().len(), 5, "quatre capacités et le retour");
         // la dernière ligne touche le retour (panneau 0x7f, 250..320 x 190..240)
-        assert_eq!(Layout::NativeMoves(false).bottom_point(800.0, 480.0, 700.0, 466.0).map(|p| p.0 >= 250 && p.1 >= 190), Some(true));
+        assert_eq!(Layout::NativeMoves(false, MoveExtras::default()).bottom_point(800.0, 480.0, 700.0, 466.0).map(|p| p.0 >= 250 && p.1 >= 190), Some(true));
         assert!(Layout::Moves.native_places().is_empty());
     }
 
