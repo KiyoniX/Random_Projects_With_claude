@@ -302,8 +302,9 @@ pub struct Renderer {
     /// Les textures (adresse) relues d'un tampon de rendu : une image déjà dessinée par le jeu (les noms du combat, écrits
     /// d'avance dans une texture 512 x 128), que le filtre ne ferait que délaver.
     rendered: std::collections::HashSet<u32>,
-    /// Le tampon de rendu que le dernier transfert a envoyé vers l'écran du bas.
-    pub bottom_screen: Option<u32>,
+    /// Avec `texture_dump` : les textures lues depuis le dernier transfert vers un écran. Le jeu dessine les deux écrans dans
+    /// le même tampon (zones différentes) puis envoie chacun : ce qui est lu avant l'envoi vers le bas est l'écran du bas.
+    since_sent: std::collections::HashSet<u32>,
     /// Avec `texture_dump` : les textures déjà vues dans l'écran du bas, notées une fois dans `bas.txt` du relevé.
     bottom_seen: std::collections::HashSet<u32>,
     layout: wgpu::BindGroupLayout,
@@ -519,7 +520,7 @@ impl Renderer {
             pack_names: None,
             rendered: Default::default(),
             bottom_seen: Default::default(),
-            bottom_screen: None,
+            since_sent: Default::default(),
             texture_dump: None,
             layout,
             pipeline_layout,
@@ -1394,15 +1395,8 @@ struct Out { @builtin(frag_depth) d: f32 }
         entry.used = clock;
         let entry = &*entry;
         let _ = &entry.texture;
-        // le relevé note les textures de l'écran du bas (le tampon que le jeu y envoie), pour un pack qui ne touche que l'interface
-        let bottom = self.bottom_screen.is_some() && self.color_surfaces.get(target).map(|c| c.address) == self.bottom_screen;
-        if let (Some(folder), true) = (&self.texture_dump, bottom) {
-            if self.bottom_seen.insert(entry.crc) {
-                use std::io::Write;
-                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(folder.join("bas.txt")) {
-                    let _ = writeln!(f, "{:08x}", entry.crc);
-                }
-            }
+        if self.texture_dump.is_some() {
+            self.since_sent.insert(entry.crc);
         }
         Some((
             entry.view.clone(),
@@ -1413,6 +1407,23 @@ struct Out { @builtin(frag_depth) d: f32 }
             [(config >> 12) & 7, (config >> 8) & 7, (config >> 24) & 1, entry.levels],
             byte_color(regs[border_reg]),
         ))
+    }
+
+    /// Un transfert vers un écran : avec `texture_dump`, les textures lues depuis le précédent sont notées dans `bas.txt` si
+    /// c'est l'écran du bas, pour un pack qui ne touche que l'interface.
+    pub fn screen_sent(&mut self, top: bool) {
+        let read = std::mem::take(&mut self.since_sent);
+        let Some(folder) = &self.texture_dump else { return };
+        if top {
+            return;
+        }
+        use std::io::Write;
+        let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(folder.join("bas.txt")) else { return };
+        for crc in read {
+            if self.bottom_seen.insert(crc) {
+                let _ = writeln!(f, "{crc:08x}");
+            }
+        }
     }
 
     // --- le dessin ---

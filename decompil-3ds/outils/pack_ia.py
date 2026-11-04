@@ -37,6 +37,7 @@ RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SORTIE = os.path.join(RACINE, 'local', 'mods-build', 'textures', 'hd')
 ESRGAN = os.path.join(RACINE, 'local', 'outils-tiers', 'realesrgan', 'realesrgan-ncnn-vulkan.exe')
 MODELE = 'realesrgan-x4plus-anime'
+LOT = 200
 
 
 def baver(rgba, tours):
@@ -75,9 +76,21 @@ def esrgan(entree, sortie):
                    cwd=os.path.dirname(ESRGAN))
 
 
+def ressemble(original, grand):
+    """Le résultat, ramené à la taille d'origine, a les couleurs de l'original sur ses points visibles (moins de 30 d'écart
+    moyen ; un bon résultat en a moins de 12). Real-ESRGAN a déjà écrit une image sous le nom d'une autre dans un lot de
+    4 639 (le bouton Sac devenu un morceau de décor)."""
+    petit = np.asarray(grand.resize((original.shape[1], original.shape[0]), Image.BOX)).astype(np.float32)
+    visible = original[:, :, 3] > 128
+    if visible.sum() < 10:
+        return True
+    return float(np.abs(original[:, :, :3].astype(np.float32) - petit[:, :, :3])[visible].mean()) < 30
+
+
 def pack(releves, sortie, polices, agrandir=esrgan):
     """Écrit dans `sortie` les feuilles de ces polices, puis les textures des relevés passées par `agrandir` ; rend le nombre de
-    textures agrandies (celles déjà dans `sortie` ne sont pas refaites)."""
+    textures agrandies (celles déjà dans `sortie` ne sont pas refaites). Par lots de `LOT` ; un résultat qui ne ressemble pas à
+    son original est refait seul, puis laissé au jeu s'il reste faux."""
     os.makedirs(sortie, exist_ok=True)
     pack_police.pack(polices, sortie)
     noms = {}
@@ -91,30 +104,49 @@ def pack(releves, sortie, polices, agrandir=esrgan):
     noms = {n: c for n, c in noms.items() if a_agrandir(c)}
     if not noms:
         return 0
-    with tempfile.TemporaryDirectory() as travail:
-        entree, faites = os.path.join(travail, 'in'), os.path.join(travail, 'out')
-        os.makedirs(entree)
-        os.makedirs(faites)
-        tailles = {}
-        for nom, chemin in noms.items():
-            image = np.asarray(Image.open(chemin).convert('RGBA'))
-            tailles[nom] = (image.shape[1], image.shape[0])
-            Image.fromarray(baver(image, 8), 'RGBA').save(os.path.join(entree, nom))
-        agrandir(entree, faites)
-        for nom, (w, h) in tailles.items():
-            image = Image.open(os.path.join(faites, nom)).convert('RGBA')
+    def lot(choisis):
+        """Les résultats de `agrandir` sur ces noms : nom -> (original bavé, image agrandie ou None)."""
+        with tempfile.TemporaryDirectory() as travail:
+            entree, faites = os.path.join(travail, 'in'), os.path.join(travail, 'out')
+            os.makedirs(entree)
+            os.makedirs(faites)
+            originaux = {}
+            for nom in choisis:
+                originaux[nom] = baver(np.asarray(Image.open(noms[nom]).convert('RGBA')), 8)
+                Image.fromarray(originaux[nom], 'RGBA').save(os.path.join(entree, nom))
+            agrandir(entree, faites)
+            rendu = {}
+            for nom, original in originaux.items():
+                chemin = os.path.join(faites, nom)
+                grand = Image.open(chemin).convert('RGBA') if os.path.exists(chemin) else None
+                rendu[nom] = grand if grand is not None and ressemble(original, grand) else None
+            return rendu
+    liste, faites = sorted(noms), 0
+    for debut in range(0, len(liste), LOT):
+        rendu = lot(liste[debut:debut + LOT])
+        for nom, grand in rendu.items():
+            if grand is None:
+                grand = lot([nom])[nom]
+            if grand is None:
+                print(nom, ': le résultat ne ressemble pas à la texture, laissée au jeu')
+                continue
+            w, h = Image.open(noms[nom]).size
             fois = 4 if max(w, h) <= 256 else 2
-            if image.size != (w * fois, h * fois):
-                image = image.resize((w * fois, h * fois), Image.LANCZOS)
-            Image.fromarray(baver(np.asarray(image), 4 * fois), 'RGBA').save(os.path.join(sortie, nom))
-    return len(noms)
+            if grand.size != (w * fois, h * fois):
+                grand = grand.resize((w * fois, h * fois), Image.LANCZOS)
+            Image.fromarray(baver(np.asarray(grand), 4 * fois), 'RGBA').save(os.path.join(sortie, nom))
+            faites += 1
+        print(min(debut + LOT, len(liste)), '/', len(liste), flush=True)
+    return faites
 
 
 def test():
     def bicubique(entree, sortie):
-        for nom in os.listdir(entree):
+        """Agrandit, mais dans un lot de plusieurs échange les deux premiers noms (le défaut vu chez Real-ESRGAN)."""
+        noms = sorted(os.listdir(entree))
+        for nom, dest in zip(noms, noms[1::-1] + noms[2:] if len(noms) > 1 else noms):
             image = Image.open(os.path.join(entree, nom))
-            image.resize((image.size[0] * 4, image.size[1] * 4), Image.BICUBIC).save(os.path.join(sortie, nom))
+            image.resize((image.size[0] * 4, image.size[1] * 4), Image.BICUBIC).save(os.path.join(sortie, dest))
 
     # un carré rouge opaque au milieu d'une texture transparente noire : le bord transparent devient rouge, pas noir
     carre = np.zeros((16, 16, 4), np.uint8)
@@ -125,6 +157,9 @@ def test():
         releve, sortie = os.path.join(dossier, 'releve'), os.path.join(dossier, 'hd')
         os.makedirs(releve)
         Image.fromarray(carre, 'RGBA').save(os.path.join(releve, '0000abcd.png'))
+        bleu = carre.copy()
+        bleu[4:12, 4:12] = [0, 0, 255, 255]
+        Image.fromarray(bleu, 'RGBA').save(os.path.join(releve, '0000abce.png'))
         Image.new('RGBA', (16, 16), (9, 9, 9, 255)).save(os.path.join(releve, '0000eeee.png'))
         Image.new('RGBA', (1024, 8), (0, 0, 0, 255)).save(os.path.join(releve, '0000ffff.png'))
         # une feuille de police relevée aussi : c'est celle du pack de police qui reste
@@ -133,9 +168,11 @@ def test():
         Image.new('RGBA', (8, 8), (1, 2, 3, 255)).save(os.path.join(releve, police))
         # une texture de l'écran du haut (pas dans bas.txt) : laissée au jeu
         Image.fromarray(carre, 'RGBA').save(os.path.join(releve, '00001111.png'))
-        open(os.path.join(releve, 'bas.txt'), 'w').write(''.join(n + '\n' for n in ['0000abcd', '0000eeee', '0000ffff', police[:-4]]))
-        assert pack([releve], sortie, [pack_police.cfnt_fabrique(pack_police.A4, [a4])], bicubique) == 1
-        assert sorted(os.listdir(sortie)) == ['0000abcd.png', police], 'ni la texture unie, ni la trop grande'
+        open(os.path.join(releve, 'bas.txt'), 'w').write(''.join(n + '\n' for n in ['0000abcd', '0000abce', '0000eeee', '0000ffff', police[:-4]]))
+        assert pack([releve], sortie, [pack_police.cfnt_fabrique(pack_police.A4, [a4])], bicubique) == 2
+        assert sorted(os.listdir(sortie)) == ['0000abcd.png', '0000abce.png', police], 'ni la texture unie, ni la trop grande'
+        bleue = np.asarray(Image.open(os.path.join(sortie, '0000abce.png')))
+        assert bleue[32, 32, 2] > 200 and bleue[32, 32, 0] < 50, 'les noms échangés dans le lot : refaite seule'
         hd = np.asarray(Image.open(os.path.join(sortie, '0000abcd.png')))
         assert hd.shape == (64, 64, 4) and hd[2, 2, 0] > 200, '4 fois plus grande, sans liseré noir'
         assert np.asarray(Image.open(os.path.join(sortie, police))).shape == (32, 32, 4), 'la feuille du pack de police'
