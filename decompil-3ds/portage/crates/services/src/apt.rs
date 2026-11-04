@@ -4,7 +4,10 @@
 //! paramètres (Enable y dépose la commande 1 du menu HOME et lève le signal des paramètres), GlanceParameter et
 //! ReceiveParameter, la police partagée (un vrai bloc de mémoire partagée, premier mot à 2, police à +0x80, pointeurs
 //! laissés tels qu'ils sont dans le fichier : c'est le jeu qui les reloge).
-//! Simplifié : les commandes du bouton HOME, des applets, de la veille et de la sortie répondent 0 sans rien lancer ;
+//! L'applet d'erreur (`0x406`) est servi comme le fait Azahar sans son titre : inscrit dès PrepareToStartLibraryApplet,
+//! il répond 3 à la requête 2 du jeu, puis, à StartLibraryApplet, rend aussitôt la main par la commande `0x0A` avec les
+//! données reçues telles quelles (rien n'est affiché).
+//! Simplifié : les commandes du bouton HOME, des autres applets, de la veille et de la sortie répondent 0 sans rien lancer ;
 //! aucune notification n'est jamais déposée (piège 2 du contrat). Le saut d'application (PrepareToDoApplicationJump puis
 //! DoApplicationJump) est seulement noté : à l'ExitProcess qui suit, un saut vers soi relance le jeu, un autre l'arrête ;
 //! le paramètre et le hachage passés au titre suivant ne sont pas gardés.
@@ -20,6 +23,12 @@ pub const FONT_BLOCK_SIZE: u32 = 0x33_2000;
 /// Dans la plage du tas linéaire, au-dessus de ce que le banc y donne au jeu.
 pub const FONT_ADDRESS: u32 = 0x1B80_0000;
 pub const ERR_NO_PARAMETER: u32 = 0xC8A0_CFEF;
+/// L'applet d'erreur (erreula) : `AppletId::Error2` d'Azahar, envoyé par le jeu en `0x1353ec` (contrat APT, rubrique 0x18).
+pub const ERROR_APPLET: u32 = 0x406;
+/// Commandes de paramètre (Azahar, `SignalType`) : 2 requête à un applet, 3 sa réponse, `0x0A` le réveil après sa sortie.
+const SIGNAL_REQUEST: u32 = 2;
+const SIGNAL_RESPONSE: u32 = 3;
+const SIGNAL_WAKEUP_BY_EXIT: u32 = 0x0A;
 
 struct Parameter {
     sender: u32,
@@ -47,6 +56,8 @@ pub struct Apt {
     pub registered: bool,
     /// Le saut préparé, que DoApplicationJump confirme.
     jump: Option<AppJump>,
+    /// L'applet de bibliothèque préparé et servi, inscrit jusqu'à ce qu'il rende la main.
+    library_applet: Option<u32>,
 }
 
 impl Apt {
@@ -65,6 +76,7 @@ impl Apt {
             startup_answers: Vec::new(),
             registered: false,
             jump: None,
+            library_applet: None,
         }
     }
 
@@ -88,6 +100,36 @@ impl Apt {
         Reply::new(0).with_note(note)
     }
 
+    fn prepare_library_applet(&mut self, req: &Request) -> Reply {
+        let applet = req.word(1);
+        if applet != ERROR_APPLET {
+            return ok_reply().with_note(format!("applet {applet:#x} non servi"));
+        }
+        self.library_applet = Some(applet);
+        Reply::new(0).with_note("applet d'erreur inscrit, il rendra la main dès son lancement")
+    }
+
+    /// Azahar, `ErrEula::Start` puis `CloseApplet` : la sortie de l'applet dépose pour le jeu la commande `0x0A`, avec
+    /// les données de lancement (0xF80 octets pour l'applet d'erreur) et sans poignée ; l'applet n'est plus inscrit.
+    fn start_library_applet(&mut self, k: &mut Kernel, req: &Request) -> Reply {
+        let applet = req.word(1);
+        if self.library_applet != Some(applet) {
+            return ok_reply().with_note(format!("applet {applet:#x} non servi"));
+        }
+        self.library_applet = None;
+        let mut exit = Parameter::new(applet, APP_ID, SIGNAL_WAKEUP_BY_EXIT);
+        exit.data = req.static_data(k, 5);
+        let note = format!("l'applet {applet:#x} rend aussitôt la main : commande 0x0a, {} octets rendus", exit.data.len());
+        self.post(k, exit);
+        Reply::new(0).with_note(note)
+    }
+
+    /// Dépose un paramètre pour le jeu et lève le signal des paramètres.
+    fn post(&mut self, k: &mut Kernel, p: Parameter) {
+        self.parameter = Some(p);
+        k.signal_event(self.parameter_event);
+    }
+
     fn get_lock_handle(&mut self, k: &mut Kernel, req: &Request) -> Reply {
         let attributes = req.word(1);
         self.note_startup(k, "GetLockHandle");
@@ -107,17 +149,28 @@ impl Apt {
         self.note_startup(k, "Enable");
         self.registered = true;
         // Le réveil du démarrage : commande 1, venue du menu HOME, sans données ni poignée.
-        self.parameter = Some(Parameter::new(HOME_MENU, APP_ID, 1));
-        k.signal_event(self.parameter_event);
+        self.post(k, Parameter::new(HOME_MENU, APP_ID, 1));
         Reply::new(0).with_note("paramètre « commande 1 » déposé, signal des paramètres levé")
     }
 
     fn send_parameter(&mut self, k: &mut Kernel, req: &Request) -> Reply {
         let (sender, destination, command) = (req.word(1), req.word(2), req.word(3));
+        if command & 0xFF == SIGNAL_REQUEST && self.library_applet == Some(destination) {
+            // Azahar, `ErrEula::ReceiveParameterImpl` : l'applet répond 3 avec un bloc partagé de la taille que donne le
+            // premier mot des informations de capture ; le jeu le projette et y copie ses écrans (MapMemoryBlock après
+            // la réponse, `0x149804` -> `0x164824`), une réponse sans bloc le fait fauter.
+            let data = req.static_data(k, 7);
+            let size = data.get(..4).map_or(0, |w| u32::from_le_bytes(w.try_into().unwrap()));
+            let block = k.create_shared(size, None, 0, "capture de l'applet");
+            let mut response = Parameter::new(destination, sender, SIGNAL_RESPONSE);
+            response.handle = Some(block);
+            self.post(k, response);
+            return Reply::new(0)
+                .with_note(format!("requête à l'applet {destination:#x} : réponse « commande 3 » et bloc de {size:#x} octets"));
+        }
         if command & 0xFF == 0x10 {
             // ns garde les données et répond aussitôt par la commande 3 du destinataire (contrat, rubrique 0x0C).
-            self.parameter = Some(Parameter::new(destination, sender, 3));
-            k.signal_event(self.parameter_event);
+            self.post(k, Parameter::new(destination, sender, 3));
             return Reply::new(0).with_note("commande 0x10 : réponse « commande 3 » déposée pour le jeu");
         }
         Reply::new(0).with_note(format!("paramètre {command:#x} pour {destination:#x} : pas de destinataire dans le banc"))
@@ -256,7 +309,8 @@ impl Service for Apt {
             }
             0x09 => {
                 let app = req.word(1);
-                Reply::with_words(0, &[if app == HOME_MENU || app == APP_ID { 1 } else { 0 }])
+                let registered = app == HOME_MENU || app == APP_ID || self.library_applet == Some(app);
+                Reply::with_words(0, &[registered as u32])
             }
             0x0B => {
                 if self.notifications.is_empty() {
@@ -269,7 +323,9 @@ impl Service for Apt {
             0x0D => self.receive_parameter(k, req),
             0x0E => self.glance_parameter(k, req),
             0x0F => self.cancel_parameter(req),
-            0x18 | 0x19 | 0x1E | 0x1F | 0x2B | 0x2C | 0x3B | 0x3E | 0x3F | 0x40 | 0x42 => ok_reply(),
+            0x18 => self.prepare_library_applet(req),
+            0x1E => self.start_library_applet(k, req),
+            0x19 | 0x1F | 0x2B | 0x2C | 0x3B | 0x3E | 0x3F | 0x40 | 0x42 => ok_reply(),
             0x31 => self.prepare_jump(k, req),
             0x32 => {
                 let Some(jump) = self.jump.take() else {
@@ -339,6 +395,44 @@ mod tests {
         assert!(reason.contains("0004000000055e00") && reason.contains("ne sait pas servir"), "{reason}");
         let (reason, restart) = jump_then_exit(1, 0);
         assert!(!restart && reason.contains("gardé par ns"), "{reason}");
+    }
+
+    /// Le chemin de l'applet d'erreur tel que le jeu l'envoie (contrat APT, rubriques 0x18, 0x0C, 0x1E) : préparation,
+    /// IsRegistered, requête 2 et sa réponse, lancement, puis le paramètre de sortie avec les données rendues.
+    #[test]
+    fn the_error_applet_answers_then_hands_back_at_once() {
+        let (mut k, _) = test_kernel();
+        let thread = test_main_thread(&mut k);
+        let apt: kernel::object::SharedService = Rc::new(RefCell::new(Apt::new(&mut k)));
+        let session = k.new_session(apt, "APT:U");
+        let (data, back) = (0x0800_0000u32, 0x0800_1000u32);
+        k.memory.map(data, 0x2000, kernel::memory::PERM_RW, "données de test", None).unwrap();
+        let config: Vec<u8> = (0..0xF80u32).map(|i| (i * 7) as u8).collect();
+        k.memory.write(data, &config).unwrap();
+        let tls = k.thread(thread).tls;
+        k.memory.w32(tls + 0x180, 0x1000 << 14 | 2).unwrap();
+        k.memory.w32(tls + 0x184, back).unwrap();
+        let registered = |k: &mut Kernel| call(k, thread, session, &[header(0x09, 1, 0), ERROR_APPLET])[2];
+        let receive = |k: &mut Kernel| call(k, thread, session, &[header(0x0D, 2, 0), APP_ID, 0x1000]);
+
+        assert_eq!(registered(&mut k), 0);
+        assert_eq!(call(&mut k, thread, session, &[header(0x18, 1, 0), ERROR_APPLET])[1], 0);
+        assert_eq!(registered(&mut k), 1);
+        k.memory.w32(data, 0x3_C000).unwrap();
+        let request = [header(0x0C, 4, 4), APP_ID, ERROR_APPLET, 2, 0x20, 0, 0, 0x20 << 14 | 2, data];
+        assert_eq!(call(&mut k, thread, session, &request)[1], 0);
+        let response = receive(&mut k);
+        assert_eq!(response[1..5], [0, ERROR_APPLET, 3, 0]);
+        let block = k.lookup(response[6], Some(thread)).expect("la réponse joint un bloc partagé");
+        assert_eq!(k.shared(block).size, 0x3_C000);
+        k.memory.write(data, &config).unwrap();
+
+        let start = [header(0x1E, 2, 4), ERROR_APPLET, 0xF80, 0, 0, 0xF80 << 14 | 2, data];
+        assert_eq!(call(&mut k, thread, session, &start)[1], 0);
+        assert_eq!(registered(&mut k), 0);
+        assert_eq!(receive(&mut k)[1..5], [0, ERROR_APPLET, 0x0A, 0xF80]);
+        assert_eq!(k.memory.read(back, 0xF80).unwrap(), config);
+        assert_eq!(receive(&mut k)[1], ERR_NO_PARAMETER);
     }
 
     #[test]

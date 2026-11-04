@@ -307,6 +307,9 @@ impl Kernel {
     /// Pose les requêtes de `--requete`. La boucle du terrain F appelle `FIELD_TURN(F)` puis, si [F+0x48] a le bit 0x100, lit
     /// les requêtes de l'écran du bas : le bit n de S+0xa4, avec S = [[F+0x10]+0x16c]. L'écran du bas remet ce tableau à zéro
     /// entre deux images, d'où l'écriture juste avant la lecture. Un repère dans un module ne se pose qu'une fois celui-ci chargé.
+    /// FIELD_TURN n'est pas appelé à chaque image : son appel (DllField+0x2e9f4) est au bout d'une suite de tests de la boucle du
+    /// terrain, et un joueur immobile n'y arrive pas (vu sur la zone 53 ; le test qui sort n'est pas lu) : une requête attend donc
+    /// que le joueur bouge.
     pub fn watch_requests(&mut self) {
         use std::rc::Rc;
         // FIELD_TURN ne vaut que pour DllField chargé à 0x6a9000 : à un autre miroir, le guet tomberait dans un autre code

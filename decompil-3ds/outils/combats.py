@@ -128,8 +128,16 @@ def tourner(sortie, secondes, travailleurs, essais, format='simple'):
         list(ex.map(lambda e: essayer(sortie, *e, sauvegarde, lignes, secondes), essais))
 
 
+# Éructation ne se lance qu'après une Baie mangée : la Baie Sitrus (158, texte 96 des objets), tenue à la moitié des PV, part
+# dès l'entrée (à 1 PV, le Pokémon tombe avant d'agir)
+ERUCTATION, SITRUS = 562, 158
+
+
 def essai_capacite(c):
-    return (f'{c:03d}', lambda p: pk6.changer_capacites(p, [c] * 4, PP),
+    def changer(p):
+        p = pk6.changer_capacites(p, [c] * 4, PP)
+        return pk6.changer_pv(pk6.changer_tenue(p, pk6.tenue(p)[0], SITRUS), pk6.pv_max(p) // 2) if c == ERUCTATION else p
+    return (f'{c:03d}', changer,
             lambda liste, _: any(c in (u, appelee) and cote == 'joueur' for u, cote, appelee in liste))
 
 

@@ -2,8 +2,8 @@
   "console": "New Nintendo 3DS XL, Luma3DS installée (boot9strap)",
   "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
   "ouverture": "2026-10-13",
-  "mise_a_jour": "2026-11-03",
-  "prochaine_action": "Couverture : 3 198 événements sur 3 226 (99,1 %), 1 069 modes d'entrée sur 1 080, 616 capacités sur 617, les 182 talents et 181 objets tenus que le combat sait brancher. Reste : 28 scripts (zones sans personnage, zones 251 à 254 dont le seul personnage ne répond pas), Éructation, 56 modules sur 133 jamais chargés (23 DllTest* et 4 de debug sans référence de chargement, réseau, mini-jeux de la Poké Récré) ; la hauteur des meubles et déclencheurs que teleporter lit en i32 (sans doute deux demi-mots : 273 meubles et 54 déclencheurs aberrants, presque tous muets). À l'utilisateur : relire les modèles (page locale de outils/revue_modeles.py), essayer la visée à la souris d'Otto Focus, choisir les contrôles d'Archipelago. Puis refonte des menus, mods, nouveaux Pokémon.",
+  "mise_a_jour": "2026-11-04",
+  "prochaine_action": "Couverture : 3 218 événements sur 3 226 (99,75 %), 1 070 modes d'entrée sur 1 080, 617 capacités sur 617 dans les quatre formats, 182 talents, 181 objets tenus, 88 modules sur 133. Reste : zones 30, 158, 294, 320, 303, la sortie de la salle 253, deux communs ; la tournée des dresseurs (bloquée après le premier K.O. d'un dresseur à plusieurs Pokémon), DendouPC (sauvegarde d'après la Ligue), PokeRideAction. À l'utilisateur : relire les modèles (page locale de outils/revue_modeles.py), essayer la visée à la souris d'Otto Focus, choisir les contrôles d'Archipelago. Puis refonte des menus, mods, nouveaux Pokémon.",
   "fonctions": {
     "total": 264215,
     "identifiees": 264215,
@@ -2243,6 +2243,10 @@
     {
       "date": "2026-11-03",
       "texte": "Les 617 capacités essayées dans les quatre formats de combat (simple, double, triple, rotation, par un mod qui change le dresseur 86) : 616 lancées dans chacun, sans un arrêt anormal. La fin du jeu jouée jusqu'au générique, puis le jeu relancé par lui-même comme sur console. Relu par un verificateur avant de pousser : guet du terrain borné à son miroir, test de combats sans local/, chiffres des modules (133, pas 135) et des applis (26 genres sur 34) corrigés."
+    },
+    {
+      "date": "2026-11-04",
+      "texte": "Couverture à 99,75 % (3 218 événements sur 3 226) : la hauteur des meubles et des déclencheurs relue en s16, les meubles sur rail, un mod qui ajoute un meuble aux zones sans personnage, et le Conseil 4 gagné pour de vrai. 617 capacités sur 617 (Éructation par une Baie Sitrus). 88 modules sur 133 : Poké Récré et ses trois jeux, Cadeau Mystère, le salon, la Maison de combat, le PSS ; et une fonction que la recompilation avait manquée (snprintf_putc, citée seulement par « ldr ; add pc »), retrouvée par le recompilateur lui-même. L'applet d'erreur de la console est servi : le Cadeau par un code ne fige plus le jeu (le code lui-même exige un serveur Nintendo)."
     }
   ],
   "dump": {
@@ -2261,5 +2265,5 @@
     "present": true,
     "code_octets": 5156864
   },
-  "mise_a_jour_heure": "03/11/2026"
+  "mise_a_jour_heure": "04/11/2026"
 }

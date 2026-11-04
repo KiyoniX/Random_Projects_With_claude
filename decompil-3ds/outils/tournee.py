@@ -12,6 +12,9 @@
                                                     d'ESSAIS (JSON) prêté à un personnage qui a répondu dans PARLER ou RAILS
     python tournee.py arrivees SORTIE [--secondes 70] [--travailleurs 10] [ZONE...]  chaque zone par le changement de zone
                                                     (modes d'entrée 0 et 1 de la section 1), le robot ensuite
+    python tournee.py meubler SORTIE [--secondes 70] [--travailleurs 10] ESSAIS [--declencheur]  chaque (zone, script)
+                                                    d'ESSAIS (JSON) porté par un meuble (ou un déclencheur) qu'un mod ajoute
+                                                    à la zone, au nord de l'arrivée
     python tournee.py bilan SORTIE
     python tournee.py test
 
@@ -35,6 +38,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import teleporter
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'mods'))
+from modkit import builder  # noqa: E402
 
 RACINE = teleporter.RACINE
 RUNTIME = os.environ.get('RUNTIME', os.path.join(RACINE, 'portage', 'target', 'release', 'runtime.exe'))
@@ -99,7 +105,7 @@ def jouer_zone(sortie, zone, porte, secondes):
     jouer(os.path.join(sortie, f'{zone:03d}'), zone, porte or (360, 0, 360), entrees(zone, secondes), secondes)
 
 
-def jouer(d, zone, place, lignes, secondes, fichier=None, compteurs=None, drapeaux=None, rail=None, changement=False):
+def jouer(d, zone, place, lignes, secondes, fichier=None, compteurs=None, drapeaux=None, rail=None, changement=False, mod=None):
     if os.path.exists(os.path.join(d, 'verdict.json')):
         return
     shutil.rmtree(d, ignore_errors=True)
@@ -118,7 +124,8 @@ def jouer(d, zone, place, lignes, secondes, fichier=None, compteurs=None, drapea
     with open(os.path.join(d, 'stdout.txt'), 'wb') as o, open(os.path.join(d, 'stderr.txt'), 'wb') as e:
         try:
             code = subprocess.run([RUNTIME, 'run', '--rejouer', journal, '--dessiner', '--scale', '1', '--seconds', str(secondes),
-                                   '--minutes-pc', '15', '--out', os.path.join(d, 'out')], stdout=o, stderr=e, timeout=1200).returncode
+                                   '--minutes-pc', '15', '--out', os.path.join(d, 'out')] + (['--mod', mod] if mod else []),
+                                  stdout=o, stderr=e, timeout=1200).returncode
         except subprocess.TimeoutExpired:
             code = 'temps'
     v = {'zone': zone, 'dossier': os.path.basename(d), 'code': code, 'pc': round(time.time() - debut)}
@@ -192,15 +199,22 @@ def fouiller(sortie, secondes, travailleurs, choisies):
     essais = []
     for zone in choisies or range(len(fichiers)):
         vus = set()
-        for script, x, z, profondeur, h in teleporter.objets(fichiers[zone][0]):
-            if script not in vus:
-                vus.add(script)
+        for script, x, z, profondeur, h, rail in teleporter.objets(fichiers[zone][0]):
+            if script in vus:
+                continue
+            vus.add(script)
+            if rail:
+                # sur le rail, d'un côté puis de l'autre, le regard vers le meuble (comme `rails`)
+                ligne, cle, front, cote = rail
+                essais += [(f'{zone:03d}-{script}-{i}', zone, (0, 0, 0), (ligne, cle, front, cote + pas), entrees_parler(secondes, vers=vers))
+                           for i, (pas, vers) in enumerate(COTES)]
+            else:
                 # sur la case au sud de l'objet
-                essais.append((zone, script, (x * teleporter.CASE + teleporter.CASE // 2, h, (z + profondeur) * teleporter.CASE + teleporter.CASE // 2)))
+                place = (x * teleporter.CASE + teleporter.CASE // 2, h, (z + profondeur) * teleporter.CASE + teleporter.CASE // 2)
+                essais.append((f'{zone:03d}-{script}', zone, place, None, entrees_parler(secondes, 700)))
     print(len(essais), 'essais', flush=True)
-    lignes = entrees_parler(secondes, 700)
     with ThreadPoolExecutor(travailleurs) as ex:
-        list(ex.map(lambda e: jouer(os.path.join(sortie, f'{e[0]:03d}-{e[1]}'), e[0], e[2], lignes, secondes, fichiers[e[0]][0]), essais))
+        list(ex.map(lambda e: jouer(os.path.join(sortie, e[0]), e[1], e[2], e[4], secondes, fichiers[e[1]][0], rail=e[3]), essais))
 
 
 def declencheurs(sortie, secondes, travailleurs, choisies):
@@ -305,6 +319,47 @@ def rails(sortie, secondes, travailleurs, choisies):
 
 
 COTES = ((1, -PAD), (-1, PAD))
+
+
+def mod_fichiers(dossier, fichiers):
+    """Un mod PC qui remplace ces fichiers du romfs {chemin: octets}, écrit par le moteur de mods (`dossier/pc`, overlay.json
+    et romfs/) ; rend le dossier à donner à `--mod`."""
+    rapport = builder.Report()
+    rapport.files = dict(fichiers)
+    return builder.write_pc(rapport, dossier)
+
+
+def mod_zones(dossier, fichiers, changees):
+    """Un mod PC dont le GARC des zones porte les fichiers `changees` {zone: fichier}."""
+    return mod_fichiers(dossier, {'a/0/1/2': teleporter.garc.ecrire([[changees.get(z, f[0])] for z, f in enumerate(fichiers)])})
+
+
+def meubler(sortie, secondes, travailleurs, essais, declencheur=False):
+    """Les scripts d'une zone sans personnage (`essais` : [[zone, script], ...]) : un mod ajoute à la zone un meuble qui
+    les porte, au nord de l'arrivée, et on lui parle. Le meuble couvre trois cases sur trois rangs : l'arrivée tombe parfois
+    une case à côté de la place calculée (zone 5). `declencheur` : un déclencheur gardé par le dernier compteur, mis à 0, et un
+    pas au nord pour y entrer ; pour les zones où l'on ne se tourne pas vers le meuble (zones 30, 294, 320)."""
+    os.makedirs(sortie, exist_ok=True)
+    with open(teleporter.ZONES, 'rb') as f:
+        _, fichiers = teleporter.garc.lire(f.read())
+    portes = teleporter.zones()
+    travail = []
+    for zone, script in essais:
+        x, h, z = portes[zone] or (360, 0, 360)
+        d = os.path.join(sortie, f'{zone:03d}-{script}')
+        if os.path.exists(os.path.join(d, 'verdict.json')):
+            continue
+        garde = (teleporter.DERNIER_COMPTEUR, 0) if declencheur else None
+        fichier = teleporter.meubler(fichiers[zone][0], script, max(0, int(x // teleporter.CASE) - 1), max(0, int(z // teleporter.CASE) - 3),
+                                     int(h), 3, 3, garde)
+        mod = mod_zones(os.path.join(sortie, 'mods', f'{zone:03d}-{script}'), fichiers, {zone: fichier})
+        travail.append((d, zone, (x, h, z), fichier, mod))
+    print(len(travail), 'essais', flush=True)
+    # devant un meuble, se tourner sans marcher : un pas mènerait au-delà
+    lignes = entrees_parler(secondes, 700 if declencheur else 120)
+    compteurs = {teleporter.DERNIER_COMPTEUR: 0} if declencheur else None
+    with ThreadPoolExecutor(travailleurs) as ex:
+        list(ex.map(lambda e: jouer(e[0], e[1], e[2], lignes, secondes, e[3], compteurs, mod=e[4]), travail))
 
 
 def personnes(fichier):
@@ -459,7 +514,7 @@ if __name__ == '__main__':
         print('ok  tournee')
     elif arg[0] == 'bilan':
         bilan(arg[1])
-    elif arg[0] in ('lancer', 'parler', 'fouiller', 'scenes', 'muets', 'caches', 'rails', 'declencheurs', 'forcer', 'arrivees'):
+    elif arg[0] in ('lancer', 'parler', 'fouiller', 'scenes', 'muets', 'caches', 'rails', 'declencheurs', 'forcer', 'arrivees', 'meubler'):
         reste, secondes, travailleurs = arg[2:], 180 if arg[0] == 'lancer' else 70, 10
         for nom in ('--secondes', '--travailleurs'):
             if nom in reste:
@@ -472,6 +527,9 @@ if __name__ == '__main__':
                     travailleurs = valeur
         if arg[0] == 'muets':
             muets(arg[1], secondes, travailleurs, reste[0])
+        elif arg[0] == 'meubler':
+            with open(reste[0], encoding='utf-8') as f:
+                meubler(arg[1], secondes, travailleurs, json.load(f), '--declencheur' in reste)
         elif arg[0] == 'forcer':
             forcer(arg[1], secondes, travailleurs, reste[0], reste[1], reste[2], '--tous' in reste)
         else:

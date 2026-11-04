@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import garc
 import pk6
 import teleporter
+import tournee
 import texte
 
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -110,13 +111,7 @@ def rendre_un(espece, forme, sauvegarde, equipes):
     shutil.copytree(os.path.join(PARTIE, 'depart'), os.path.join(entree, 'depart'))
     with open(os.path.join(entree, 'depart', 'sauvegarde', 'main'), 'wb') as f:
         f.write(sauvegarde_avec(sauvegarde, espece, forme))
-    mod = os.path.join(entree, 'mod')
-    os.makedirs(os.path.join(mod, 'romfs', 'a', '0', '4'))
-    fichier = equipes_avec(equipes, espece, forme)
-    with open(os.path.join(mod, 'romfs', 'a', '0', '4', '0'), 'wb') as f:
-        f.write(fichier)
-    with open(os.path.join(mod, 'overlay.json'), 'w', encoding='utf-8') as f:
-        json.dump({'format': 1, 'game': 'pokemon-x-eu', 'mods': [], 'files': {'a/0/4/0': {'size': len(fichier), 'new': False}}, 'code_patches': []}, f)
+    mod = tournee.mod_fichiers(os.path.join(entree, 'mod'), {'a/0/4/0': equipes_avec(equipes, espece, forme)})
     with open(os.path.join(entree, 'journal.txt'), 'w', encoding='utf-8', newline='\n') as f:
         f.write(journal_de_depart(mod))
     debut = time.time()

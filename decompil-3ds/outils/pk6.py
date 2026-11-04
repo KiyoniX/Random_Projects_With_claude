@@ -6,6 +6,8 @@ u16 à +6, puis de +8 à +0xE8 des mots chiffrés par le générateur 0x41C64E6D
 bits hauts. Quatre blocs de 0x38 octets, mélangés selon (clé >> 13) & 31 modulo 24. Dans le bloc A : espèce u16 à +0, forme
 dans les 5 bits hauts de l'octet +0x15, objet tenu u16 à +0x2, talent u8 à +0xC (et à +0xD le numéro du talent pour
 l'espèce : 1, 2 ou 4 pour le caché ; le combat lit le talent lui-même, pas ce numéro). Dans le bloc B : quatre capacités u16 à +0x1A, leurs PP à +0x22, les PP Plus à +0x26.
+Les 0x1C octets d'équipe de +0xE8 sont chiffrés à part, le générateur repris de la clé : statut u32 à +0xE8, niveau à +0xEC,
+PV restants u16 à +0xF0, PV max à +0xF2 puis les autres stats (lu sur la partie : 0, 14, 33 sur 33). Ils n'entrent pas dans la somme.
 """
 import struct
 import sys
@@ -25,12 +27,13 @@ BLOC_EQUIPE = 18
 
 
 def chiffre(pokemon):
-    """Le chiffrement est un XOR : la même fonction déchiffre et chiffre le corps de 0xE0 octets."""
-    graine = struct.unpack_from('<I', pokemon, 0)[0]
+    """Le chiffrement est un XOR : la même fonction déchiffre et chiffre le corps de 0xE0 octets, puis la partie d'équipe."""
     rendu = bytearray(pokemon)
-    for i in range(8, 0xE8, 2):
-        graine = (graine * 0x41C64E6D + 0x6073) & 0xFFFFFFFF
-        struct.pack_into('<H', rendu, i, struct.unpack_from('<H', pokemon, i)[0] ^ (graine >> 16))
+    for debut, fin in ((8, 0xE8), (0xE8, len(pokemon))):
+        graine = struct.unpack_from('<I', pokemon, 0)[0]
+        for i in range(debut, fin, 2):
+            graine = (graine * 0x41C64E6D + 0x6073) & 0xFFFFFFFF
+            struct.pack_into('<H', rendu, i, struct.unpack_from('<H', pokemon, i)[0] ^ (graine >> 16))
     return bytes(rendu)
 
 
@@ -90,6 +93,15 @@ def changer_tenue(pokemon, talent, objet):
     return _changer(pokemon, faire)
 
 
+def pv_max(pokemon):
+    return struct.unpack_from('<H', chiffre(pokemon), 0xF2)[0]
+
+
+def changer_pv(pokemon, pv):
+    """Rend ce Pokémon d'équipe (chiffré) avec ces PV restants."""
+    return _changer(pokemon, lambda clair: struct.pack_into('<H', clair, 0xF0, pv))
+
+
 def avec_tete(sauvegarde, changer):
     """La sauvegarde, le Pokémon de tête passé par `changer`, le CRC du bloc de l'équipe à jour."""
     copie = bytearray(sauvegarde)
@@ -125,6 +137,9 @@ def test():
     tenu = changer_tenue(pokemon, 22, 234)
     assert tenue(tenu) == (22, 234) and chiffre(tenu)[a] == 25 and chiffre(tenu)[a + 0x15] == 0b00001_010
     assert somme(chiffre(tenu)) == struct.unpack_from('<H', chiffre(tenu), 6)[0]
+    blesse = changer_pv(pokemon, 1)
+    assert struct.unpack_from('<H', chiffre(blesse), 0xF0) == (1,) and blesse[0xF0:0xF2] != b'\x01\x00', 'les PV sont chiffrés'
+    assert chiffre(blesse)[:0xE8] == chiffre(pokemon)[:0xE8], 'le reste ne bouge pas'
     try:
         changer_pokemon(bytes(TAILLE - 1) + b'\x01', 1, 0)
     except (ValueError, struct.error):

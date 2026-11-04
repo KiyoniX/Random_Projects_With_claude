@@ -224,6 +224,19 @@ def test_cited_address_gets_an_entry():
     assert results[0].source == plain[0].source
 
 
+def test_pc_relative_pool_gets_an_entry():
+    """« ldr r3, [pc, #n] ; add r3, pc » en Thumb (snprintf_putc 0x101383) : le pool porte l'écart à pc, et l'adresse
+    calculée, que nul mot ne cite, a son entrée."""
+    # BASE : ldr r3, [pc, #4] ; add r3, pc ; bx lr ; nop ; pool (à BASE + 8) ; BASE + 0xC : la cible, mov r0, #1 ; bx lr
+    target = BASE + 0xC
+    pool = (target | 1) - (BASE + 2 + 4)
+    code = struct.pack('<HHHHI', 0x4B01, 0x447B, 0x4770, 0x46C0, pool) + struct.pack('<HH', 0x2001, 0x4770)
+    image = recomp.RawImage(BASE, code)
+    image.sections = [image.text]
+    results = recomp.translate_all(image, [(BASE, 8, 'thumb', 'a')], holes=True, pointers=True)
+    assert {(r.addr, r.mode) for r in results} == {(BASE, 'thumb'), (target, 'thumb')}, [(hex(r.addr), r.mode) for r in results]
+
+
 def test_seed_keeps_its_mode():
     """Une fonction Thumb qui déborde sur un point de départ ARM ne le fait pas traduire en Thumb."""
     arm = struct.pack('<II', 0xE3A00001, 0xE12FFF1E)      # mov r0, #1 ; bx lr
@@ -972,6 +985,7 @@ def test():
     test_function_translation()
     test_jump_table_bound()
     test_cited_address_gets_an_entry()
+    test_pc_relative_pool_gets_an_entry()
     test_seed_keeps_its_mode()
     test_pointer_seeds()
     test_seed_one_mode_per_address()

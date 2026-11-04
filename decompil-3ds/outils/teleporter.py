@@ -222,8 +222,12 @@ def scenes(fichier):
 
 def objets(fichier):
     """Les meubles et les déclencheurs d'un fichier de zone qui ont un script : (numéro du script, case X, case Z, profondeur
-    en cases, hauteur). Les champs sont lus sur les données : un meuble (liste 0, 0x14 octets) porte le script à +0, sa case à
-    +8, sa taille à +0xC, sa hauteur à +0x10 ; un déclencheur (listes 3 et 4, 0x18 octets), les mêmes à +0, +0xC, +0x10, +0x14."""
+    en cases, hauteur, rail). Les champs sont lus sur les données : un meuble (liste 0, 0x14 octets) porte le script à +0, sa case à
+    +8, sa taille à +0xC, sa hauteur s16 à +0x10 ; un déclencheur (listes 3 et 4, 0x18 octets), les mêmes à +0, +0xC, +0x10, +0x14.
+    Un meuble dont +6 vaut 1 est sur rail : +8 porte alors (ligne, front s16, côté s8, clé) comme +0x28 d'un personnage sur rail
+    (139 meubles ; pour 58 la ligne est celle d'un personnage de la zone), et rail vaut (ligne, clé, front, côté), sinon None.
+    Lus comme une case, 136 de ces meubles donnaient des hauteurs folles, et 137 déclencheurs lus en i32 aussi ; presque tous
+    restaient muets."""
     donnees = lz11.decompresser(fichier) if fichier[0] == 0x11 else fichier
     if donnees[:2] != b'ZO':
         return []
@@ -236,9 +240,13 @@ def objets(fichier):
     for p, champ in places:
         script, = struct.unpack_from('<H', entites, p)
         x, z, _, profondeur = struct.unpack_from('<HHHH', entites, p + champ)
-        hauteur, = struct.unpack_from('<i', entites, p + champ + 8)
+        hauteur, = struct.unpack_from('<h', entites, p + champ + 8)
+        rail = None
+        if champ == 8 and struct.unpack_from('<H', entites, p + 6)[0] == 1:
+            ligne, front, cote, cle = struct.unpack_from('<IhbB', entites, p + 8)
+            rail, x, z, profondeur, hauteur = (ligne, cle, front, cote), 0, 0, 0, 0
         if script not in (0, 2000):
-            rendu.append((script, x, z, profondeur, hauteur))
+            rendu.append((script, x, z, profondeur, hauteur, rail))
     return rendu
 
 
@@ -257,10 +265,37 @@ def declencheurs(fichier):
         p = 0xC + meubles * 0x14 + nombre * 0x30 + nombre_sorties * 0x18 + i * 0x18
         script, valeur, compteur = struct.unpack_from('<HHH', entites, p)
         x, z, _, profondeur = struct.unpack_from('<HHHH', entites, p + 0xC)
-        hauteur, = struct.unpack_from('<i', entites, p + 0x14)
+        hauteur, = struct.unpack_from('<h', entites, p + 0x14)
         if script not in (0, 2000) and PREMIER_COMPTEUR <= compteur <= DERNIER_COMPTEUR:
             rendu.append((script, x, z, profondeur, hauteur, compteur, valeur))
     return rendu
+
+
+def meubler(fichier, script, x, z, hauteur, largeur=1, profondeur=1, garde=None):
+    """Le fichier de zone (compressé comme dans le GARC) avec un meuble de plus en tête de liste, portant `script` sur la case
+    (x, z), large de `largeur` cases et profond de `profondeur` : de quoi lancer un script dans une zone qui n'a aucun personnage à qui le prêter. Le mot +0 de la section des
+    entités vaut 8 plus la taille des listes (zone 53 : 7 meubles, 8 personnages, 8 sorties, 1 déclencheur, 0x2ec) ; les
+    sections suivantes reculent de 0x18 (le meuble et 4 octets de bourrage), pour garder leur alignement modulo 8.
+    `garde` (compteur, valeur) : un déclencheur en tête de la liste 3 plutôt qu'un meuble, qui part quand on y entre et que
+    le compteur a cette valeur ; ils font 0x18 octets, et les sections reculent d'autant."""
+    donnees = bytearray(lz11.decompresser(fichier) if fichier[0] == 0x11 else fichier)
+    n = donnees[2]
+    sections = list(struct.unpack_from('<%dI' % (n + 1), donnees, 4))
+    debut, fin = sections[1], sections[2]
+    meubles, nombre, nombre_sorties = donnees[debut + 4:debut + 7]
+    if garde:
+        compteur, valeur = garde
+        place, liste = 0xC + meubles * 0x14 + nombre * 0x30 + nombre_sorties * 0x18, 3
+        ajout = struct.pack('<HHH6xHHHHhH', script, valeur, compteur, x, z, largeur, profondeur, hauteur, 0)
+    else:
+        place, liste = 0xC, 0
+        ajout = struct.pack('<HHHHHHHHhH', script, 0, 0, 0, x, z, largeur, profondeur, hauteur, 0)
+        donnees[fin:fin] = bytes(4)
+    donnees[debut + place:debut + place] = ajout
+    donnees[debut + 4 + liste] += 1
+    struct.pack_into('<I', donnees, debut, struct.unpack_from('<I', donnees, debut)[0] + len(ajout))
+    struct.pack_into('<%dI' % (n + 1), donnees, 4, *(sections[:2] + [s + 0x18 for s in sections[2:]]))
+    return lz11.compresser(bytes(donnees)) if fichier[0] == 0x11 else bytes(donnees)
 
 
 def preter(fichier, indice, script):
@@ -374,10 +409,22 @@ def test():
     struct.pack_into('<H', fabrique, 0xC, 7)
     struct.pack_into('<HHHHi', fabrique, 0xC + 8, 10, 20, 2, 3, 36)
     struct.pack_into('<H', fabrique, 0xC + 0x28, 9)
-    struct.pack_into('<HHHHi', fabrique, 0xC + 0x28 + 0xC, 30, 40, 4, 5, -18)
+    # la hauteur est un s16 : le demi-mot suivant porte autre chose (5 ici)
+    struct.pack_into('<HHHHhH', fabrique, 0xC + 0x28 + 0xC, 30, 40, 4, 5, -18, 5)
     struct.pack_into('<H', fabrique, 0xC + 0x28 + 0x18, 2000)
+    # le second meuble, sur rail
+    struct.pack_into('<HHHHIhbBHH', fabrique, 0xC + 0x14, 8, 0, 0, 1, 0x01234567, 3, -1, 2, 1, 1)
     fabrique = b'ZO\x02\x00' + struct.pack('<III', 0x10, 0x10, 0x10 + len(fabrique)) + bytes(fabrique)
-    assert objets(fabrique) == [(7, 10, 20, 3, 36), (9, 30, 40, 5, -18)]
+    assert objets(fabrique) == [(7, 10, 20, 3, 36, None), (8, 0, 0, 0, 0, (0x01234567, 2, 3, -1)), (9, 30, 40, 5, -18, None)], objets(fabrique)
+    # un meuble ajouté : en tête, les sections suivantes reculent, le reste ne bouge pas
+    zo = fabrique
+    ajoute = meubler(zo, 12, 4, 5, -36)
+    assert objets(ajoute)[0] == (12, 4, 5, 1, -36, None) and objets(ajoute)[1:] == objets(zo), objets(ajoute)
+    assert struct.unpack_from('<III', ajoute, 4) == (0x10, 0x10, len(fabrique) + 0x18) and ajoute[0x10 + 4] == 3
+    assert objets(lz11.compresser(ajoute)) == objets(ajoute) and meubler(lz11.compresser(zo), 12, 4, 5, -36)[0] == 0x11
+    garde = meubler(zo, 13, 4, 5, -36, 3, 3, (0x4177, 2))
+    assert declencheurs(garde)[0] == (13, 4, 5, 3, -36, 0x4177, 2) and declencheurs(garde)[1:] == declencheurs(zo)
+    assert objets(garde)[:2] == objets(zo)[:2] and garde[0x10 + 7] == 2
     garde = bytearray(fabrique)
     struct.pack_into('<HH', garde, 0x10 + 0xC + 0x28 + 2, 4, 0x407C)
     assert declencheurs(bytes(garde)) == [(9, 30, 40, 5, -18, 0x407C, 4)]

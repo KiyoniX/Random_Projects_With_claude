@@ -705,8 +705,10 @@ def pointer_seeds(image, functions, text_size=None):
 
 def cited_addresses(image, results):
     """Les adresses de code qu'un pointeur peut viser : tout mot aligné des données, les pools que le code lit
-    (« ldr rd, [pc, #n] ») et les adresses qu'il calcule (« add rd, pc, #n »). Les mots du code qui ne sont lus par rien ne
-    comptent pas : ce sont des instructions, pas des adresses."""
+    (« ldr rd, [pc, #n] ») et les adresses qu'il calcule (« add rd, pc, #n »), ou qu'il tire d'un pool relatif à pc
+    (« ldr rd, [pc, #n] » puis « add rd, pc », ARM ou Thumb : snprintf_putc 0x101383, que seuls les pools 0x100c0c,
+    0x1027a8, 0x1027e0 et 0x102850 désignent ainsi). Les mots du code qui ne sont lus par rien ne comptent pas : ce sont des
+    instructions, pas des adresses."""
     text = image.text
     start, end = text.address, text.address + len(text.data)
 
@@ -718,14 +720,23 @@ def cited_addresses(image, results):
         if section is not text:
             cited.update(struct.unpack_from('<I', section.data, offset)[0] for offset in range(0, len(section.data) - 3, 4))
     for result in results:
-        if result.mode != 'arm':
-            continue
-        for insn in result.insns:
-            if insn.word & 0x0F7F0000 == 0x051F0000:
-                offset = insn.word & 0xFFF
-                cited.add(word_at(insn.addr + 8 + (offset if insn.word & 0x00800000 else -offset)))
-            elif insn.word & 0x0FFF0000 == 0x028F0000:
-                cited.add(insn.addr + 8 + armdec.ror(insn.word & 0xFF, 2 * ((insn.word >> 8) & 15)))
+        pools = {}
+        for insn in sorted(result.insns, key=lambda i: i.addr):
+            w = insn.word
+            if result.mode == 'thumb':
+                if w >> 11 == 9:
+                    pools[(w >> 8) & 7] = word_at(((insn.addr + 4) & ~3) + (w & 0xFF) * 4)
+                elif w & 0xFF78 == 0x4478 and pools.get((w & 7) | ((w >> 4) & 8)) is not None:
+                    cited.add((pools[(w & 7) | ((w >> 4) & 8)] + insn.addr + 4) & 0xFFFFFFFF)
+                continue
+            if w & 0x0F7F0000 == 0x051F0000:
+                offset = w & 0xFFF
+                cited.add(word_at(insn.addr + 8 + (offset if w & 0x00800000 else -offset)))
+                pools[(w >> 12) & 15] = word_at(insn.addr + 8 + (offset if w & 0x00800000 else -offset))
+            elif w & 0x0FFF0000 == 0x028F0000:
+                cited.add(insn.addr + 8 + armdec.ror(w & 0xFF, 2 * ((w >> 8) & 15)))
+            elif w & 0x0FFF0FF0 == 0x008F0000 and pools.get(w & 15) is not None:
+                cited.add((pools[w & 15] + insn.addr + 8) & 0xFFFFFFFF)
     out = []
     for address in cited:
         if address is None or not start <= address & ~1 <= end - 4:
