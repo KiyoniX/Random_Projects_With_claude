@@ -746,6 +746,16 @@ impl FsUser {
         self.initialized
     }
 
+    /// Un fichier du jeu par son chemin dans la romfs (`a/2/1/2`), tel que le jeu le lit : celui de la mise à jour s'il y
+    /// est, sinon celui du jeu de base, mods compris. Pour ce que la fenêtre montre elle-même (les boutons du combat).
+    pub fn read_game_file(&self, path: &str) -> Option<Vec<u8>> {
+        let path = path.trim_start_matches('/');
+        [&self.romfs_update, &self.romfs_base].into_iter().flatten().find_map(|romfs| {
+            let (_, position, size) = romfs.files().into_iter().find(|(p, _, _)| p.trim_start_matches('/') == path)?;
+            Some(romfs.read(position, size as usize))
+        })
+    }
+
     fn path_of(&self, k: &Kernel, req: &Request, kind_word: usize, pos: usize) -> PathValue {
         decode_path(req.word(kind_word), &req.static_data(k, pos))
     }

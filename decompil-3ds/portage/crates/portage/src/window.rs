@@ -21,6 +21,8 @@ use winit::window::{Window, WindowId};
 
 use capture::Capture;
 
+use crate::ui::{Pill, Ui};
+
 const SHADER: &str = r#"
 struct Rect { v: vec4<f32>, uv: vec4<f32> }   // x0, y0, x1, y1 en coordonnées d'écran (-1..1, y vers le haut), puis le morceau d'image
 @group(0) @binding(0) var<uniform> rect: Rect;
@@ -56,6 +58,11 @@ pub enum Layout {
     /// Pokémon de droite et l'ennemi de droite s'arrêtent vers x = 310.
     SmallCorner,
     SmallMoves,
+    /// Les boutons dessinés par la fenêtre (`ui`) : le menu du combat (Attaque, Pokémon, Sac, Fuite) ou les capacités et le
+    /// retour, en colonne en bas à droite ; vrai : plus étroite, avec plusieurs Pokémon de chaque côté. Chaque bouton garde
+    /// la zone que le jeu touche (`local/analyse/DllBattle/boutons-natifs.md`).
+    NativeMenu(bool),
+    NativeMoves(bool),
 }
 
 /// Un morceau d'écran posé dans le repère : (x0, y0, x1, y1) dans la disposition, et ce qu'il montre en pixels de l'écran.
@@ -86,6 +93,15 @@ const DIALOG_TOP: f32 = 186.0;
 const YES_NO_GAP: f32 = 6.0;
 /// La largeur de `SmallCorner` et `SmallMoves`.
 const SMALL_WIDTH: f32 = 88.0;
+/// Les boutons du menu du combat dans l'écran du bas (panneaux du CLYT de `DllBattle`, table +0xcee50), dans l'ordre de la
+/// colonne : Attaque, Pokémon, Sac, Fuite (en triple, Fuite est le retour du deuxième Pokémon : supposé).
+pub const MENU_BUTTONS: [[f32; 4]; 4] = [[0.0, 26.0, 320.0, 170.0], [224.0, 180.0, 320.0, 240.0], [0.0, 180.0, 96.0, 240.0], [105.0, 184.0, 215.0, 240.0]];
+/// Le retour de l'écran des capacités (panneau 0x7f de la table +0xcefa4).
+const MOVES_BACK: [f32; 4] = [250.0, 190.0, 320.0, 240.0];
+/// La colonne des boutons dessinés : largeur, hauteur d'une ligne, du retour.
+const NATIVE_WIDTH: f32 = 124.0;
+const NATIVE_ROW: f32 = 30.0;
+const NATIVE_BACK: f32 = 22.0;
 
 impl Layout {
     /// Le repère (largeur, hauteur).
@@ -128,6 +144,34 @@ impl Layout {
                 let height = SMALL_WIDTH * 240.0 / 320.0;
                 vec![top, bottom([400.0 - SMALL_WIDTH, 240.0 - height, 400.0, 240.0])]
             }
+            Layout::NativeMenu(small) | Layout::NativeMoves(small) => {
+                let k = if small { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
+                let left = 400.0 - NATIVE_WIDTH * k - 2.0;
+                let mut froms: Vec<([f32; 4], f32)> = Vec::new();
+                if matches!(self, Layout::NativeMenu(_)) {
+                    froms.extend(MENU_BUTTONS.map(|from| (from, NATIVE_ROW)));
+                } else {
+                    froms.extend(MOVE_BUTTONS.map(|from| (from, NATIVE_ROW)));
+                    froms.push((MOVES_BACK, NATIVE_BACK));
+                }
+                // de bas en haut : la dernière ligne touche le bas de l'image
+                let mut y = 238.0;
+                let mut pieces: Vec<Piece> = froms.iter().rev().map(|&(from, height)| {
+                    y -= height * k;
+                    Piece { bottom: true, to: [left, y, 398.0, y + height * k], from }
+                }).collect();
+                pieces.reverse();
+                pieces.insert(0, top);
+                pieces
+            }
+        }
+    }
+
+    /// Où vont les boutons dessinés par la fenêtre, dans l'ordre (vide hors de `NativeMenu` et `NativeMoves`).
+    pub fn native_places(self) -> Vec<[f32; 4]> {
+        match self {
+            Layout::NativeMenu(_) | Layout::NativeMoves(_) => self.pieces().iter().filter(|p| p.bottom).map(|p| p.to).collect(),
+            _ => Vec::new(),
         }
     }
 
@@ -170,6 +214,14 @@ pub struct Screens {
     linear: wgpu::Sampler,
     /// Le rectangle de chaque morceau d'écran dessiné.
     rects: [wgpu::Buffer; MAX_PIECES],
+    /// Les boutons dessinés par la fenêtre (`ui`) : demandés par [`Screens::set_overlay`] (pastilles, zone dans le repère),
+    /// faits en image à la taille de la fenêtre, posés avec leur transparence ; tant qu'ils sont là, les morceaux de
+    /// l'écran du bas ne sont plus dessinés (ils gardent les touchers).
+    ui: Option<Ui>,
+    overlay: Option<(Vec<Pill>, [f32; 4])>,
+    overlay_image: Option<(Vec<Pill>, [f32; 4], u32, wgpu::Texture)>,
+    blend: wgpu::RenderPipeline,
+    overlay_rect: wgpu::Buffer,
 }
 
 impl Screens {
@@ -193,22 +245,30 @@ impl Screens {
             ],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor { label: Some("fenêtre"), bind_group_layouts: &[Some(&layout)], immediate_size: 0 });
-        let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        let make = |blend: Option<wgpu::BlendState>| device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: Some("fenêtre"),
             layout: Some(&pipeline_layout),
             vertex: wgpu::VertexState { module: &module, entry_point: Some("vs"), compilation_options: Default::default(), buffers: &[] },
             primitive: wgpu::PrimitiveState { topology: wgpu::PrimitiveTopology::TriangleStrip, ..Default::default() },
             depth_stencil: None,
             multisample: Default::default(),
-            fragment: Some(wgpu::FragmentState { module: &module, entry_point: Some("fs"), compilation_options: Default::default(), targets: &[Some(config.format.into())] }),
+            fragment: Some(wgpu::FragmentState {
+                module: &module,
+                entry_point: Some("fs"),
+                compilation_options: Default::default(),
+                targets: &[Some(wgpu::ColorTargetState { format: config.format, blend, write_mask: wgpu::ColorWrites::ALL })],
+            }),
             multiview_mask: None,
             cache: None,
         });
+        // les écrans remplacent ce qui est dessous ; les boutons (alpha prémultiplié) se posent par-dessus
+        let (pipeline, blend) = (make(None), make(Some(wgpu::BlendState::PREMULTIPLIED_ALPHA_BLENDING)));
         let sampler = |filter| device.create_sampler(&wgpu::SamplerDescriptor { mag_filter: filter, min_filter: filter, ..Default::default() });
         let (nearest, linear) = (sampler(wgpu::FilterMode::Nearest), sampler(wgpu::FilterMode::Linear));
         let rect = || device.create_buffer(&wgpu::BufferDescriptor { label: Some("rectangle"), size: 32, usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
         let rects = std::array::from_fn(|_| rect());
-        Ok(Screens { window, gpu, surface, config, pipeline, layout, nearest, linear, rects })
+        let overlay_rect = rect();
+        Ok(Screens { window, gpu, surface, config, pipeline, layout, nearest, linear, rects, ui: Ui::new(), overlay: None, overlay_image: None, blend, overlay_rect })
     }
 
     pub fn resize(&mut self, width: u32, height: u32) {
@@ -216,6 +276,43 @@ impl Screens {
         self.config.height = height.max(1);
         self.surface.configure(&self.gpu.device, &self.config);
         self.window.request_redraw();
+    }
+
+    /// La fenêtre a sa police : elle peut dessiner les boutons du combat.
+    pub fn has_ui(&self) -> bool {
+        self.ui.is_some()
+    }
+
+    /// Les boutons à dessiner par-dessus le haut (`None` : les morceaux de l'écran du bas). Sans police, rien ne change.
+    pub fn set_overlay(&mut self, overlay: Option<(Vec<Pill>, [f32; 4])>) {
+        self.overlay = overlay.filter(|_| self.ui.is_some());
+    }
+
+    /// L'image des boutons à la taille où la fenêtre les montre, refaite seulement si eux ou cette taille changent.
+    fn update_overlay(&mut self, layout: Layout) {
+        let (Some((pills, area)), Some(ui)) = (&self.overlay, &self.ui) else { return };
+        let (f, _, _) = layout.fit(self.config.width as f32, self.config.height as f32);
+        let px = ((area[2] - area[0]) * f) as u32;
+        if self.overlay_image.as_ref().is_some_and(|(p, a, w, _)| p == pills && a == area && *w == px) {
+            return;
+        }
+        let (w, h, rgba) = ui.raster(pills, *area, f);
+        let texture = self.gpu.device.create_texture_with_data(
+            &self.gpu.queue,
+            &wgpu::TextureDescriptor {
+                label: Some("boutons"),
+                size: wgpu::Extent3d { width: w as u32, height: h as u32, depth_or_array_layers: 1 },
+                mip_level_count: 1,
+                sample_count: 1,
+                dimension: wgpu::TextureDimension::D2,
+                format: wgpu::TextureFormat::Rgba8Unorm,
+                usage: wgpu::TextureUsages::TEXTURE_BINDING,
+                view_formats: &[],
+            },
+            wgpu::util::TextureDataOrder::LayerMajor,
+            &rgba,
+        );
+        self.overlay_image = Some((pills.clone(), *area, px, texture));
     }
 
     /// La texture d'une image d'écran : celle que pica a construite sur le GPU, sinon ses octets envoyés au même format.
@@ -247,27 +344,37 @@ impl Screens {
         self.gpu.submitter.wait();
         let (ww, wh) = (width as f32, height as f32);
         let (f, ox, oy) = layout.fit(ww, wh);
-        let mut binds = Vec::new();
-        for (piece, rect) in layout.pieces().iter().zip(&self.rects) {
-            let Some(texture) = textures[piece.bottom as usize] else { continue };
-            let px = |x: f32| (ox + x * f) / ww * 2.0 - 1.0;
-            let py = |y: f32| 1.0 - (oy + y * f) / wh * 2.0;
-            let (w, h) = if piece.bottom { (320.0, 240.0) } else { (400.0, 240.0) };
-            let [tx0, ty0, tx1, ty1] = piece.to;
-            let [sx0, sy0, sx1, sy1] = piece.from;
-            let words = [px(tx0), py(ty0), px(tx1), py(ty1), sx0 / w, sy0 / h, sx1 / w, sy1 / h];
+        let px = |x: f32| (ox + x * f) / ww * 2.0 - 1.0;
+        let py = |y: f32| 1.0 - (oy + y * f) / wh * 2.0;
+        let bind = |rect: &wgpu::Buffer, words: [f32; 8], texture: &wgpu::Texture, sampler: &wgpu::Sampler| {
             self.gpu.queue.write_buffer(rect, 0, bytemuck::cast_slice(&words));
             let texture_view = texture.create_view(&Default::default());
-            binds.push(self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            self.gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
                 label: Some("écran"),
                 layout: &self.layout,
                 entries: &[
                     wgpu::BindGroupEntry { binding: 0, resource: rect.as_entire_binding() },
                     wgpu::BindGroupEntry { binding: 1, resource: wgpu::BindingResource::TextureView(&texture_view) },
-                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(if smooth { &self.linear } else { &self.nearest }) },
+                    wgpu::BindGroupEntry { binding: 2, resource: wgpu::BindingResource::Sampler(sampler) },
                 ],
-            }));
+            })
+        };
+        let overlay = self.overlay.as_ref().and(self.overlay_image.as_ref());
+        let mut binds = Vec::new();
+        for (piece, rect) in layout.pieces().iter().zip(&self.rects) {
+            let Some(texture) = textures[piece.bottom as usize] else { continue };
+            if piece.bottom && overlay.is_some() {
+                continue;
+            }
+            let (w, h) = if piece.bottom { (320.0, 240.0) } else { (400.0, 240.0) };
+            let [tx0, ty0, tx1, ty1] = piece.to;
+            let [sx0, sy0, sx1, sy1] = piece.from;
+            let words = [px(tx0), py(ty0), px(tx1), py(ty1), sx0 / w, sy0 / h, sx1 / w, sy1 / h];
+            binds.push(bind(rect, words, texture, if smooth { &self.linear } else { &self.nearest }));
         }
+        let overlay_bind = overlay.map(|(_, area, _, texture)| {
+            bind(&self.overlay_rect, [px(area[0]), py(area[1]), px(area[2]), py(area[3]), 0.0, 0.0, 1.0, 1.0], texture, &self.linear)
+        });
         let mut encoder = self.gpu.device.create_command_encoder(&Default::default());
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
@@ -288,6 +395,11 @@ impl Screens {
                 pass.set_bind_group(0, bind, &[]);
                 pass.draw(0..4, 0..1);
             }
+            if let Some(bind) = &overlay_bind {
+                pass.set_pipeline(&self.blend);
+                pass.set_bind_group(0, bind, &[]);
+                pass.draw(0..4, 0..1);
+            }
         }
         encoder
     }
@@ -303,6 +415,7 @@ impl Screens {
             _ => return,
         };
         let view = frame.texture.create_view(&Default::default());
+        self.update_overlay(layout);
         let encoder = self.compose(&view, self.config.width, self.config.height, textures, smooth, layout);
         self.gpu.queue.submit(Some(encoder.finish()));
         frame.present();
@@ -482,7 +595,26 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::Layout;
+    use super::{Layout, MENU_BUTTONS, MOVE_BUTTONS};
+
+    #[test]
+    fn native_buttons_touch_the_game_buttons() {
+        // chaque pastille, touchée en son milieu, renvoie au milieu du bouton du jeu, dans l'ordre de la colonne
+        for (layout, buttons) in [(Layout::NativeMenu(false), MENU_BUTTONS.to_vec()), (Layout::NativeMoves(true), MOVE_BUTTONS.to_vec())] {
+            let places = layout.native_places();
+            for (to, from) in places.iter().zip(&buttons) {
+                let (x, y) = ((to[0] + to[2]) / 2.0 * 2.0, (to[1] + to[3]) / 2.0 * 2.0);
+                let (bx, by) = layout.bottom_point(800.0, 480.0, x, y).expect("une pastille touche l'écran du bas");
+                assert!((from[0] + from[2]) / 2.0 - 1.0 <= bx as f32 && bx as f32 <= (from[0] + from[2]) / 2.0 + 1.0, "{from:?} : {bx}");
+                assert!((from[1] + from[3]) / 2.0 - 1.0 <= by as f32 && by as f32 <= (from[1] + from[3]) / 2.0 + 1.0, "{from:?} : {by}");
+            }
+            // la colonne reste dans l'image, à droite, sans chevauchement
+            assert!(places.iter().all(|p| p[0] > 250.0 && p[2] <= 400.0 && p[3] <= 240.0));
+            assert!(places.windows(2).all(|w| w[0][3] <= w[1][1] + 0.01));
+        }
+        assert_eq!(Layout::NativeMoves(false).native_places().len(), 5, "quatre capacités et le retour");
+        assert!(Layout::Moves.native_places().is_empty());
+    }
 
     #[test]
     fn bottom_point_follows_the_overlaid_screen() {

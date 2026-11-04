@@ -22,6 +22,8 @@ use winit::window::{CursorGrabMode, Window, WindowId};
 
 use pica::images::save_png;
 
+use crate::gamedata::MoveInfo;
+use crate::ui::{Category, Pill, TYPE_COLORS};
 use crate::window::{Layout, Screens, open};
 
 /// Touche -> bouton de la console (nom de `BUTTONS`). Les touches sont lues à leur place sur le clavier, nommée d'après
@@ -104,6 +106,25 @@ fn battle_screen(memory: &AddressSpace, base: u32) -> Option<BattleScreen> {
         BattleScreen::Idle
     })
 }
+
+/// Les capacités du Pokémon qui choisit, sur l'écran des capacités : (numéro, PP restants, PP max), numéro 0 pour une case
+/// vide. L'octet `+0x40` des objets est sa place, `[+0x884 + 4 × place]` ses données de combat (nul au premier menu), où
+/// chaque capacité tient 14 octets à partir de `+0x11C` (`local/analyse/DllBattle/boutons-natifs.md`, relevé en simple,
+/// double, triple et rotation).
+fn battle_moves(memory: &AddressSpace, base: u32) -> Option<[(u16, u8, u8); 4]> {
+    let objects = battle_objects(memory, base)?;
+    let place = memory.u8(objects.wrapping_add(0x40)).ok()? as u32;
+    let pokemon = memory.u32(objects.wrapping_add(0x884 + 4 * place.min(5))).ok().filter(|&p| p != 0)?;
+    let mut moves = [(0, 0, 0); 4];
+    for (i, m) in moves.iter_mut().enumerate() {
+        let at = pokemon.wrapping_add(0x11C + 0xE * i as u32);
+        *m = (memory.u16(at).ok()?, memory.u8(at.wrapping_add(2)).ok()?, memory.u8(at.wrapping_add(3)).ok()?);
+    }
+    moves.iter().any(|m| m.0 != 0).then_some(moves)
+}
+
+/// Les pastilles du menu du combat, dans l'ordre de `MENU_BUTTONS`.
+const MENU_PILLS: [(&str, [u8; 3]); 4] = [("Attaque", [204, 62, 56]), ("Pokémon", [72, 162, 84]), ("Sac", [222, 160, 40]), ("Fuite", [64, 112, 206])];
 
 /// Les scènes qui se jouent au stylet : l'écran du bas s'y ouvre tout seul, sans Échap (saisie d'un nom, boîtes, Poké
 /// Récré, tenue, puzzle). Échap le referme quand même.
@@ -230,6 +251,9 @@ struct Play {
     combat_in_corner: bool,
     both_screens: bool,
     smooth: bool,
+    /// Les noms et données des capacités, lus dans les fichiers du jeu au premier combat (`None` : pas encore lus ; vide :
+    /// illisibles, la fenêtre garde alors les morceaux de l'écran du bas).
+    move_infos: Option<Vec<MoveInfo>>,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
     touch_scene: bool,
     /// Les relances du jeu déjà suivies (`Bench::restarts`).
@@ -370,17 +394,75 @@ impl Play {
         } else if let Some(base) = self.battle_base().filter(|_| self.combat_in_corner) {
             // rien quand l'écran du bas n'offre rien à toucher : Échap l'affiche quand même
             let memory = &self.bench.kernel.memory;
+            let many = battle_with_many(memory, base);
+            // les boutons dessinés par la fenêtre quand elle a sa police et les données des capacités
+            let native = self.screens.as_ref().is_some_and(|s| s.has_ui()) && self.move_infos.as_ref().is_some_and(|m| !m.is_empty());
             match battle_screen(memory, base) {
-                Some(BattleScreen::Moves) if battle_with_many(memory, base) => (Layout::SmallMoves, true),
+                Some(BattleScreen::Moves) if native && battle_moves(memory, base).is_some() => (Layout::NativeMoves(many), true),
+                Some(BattleScreen::Moves) if many => (Layout::SmallMoves, true),
                 Some(BattleScreen::Moves) => (Layout::Moves, true),
                 Some(BattleScreen::YesNo) => (Layout::YesNo, true),
-                Some(BattleScreen::Menu) if battle_with_many(memory, base) => (Layout::SmallCorner, true),
+                // le premier menu d'un Pokémon : `+0x93` à 1 ; les autres écrans comptés comme menu (sac, équipe…) gardent
+                // l'écran du bas en coin
+                Some(BattleScreen::Menu) if native && self.action_menu(base) => (Layout::NativeMenu(many), true),
+                Some(BattleScreen::Menu) if many => (Layout::SmallCorner, true),
                 Some(BattleScreen::Menu) => (Layout::Corner, true),
                 _ => (Layout::Overlaid, false),
             }
         } else {
             (Layout::Overlaid, false)
         }
+    }
+
+    /// Le menu d'action du combat est ouvert (`+0x93` à 1), et seulement lui (ni liste, ni sac, ni oubli de capacité).
+    fn action_menu(&self, base: u32) -> bool {
+        let memory = &self.bench.kernel.memory;
+        battle_objects(memory, base).is_some_and(|objects| {
+            let byte = |offset: u32| memory.u8(objects.wrapping_add(offset)).unwrap_or(0xFF);
+            byte(0x93) == 1 && byte(0xF0) == 0 && byte(0x1B3) == 0 && byte(0x1E8) == 0 && memory.u32(objects.wrapping_add(0x26C)).unwrap_or(1) == 0
+        })
+    }
+
+    /// Les noms et données des capacités, lus une fois (au premier combat) dans les fichiers du jeu, mods compris.
+    fn load_move_infos(&mut self) {
+        if self.move_infos.is_some() || self.battle_base().is_none() {
+            return;
+        }
+        let read = |path: &str| self.bench.fs.as_ref().and_then(|fs| fs.borrow().read_game_file(path));
+        let infos = read("a/0/7/5").zip(read("a/2/1/2")).and_then(|(names, data)| crate::gamedata::moves(&names, &data));
+        if infos.is_none() {
+            eprintln!("boutons du combat : noms ou données des capacités illisibles, l'écran du bas reste affiché");
+        }
+        self.move_infos = Some(infos.unwrap_or_default());
+    }
+
+    /// Les pastilles de la disposition et la zone qu'elles couvrent, pour la fenêtre (`None` hors des boutons dessinés).
+    fn native_pills(&self, layout: Layout) -> Option<(Vec<Pill>, [f32; 4])> {
+        let places = layout.native_places();
+        let area = places.iter().fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |a, p| [a[0].min(p[0]), a[1].min(p[1]), a[2].max(p[2]), a[3].max(p[3])]);
+        let pill = |to, color, label: &str, detail: String, category| Pill { to, color, label: label.to_string(), detail, category };
+        let pills = match layout {
+            Layout::NativeMenu(_) => places.iter().zip(MENU_PILLS).map(|(&to, (label, color))| pill(to, color, label, String::new(), None)).collect(),
+            Layout::NativeMoves(_) => {
+                let infos = self.move_infos.as_ref()?;
+                let moves = battle_moves(&self.bench.kernel.memory, self.battle_base()?)?;
+                let mut pills: Vec<Pill> = places.iter().zip(moves).filter(|(_, m)| m.0 != 0).map(|(&to, (id, pp, max))| {
+                    let info = infos.get(id as usize);
+                    let color = info.and_then(|i| TYPE_COLORS.get(i.kind as usize)).copied().unwrap_or([128, 128, 128]);
+                    let category = info.map(|i| match i.category {
+                        1 => Category::Physical,
+                        2 => Category::Special,
+                        _ => Category::Status,
+                    });
+                    let name = info.map_or_else(|| format!("Capacité {id}"), |i| i.name.clone());
+                    pill(to, color, &name, format!("{pp}/{max}"), category)
+                }).collect();
+                pills.push(pill(*places.last()?, [92, 92, 104], "Retour", String::new(), None));
+                pills
+            }
+            _ => return None,
+        };
+        Some((pills, area))
     }
 
     /// Le point de l'écran du bas sous la souris, s'il est affiché.
@@ -417,8 +499,11 @@ impl Play {
 
     fn draw(&mut self) {
         self.follow_touch_scenes();
+        self.load_move_infos();
         let (layout, shown) = self.layout();
+        let overlay = self.native_pills(layout);
         let Some(screens) = self.screens.as_mut() else { return };
+        screens.set_overlay(overlay);
         let images = self.shared.screens.borrow();
         if let Some((_, top)) = &images[0] {
             if top.index != self.last_top {
@@ -640,6 +725,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         combat_in_corner,
         both_screens,
         smooth,
+        move_infos: None,
         touch_scene: false,
         restarts: 0,
     };

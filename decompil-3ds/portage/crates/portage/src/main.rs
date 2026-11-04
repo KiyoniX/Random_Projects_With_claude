@@ -15,6 +15,8 @@
 
 mod play;
 mod sound;
+mod ui;
+mod gamedata;
 mod window;
 
 use std::path::{Path, PathBuf};

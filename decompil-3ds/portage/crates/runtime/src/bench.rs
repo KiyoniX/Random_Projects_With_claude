@@ -161,6 +161,8 @@ pub struct Bench {
     pub drawing: Option<Shared>,
     /// Les heures (ns du banc) où le jeu s'est relancé lui-même (`restart`).
     pub restarts: Vec<u64>,
+    /// Le service de fichiers du jeu : la fenêtre y lit ce qu'elle montre elle-même (noms et données des capacités).
+    pub fs: Option<Rc<RefCell<services::fs::FsUser>>>,
 }
 
 /// À côté du journal d'une partie : ses archives au départ, pour la rejouer.
@@ -251,7 +253,7 @@ impl Bench {
         }
         kernel.bench.region = 2;
         kernel.bench.turns_limit = options.turns;
-        let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None, restarts: Vec::new() };
+        let mut bench = Bench { kernel, exheader, code, options, elapsed: 0.0, services: Vec::new(), drawing: None, restarts: Vec::new(), fs: None };
         let first = now.is_none();
         match bench.map_program(first).and_then(|_| bench.register_services(first)).and_then(|_| bench.kernel.watch_milestones()) {
             Ok(()) => Ok(bench),
@@ -364,7 +366,9 @@ impl Bench {
         let mut list = Vec::new();
         let apt: SharedService = Rc::new(RefCell::new(Apt::new(k)));
         add(k, "APT:U", apt, &mut list);
-        let fs: SharedService = Rc::new(RefCell::new(FsUser::new(k)));
+        let typed = Rc::new(RefCell::new(FsUser::new(k)));
+        self.fs = Some(typed.clone());
+        let fs: SharedService = typed;
         add(k, "fs:USER", fs, &mut list);
         // Gsp ne crée aucun objet du noyau : on peut le construire après Hid sans changer les numéros de série.
         let dsp = Dsp::new_shared(k);
