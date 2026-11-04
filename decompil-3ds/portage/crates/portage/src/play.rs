@@ -1232,8 +1232,9 @@ pub fn run(settings: Settings) -> Result<(), String> {
         second_start: Instant::now(),
         first_frame: None,
         stopped: None,
+        // derrière : les rejeux des tests et des captures (une durée ou une capture), pas celui que le joueur reprend en main
+        background: replay.is_some() && (seconds.is_some() || shot.is_some()),
         shot: shot.map(|(at, prefix)| ((at * 1e9) as u64, prefix)),
-        background: replay.is_some(),
         shot_ready: false,
         scale: scale.clamp(1, 4),
         menu: false,

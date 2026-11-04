@@ -299,6 +299,9 @@ pub struct Renderer {
     pub texture_dump: Option<std::path::PathBuf>,
     /// Les empreintes que le pack remplace, lues une fois dans son dossier (on ne cherche pas un fichier à chaque texture).
     pack_names: Option<std::collections::HashSet<u32>>,
+    /// Les textures (adresse) relues d'un tampon de rendu : une image déjà dessinée par le jeu (les noms du combat, écrits
+    /// d'avance dans une texture 512 x 128), que le filtre ne ferait que délaver.
+    rendered: std::collections::HashSet<u32>,
     layout: wgpu::BindGroupLayout,
     pipeline_layout: wgpu::PipelineLayout,
     vs_by_version: HashMap<(u64, u32, u32, [u32; 7]), Option<u64>>,
@@ -510,6 +513,7 @@ impl Renderer {
             texture_filter: crate::upscale::TextureFilter::None,
             texture_pack: None,
             pack_names: None,
+            rendered: Default::default(),
             texture_dump: None,
             layout,
             pipeline_layout,
@@ -1252,6 +1256,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 eprintln!("texture {unit} {:x} {width}x{height} fmt {:?} relit le tampon de couleur {:x} {}x{} {:?}", address, fmt, c.address, c.width, c.height, c.fmt);
             }
             self.flush_color(i, memory);
+            self.rendered.insert(address);
         }
         // ou un tampon de profondeur (le terrain le relit en RGBA8)
         let overlapping_depth: Vec<usize> = (0..self.depth_surfaces.len())
@@ -1306,7 +1311,7 @@ struct Out { @builtin(frag_depth) d: f32 }
                 }
             }
             // assez petite pour en valoir la peine : les grandes textures sont des images déjà détaillées
-            let upscale = self.texture_filter != crate::upscale::TextureFilter::None && width <= 512 && height <= 512;
+            let upscale = self.texture_filter != crate::upscale::TextureFilter::None && width <= 512 && height <= 512 && !self.rendered.contains(&address);
             let (mut stored_width, mut stored_height) = if upscale { (width * 2, height * 2) } else { (width, height) };
             let repeats = (matches!((config >> 12) & 7, 2 | 6 | 7), matches!((config >> 8) & 7, 2 | 6 | 7));
             let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height, repeats) } else { pixels };
