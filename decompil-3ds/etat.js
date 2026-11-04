@@ -4,7 +4,7 @@ window.ETAT = {
  "objectif": "Trois buts liés. (1) La 3DS décompilée à 100 % : chaque module, le noyau, l'ARM9 et les mémoires de démarrage lus et nommés. (2) Pokémon X porté nativement sur PC, avec de meilleurs graphismes et de meilleures performances. (3) Un moteur de mods pour faire des romhacks et des fangames (nouveaux Pokémon, nouveaux assets), dont chaque mod tourne à la fois sur la 3DS (LayeredFS de Luma) et sur le portage PC.",
  "ouverture": "2026-10-13",
  "mise_a_jour": "2026-11-04",
- "prochaine_action": "Couverture : 3 218 événements sur 3 226 (99,75 %), 1 070 modes d'entrée sur 1 080, 617 capacités sur 617 dans les quatre formats, 182 talents, 181 objets tenus, 88 modules sur 133. Reste : zones 30, 158, 294, 320, 303, la sortie de la salle 253, deux communs ; DendouPC (sauvegarde d'après la Ligue), PokeRideAction. À l'utilisateur : relire les modèles (page locale de outils/revue_modeles.py), essayer la visée à la souris d'Otto Focus, choisir les contrôles d'Archipelago. Puis refonte des menus, mods, nouveaux Pokémon.",
+ "prochaine_action": "Couverture : 3 220 événements sur 3 226 (99,81 %), 1 070 modes d'entrée sur 1 080, 617 capacités sur 617 dans les quatre formats, 182 talents, 181 objets tenus, 88 modules sur 133. Reste : zones 294, 320, 303, la sortie de la salle 253, deux communs ; DendouPC (sauvegarde d'après la Ligue), PokeRideAction. À l'utilisateur : relire les modèles (page locale de outils/revue_modeles.py), essayer la visée à la souris d'Otto Focus, choisir les contrôles d'Archipelago. Puis refonte des menus, mods, nouveaux Pokémon.",
  "fonctions": {
   "total": 264215,
   "identifiees": 264215,
@@ -2247,7 +2247,7 @@ window.ETAT = {
   },
   {
    "date": "2026-11-04",
-   "texte": "Couverture à 99,75 % (3 218 événements sur 3 226) : la hauteur des meubles et des déclencheurs relue en s16, les meubles sur rail, un mod qui ajoute un meuble aux zones sans personnage, et le Conseil 4 gagné pour de vrai. 617 capacités sur 617 (Éructation par une Baie Sitrus). 88 modules sur 133 : Poké Récré et ses trois jeux, Cadeau Mystère, le salon, la Maison de combat, le PSS ; et une fonction que la recompilation avait manquée (snprintf_putc, citée seulement par « ldr ; add pc »), retrouvée par le recompilateur lui-même. L'applet d'erreur de la console est servi : le Cadeau par un code ne fige plus le jeu (le code lui-même exige un serveur Nintendo). La tournée de tous les dresseurs : 780 sur 784 battus (un mod met chaque dresseur à la place d'un autre, la sauvegarde au style « Défini »)."
+   "texte": "Couverture à 99,75 % (3 218 événements sur 3 226) : la hauteur des meubles et des déclencheurs relue en s16, les meubles sur rail, un mod qui ajoute un meuble aux zones sans personnage, et le Conseil 4 gagné pour de vrai. 617 capacités sur 617 (Éructation par une Baie Sitrus). 88 modules sur 133 : Poké Récré et ses trois jeux, Cadeau Mystère, le salon, la Maison de combat, le PSS ; et une fonction que la recompilation avait manquée (snprintf_putc, citée seulement par « ldr ; add pc »), retrouvée par le recompilateur lui-même. L'applet d'erreur de la console est servi : le Cadeau par un code ne fige plus le jeu (le code lui-même exige un serveur Nintendo). La tournée de tous les dresseurs : 780 sur 784 battus (un mod met chaque dresseur à la place d'un autre, la sauvegarde au style « Défini »). Zones 30 et 158 : leur écran noir est la boucle d'erreur du jeu (une matrice qui demande des modèles absents) ; avec la matrice de leur voisine, leurs scripts tournent : 99,81 %."
   }
  ],
  "dump": {
@@ -2268,6 +2268,10 @@ window.ETAT = {
  },
  "mise_a_jour_heure": "04/11/2026",
  "commits": [
+  [
+   "2026-11-04",
+   "Décompil 3DS : la tournée de tous les dresseurs, 780 sur 784 battus"
+  ],
   [
    "2026-11-04",
    "Décompil 3DS : couverture à 99,75 %, le Conseil 4 gagné, 88 modules sur 133, et une fonction que la recompilation avait manquée"
