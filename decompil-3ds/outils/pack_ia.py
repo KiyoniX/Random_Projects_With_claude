@@ -7,6 +7,10 @@ donne donc directement les noms. Chaque texture de 16 à 512 points de côté pa
 pour la mémoire de la carte graphique). Avant et après, les points transparents prennent la couleur de leurs voisins visibles :
 sinon le modèle, puis le filtre bilinéaire du jeu, font un liseré sombre au bord des découpes.
 
+Seules les textures dessinées sur l'écran du bas (l'interface) passent : le relevé les note dans `bas.txt`. Celles du haut
+sont surtout des modèles et du décor, dont beaucoup sont des tables (ombrage, couleurs) que le modèle rendrait fausses
+(Pokémon noirs, décor méconnaissable : essai du 4/11).
+
 Les feuilles de police viennent de `pack_police.py` (le dessin des lettres reste celui du jeu) et ne passent pas par le modèle.
 Les textures que le jeu redessine (noms du combat, écrits dans une texture) changent d'empreinte à chaque fois : relevées
 quand même, elles ne servent pas. Les textures répétées (sols, murs) peuvent garder une couture au bord : le modèle les voit
@@ -78,8 +82,11 @@ def pack(releves, sortie, polices, agrandir=esrgan):
     pack_police.pack(polices, sortie)
     noms = {}
     for dossier in releves:
-        for nom in sorted(os.listdir(dossier)):
-            if nom.endswith('.png') and nom not in noms and not os.path.exists(os.path.join(sortie, nom)):
+        bas = os.path.join(dossier, 'bas.txt')
+        if not os.path.exists(bas):
+            raise SystemExit(f"{dossier} : pas de bas.txt (relevé d'avant le tri par écran)")
+        for nom in sorted({ligne.strip() + '.png' for ligne in open(bas)}):
+            if os.path.exists(os.path.join(dossier, nom)) and nom not in noms and not os.path.exists(os.path.join(sortie, nom)):
                 noms[nom] = os.path.join(dossier, nom)
     noms = {n: c for n, c in noms.items() if a_agrandir(c)}
     if not noms:
@@ -124,6 +131,9 @@ def test():
         a4 = bytes([0x00] * 8 + [0xFF] * 24)
         police = '%08x.png' % pack_police.zlib.crc32(a4)
         Image.new('RGBA', (8, 8), (1, 2, 3, 255)).save(os.path.join(releve, police))
+        # une texture de l'écran du haut (pas dans bas.txt) : laissée au jeu
+        Image.fromarray(carre, 'RGBA').save(os.path.join(releve, '00001111.png'))
+        open(os.path.join(releve, 'bas.txt'), 'w').write(''.join(n + '\n' for n in ['0000abcd', '0000eeee', '0000ffff', police[:-4]]))
         assert pack([releve], sortie, [pack_police.cfnt_fabrique(pack_police.A4, [a4])], bicubique) == 1
         assert sorted(os.listdir(sortie)) == ['0000abcd.png', police], 'ni la texture unie, ni la trop grande'
         hd = np.asarray(Image.open(os.path.join(sortie, '0000abcd.png')))

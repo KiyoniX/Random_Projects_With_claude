@@ -302,6 +302,10 @@ pub struct Renderer {
     /// Les textures (adresse) relues d'un tampon de rendu : une image déjà dessinée par le jeu (les noms du combat, écrits
     /// d'avance dans une texture 512 x 128), que le filtre ne ferait que délaver.
     rendered: std::collections::HashSet<u32>,
+    /// Le tampon de rendu que le dernier transfert a envoyé vers l'écran du bas.
+    pub bottom_screen: Option<u32>,
+    /// Avec `texture_dump` : les textures déjà vues dans l'écran du bas, notées une fois dans `bas.txt` du relevé.
+    bottom_seen: std::collections::HashSet<u32>,
     layout: wgpu::BindGroupLayout,
     pipeline_layout: wgpu::PipelineLayout,
     vs_by_version: HashMap<(u64, u32, u32, [u32; 7]), Option<u64>>,
@@ -514,6 +518,8 @@ impl Renderer {
             texture_pack: None,
             pack_names: None,
             rendered: Default::default(),
+            bottom_seen: Default::default(),
+            bottom_screen: None,
             texture_dump: None,
             layout,
             pipeline_layout,
@@ -1388,6 +1394,16 @@ struct Out { @builtin(frag_depth) d: f32 }
         entry.used = clock;
         let entry = &*entry;
         let _ = &entry.texture;
+        // le relevé note les textures de l'écran du bas (le tampon que le jeu y envoie), pour un pack qui ne touche que l'interface
+        let bottom = self.bottom_screen.is_some() && self.color_surfaces.get(target).map(|c| c.address) == self.bottom_screen;
+        if let (Some(folder), true) = (&self.texture_dump, bottom) {
+            if self.bottom_seen.insert(entry.crc) {
+                use std::io::Write;
+                if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(folder.join("bas.txt")) {
+                    let _ = writeln!(f, "{:08x}", entry.crc);
+                }
+            }
+        }
         Some((
             entry.view.clone(),
             entry.id,

@@ -101,6 +101,9 @@ impl Pica {
             if let Some(p) = self.renderer.present_transfer(&mut self.memory, source, destination, in_dim, out_dim, flags, self.readback) {
                 self.transfers += 1;
                 let top = (out_dim >> 16) == 400;
+                if !top {
+                    self.renderer.bottom_screen = Some(source);
+                }
                 return Ok(Some(ScreenImage { index: self.transfers, top, width: p.width, height: p.height, rgba: p.rgba, from_gpu: true, texture: p.texture }));
             }
         }
@@ -156,6 +159,9 @@ impl Pica {
     fn screen_image(&mut self, source: u32, destination: u32, in_dim: u32, out_dim: u32, flags: u32) -> ScreenImage {
         let (rows, cols) = ((out_dim >> 16) as usize, (out_dim & 0xFFFF) as usize); // rows : colonnes de l'écran
         let top = rows == 400;
+        if !top {
+            self.renderer.bottom_screen = Some(source);
+        }
         let scale = self.renderer.scale() as usize;
         if scale > 1 {
             let (in_w, in_h) = ((in_dim & 0xFFFF) as usize, (in_dim >> 16) as usize);
