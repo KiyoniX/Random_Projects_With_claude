@@ -55,9 +55,16 @@ impl Source<'_> {
     }
 }
 
-/// `rgba` agrandie 2 fois : (largeur, hauteur) doublées, 4 octets par point.
+/// `rgba` agrandie 2 fois : (largeur, hauteur) doublées, 4 octets par point. Les points transparents du jeu ont souvent un
+/// RGB blanc, qui baverait en halo autour des feuillages (`local/analyse/rendu/upscale.md`) : avant le filtre, ils prennent
+/// la couleur de leurs voisins visibles, sur deux points de large (la portée des filtres).
 pub fn upscale2x(filter: TextureFilter, rgba: &[u8], width: usize, height: usize, repeat: (bool, bool)) -> Vec<u8> {
-    let source = Source { rgba, width, height, repeat };
+    let mut bled = rgba.to_vec();
+    let mut filled: Vec<bool> = rgba.chunks_exact(4).map(|p| p[3] != 0).collect();
+    for _ in 0..2 {
+        bleed(&mut bled, &mut filled, width, height);
+    }
+    let source = Source { rgba: &bled, width, height, repeat };
     let lines = if filter == TextureFilter::Anime4k { line_map(&source) } else { Vec::new() };
     let mut out = vec![0u8; width * height * 16];
     for y in 0..height {
@@ -74,6 +81,59 @@ pub fn upscale2x(filter: TextureFilter, rgba: &[u8], width: usize, height: usize
                 let at = ((2 * y + i / 2) * 2 * width + 2 * x + i % 2) * 4;
                 out[at..at + 4].copy_from_slice(pixel);
             }
+        }
+    }
+    out
+}
+
+/// Une passe : chaque point pas encore coloré prend la moyenne des couleurs de ses huit voisins colorés (s'il en a), son
+/// alpha gardé. Les couleurs visibles ne changent pas.
+fn bleed(rgba: &mut [u8], filled: &mut [bool], width: usize, height: usize) {
+    let (before, was) = (rgba.to_vec(), filled.to_vec());
+    for y in 0..height {
+        for x in 0..width {
+            if was[y * width + x] {
+                continue;
+            }
+            let mut sum = [0u32; 3];
+            let mut n = 0;
+            for (dx, dy) in [(-1, -1), (0, -1), (1, -1), (-1, 0), (1, 0), (-1, 1), (0, 1), (1, 1)] {
+                let (nx, ny) = (x as isize + dx, y as isize + dy);
+                if nx < 0 || ny < 0 || nx >= width as isize || ny >= height as isize || !was[ny as usize * width + nx as usize] {
+                    continue;
+                }
+                let j = (ny as usize * width + nx as usize) * 4;
+                (0..3).for_each(|c| sum[c] += before[j + c] as u32);
+                n += 1;
+            }
+            if n > 0 {
+                let i = (y * width + x) * 4;
+                (0..3).for_each(|c| rgba[i + c] = (sum[c] / n) as u8);
+                filled[y * width + x] = true;
+            }
+        }
+    }
+}
+
+/// Le niveau suivant d'une image (moitié de chaque côté, moyenne de 2 x 2 points pondérée par l'alpha) : les niveaux d'une
+/// image de pack, qui n'en a qu'un.
+pub fn half(rgba: &[u8], width: usize, height: usize) -> Vec<u8> {
+    let (w, h) = ((width / 2).max(1), (height / 2).max(1));
+    let mut out = Vec::with_capacity(w * h * 4);
+    for y in 0..h {
+        for x in 0..w {
+            let mut sum = [0u32; 4];
+            for (dx, dy) in [(0, 0), (1, 0), (0, 1), (1, 1)] {
+                let i = ((2 * y + dy).min(height - 1) * width + (2 * x + dx).min(width - 1)) * 4;
+                let a = rgba[i + 3] as u32;
+                for c in 0..3 {
+                    sum[c] += rgba[i + c] as u32 * a;
+                }
+                sum[3] += a;
+            }
+            let a = sum[3];
+            let color = |c: usize| if a == 0 { 0 } else { ((sum[c] + a / 2) / a) as u8 };
+            out.extend([color(0), color(1), color(2), ((a + 2) / 4) as u8]);
         }
     }
     out
@@ -447,6 +507,30 @@ mod tests {
         let row: Vec<u8> = (0..8).map(|x| pixel(&out, 8, x, 1)[0]).collect();
         assert!(row[3] < row[4], "{row:?}");
         assert!(row[3] > 0 && row[4] < 255, "{row:?}");
+    }
+
+    #[test]
+    fn transparent_white_does_not_bleed_into_an_edge() {
+        // à gauche un vert opaque, à droite du blanc transparent (comme les feuillages du jeu)
+        let mut rgba = Vec::new();
+        for _y in 0..4 {
+            for x in 0..4 {
+                rgba.extend(if x < 2 { [40, 160, 40, 255] } else { [255, 255, 255, 0] });
+            }
+        }
+        for filter in [TextureFilter::Bicubic, TextureFilter::ScaleForce, TextureFilter::Anime4k] {
+            let out = upscale2x(filter, &rgba, 4, 4, (false, false));
+            // tout point un peu visible garde la teinte verte
+            for p in out.chunks_exact(4).filter(|p| p[3] > 16) {
+                assert!(p[1] > p[0] + 60 && p[1] > p[2] + 60, "{filter:?} : {p:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn half_averages_by_alpha() {
+        let rgba = [[200, 0, 0, 255], [255, 255, 255, 0], [200, 0, 0, 255], [255, 255, 255, 0]].concat();
+        assert_eq!(half(&rgba, 2, 2), vec![200, 0, 0, 128]);
     }
 
     #[test]

@@ -41,6 +41,8 @@ use crate::vertex;
 const LUT_BYTES: u64 = 24 * 256 * 8;
 
 const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
+/// Les textures gardées sur le GPU : au-delà, le quart le moins récemment lu part.
+const TEXTURE_CACHE: usize = 600;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 const DEPTH_STENCIL_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32FloatStencil8;
 
@@ -237,6 +239,8 @@ struct TextureEntry {
     crc: u32,
     /// Horloge de la mémoire quand le contenu a été vérifié pour la dernière fois.
     checked: u64,
+    /// La dernière fois qu'un dessin l'a lue (même horloge) : les plus anciennes partent quand le cache est plein.
+    used: u64,
     texture: wgpu::Texture,
     view: wgpu::TextureView,
 }
@@ -293,6 +297,8 @@ pub struct Renderer {
     pub texture_pack: Option<std::path::PathBuf>,
     /// Écrit chaque texture décodée dans ce dossier, sous le nom qu'un pack attend.
     pub texture_dump: Option<std::path::PathBuf>,
+    /// Les empreintes que le pack remplace, lues une fois dans son dossier (on ne cherche pas un fichier à chaque texture).
+    pack_names: Option<std::collections::HashSet<u32>>,
     layout: wgpu::BindGroupLayout,
     pipeline_layout: wgpu::PipelineLayout,
     vs_by_version: HashMap<(u64, u32, u32, [u32; 7]), Option<u64>>,
@@ -503,6 +509,7 @@ impl Renderer {
             live_textures: true,
             texture_filter: crate::upscale::TextureFilter::None,
             texture_pack: None,
+            pack_names: None,
             texture_dump: None,
             layout,
             pipeline_layout,
@@ -1304,9 +1311,27 @@ struct Out { @builtin(frag_depth) d: f32 }
             let repeats = (matches!((config >> 12) & 7, 2 | 6 | 7), matches!((config >> 8) & 7, 2 | 6 | 7));
             let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height, repeats) } else { pixels };
             let mut stored_levels = levels;
-            if let Some(replacement) = self.texture_pack.as_ref().and_then(|folder| crate::images::load_png(&folder.join(format!("{new_crc:08x}.png")))) {
+            if let (Some(folder), None) = (&self.texture_pack, &self.pack_names) {
+                let names = std::fs::read_dir(folder).into_iter().flatten().flatten().filter_map(|e| {
+                    let name = e.file_name().into_string().ok()?;
+                    u32::from_str_radix(name.strip_suffix(".png")?, 16).ok()
+                });
+                self.pack_names = Some(names.collect());
+            }
+            let packed = self.pack_names.as_ref().is_some_and(|n| n.contains(&new_crc));
+            if let Some(replacement) = self.texture_pack.as_ref().filter(|_| packed).and_then(|folder| crate::images::load_png(&folder.join(format!("{new_crc:08x}.png")))) {
                 (stored_width, stored_height, pixels) = replacement;
-                stored_levels = 1; // une image de pack n'a que son niveau
+                // ses niveaux : ceux du jeu, plus ceux que l'agrandissement ajoute (une image 4 fois plus grande, deux de plus)
+                let extra = (stored_width / width.max(1)).max(1).ilog2();
+                stored_levels = 1;
+                let (mut w, mut h) = (stored_width, stored_height);
+                let mut last = pixels.clone();
+                while stored_levels < levels + extra && w > 1 && h > 1 {
+                    last = crate::upscale::half(&last, w, h);
+                    (w, h) = (w / 2, h / 2);
+                    pixels.extend_from_slice(&last);
+                    stored_levels += 1;
+                }
             } else {
                 let mut at = base_size;
                 for n in 1..levels {
@@ -1324,9 +1349,15 @@ struct Out { @builtin(frag_depth) d: f32 }
                     }
                 }
             }
-            if self.textures.len() > 200 {
-                self.textures.clear();
-                self.bind_groups.clear();
+            // plein : les moins récemment lues partent (une scène de combat en lit environ 300 ; tout vider les redécodait et
+            // les refiltrait sans arrêt)
+            if self.textures.len() >= TEXTURE_CACHE {
+                let mut ages: Vec<u64> = self.textures.values().map(|e| e.used).collect();
+                ages.sort_unstable();
+                let cut = ages[TEXTURE_CACHE / 4];
+                let gone: std::collections::HashSet<u64> = self.textures.values().filter(|e| e.used <= cut).map(|e| e.id).collect();
+                self.textures.retain(|_, e| e.used > cut);
+                self.bind_groups.retain(|k, _| !k[..3].iter().any(|id| gone.contains(id)));
             }
             let id = self.next_id;
             self.next_id += 1;
@@ -1346,9 +1377,11 @@ struct Out { @builtin(frag_depth) d: f32 }
                 &pixels,
             );
             let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
-            self.textures.insert(key, TextureEntry { stored: [stored_width as f32, stored_height as f32], levels: stored_levels, id, crc: new_crc, checked: clock, texture, view });
+            self.textures.insert(key, TextureEntry { stored: [stored_width as f32, stored_height as f32], levels: stored_levels, id, crc: new_crc, checked: clock, used: clock, texture, view });
         }
-        let entry = &self.textures[&key];
+        let entry = self.textures.get_mut(&key)?;
+        entry.used = clock;
+        let entry = &*entry;
         let _ = &entry.texture;
         Some((
             entry.view.clone(),
