@@ -14,6 +14,7 @@ import lz11
 import nand
 import oracles
 import pk6
+import pack_ia
 import pack_police
 import profil
 import revue_modeles
@@ -28,6 +29,7 @@ if __name__ == '__main__':
     tournee.test()
     pk6.test()
     pack_police.test()
+    pack_ia.test()
     profil.test()
     combats.test()
     revue_modeles.test()
