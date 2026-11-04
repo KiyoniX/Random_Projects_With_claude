@@ -14,6 +14,7 @@ import lz11
 import nand
 import oracles
 import pk6
+import megagemmes
 import pack_dessins
 import pack_police
 import profil
@@ -30,6 +31,7 @@ if __name__ == '__main__':
     pk6.test()
     pack_police.test()
     pack_dessins.test()
+    megagemmes.test()
     profil.test()
     combats.test()
     revue_modeles.test()

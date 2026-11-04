@@ -54,6 +54,9 @@ pub struct Shared {
     pub stats: Rc<RefCell<DrawStats>>,
     pub screens: Rc<RefCell<Screens>>,
     pub gpu: pica::render::Gpu,
+    /// Des textures à remplacer pendant la partie (empreinte, image ou `None` pour rendre celle du jeu), prises par le rendu
+    /// avant sa commande suivante (la Méga-Gemme du Pokémon à la place de la bille Méga).
+    pub replace: Rc<RefCell<Vec<(u32, Option<pica::render::Picture>)>>>,
 }
 
 impl Shared {
@@ -76,6 +79,7 @@ pub struct PicaBackend {
     /// Où écrire les PNG ; `None` pour l'affichage en direct (ni PNG ni relecture des images).
     folder: Option<PathBuf>,
     screens: Rc<RefCell<Screens>>,
+    replace: Rc<RefCell<Vec<(u32, Option<pica::render::Picture>)>>>,
     next_snapshot: f64,
     snapshot_transfers: u64,
     stats: Rc<RefCell<DrawStats>>,
@@ -127,6 +131,7 @@ impl PicaBackend {
             pica,
             folder,
             screens: Rc::new(RefCell::new([None, None])),
+            replace: Default::default(),
             next_snapshot: 0.0,
             snapshot_transfers: 0,
             stats: Rc::new(RefCell::new(DrawStats::default())),
@@ -135,10 +140,13 @@ impl PicaBackend {
     }
 
     pub fn shared(&self) -> Shared {
-        Shared { stats: self.stats.clone(), screens: self.screens.clone(), gpu: self.pica.renderer.gpu() }
+        Shared { stats: self.stats.clone(), screens: self.screens.clone(), gpu: self.pica.renderer.gpu(), replace: self.replace.clone() }
     }
 
     fn run(&mut self, k: &mut Kernel, words: [u32; 8], list: Vec<u8>) -> Result<(), String> {
+        for (crc, picture) in self.replace.borrow_mut().drain(..) {
+            self.pica.renderer.replace_texture(crc, picture);
+        }
         let kind = words[0] & 0xFF;
         // une commande que le noyau refuse est refusée avant que pica n'y touche : ses tampons n'oublient rien ; pour 0 et
         // 2, gsp la refait lui-même et note le refus du banc

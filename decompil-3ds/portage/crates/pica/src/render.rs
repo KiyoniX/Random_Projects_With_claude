@@ -94,6 +94,9 @@ pub struct Stats {
     pub time: BTreeMap<&'static str, f64>,
 }
 
+/// Une image qui remplace une texture : largeur, hauteur, RGBA.
+pub type Picture = std::rc::Rc<(usize, usize, Vec<u8>)>;
+
 struct ColorSurface {
     id: u64,
     address: u32,
@@ -302,6 +305,8 @@ pub struct Renderer {
     /// Les textures (adresse) relues d'un tampon de rendu : une image déjà dessinée par le jeu (les noms du combat, écrits
     /// d'avance dans une texture 512 x 128), que le filtre ne ferait que délaver.
     rendered: std::collections::HashSet<u32>,
+    /// Les textures remplacées pendant la partie (`replace_texture`), avant le pack.
+    replaced: std::collections::HashMap<u32, Picture>,
     /// Avec `texture_dump` : les textures lues depuis le dernier transfert vers un écran. Le jeu dessine les deux écrans dans
     /// le même tampon (zones différentes) puis envoie chacun : ce qui est lu avant l'envoi vers le bas est l'écran du bas.
     since_sent: std::collections::HashSet<u32>,
@@ -521,6 +526,7 @@ impl Renderer {
             rendered: Default::default(),
             bottom_seen: Default::default(),
             since_sent: Default::default(),
+            replaced: Default::default(),
             texture_dump: None,
             layout,
             pipeline_layout,
@@ -1341,7 +1347,8 @@ struct Out { @builtin(frag_depth) d: f32 }
                 self.pack_names = Some(names.collect());
             }
             let packed = self.pack_names.as_ref().is_some_and(|n| n.contains(&new_crc));
-            if let Some(replacement) = self.texture_pack.as_ref().filter(|_| packed).and_then(|folder| crate::images::load_png(&folder.join(format!("{new_crc:08x}.png")))) {
+            let replacement = self.replaced.get(&new_crc).map(|p| (p.0, p.1, p.2.to_vec()));
+            if let Some(replacement) = replacement.or_else(|| self.texture_pack.as_ref().filter(|_| packed).and_then(|folder| crate::images::load_png(&folder.join(format!("{new_crc:08x}.png"))))) {
                 (stored_width, stored_height, pixels) = replacement;
                 // ses niveaux : ceux du jeu, plus ceux que l'agrandissement ajoute (une image 4 fois plus grande, deux de plus)
                 let extra = (stored_width / width.max(1)).max(1).ilog2();
@@ -1417,6 +1424,16 @@ struct Out { @builtin(frag_depth) d: f32 }
             [(config >> 12) & 7, (config >> 8) & 7, (config >> 24) & 1, entry.levels],
             byte_color(regs[border_reg]),
         ))
+    }
+
+    /// Remplace la texture d'empreinte `crc` par cette image (largeur, hauteur, RGBA), ou rend celle du jeu (`None`) ; la
+    /// texture déjà décodée est oubliée, et refaite à sa prochaine lecture.
+    pub fn replace_texture(&mut self, crc: u32, picture: Option<Picture>) {
+        match picture {
+            Some(p) => self.replaced.insert(crc, p),
+            None => self.replaced.remove(&crc),
+        };
+        self.textures.retain(|_, e| e.crc != crc);
     }
 
     /// Un transfert vers un écran : avec `texture_dump`, les textures lues depuis le précédent sont notées dans `bas.txt` si

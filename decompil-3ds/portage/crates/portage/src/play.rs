@@ -253,6 +253,21 @@ enum Party {
 
 /// Un Pokémon de combat (bpp) : espèce u16 `+0xC`, PV max `+0xE`, PV `+0x10`, niveau `+0x18`, statuts `+0x1C + 4 s` ; le
 /// PokemonParam `[bpp]` garde le pk6 chiffré en `[pp + 4]` (surnom, œuf, genre).
+/// La bille Méga du jeu, 16 x 16, à côté du nom d'un Pokémon méga-évolué (relevée dans `local/analyse/rendu/combat-lucario-mega`).
+const MEGA_ORB: u32 = 0x5de1_7103;
+
+/// La Méga-Gemme que tient un de nos Pokémon au combat (objet u16 bpp+0x12, bpp en `[+0x884 + 4 × place]`), s'il y en a une
+/// image dans `stones` (`outils/megagemmes.py`) : celle qui remplace la bille. Une seule bille pour tous : si l'adversaire
+/// méga-évolue aussi, il montre notre gemme (supposé rare en X).
+fn mega_stone(memory: &AddressSpace, base: u32, stones: &std::path::Path) -> Option<u16> {
+    let objects = battle_objects(memory, base)?;
+    (0..3).find_map(|place| {
+        let bpp = memory.u32(objects.wrapping_add(0x884 + 4 * place)).ok().filter(|&p| p != 0)?;
+        let item = memory.u16(bpp.wrapping_add(0x12)).ok()?;
+        stones.join(format!("{item}.png")).exists().then_some(item)
+    })
+}
+
 fn battle_card(memory: &AddressSpace, bpp: u32, fighting: bool, species: &[String]) -> Option<Card> {
     let u16_at = |offset: u32| memory.u16(bpp.wrapping_add(offset)).ok();
     let kind = u16_at(0xC)?;
@@ -506,6 +521,9 @@ struct Play {
     pokemon_icons: Vec<Vec<u8>>,
     item_icons: Vec<Vec<u8>>,
     icon_cache: std::cell::RefCell<std::collections::HashMap<(bool, u32), Option<std::sync::Arc<Icon>>>>,
+    /// Les images des Méga-Gemmes (`local/mods-build/megagemmes`) et celle qui remplace la bille Méga en ce moment.
+    mega_stones: std::path::PathBuf,
+    mega_shown: Option<u16>,
     /// Le dernier sac ou la dernière question dessinés et leur temps : gardés pendant les transitions (`BAG_HOLD_NS`).
     held_bag: Option<(Layout, (Vec<Pill>, [f32; 4]), u64)>,
     /// On est dans une scène de `TOUCH_SCENES` : le menu s'y est ouvert seul.
@@ -1001,8 +1019,20 @@ impl Play {
         self.update_moves();
     }
 
+    /// La bille Méga devient la gemme de notre Pokémon en combat, et redevient celle du jeu après.
+    fn follow_mega_stone(&mut self) {
+        let want = self.battle_base().and_then(|base| mega_stone(&self.bench.kernel.memory, base, &self.mega_stones));
+        if want == self.mega_shown {
+            return;
+        }
+        self.mega_shown = want;
+        let picture = want.and_then(|item| pica::images::load_png(&self.mega_stones.join(format!("{item}.png")))).map(std::rc::Rc::new);
+        self.shared.replace.borrow_mut().push((MEGA_ORB, picture));
+    }
+
     fn draw(&mut self) {
         self.follow_touch_scenes();
+        self.follow_mega_stone();
         self.load_move_infos();
         let (mut layout, mut shown) = self.layout();
         let mut overlay = self.native_pills(layout);
@@ -1254,6 +1284,8 @@ pub fn run(settings: Settings) -> Result<(), String> {
         pokemon_icons: Vec::new(),
         item_icons: Vec::new(),
         icon_cache: Default::default(),
+        mega_stones: root.join("local/mods-build/megagemmes"),
+        mega_shown: None,
         held_bag: None,
         touch_scene: false,
         restarts: 0,
