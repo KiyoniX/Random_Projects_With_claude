@@ -91,7 +91,10 @@ def ranger(soeurs):
     struct.pack_into('<2f', s, 0x44, 48.0, 8.0)
     # la colonne de la texture où commence la barre dit quelle plaque c'est (et où est son fond)
     fente = round(x - (struct.unpack_from('<f', plaque, 0x24)[0] - 64))
-    fond = next(c['fond'] for c in pack_dessins.PLAQUES.values() if c['fente'] == fente)
+    dessin = next(c for c in pack_dessins.PLAQUES.values() if c['fente'] == fente)
+    fond = dessin['fond']
+    x += dessin['decale']
+    struct.pack_into('<f', s, 0x24, x)
     copie = bytearray(s)
     copie[0xC:0x1C] = (bytes(s[0xC:0x1C]).split(b'\0')[0] + b'f').ljust(0x10, b'\0')
     struct.pack_into('<4I', copie, 0x4C, *[0xFFFFFFFF] * 4)
@@ -192,7 +195,8 @@ def test():
     assert noms == [b'Root', b'21f', b'21', b'1z', b'2q', b'25'], f'le fond, la barre, puis la plaque : {noms}'
     secs = {s[0xC:0x1C].split(b'\0')[0]: s for s in sections(neuf) if s[:4] == b'pic1'}
     barre, fond = secs[b'21'], secs[b'21f']
-    assert struct.unpack_from('<f', barre, 0x24)[0] == 1.0 and struct.unpack_from('<2f', barre, 0x44) == (48.0, 8.0)
+    # un point à gauche, puis 4 de plus : la fente redessinée de cette plaque est ramenée (`decale`)
+    assert struct.unpack_from('<f', barre, 0x24)[0] == -3.0 and struct.unpack_from('<2f', barre, 0x44) == (48.0, 8.0)
     assert abs(struct.unpack_from('<f', barre, 0x3C)[0] - LONGUEUR / 48) < 1e-6, 'échelle horizontale'
     assert struct.unpack_from('<H', fond, 0x5C)[0] == 0, 'le matériau de la plaque'
     x0, y0, x1, y1 = pack_dessins.PLAQUES[0x5ea935f9]['fond']

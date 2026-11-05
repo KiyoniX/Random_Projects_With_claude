@@ -31,14 +31,17 @@ OR = (0xee, 0xc6, 0x3a, 255)
 LONGUEUR = 55  # la barre à PV pleins, en points de la plaque (`mod_jauge.py`) : son bout passe sous l'anneau, qui le cache
 HAUTEUR = 40  # la texture : les 32 lignes de la plaque, puis 8 pour le fond de la barre, que la plaque n'affiche pas
 
-# Les plaques : coin haut gauche (ox, oy) de l'anneau noir (14 points de haut), largeur, bord gauche de la fente (47 points
-# de fond entre deux bords noirs), pastille des lettres, lettres P et V (bord gauche, largeur de V), N (bord gauche, haut,
-# hauteur), reflet blanc sur le bout gauche, barre d'expérience, fond de la barre (x0, y0, x1, y1 : un coin vide).
+# Les plaques : coin haut gauche (ox, oy) de l'anneau noir (14 points de haut), largeur, bord gauche de la fente du jeu (sa
+# barre y commence : ce qui reconnaît la plaque dans `mod_jauge.py`), décalage de la fente redessinée (la barre suit),
+# pastille des lettres, lettres P et V (bord gauche, largeur de V), N (bord gauche, haut, hauteur), reflet blanc sur le bout
+# gauche, barre d'expérience, fond de la barre (x0, y0, x1, y1 : sous la plaque).
+# Les deux ont le dessin de celle de l'adversaire en simple (2ccf7c12), que l'utilisateur préfère : la nôtre (5ea935f9),
+# plus longue de 4 points et sa fente plus à droite dans le jeu, est raccourcie, sa fente et sa barre ramenées de 4 points.
 PLAQUES = {
-    0x2ccf7c12: dict(ox=42, oy=13, w=76, fente=62, pastille=(47, 62), p=48, v=(54, 6), n=(83, 9, 5), reflet=False, exp=False,
-                     fond=(2, 34, 54, 38)),
-    0x5ea935f9: dict(ox=28, oy=8, w=80, fente=52, pastille=(35, 52), p=36, v=(43, 7), n=(77, 3, 6), reflet=True, exp=True,
-                     fond=(2, 34, 54, 38)),
+    0x2ccf7c12: dict(ox=42, oy=13, w=76, fente=62, decale=0, pastille=(47, 62), p=48, v=(54, 6), n=(83, 9, 5), reflet=False,
+                     exp=False, fond=(2, 34, 54, 38)),
+    0x5ea935f9: dict(ox=28, oy=8, w=76, fente=52, decale=-4, pastille=(33, 48), p=34, v=(40, 6), n=(77, 4, 5), reflet=False,
+                     exp=True, fond=(2, 34, 54, 38)),
 }
 
 
@@ -111,7 +114,7 @@ def plaque(c):
     image.paste(Image.new('RGBA', image.size), (0, 0), trou)
     remplir(image, trou, fond)
     # la fente : transparente de la fin de la pastille à l'arrondi, la barre et son fond sont dessinés derrière
-    f = c['fente']
+    f = c['fente'] + c['decale']
     fente = Image.composite(trou, Image.new('L', image.size), masque(image, lambda m: m.rectangle([f * k, 0, image.size[0], image.size[1]], fill=255)))
     image.paste(Image.new('RGBA', image.size), (0, 0), fente)
     # le fond de la barre : plus clair en bas et à gauche, un point de plus autour (le lissage lit les voisins)
