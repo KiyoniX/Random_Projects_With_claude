@@ -1328,16 +1328,6 @@ struct Out { @builtin(frag_depth) d: f32 }
             let (mut stored_width, mut stored_height) = if upscale { (width * 2, height * 2) } else { (width, height) };
             let repeats = (matches!((config >> 12) & 7, 2 | 6 | 7), matches!((config >> 8) & 7, 2 | 6 | 7));
             let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height, repeats) } else { pixels };
-            // une image que le jeu a dessinée (les noms du combat) : agrandie au plus proche à l'échelle du rendu, le lissage du
-            // jeu ne floute alors plus qu'un bord de point quand il l'étire (le nom de l'adversaire)
-            let k = self.scale as usize;
-            if self.rendered.contains(&address) && levels == 1 && k > 1 {
-                pixels = (0..height * k)
-                    .flat_map(|y| (0..width * k).map(move |x| (y / k) * width + x / k))
-                    .flat_map(|i| [pixels[4 * i], pixels[4 * i + 1], pixels[4 * i + 2], pixels[4 * i + 3]])
-                    .collect();
-                (stored_width, stored_height) = (width * k, height * k);
-            }
             let mut stored_levels = levels;
             if let (Some(folder), None) = (&self.texture_pack, &self.pack_names) {
                 let names = std::fs::read_dir(folder).into_iter().flatten().flatten().filter_map(|e| {
@@ -1408,6 +1398,9 @@ struct Out { @builtin(frag_depth) d: f32 }
             let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
             self.textures.insert(key, TextureEntry { stored: [stored_width as f32, stored_height as f32], levels: stored_levels, id, crc: new_crc, checked: clock, used: clock, texture, view });
         }
+        // une image que le jeu a dessinée (les noms du combat) : lue au plus proche, le lissage du jeu la floutait quand il
+        // l'étire (le nom de l'adversaire). Pas d'agrandissement sur le processeur : le terrain en redessine à chaque image.
+        let linear = if self.rendered.contains(&address) { 0.0 } else { linear };
         let entry = self.textures.get_mut(&key)?;
         entry.used = clock;
         let entry = &*entry;

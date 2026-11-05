@@ -426,7 +426,16 @@ impl Bench {
         self.start();
         let limit = (self.options.seconds * 1e9) as u64;
         let wall = self.options.wall_seconds;
+        // `PORTAGE_MEMOIRE` : la mémoire du jeu vidée à ces heures du jeu (secondes, séparées par des virgules) dans le dossier
+        // de sortie (`memoire-<t>.bin`, et `.idx` : l'adresse de chaque page de 0x1000 octets), pour y chercher une valeur
+        let mut dumps: Vec<f64> = std::env::var("PORTAGE_MEMOIRE").ok().map(|v| v.split(',').filter_map(|t| t.trim().parse().ok()).collect()).unwrap_or_default();
+        dumps.sort_by(|a, b| b.total_cmp(a));
+        let out = self.options.out.clone();
         let mut should_stop = move |k: &mut Kernel| -> Option<String> {
+            while dumps.last().is_some_and(|&t| k.now as f64 / 1e9 >= t) {
+                let t = dumps.pop().unwrap_or_default();
+                dump_memory(k, &out, &format!("{t}"));
+            }
             if let Some(text) = &k.bench.stop_request {
                 return Some(text.clone());
             }
@@ -539,4 +548,22 @@ impl Bench {
         }
         lines.join("\n")
     }
+}
+
+/// La mémoire du jeu (code et tas, mémoire linéaire) dans `memoire-<tag>.bin`, les pages projetées à la suite ; leurs adresses
+/// dans `memoire-<tag>.idx`.
+fn dump_memory(k: &Kernel, out: &Path, tag: &str) {
+    let (mut data, mut index) = (Vec::new(), String::new());
+    for (low, high) in [(0x0010_0000u32, 0x1000_0000u32), (0x1400_0000, 0x1C00_0000)] {
+        for page in (low..high).step_by(0x1000) {
+            if let Some(bytes) = k.memory.is_mapped(page, 0x1000).then(|| k.memory.read(page, 0x1000).ok()).flatten() {
+                data.extend_from_slice(&bytes);
+                index += &format!("{page:x}
+");
+            }
+        }
+    }
+    let _ = std::fs::create_dir_all(out);
+    let _ = std::fs::write(out.join(format!("memoire-{tag}.bin")), data);
+    let _ = std::fs::write(out.join(format!("memoire-{tag}.idx")), index);
 }

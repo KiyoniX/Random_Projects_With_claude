@@ -402,6 +402,27 @@ const AIM_MAX_RAW: f64 = 100.0;
 /// Le retard gardé au plus, un quart de seconde : quand la souris s'arrête, la visée s'arrête peu après.
 const AIM_MAX_PENDING: f64 = 15.0 * AIM_MAX_RAW;
 
+/// L'appareil photo des points photo (dans DllField) : son objet a pour table de méthodes DllField + `PHOTO_VTABLE`, le
+/// nombre de crans du zoom en +0xC4 (15), le pas en +0xC8 (0,2 : zoom = 1 + 0,2 x cran), le cran actuel en +0xF0, l'angle du
+/// curseur de la molette en +0x10C (degrés ; le jeu le pose à l'angle du toucher autour de `PHOTO_DIAL` moins `PHOTO_ANGLE`,
+/// y vers le bas : touchers à 257,4, 272,4 et 278,4 degrés -> 44, 59, 65). Relevé sur la Route 6
+/// (`local/analyse/rendu/photo-souris` : ×1,4 cran 2 angle −1, ×2,4 cran 7 angle 57, ×3,4 cran 12 angle 86).
+const PHOTO_VTABLE: u32 = 0x1051EC;
+const PHOTO_ANGLE: f32 = 213.4;
+/// La molette de l'écran du bas : centre et rayon du chemin du curseur, en points de l'écran du bas.
+const PHOTO_DIAL: (f32, f32, f32) = (216.7, 110.0, 60.0);
+
+/// Un tour de molette en cours : le stylet tient le curseur et le tourne de 3 degrés par image du jeu jusqu'à ce que le cran
+/// ait changé, puis le lâche (le pas en degrés d'un cran n'est pas régulier : 8,6 à 11,6 mesurés).
+struct ZoomDrag {
+    object: u32,
+    from: f32,
+    direction: f32,
+    angle: f32,
+    next: u64,
+    frames: u32,
+}
+
 /// La visée à la souris : ce qui reste à envoyer au gyroscope (X, Y), étalé d'une fin d'image à l'autre.
 #[derive(Default)]
 struct Aim {
@@ -467,6 +488,11 @@ impl Hitches {
 struct Play {
     hitches: Hitches,
     aim: Aim,
+    /// L'objet de l'appareil photo trouvé la dernière fois (vérifié avant chaque usage), et le tour de molette en cours.
+    photo: std::cell::Cell<Option<u32>>,
+    zoom: Option<ZoomDrag>,
+    /// `PORTAGE_MOLETTE` (« 101:+,103:- ») : des crans de molette à ces heures du jeu, pour vérifier le zoom en rejeu.
+    wheel_script: Vec<(f64, bool)>,
     /// La souris peut viser : ni rejeu, ni pendant que l'on va à un moment donné.
     can_aim: bool,
     focused: bool,
@@ -1039,8 +1065,68 @@ impl Play {
         self.shared.replace.borrow_mut().push((MEGA_ORB, picture));
     }
 
+    /// L'objet de l'appareil photo, si un point photo est ouvert : le dernier trouvé s'il porte encore sa table de méthodes,
+    /// sinon cherché dans le tas linéaire (une fois : la molette seule le demande).
+    fn photo_object(&self) -> Option<u32> {
+        let base = self.bench.kernel.journal.names.modules.iter().find(|m| m.2 == "DllField").map(|m| m.0)?;
+        let memory = &self.bench.kernel.memory;
+        let vtable = base + PHOTO_VTABLE;
+        let is_photo = |a: u32| memory.u32(a).ok() == Some(vtable) && memory.u32(a + 0xC8).ok() == Some(0.2f32.to_bits());
+        if let Some(a) = self.photo.get().filter(|&a| is_photo(a)) {
+            return Some(a);
+        }
+        let found = (0x1400_0000u32..0x1C00_0000).step_by(0x1000).filter(|&p| memory.is_mapped(p, 0x1000)).find_map(|page| {
+            let bytes = memory.read(page, 0x1000).ok()?;
+            (0..0x1000).step_by(4).map(|o| page + o).find(|&a| u32::from_le_bytes(bytes[(a - page) as usize..(a - page) as usize + 4].try_into().unwrap()) == vtable && is_photo(a))
+        });
+        self.photo.set(found);
+        found
+    }
+
+    /// Un cran de molette : vers la loupe (`up`) ou vers la fleur.
+    fn wheel(&mut self, up: bool) {
+        if self.zoom.is_some() {
+            return;
+        }
+        let Some(object) = self.photo_object() else { return };
+        let memory = &self.bench.kernel.memory;
+        let float = |o: u32| memory.u32(object + o).ok().map(f32::from_bits);
+        let (Some(step), Some(angle), Some(steps)) = (float(0xF0), float(0x10C), float(0xC4)) else { return };
+        if (up && step >= steps) || (!up && step <= 0.0) {
+            return;
+        }
+        let now = self.bench.kernel.now;
+        self.zoom = Some(ZoomDrag { object, from: step, direction: if up { 1.0 } else { -1.0 }, angle: angle + PHOTO_ANGLE, next: now, frames: 0 });
+    }
+
+    /// Le stylet du tour de molette, une position par image du jeu.
+    fn follow_zoom(&mut self) {
+        let now = self.bench.kernel.now;
+        let Some(drag) = self.zoom.as_mut().filter(|d| now >= d.next) else { return };
+        let step = self.bench.kernel.memory.u32(drag.object + 0xF0).ok().map(f32::from_bits);
+        let done = drag.frames > 0 && step.is_none_or(|s| (s - drag.from).abs() >= 1.0);
+        if done || drag.frames > 30 {
+            self.bench.kernel.bench.touch = None;
+            self.zoom = None;
+            return;
+        }
+        if drag.frames > 1 {
+            drag.angle += 3.0 * drag.direction;
+        }
+        let (cx, cy, r) = PHOTO_DIAL;
+        let a = drag.angle.to_radians();
+        self.bench.kernel.bench.touch = Some(((cx + r * a.cos()).round() as u16, (cy + r * a.sin()).round() as u16));
+        drag.frames += 1;
+        drag.next = now + VBLANK_NS * 2;
+    }
+
     fn draw(&mut self) {
         self.follow_touch_scenes();
+        if self.wheel_script.last().is_some_and(|w| self.bench.kernel.now as f64 / 1e9 >= w.0) {
+            let (_, up) = self.wheel_script.pop().unwrap_or_default();
+            self.wheel(up);
+        }
+        self.follow_zoom();
         self.follow_mega_stone();
         self.load_move_infos();
         let (mut layout, mut shown) = self.layout();
@@ -1197,6 +1283,15 @@ impl ApplicationHandler for Play {
                     }
                 }
             }
+            WindowEvent::MouseWheel { delta, .. } => {
+                let y = match delta {
+                    winit::event::MouseScrollDelta::LineDelta(_, y) => y,
+                    winit::event::MouseScrollDelta::PixelDelta(p) => p.y as f32,
+                };
+                if y != 0.0 {
+                    self.wheel(y > 0.0);
+                }
+            }
             WindowEvent::CursorMoved { position, .. } => {
                 self.cursor = (position.x as f32, position.y as f32);
                 self.update_stylus();
@@ -1264,6 +1359,9 @@ pub fn run(settings: Settings) -> Result<(), String> {
         last_top: 0,
         hitches: Hitches::default(),
         aim: Aim::default(),
+        photo: Default::default(),
+        zoom: None,
+        wheel_script: std::env::var("PORTAGE_MOLETTE").ok().map(|v| v.split(',').filter_map(|e| e.split_once(':')).filter_map(|(t, d)| Some((t.parse().ok()?, d == "+"))).rev().collect()).unwrap_or_default(),
         can_aim: replay.is_none(),
         focused: true,
         grabbed: false,
