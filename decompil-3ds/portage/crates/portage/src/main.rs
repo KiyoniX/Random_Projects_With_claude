@@ -7,7 +7,7 @@
 //!   portage window <capture> [--scale N]                     affiche une capture rejouée dans une fenêtre
 //!   portage play [--scale N] [--seconds S] [--screenshot-at T PRÉFIXE] [--rejouer JOURNAL [--aller-a S]] [--vitesse N] [--nouvelle-partie]
 //!                [--combat coin|menu] [--ecrans deux] [--mod DOSSIER] [--volume 0 à 100]
-//!                [--archipelago ADRESSE --joueur NOM] [--filtre-texture aucun|scale2x|mmpx|bicubique|scaleforce|anime4k] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
+//!                [--archipelago ADRESSE --joueur NOM] [--session NOM --joueur NOM (--heberger PORT | --rejoindre ADRESSE)] [--filtre-texture aucun|scale2x|mmpx|bicubique|scaleforce|anime4k] [--lissage] [--textures DOSSIER] [--extraire-textures DOSSIER]
 //!                                                          le jeu en direct dans une fenêtre (voir `play.rs`) ; capture
 //!                                                          ce que la fenêtre présente à la fin d'image de l'heure T du jeu
 //!   portage bench <capture> [répétitions] [--scale N]        temps par image, à froid puis à chaud
@@ -56,6 +56,10 @@ struct Options {
     /// `play` : l'adresse d'une partie Archipelago, et le nom du joueur.
     archipelago: Option<String>,
     player: Option<String>,
+    /// `play` : une session à plusieurs (`--session NOM`), hébergée (`--heberger PORT`) ou rejointe (`--rejoindre ADRESSE`).
+    session: Option<String>,
+    host_port: Option<u16>,
+    join: Option<String>,
     /// `play` : le dossier d'un mod (`local/mods-build/pc`).
     game_mod: Option<PathBuf>,
     /// `play` : le volume, de 0 (pas de sortie du tout) à 100.
@@ -68,7 +72,7 @@ struct Options {
 }
 
 fn parse(args: &[String]) -> Options {
-    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, forward: None, speed: 1, new_game: false, combat_in_corner: true, both_screens: false, archipelago: None, player: None, game_mod: None, volume: 100, textures: Default::default(), smooth: false, positional: Vec::new() };
+    let mut o = Options { direct: false, scale: 1, out: None, seconds: None, screenshot: None, replay: None, forward: None, speed: 1, new_game: false, combat_in_corner: true, both_screens: false, archipelago: None, player: None, session: None, host_port: None, join: None, game_mod: None, volume: 100, textures: Default::default(), smooth: false, positional: Vec::new() };
     let mut i = 0;
     while i < args.len() {
         match args[i].as_str() {
@@ -89,6 +93,18 @@ fn parse(args: &[String]) -> Options {
             "--archipelago" => {
                 i += 1;
                 o.archipelago = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
+            }
+            "--session" => {
+                i += 1;
+                o.session = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
+            }
+            "--heberger" => {
+                i += 1;
+                o.host_port = Some(args.get(i).and_then(|s| s.parse().ok()).unwrap_or_else(|| usage()));
+            }
+            "--rejoindre" => {
+                i += 1;
+                o.join = Some(args.get(i).cloned().unwrap_or_else(|| usage()));
             }
             "--joueur" => {
                 i += 1;
@@ -441,10 +457,11 @@ fn main() {
             combat_in_corner: options.combat_in_corner,
             both_screens: options.both_screens,
             game_mod: options.game_mod,
-            archipelago: runtime::bench::archipelago_settings(options.archipelago, options.player),
+            archipelago: runtime::bench::archipelago_settings(options.archipelago, options.player.clone()),
             volume: options.volume,
             textures: options.textures,
             smooth: options.smooth,
+            session: options.session.map(|name| play::SessionSettings { name, player: options.player.clone().unwrap_or_else(|| "Joueur".to_string()), host_port: options.host_port, join: options.join }),
         }),
         "overlay" => cmd_overlay(options),
         "bench" => cmd_bench(options),

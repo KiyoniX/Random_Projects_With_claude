@@ -1999,6 +1999,7 @@ dependencies = [
  "eframe",
  "serde",
  "serde_json",
+ "session",
 ]
 
 [[package]]
@@ -3024,6 +3025,7 @@ dependencies = [
  "resvg",
  "runtime",
  "services",
+ "session",
  "wgpu 29.0.4",
  "winit",
 ]
@@ -3499,6 +3501,14 @@ dependencies = [
  "serde_json",
  "symphonia-codec-aac",
  "symphonia-core",
+]
+
+[[package]]
+name = "session"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

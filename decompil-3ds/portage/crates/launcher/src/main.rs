@@ -26,6 +26,17 @@ enum Screens {
     Both,
 }
 
+/// Jouer seul, héberger une session, ou en rejoindre une.
+#[derive(Clone, Copy, PartialEq, Debug, Serialize, Deserialize)]
+enum Multi {
+    Solo,
+    Host,
+    Join,
+}
+
+/// Les parties du randomizer (`outils/randomizer.py`) : (nom, ce qu'on affiche).
+const PARTS: [(&str, &str); 5] = [("sauvages", "Pokémon sauvages"), ("starters", "Starters et dons"), ("dresseurs", "Dresseurs"), ("objets", "Objets au sol"), ("capacites", "Capacités apprises")];
+
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize)]
 #[serde(default)]
 struct Settings {
@@ -49,6 +60,15 @@ struct Settings {
     new_game: bool,
     /// Le jeu avance tant de fois plus vite ; le son se coupe au-delà de 1.
     speed: u32,
+    /// Le randomizer : la graine (vide : aucun) et ses parties cochées.
+    seed: String,
+    parts: Vec<String>,
+    /// À plusieurs : seul, hôte (nom de session, port, règle) ou joueur (adresse de l'hôte).
+    multi: Multi,
+    session: String,
+    port: u16,
+    address: String,
+    nuzlocke: bool,
 }
 
 /// Les filtres de texture : (nom pour `portage play`, ce qu'on affiche).
@@ -56,7 +76,27 @@ const TEXTURE_FILTERS: [(&str, &str); 6] = [("aucun", "Aucun"), ("scale2x", "Sca
 
 impl Default for Settings {
     fn default() -> Settings {
-        Settings { scale: 2, screens: Screens::Top, combat: CombatUi::Corner, game_mod: None, volume: 100, texture_filter: "aucun".to_string(), smooth: false, texture_pack: None, archipelago: String::new(), player: String::new(), new_game: false, speed: 1 }
+        Settings {
+            scale: 2,
+            screens: Screens::Top,
+            combat: CombatUi::Corner,
+            game_mod: None,
+            volume: 100,
+            texture_filter: "aucun".to_string(),
+            smooth: false,
+            texture_pack: None,
+            archipelago: String::new(),
+            player: String::new(),
+            new_game: false,
+            speed: 1,
+            seed: String::new(),
+            parts: PARTS.iter().map(|p| p.0.to_string()).collect(),
+            multi: Multi::Solo,
+            session: "potes".to_string(),
+            port: 47300,
+            address: String::new(),
+            nuzlocke: true,
+        }
     }
 }
 
@@ -81,6 +121,9 @@ impl Settings {
         }
         if let Some(name) = &self.game_mod {
             out.extend(["--mod".to_string(), root.join("local/mods-build").join(name).display().to_string()]);
+        } else if self.texture_pack.as_deref() == Some("police-hd") && root.join("local/mods-build/jauge-hd/pc/overlay.json").is_file() {
+            // les plaques de PV redessinées du pack vont avec la barre agrandie du mod
+            out.extend(["--mod".to_string(), root.join("local/mods-build/jauge-hd/pc").display().to_string()]);
         }
         if self.new_game {
             out.push("--nouvelle-partie".to_string());
@@ -137,6 +180,14 @@ struct Launcher {
     texture_packs: Vec<String>,
     game: Option<Child>,
     status: String,
+    /// Le randomizer en construction, et les arguments du jeu à lancer ensuite.
+    building: Option<(Child, Vec<String>)>,
+}
+
+/// Le dossier du mod du randomizer (le jeu lit sa sortie `pc`), avec ou sans la barre de PV agrandie.
+fn random_mod(root: &Path, seed: &str, parts: &[String], jauge: bool) -> PathBuf {
+    let name = format!("random-{seed}-{}{}", parts.join("-"), if jauge { "-jauge" } else { "" });
+    root.join("local/mods-build").join(name)
 }
 
 impl Launcher {
@@ -149,14 +200,111 @@ impl Launcher {
             self.status = format!("réglages non écrits : {e}");
             return;
         }
+        match self.prepare() {
+            Ok(Some(arguments)) => self.launch(arguments),
+            Ok(None) => {}
+            Err(e) => self.status = e,
+        }
+    }
+
+    /// Les arguments du jeu : la session (créée par l'hôte, lue chez l'hôte par un joueur) et le mod du randomizer de sa
+    /// graine. `None` : le randomizer se construit d'abord (`building`), le jeu partira ensuite.
+    fn prepare(&mut self) -> Result<Option<Vec<String>>, String> {
+        let s = &self.settings;
+        let mut arguments = s.arguments(&self.root);
+        let player = if s.player.is_empty() { "Joueur".to_string() } else { s.player.clone() };
+        let (seed, parts) = match s.multi {
+            Multi::Solo => (s.seed.clone(), s.parts.clone()),
+            Multi::Host => {
+                let session = session::Session::load(&self.root, &s.session).unwrap_or_else(|| session::Session {
+                    name: s.session.clone(),
+                    seed: s.seed.clone(),
+                    parts: s.parts.clone(),
+                    rule: if s.nuzlocke { session::Rule::Nuzlocke } else { session::Rule::Free },
+                    ..Default::default()
+                });
+                session.save(&self.root)?;
+                arguments.extend(["--session".into(), s.session.clone(), "--joueur".into(), player, "--heberger".into(), s.port.to_string()]);
+                (session.seed, session.parts)
+            }
+            Multi::Join => {
+                // l'hôte relance peut-être (quelqu'un a perdu un Pokémon) : quelques essais
+                let mut found = Err(String::new());
+                for _ in 0..10 {
+                    found = session::fetch(&s.address, &player);
+                    if found.is_ok() {
+                        break;
+                    }
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+                let host = found.map_err(|e| format!("hôte injoignable : {e}"))?;
+                arguments.extend(["--session".into(), host.name.clone(), "--joueur".into(), player, "--rejoindre".into(), s.address.clone()]);
+                (host.seed, host.parts)
+            }
+        };
+        if seed.is_empty() {
+            return Ok(Some(arguments));
+        }
+        let jauge = s.texture_pack.as_deref() == Some("police-hd");
+        let folder = random_mod(&self.root, &seed, &parts, jauge);
+        // le mod du randomizer remplace celui des réglages
+        if let Some(i) = arguments.iter().position(|a| a == "--mod") {
+            arguments.drain(i..i + 2);
+        }
+        arguments.extend(["--mod".into(), folder.join("pc").display().to_string()]);
+        if folder.join("pc/overlay.json").is_file() {
+            return Ok(Some(arguments));
+        }
+        let mut build = vec!["outils/randomizer.py".to_string(), seed.clone()];
+        build.extend(parts.iter().cloned());
+        if jauge {
+            build.push("--jauge".into());
+        }
+        build.extend(["--sortie".into(), folder.display().to_string()]);
+        let child = Command::new("python").args(&build).current_dir(&self.root).spawn().map_err(|e| format!("python : {e}"))?;
+        self.building = Some((child, arguments));
+        self.status = format!("Construction du randomizer (graine {seed})…");
+        Ok(None)
+    }
+
+    fn launch(&mut self, arguments: Vec<String>) {
         let name = if cfg!(windows) { "portage.exe" } else { "portage" };
         let program = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join(name))).unwrap_or_else(|| PathBuf::from(name));
-        match Command::new(&program).args(self.settings.arguments(&self.root)).current_dir(self.root.join("portage")).spawn() {
+        match Command::new(&program).args(&arguments).current_dir(self.root.join("portage")).spawn() {
             Ok(child) => {
                 self.game = Some(child);
                 self.status = "Le jeu est lancé.".to_string();
             }
             Err(e) => self.status = format!("{} : {e}", program.display()),
+        }
+    }
+
+    /// Le randomizer fini : lancer le jeu. Le jeu sorti pour recommencer (code 3) : le relancer, sur une partie neuve.
+    fn follow(&mut self) {
+        if let Some((child, _)) = self.building.as_mut() {
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    let (_, arguments) = self.building.take().unwrap();
+                    if status.success() {
+                        self.launch(arguments);
+                    } else {
+                        self.status = "Le randomizer a échoué (voir la console).".to_string();
+                    }
+                }
+                Ok(None) => {}
+                Err(e) => self.status = e.to_string(),
+            }
+        }
+        if let Some(Ok(Some(status))) = self.game.as_mut().map(|g| g.try_wait()) {
+            self.game = None;
+            if status.code() == Some(3) {
+                self.status = "Un Pokémon est tombé : tout le monde recommence.".to_string();
+                match self.prepare() {
+                    Ok(Some(arguments)) => self.launch(arguments),
+                    Ok(None) => {}
+                    Err(e) => self.status = e,
+                }
+            }
         }
     }
 
@@ -172,7 +320,9 @@ impl Launcher {
 
 impl eframe::App for Launcher {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
-        let running = self.game.as_mut().is_some_and(|g| matches!(g.try_wait(), Ok(None)));
+        self.follow();
+        ui.ctx().request_repaint_after(std::time::Duration::from_millis(500));
+        let running = self.building.is_some() || self.game.as_mut().is_some_and(|g| matches!(g.try_wait(), Ok(None)));
         egui::CentralPanel::default().show(ui, |ui| {
             ui.heading("Pokémon X");
             ui.add_space(8.0);
@@ -230,6 +380,53 @@ impl eframe::App for Launcher {
                     ui.add(egui::TextEdit::singleline(&mut self.settings.player).hint_text("joueur").desired_width(110.0));
                 });
                 ui.end_row();
+                ui.label("Randomizer");
+                ui.horizontal(|ui| {
+                    ui.add(egui::TextEdit::singleline(&mut self.settings.seed).hint_text("graine (vide : aucun)").desired_width(140.0));
+                    if ui.button("Nouvelle graine").clicked() {
+                        let t = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+                        self.settings.seed = format!("{}", (t as u64).wrapping_mul(0x9E37_79B9_7F4A_7C15) % 1_000_000);
+                    }
+                });
+                ui.end_row();
+                ui.label("");
+                ui.horizontal_wrapped(|ui| {
+                    for (name, label) in PARTS {
+                        let mut on = self.settings.parts.iter().any(|p| p == name);
+                        if ui.checkbox(&mut on, label).changed() {
+                            self.settings.parts.retain(|p| p != name);
+                            if on {
+                                self.settings.parts.push(name.to_string());
+                                self.settings.parts.sort_by_key(|p| PARTS.iter().position(|q| q.0 == p));
+                            }
+                        }
+                    }
+                });
+                ui.end_row();
+                ui.label("À plusieurs");
+                ui.horizontal(|ui| {
+                    ui.radio_value(&mut self.settings.multi, Multi::Solo, "Seul");
+                    ui.radio_value(&mut self.settings.multi, Multi::Host, "Héberger");
+                    ui.radio_value(&mut self.settings.multi, Multi::Join, "Rejoindre");
+                });
+                ui.end_row();
+                match self.settings.multi {
+                    Multi::Solo => {}
+                    Multi::Host => {
+                        ui.label("");
+                        ui.horizontal(|ui| {
+                            ui.add(egui::TextEdit::singleline(&mut self.settings.session).hint_text("session").desired_width(110.0));
+                            ui.add(egui::DragValue::new(&mut self.settings.port).prefix("port "));
+                            ui.checkbox(&mut self.settings.nuzlocke, "Nuzlocke : un K.O., tout le monde recommence");
+                        });
+                        ui.end_row();
+                    }
+                    Multi::Join => {
+                        ui.label("");
+                        ui.add(egui::TextEdit::singleline(&mut self.settings.address).hint_text("adresse de l'hôte:port").desired_width(200.0));
+                        ui.end_row();
+                    }
+                }
                 ui.label("Mod");
                 let current = self.settings.game_mod.clone().unwrap_or_else(|| "Aucun".to_string());
                 egui::ComboBox::from_id_salt("mod").selected_text(current).show_ui(ui, |ui| {
@@ -260,9 +457,9 @@ fn main() -> eframe::Result {
     let settings = load(&root.join("local/portage/reglages.json"));
     let mods = list_mods(&root);
     let texture_packs = list_texture_packs(&root);
-    let app = Launcher { root, settings, mods, texture_packs, game: None, status: String::new() };
+    let app = Launcher { root, settings, mods, texture_packs, game: None, status: String::new(), building: None };
     let options = eframe::NativeOptions {
-        viewport: egui::ViewportBuilder::default().with_inner_size([560.0, 420.0]),
+        viewport: egui::ViewportBuilder::default().with_inner_size([640.0, 560.0]),
         ..Default::default()
     };
     eframe::run_native("Pokémon X", options, Box::new(|_| Ok(Box::new(app))))

@@ -571,6 +571,12 @@ struct Play {
     touch_scene: bool,
     /// Les relances du jeu déjà suivies (`Bench::restarts`).
     restarts: usize,
+    /// La session à plusieurs : le lien avec l'hôte (ou l'hôte lui-même), les PV vus de nos Pokémon au combat (bpp -> PV),
+    /// le titre de la fenêtre, et un recommencement demandé.
+    link: Option<session::Link>,
+    seen_hp: std::collections::HashMap<u32, u16>,
+    title: String,
+    reset: Option<std::path::PathBuf>,
 }
 
 /// Ce que `portage play` reçoit de la ligne de commande (les réglages du launcher).
@@ -593,7 +599,20 @@ pub struct Settings {
     pub volume: u32,
     pub textures: runtime::gpu::TextureOptions,
     pub smooth: bool,
+    /// Une partie à plusieurs (`session`) : sa sauvegarde dans `local/sessions/<nom>/partie`.
+    pub session: Option<SessionSettings>,
 }
+
+/// Rejoindre ou héberger une session : son nom, le nom du joueur, le port de l'hôte ou l'adresse à rejoindre.
+pub struct SessionSettings {
+    pub name: String,
+    pub player: String,
+    pub host_port: Option<u16>,
+    pub join: Option<String>,
+}
+
+/// Le code de sortie qui demande au launcher de relancer la session (tout le monde recommence).
+pub const EXIT_RESET: i32 = 3;
 
 impl Play {
     /// Fait avancer le jeu jusqu'au temps réel, deux images au plus.
@@ -1167,7 +1186,45 @@ impl Play {
         drag.next = now + VBLANK_NS * 2;
     }
 
+    /// La session à plusieurs : les messages de l'hôte, et nos Pokémon K.O. au combat (règle nuzlocke : l'hôte fait
+    /// recommencer tout le monde).
+    fn follow_link(&mut self) {
+        let Some(link) = self.link.as_mut() else { return };
+        for event in link.poll() {
+            match event {
+                session::Event::Reset { message, .. } => {
+                    self.title = format!("{} — {message}", self.title.split(" — ").next().unwrap_or(""));
+                    self.reset = Some(self.bench.options.out.clone());
+                    self.stopped = Some(message);
+                }
+                session::Event::Players(names) => self.title = format!("{} — {}", self.title.split(" — ").next().unwrap_or(""), names.join(", ")),
+                session::Event::Lost(why) => self.title = format!("{} — {why}", self.title.split(" — ").next().unwrap_or("")),
+            }
+            if let Some(window) = &self.window {
+                window.set_title(&self.title);
+            }
+        }
+        let Some(base) = self.battle_base() else {
+            self.seen_hp.clear();
+            return;
+        };
+        let memory = &self.bench.kernel.memory;
+        let Some(objects) = battle_objects(memory, base) else { return };
+        for place in 0..3 {
+            let Some(bpp) = memory.u32(objects.wrapping_add(0x884 + 4 * place)).ok().filter(|&p| p != 0) else { continue };
+            let (Ok(hp), Ok(species)) = (memory.u16(bpp.wrapping_add(0x10)), memory.u16(bpp.wrapping_add(0xC))) else { continue };
+            let before = self.seen_hp.insert(bpp, hp);
+            if hp == 0 && before.is_some_and(|b| b > 0) {
+                let name = self.species_names.get(species as usize).cloned().unwrap_or_else(|| format!("le Pokémon {species}"));
+                if let Some(link) = self.link.as_mut() {
+                    link.knocked_out(&name);
+                }
+            }
+        }
+    }
+
     fn draw(&mut self) {
+        self.follow_link();
         self.follow_touch_scenes();
         if self.wheel_script.last().is_some_and(|w| self.bench.kernel.now as f64 / 1e9 >= w.0) {
             let (_, up) = self.wheel_script.pop().unwrap_or_default();
@@ -1264,7 +1321,7 @@ impl ApplicationHandler for Play {
         if self.window.is_some() {
             return;
         }
-        let window = open(event_loop, "Pokémon X, portage PC", 800.0, if self.both_screens { 960.0 } else { 480.0 }, self.background);
+        let window = open(event_loop, &self.title, 800.0, if self.both_screens { 960.0 } else { 480.0 }, self.background);
         window.set_visible(self.forward.is_none());
         match Screens::new(window.clone(), self.shared.gpu.clone()) {
             Ok(screens) => self.screens = Some(screens),
@@ -1359,13 +1416,22 @@ impl ApplicationHandler for Play {
 }
 
 pub fn run(settings: Settings) -> Result<(), String> {
-    let Settings { scale, seconds, shot, replay, forward, speed, new_game, combat_in_corner, both_screens, game_mod, archipelago, volume, textures, smooth } = settings;
+    let Settings { scale, seconds, shot, replay, forward, speed, new_game, combat_in_corner, both_screens, game_mod, archipelago, volume, textures, smooth, session } = settings;
     let root = find_root();
     let mut options = Options::new(&root);
     // un rejeu repart de la sauvegarde d'origine : il ne touche ni à la partie du joueur ni à son journal
     let folder = if replay.is_some() { "play-rejeu" } else if new_game { "play-neuve" } else { "play" };
     options.out = root.join("local/analyse/runtime").join(folder);
     options.empty_save = new_game;
+    let (link, title, party) = match &session {
+        Some(s) => {
+            let (link, title, party) = join_session(&root, s)?;
+            options.out = party.clone();
+            options.empty_save = true;
+            (Some(link), title, Some(party))
+        }
+        None => (None, "Pokémon X, portage PC".to_string(), None),
+    };
     options.seconds = f64::INFINITY;
     options.draw = true;
     options.live = true;
@@ -1446,9 +1512,14 @@ pub fn run(settings: Settings) -> Result<(), String> {
         held_bag: None,
         touch_scene: false,
         restarts: 0,
+        link,
+        seen_hp: Default::default(),
+        title,
+        reset: None,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());
+    let reset = play.reset.take();
     let now = play.bench.kernel.now;
     play.bench.kernel.journal.write(now, &format!("=== arrêt : {reason}"));
     play.bench.kernel.journal.close();
@@ -1458,7 +1529,38 @@ pub fn run(settings: Settings) -> Result<(), String> {
     }
     println!("{}", play.bench.summary(&reason).lines().filter(|l| !l.starts_with("  ")).collect::<Vec<_>>().join("\n"));
     println!("{}", play.hitches.summary());
+    if let Some(out) = reset.or(None).filter(|_| party.is_some()) {
+        // tout le monde recommence : la partie de la session est effacée, le launcher relance une partie neuve
+        drop(play);
+        let _ = std::fs::remove_dir_all(out.join("archives"));
+        std::process::exit(EXIT_RESET);
+    }
     Ok(())
+}
+
+/// Rejoint ou héberge la session : (lien, titre de la fenêtre, dossier de la partie). Un joueur en retard d'une génération
+/// sur l'hôte (quelqu'un a perdu un Pokémon pendant son absence) repart d'une partie neuve.
+fn join_session(root: &std::path::Path, s: &SessionSettings) -> Result<(session::Link, String, std::path::PathBuf), String> {
+    let party = session::Session::folder(root, &s.name).join("partie");
+    let local = session::Session::load(root, &s.name);
+    let (link, current) = if let Some(port) = s.host_port {
+        let current = local.ok_or_else(|| format!("session « {} » introuvable (le launcher la crée)", s.name))?;
+        (session::Link::Host(session::Host::start(root, current.clone(), &s.player, port)?), current)
+    } else {
+        let address = s.join.clone().ok_or("ni hôte ni adresse à rejoindre")?;
+        let (client, host) = session::Client::join(&address, &s.player)?;
+        let behind = local.as_ref().is_some_and(|l| l.generation < host.generation);
+        if behind {
+            let _ = std::fs::remove_dir_all(party.join("archives"));
+        }
+        let mut copy = host.clone();
+        copy.name = s.name.clone();
+        copy.save(root)?;
+        (session::Link::Client(client), copy)
+    };
+    let rule = if current.rule == session::Rule::Nuzlocke { "nuzlocke" } else { "libre" };
+    let title = format!("Pokémon X — {} ({rule}, génération {})", s.name, current.generation);
+    Ok((link, title, party))
 }
 
 #[cfg(test)]
