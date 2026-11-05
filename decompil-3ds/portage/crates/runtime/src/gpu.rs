@@ -217,7 +217,8 @@ impl GpuBackend for PicaBackend {
         }
         self.snapshot_transfers = gsp.transfers;
         self.pica.finish();
-        self.next_snapshot = now + 1.0;
+        // `PORTAGE_IMAGES_TOUTES` : l'écart entre deux images gardées, en secondes du jeu (1 par défaut)
+        self.next_snapshot = now + std::env::var("PORTAGE_IMAGES_TOUTES").ok().and_then(|v| v.parse::<f64>().ok()).unwrap_or(1.0);
         let mut stats = self.stats.borrow_mut();
         stats.snapshots += 1;
         let prefix = format!("{:03}-{:06.2}s-", stats.snapshots, now);

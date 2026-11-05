@@ -666,6 +666,8 @@ impl Play {
             (Layout::Stacked, true)
         } else if self.menu {
             (Layout::MenuCorner, true)
+        } else if self.bench.kernel.journal.names.modules.iter().any(|m| m.2 == "DllSparring") {
+            (Layout::Aim, true)
         } else if let Some(base) = self.battle_base().filter(|_| self.combat_in_corner) {
             // rien quand l'écran du bas n'offre rien à toucher : Échap l'affiche quand même
             let memory = &self.bench.kernel.memory;

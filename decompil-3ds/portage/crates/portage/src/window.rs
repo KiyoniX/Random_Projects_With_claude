@@ -53,6 +53,9 @@ pub enum Layout {
     /// Échap : le bas dans le coin en bas à droite (`MENU_CORNER`), dans un cadre dessiné par la fenêtre (celui des plaques
     /// de PV), le jeu visible autour.
     MenuCorner,
+    /// Le jeu des ballons du Super Training (DllSparring) : seul le haut est dessiné ; le bas est posé, invisible, par-dessus
+    /// (`AIM`), ses deux parenthèses sur celles du haut : le clic touche le point que le viseur du haut montre.
+    Aim,
     /// Le haut remplit un 400 x 240 ; seuls les deux boutons d'une question, l'un au-dessus de l'autre, en bas à droite.
     YesNo,
     /// Le haut remplit un 400 x 240 ; les quatre boutons de capacité sont empilés à droite.
@@ -126,6 +129,11 @@ const TOP_WHOLE: [f32; 4] = [0.0, 0.0, 400.0, 240.0];
 /// L'écran du bas d'Échap : 110 x 82,5 (4 : 3) à 4 du bord, la zone choisie par l'utilisateur ; son cadre a `MENU_FRAME` de large.
 pub const MENU_CORNER: [f32; 4] = [286.0, 153.5, 396.0, 236.0];
 pub const MENU_FRAME: f32 = 3.5;
+/// L'écran du bas invisible du jeu des ballons, dans le repère du haut. Mesures sur les images du jeu
+/// (`local/analyse/rendu/ballons`) : sommets des arcs en x 66 et 252 en bas, 90 et 308,5 en haut (rapport 1,175), milieu
+/// des arcs en y 94 en bas et 120 en haut ; un appui en (166, 88) montre le viseur en (208, 111), prévu en (207,5 ; 113).
+const AIM_SCALE: f32 = 1.175;
+pub const AIM: [f32; 4] = [199.25 - 159.0 * AIM_SCALE, 120.0 - 94.0 * AIM_SCALE, 199.25 + 161.0 * AIM_SCALE, 120.0 + 146.0 * AIM_SCALE];
 const BOTTOM_WHOLE: [f32; 4] = [0.0, 0.0, 320.0, 240.0];
 /// Les quatre boutons de l'écran des capacités, deux par deux, en pixels de l'écran du bas.
 const MOVE_BUTTONS: [[f32; 4]; 4] = [[0.0, 40.0, 160.0, 99.0], [160.0, 40.0, 320.0, 99.0], [0.0, 101.0, 160.0, 160.0], [160.0, 101.0, 320.0, 160.0]];
@@ -207,6 +215,7 @@ impl Layout {
             Layout::Overlaid => vec![top, bottom([40.0, 0.0, 360.0, 240.0])],
             Layout::Corner => vec![top, bottom([240.0, 120.0, 400.0, 240.0])],
             Layout::MenuCorner => vec![top, bottom(MENU_CORNER)],
+            Layout::Aim => vec![top],
             Layout::YesNo => {
                 let mut pieces = vec![top];
                 for (i, from) in YES_NO_BUTTONS.into_iter().enumerate() {
@@ -306,7 +315,11 @@ impl Layout {
     pub fn bottom_point(self, width: f32, height: f32, x: f32, y: f32) -> Option<(u16, u16)> {
         let (f, ox, oy) = self.fit(width, height);
         let (px, py) = ((x - ox) / f, (y - oy) / f);
-        self.pieces().iter().find(|p| p.bottom && p.to[0] <= px && px < p.to[2] && p.to[1] <= py && py < p.to[3]).map(|p| {
+        let pieces = match self {
+            Layout::Aim => vec![Piece { bottom: true, to: AIM, from: BOTTOM_WHOLE }],
+            _ => self.pieces(),
+        };
+        pieces.iter().find(|p| p.bottom && p.to[0] <= px && px < p.to[2] && p.to[1] <= py && py < p.to[3]).map(|p| {
             let u = (px - p.to[0]) / (p.to[2] - p.to[0]);
             let v = (py - p.to[1]) / (p.to[3] - p.to[1]);
             ((p.from[0] + u * (p.from[2] - p.from[0])) as u16, (p.from[1] + v * (p.from[3] - p.from[1])) as u16)
@@ -719,6 +732,13 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MEGA_BUTTON, MOVES_BACK, MOVE_BUTTONS, MoveExtras, SHIFT_BUTTON, PARTY_COMMAND, PARTY_LIST, PartyPage, SUMMARY_PANEL, SUMMARY_BUTTONS, PARTY_MOVES, PARTY_MOVES_BOTTOM, MOVE_INFO_PANEL, MOVE_INFO_BUTTONS, HEAL_PANEL, HEAL_BUTTONS};
+
+    #[test]
+    fn the_hidden_bottom_screen_of_the_balloons_lies_on_the_top_one() {
+        // le viseur montré en (207,5 ; 113) du haut pour un appui en (166, 88) : un clic là touche ce point ; rien du bas dessiné
+        assert_eq!(Layout::Aim.bottom_point(800.0, 480.0, 415.0, 226.0), Some((166, 88)));
+        assert!(Layout::Aim.pieces().iter().all(|p| !p.bottom));
+    }
 
     #[test]
     fn native_buttons_touch_the_game_buttons() {
