@@ -16,6 +16,7 @@ import oracles
 import pk6
 import megagemmes
 import mod_jauge
+import randomizer
 import pack_dessins
 import pack_police
 import profil
@@ -34,6 +35,7 @@ if __name__ == '__main__':
     pack_dessins.test()
     megagemmes.test()
     mod_jauge.test()
+    randomizer.test()
     profil.test()
     combats.test()
     revue_modeles.test()
