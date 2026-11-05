@@ -452,11 +452,22 @@ impl Aim {
         [self.sent[0] as i16, self.sent[1] as i16, 0]
     }
 
+    /// Le pad circulaire pour la prochaine fin d'image, au lieu du gyroscope : les points photo s'y tournent sans pencher
+    /// l'horizon (le gyroscope tourne autour de l'axe de la console : visée inclinée, l'horizon penche). Même plafond que le
+    /// gyroscope, 100 unités par image : le pad à fond (156).
+    fn pad(&mut self, vblanks: u64) -> (i16, i16) {
+        let [x, y, _] = self.gyro(vblanks);
+        ((-(y as f64) * PAD_PER_RAW) as i16, (-(x as f64) * PAD_PER_RAW) as i16)
+    }
+
     fn reset(&mut self) {
         self.pending = [0.0; 2];
         self.sent = [0.0; 2];
     }
 }
+
+/// Le pad circulaire à fond (156) pour 100 unités de gyroscope (`AIM_MAX_RAW`).
+const PAD_PER_RAW: f64 = 1.56;
 
 /// Les tranches de jeu trop longues : une tranche vise au plus deux images (33 ms), au-delà le joueur voit un à-coup.
 #[derive(Default)]
@@ -490,6 +501,10 @@ struct Play {
     aim: Aim,
     /// L'objet de l'appareil photo trouvé la dernière fois (vérifié avant chaque usage), et le tour de molette en cours.
     photo: std::cell::Cell<Option<u32>>,
+    /// L'heure du jeu de la dernière recherche vaine de l'objet de l'appareil photo (on ne la refait qu'après 2 s).
+    photo_missed: std::cell::Cell<u64>,
+    /// La souris tient le pad circulaire (point photo) : à remettre au centre en sortant.
+    photo_pad: bool,
     zoom: Option<ZoomDrag>,
     /// `PORTAGE_MOLETTE` (« 101:+,103:- ») : des crans de molette à ces heures du jeu, pour vérifier le zoom en rejeu.
     wheel_script: Vec<(f64, bool)>,
@@ -646,8 +661,20 @@ impl Play {
         if !aiming {
             self.aim.reset();
         }
-        let bench = &mut self.bench.kernel.bench;
-        bench.gyro = self.aim.gyro(bench.vblanks);
+        // un point photo ouvert : la souris passe par le pad circulaire
+        if aiming && self.photo_object().is_some() {
+            let vblanks = self.bench.kernel.bench.vblanks;
+            let bench = &mut self.bench.kernel.bench;
+            bench.circle = self.aim.pad(vblanks);
+            bench.gyro = [0; 3];
+            self.photo_pad = true;
+        } else {
+            if std::mem::take(&mut self.photo_pad) {
+                self.bench.kernel.bench.circle = (0, 0);
+            }
+            let bench = &mut self.bench.kernel.bench;
+            bench.gyro = self.aim.gyro(bench.vblanks);
+        }
         if aiming != self.grabbed {
             self.grabbed = aiming;
             if let Some(window) = &self.window {
@@ -1088,11 +1115,18 @@ impl Play {
         if let Some(a) = self.photo.get().filter(|&a| is_photo(a)) {
             return Some(a);
         }
+        let now = self.bench.kernel.now;
+        if self.photo.get().is_none() && now.saturating_sub(self.photo_missed.get()) < 2_000_000_000 && self.photo_missed.get() != 0 {
+            return None;
+        }
         let found = (0x1400_0000u32..0x1C00_0000).step_by(0x1000).filter(|&p| memory.is_mapped(p, 0x1000)).find_map(|page| {
             let bytes = memory.read(page, 0x1000).ok()?;
             (0..0x1000).step_by(4).map(|o| page + o).find(|&a| u32::from_le_bytes(bytes[(a - page) as usize..(a - page) as usize + 4].try_into().unwrap()) == vtable && is_photo(a))
         });
         self.photo.set(found);
+        if found.is_none() {
+            self.photo_missed.set(now.max(1));
+        }
         found
     }
 
@@ -1373,6 +1407,8 @@ pub fn run(settings: Settings) -> Result<(), String> {
         hitches: Hitches::default(),
         aim: Aim::default(),
         photo: Default::default(),
+        photo_missed: Default::default(),
+        photo_pad: false,
         zoom: None,
         wheel_script: std::env::var("PORTAGE_MOLETTE").ok().map(|v| v.split(',').filter_map(|e| e.split_once(':')).filter_map(|(t, d)| Some((t.parse().ok()?, d == "+"))).rev().collect()).unwrap_or_default(),
         can_aim: replay.is_none(),
