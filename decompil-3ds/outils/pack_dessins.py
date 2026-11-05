@@ -2,7 +2,7 @@
 plus grandes, écrites dans le pack de police (`pack_police.py`) sous le nom que le moteur leur donne (crc32 de leurs octets).
 
 Seulement ce que l'utilisateur a demandé : les deux plaques de PV (cadre arrondi, fente de la barre, « PV », « N. » ; la
-nôtre a aussi la barre d'expérience). Les mesures sont relevées sur les textures du jeu (128 x 32, une case = un point) :
+nôtre a aussi la barre d'expérience). La fente a la taille de la barre agrandie par `mod_jauge.py` (49 x 8). Les mesures sont relevées sur les textures du jeu (128 x 32, une case = un point) :
 anneaux de la plaque (noir, reflet gris dégradé, noir, fond sombre translucide), fente noire de 47 points et son dégradé,
 pastille verte des lettres. Les lettres sont tracées en polygones aux mêmes cases que les lettres pixel du jeu.
 
@@ -102,15 +102,15 @@ def plaque(c):
     trou = masque(image, lambda m: stade(m, k, ox + 5, oy + 3, ox + w - 3, oy + 11, 255))
     image.paste(Image.new('RGBA', image.size), (0, 0), trou)
     remplir(image, trou, fond)
-    # la fente de la barre : bord noir, fond plus clair en bas et à gauche
+    # la fente de la barre, 49 x 8 sans bord : la place de la barre agrandie par `mod_jauge.py` ; fond plus clair en bas
+    # et à gauche
     f = c['fente']
-    d.rectangle([f * k, (oy + 4) * k, (f + 49) * k - 1, (oy + 10) * k - 1], fill=NOIR)
-    for y in range(4 * k):
-        t = y / (4 * k - 1)
+    for y in range(8 * k):
+        t = y / (8 * k - 1)
         gauche, droite = 0x2d + (0x68 - 0x2d) * t, 0x17 + (0x35 - 0x17) * t
-        for x in range(47 * k):
-            g = round(gauche + (droite - gauche) * x / (47 * k - 1))
-            image.putpixel(((f + 1) * k + x, (oy + 5) * k + y), (g, g, g, 255))
+        for x in range(49 * k):
+            g = round(gauche + (droite - gauche) * x / (49 * k - 1))
+            image.putpixel((f * k + x, (oy + 3) * k + y), (g, g, g, 255))
     # la pastille des lettres
     a, b = c['pastille']
     d.rectangle([a * k, (oy + 3) * k, b * k - 1, (oy + 11) * k - 1], fill=(0x0a, 0x0b, 0x08, 255))

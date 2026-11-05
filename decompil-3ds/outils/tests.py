@@ -15,6 +15,7 @@ import nand
 import oracles
 import pk6
 import megagemmes
+import mod_jauge
 import pack_dessins
 import pack_police
 import profil
@@ -32,6 +33,7 @@ if __name__ == '__main__':
     pack_police.test()
     pack_dessins.test()
     megagemmes.test()
+    mod_jauge.test()
     profil.test()
     combats.test()
     revue_modeles.test()
