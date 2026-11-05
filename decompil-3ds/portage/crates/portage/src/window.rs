@@ -175,6 +175,8 @@ pub const BAG_ITEM_BUTTONS: [[f32; 4]; 2] = [[0.0, 160.0, 250.0, 240.0], [250.0,
 pub const LEARN_QUESTION: [[f32; 4]; 2] = [[20.0, 80.0, 300.0, 140.0], [20.0, 150.0, 300.0, 210.0]];
 pub const LEARN_FORGET: [[f32; 4]; 6] = [[0.0, 49.0, 160.0, 103.0], [160.0, 49.0, 320.0, 103.0], [0.0, 113.0, 160.0, 167.0], [160.0, 113.0, 320.0, 167.0], [80.0, 176.0, 240.0, 236.0], [250.0, 190.0, 320.0, 240.0]];
 pub const LEARN_INFO: [[f32; 4]; 2] = [[10.0, 179.0, 250.0, 239.0], [250.0, 190.0, 320.0, 240.0]];
+/// Le panneau de la fiche d'une capacité à apprendre ou à oublier : rien à toucher dans le jeu (le haut de l'écran du bas).
+pub const LEARN_INFO_PANEL: [f32; 4] = [10.0, 40.0, 310.0, 170.0];
 /// L'équipe : les six cases (table +0xce490, la case k est l'entrée [L+0x134 + 0x44 k]) puis le retour ; la fiche (CLYT
 /// 0x147085a8) : Changer, Soigner, Résumé et Capacités sur une ligne, Retour.
 pub const PARTY_LIST: [[f32; 4]; 7] = [[0.0, 5.0, 160.0, 55.0], [160.0, 8.0, 320.0, 58.0], [0.0, 65.0, 160.0, 115.0], [160.0, 68.0, 320.0, 118.0], [0.0, 125.0, 160.0, 175.0], [160.0, 128.0, 320.0, 178.0], [250.0, 190.0, 320.0, 240.0]];
@@ -243,7 +245,7 @@ impl Layout {
             Layout::NativeMenu(small) | Layout::NativeMoves(small, _) | Layout::NativeBag(_, small) | Layout::NativeLearn(_, small) | Layout::NativeParty(_, small) => {
                 // la question et les panneaux d'informations gardent leur taille : leurs textes sont longs
                 let question = matches!(self, Layout::NativeLearn(LearnPage::Question, _));
-                let wide = question || matches!(self, Layout::NativeParty(PartyPage::Summary | PartyPage::Moves | PartyPage::MoveInfo, _));
+                let wide = question || matches!(self, Layout::NativeParty(PartyPage::Summary | PartyPage::Moves | PartyPage::MoveInfo, _) | Layout::NativeLearn(LearnPage::Info, _));
                 let k = if small && !wide { SMALL_WIDTH / NATIVE_WIDTH } else { 1.0 };
                 let width = if wide { QUESTION_WIDTH } else { NATIVE_WIDTH * k };
                 let left = 400.0 - width - 2.0;
@@ -263,7 +265,7 @@ impl Layout {
                     Layout::NativeBag(BagPage::List, _) => BAG_ITEMS.iter().copied().map(row(BAG_ROW)).chain([(BAG_ROW, BAG_LIST_BOTTOM.to_vec())]).collect(),
                     Layout::NativeLearn(LearnPage::Question, _) => LEARN_QUESTION.map(row(NATIVE_ROW)).to_vec(),
                     Layout::NativeLearn(LearnPage::Forget, _) => LEARN_FORGET.map(row(NATIVE_ROW)).to_vec(),
-                    Layout::NativeLearn(LearnPage::Info, _) => LEARN_INFO.map(row(NATIVE_ROW)).to_vec(),
+                    Layout::NativeLearn(LearnPage::Info, _) => [(128.0, vec![LEARN_INFO_PANEL])].into_iter().chain(LEARN_INFO.map(row(NATIVE_ROW))).collect(),
                     Layout::NativeParty(PartyPage::List, _) => PARTY_LIST.map(row(BAG_ROW)).to_vec(),
                     Layout::NativeParty(PartyPage::Command, _) => vec![
                         (NATIVE_ROW, vec![PARTY_COMMAND[0]]),
@@ -731,7 +733,7 @@ pub fn run(path: String, scale: u32) -> Result<(), String> {
 
 #[cfg(test)]
 mod tests {
-    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MEGA_BUTTON, MOVES_BACK, MOVE_BUTTONS, MoveExtras, SHIFT_BUTTON, PARTY_COMMAND, PARTY_LIST, PartyPage, SUMMARY_PANEL, SUMMARY_BUTTONS, PARTY_MOVES, PARTY_MOVES_BOTTOM, MOVE_INFO_PANEL, MOVE_INFO_BUTTONS, HEAL_PANEL, HEAL_BUTTONS};
+    use super::{BAG_ITEMS, BAG_ITEM_BUTTONS, BAG_LIST_BOTTOM, BAG_POCKETS, BagPage, LEARN_FORGET, LEARN_INFO, LEARN_INFO_PANEL, LEARN_QUESTION, Layout, LearnPage, MENU_BUTTONS, MEGA_BUTTON, MOVES_BACK, MOVE_BUTTONS, MoveExtras, SHIFT_BUTTON, PARTY_COMMAND, PARTY_LIST, PartyPage, SUMMARY_PANEL, SUMMARY_BUTTONS, PARTY_MOVES, PARTY_MOVES_BOTTOM, MOVE_INFO_PANEL, MOVE_INFO_BUTTONS, HEAL_PANEL, HEAL_BUTTONS};
 
     #[test]
     fn the_hidden_bottom_screen_of_the_balloons_lies_on_the_top_one() {
@@ -753,7 +755,7 @@ mod tests {
             (Layout::NativeBag(BagPage::Item, false), BAG_ITEM_BUTTONS.to_vec()),
             (Layout::NativeLearn(LearnPage::Question, true), LEARN_QUESTION.to_vec()),
             (Layout::NativeLearn(LearnPage::Forget, false), LEARN_FORGET.to_vec()),
-            (Layout::NativeLearn(LearnPage::Info, false), LEARN_INFO.to_vec()),
+            (Layout::NativeLearn(LearnPage::Info, false), [LEARN_INFO_PANEL].iter().chain(&LEARN_INFO).copied().collect()),
             (Layout::NativeParty(PartyPage::List, true), PARTY_LIST.to_vec()),
             (Layout::NativeParty(PartyPage::Command, false), PARTY_COMMAND.to_vec()),
             (Layout::NativeParty(PartyPage::Summary, false), [SUMMARY_PANEL].iter().chain(&SUMMARY_BUTTONS).copied().collect()),

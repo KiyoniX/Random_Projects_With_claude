@@ -855,6 +855,10 @@ impl Play {
                     pill(to, kind.map_or([128, 128, 128], |k| TYPE_COLORS[k]), &label, pp, kind)
                 };
                 let name = |id: u16| infos.get(id as usize).map_or_else(|| format!("Capacité {id}"), |i| i.name.clone());
+                let category = |id: u16| infos.get(id as usize).map(|i| {
+                    let kind = ["Statut", "Physique", "Spéciale"].get(i.category as usize).copied().unwrap_or("");
+                    if i.power > 1 { format!("{kind} {}", i.power) } else { kind.to_string() }
+                });
                 match battle_learn(&self.bench.kernel.memory, self.battle_base()?)? {
                     Learn::Question { kind } => {
                         // les libellés de 0x97F78 (texte 127, lignes 0x35..0x3C)
@@ -870,13 +874,22 @@ impl Play {
                         let mut pills: Vec<Pill> = places.iter().zip(moves).filter(|(_, m)| m.0 != 0).map(|(&to, (id, pp, max))| move_pill(to, id, name(id), format!("{pp}/{max}"))).collect();
                         let pp = infos.get(new as usize).map_or(0, |i| i.pp);
                         // la nouvelle, marquée d'un plus
-                        pills.push(move_pill(*places.get(4)?, new, format!("+ {}", name(new)), format!("{pp}/{pp}")));
+                        // sa catégorie et sa puissance tout de suite ; la toucher ouvre sa fiche
+                        pills.push(move_pill(*places.get(4)?, new, format!("+ {}", name(new)), format!("{} · {pp}/{pp}", category(new).unwrap_or_default())));
                         pills.push(pill(*places.get(5)?, back, "Retour", String::new(), None));
                         pills
                     }
                     Learn::Info { shown, stop } => {
+                        // la fiche : ce que fait la capacité, sans passer par Échap
+                        let info = infos.get(shown as usize)?;
+                        let kind = Some(info.kind as usize).filter(|&k| k < TYPE_COLORS.len());
+                        let dash = |v: u8, none: bool| if none { "-".to_string() } else { v.to_string() };
+                        let category = ["Statut", "Physique", "Spéciale"].get(info.category as usize).copied().unwrap_or("");
+                        let mut lines = vec![format!("{category} · Puissance {} · Précision {}", dash(info.power, info.power <= 1), dash(info.accuracy, info.accuracy == 0 || info.accuracy > 100))];
+                        lines.push(info.description.replace('\n', " "));
+                        let panel = Pill { to: *places.first()?, color: kind.map_or([96, 96, 104], |k| TYPE_COLORS[k]), label: info.name.clone(), detail: format!("PP {}", info.pp), kind, lines, ..Default::default() };
                         let label = if stop { "Ne pas l'apprendre".to_string() } else { format!("Oublier {}", name(shown)) };
-                        vec![move_pill(*places.first()?, shown, label, String::new()), pill(*places.get(1)?, back, "Retour", String::new(), None)]
+                        vec![panel, move_pill(*places.get(1)?, shown, label, String::new()), pill(*places.get(2)?, back, "Retour", String::new(), None)]
                     }
                 }
             }
@@ -964,7 +977,7 @@ impl Play {
                         let dash = |v: u8, none: bool| if none { "-".to_string() } else { v.to_string() };
                         let category = ["Statut", "Physique", "Spéciale"].get(info.category as usize).copied().unwrap_or("");
                         let mut lines = vec![format!("{category} · Puissance {} · Précision {}", dash(info.power, info.power <= 1), dash(info.accuracy, info.accuracy == 0 || info.accuracy > 100))];
-                        lines.extend(info.description.split('\n').map(str::to_string));
+                        lines.push(info.description.replace('\n', " "));
                         let panel = Pill { to: *places.first()?, color: kind.map_or([96, 96, 104], |k| TYPE_COLORS[k]), label: info.name.clone(), detail: format!("PP {pp}/{max}"), kind, lines, ..Default::default() };
                         let mut pills = vec![panel];
                         for (i, &(id, _, _)) in card.moves.iter().enumerate() {

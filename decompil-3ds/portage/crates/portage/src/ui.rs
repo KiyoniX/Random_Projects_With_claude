@@ -156,7 +156,18 @@ impl Ui {
     fn panel(&self, image: &mut Image, r: [f32; 4], pill: &Pill) {
         let r = [r[0] + 1.0, r[1] + 1.0, r[2] - 1.0, r[3] - 1.0];
         let (width, height) = (r[2] - r[0], r[3] - r[1]);
-        let line = (height / (pill.lines.len() as f32 + 1.5)).min(width * 0.12);
+        // les lignes trop longues passent à la ligne entre deux mots ; plus de lignes, un texte plus petit (quelques tours)
+        let mut lines = pill.lines.clone();
+        let mut line = (height / (lines.len() as f32 + 1.5)).min(width * 0.12);
+        for _ in 0..4 {
+            let wrapped = self.wrap(&pill.lines, line * 0.58, width - line * 0.8);
+            let fits = wrapped.len() == lines.len();
+            lines = wrapped;
+            line = (height / (lines.len() as f32 + 1.5)).min(width * 0.12);
+            if fits {
+                break;
+            }
+        }
         let radius = line * 0.6;
         let [cr, cg, cb] = pill.color;
         image.rounded(r, radius, |y| {
@@ -184,10 +195,28 @@ impl Ui {
             self.text(image, &pill.detail, r[2] - pad - w, r[1] + pad + title * 0.8, small, r[2]);
         }
         let small = line * 0.58;
-        for (i, text) in pill.lines.iter().enumerate() {
+        for (i, text) in lines.iter().enumerate() {
             let baseline = r[1] + pad + line * (1.35 + i as f32) + small * 0.5;
             self.text(image, text, r[0] + pad, baseline, small, r[2] - pad);
         }
+    }
+
+    /// Ces lignes coupées entre deux mots pour tenir dans `room` à la taille `size`.
+    fn wrap(&self, lines: &[String], size: f32, room: f32) -> Vec<String> {
+        let mut out = Vec::new();
+        for text in lines {
+            let mut current = String::new();
+            for word in text.split(' ') {
+                let tried = if current.is_empty() { word.to_string() } else { format!("{current} {word}") };
+                if self.width(&tried, size) > room && !current.is_empty() {
+                    out.push(std::mem::replace(&mut current, word.to_string()));
+                } else {
+                    current = tried;
+                }
+            }
+            out.push(current);
+        }
+        out
     }
 
     fn width(&self, text: &str, size: f32) -> f32 {
