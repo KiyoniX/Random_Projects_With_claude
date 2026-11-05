@@ -577,6 +577,8 @@ struct Play {
     seen_hp: std::collections::HashMap<u32, u16>,
     title: String,
     reset: Option<std::path::PathBuf>,
+    /// Le recommencement annoncé : le jeu s'arrête 4 s après (le temps de lire le titre), avec sa raison.
+    reset_at: Option<(Instant, String)>,
 }
 
 /// Ce que `portage play` reçoit de la ligne de commande (les réglages du launcher).
@@ -1189,13 +1191,19 @@ impl Play {
     /// La session à plusieurs : les messages de l'hôte, et nos Pokémon K.O. au combat (règle nuzlocke : l'hôte fait
     /// recommencer tout le monde).
     fn follow_link(&mut self) {
+        if let Some((at, why)) = &self.reset_at {
+            if at.elapsed().as_secs_f64() > 4.0 {
+                self.stopped = Some(why.clone());
+            }
+            return;
+        }
         let Some(link) = self.link.as_mut() else { return };
         for event in link.poll() {
             match event {
                 session::Event::Reset { message, .. } => {
                     self.title = format!("{} — {message}", self.title.split(" — ").next().unwrap_or(""));
                     self.reset = Some(self.bench.options.out.clone());
-                    self.stopped = Some(message);
+                    self.reset_at = Some((Instant::now(), message));
                 }
                 session::Event::Players(names) => self.title = format!("{} — {}", self.title.split(" — ").next().unwrap_or(""), names.join(", ")),
                 session::Event::Lost(why) => self.title = format!("{} — {why}", self.title.split(" — ").next().unwrap_or("")),
@@ -1516,6 +1524,7 @@ pub fn run(settings: Settings) -> Result<(), String> {
         seen_hp: Default::default(),
         title,
         reset: None,
+        reset_at: None,
     };
     event_loop.run_app(&mut play).map_err(|e| e.to_string())?;
     let reason = play.stopped.clone().unwrap_or_else(|| "fenêtre fermée".to_string());
