@@ -641,9 +641,10 @@ impl Play {
         *held = if state == ElementState::Pressed { *held | bit } else { *held & !bit };
     }
 
-    /// Envoie les touches de la croix tenues au jeu : aucune si le menu est ouvert, au pad circulaire si Shift est tenu.
+    /// Envoie les touches de la croix tenues au jeu, au pad circulaire si Shift est tenu ; aussi menu ouvert : il est dans
+    /// un coin, le jeu reste visible autour.
     fn update_moves(&mut self) {
-        let active = if self.menu { [false; 4] } else { self.moves };
+        let active = self.moves;
         for (name, pressed) in MOVES.iter().zip(active) {
             let state = if pressed && !self.shift { ElementState::Pressed } else { ElementState::Released };
             self.hold(name, state);
