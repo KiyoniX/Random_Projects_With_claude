@@ -664,7 +664,7 @@ impl Play {
         if self.both_screens {
             (Layout::Stacked, true)
         } else if self.menu {
-            (Layout::Overlaid, true)
+            (Layout::MenuCorner, true)
         } else if let Some(base) = self.battle_base().filter(|_| self.combat_in_corner) {
             // rien quand l'écran du bas n'offre rien à toucher : Échap l'affiche quand même
             let memory = &self.bench.kernel.memory;
@@ -776,6 +776,12 @@ impl Play {
 
     /// Les pastilles de la disposition et la zone qu'elles couvrent, pour la fenêtre (`None` hors des boutons dessinés).
     fn native_pills(&self, layout: Layout) -> Option<(Vec<Pill>, [f32; 4])> {
+        if let Layout::MenuCorner = layout {
+            let [x0, y0, x1, y1] = crate::window::MENU_CORNER;
+            let m = crate::window::MENU_FRAME;
+            let to = [x0 - m, y0 - m, x1 + m, y1 + m];
+            return Some((vec![Pill { to, frame: m / (to[3] - to[1]), ..Default::default() }], to));
+        }
         let places = layout.native_places();
         let area = places.iter().fold([f32::MAX, f32::MAX, f32::MIN, f32::MIN], |a, p| [a[0].min(p[0]), a[1].min(p[1]), a[2].max(p[2]), a[3].max(p[3])]);
         let pill = |to, color, label: &str, detail: String, kind| Pill { to, color, label: label.to_string(), detail, kind, ..Default::default() };
@@ -1040,7 +1046,7 @@ impl Play {
         let now = self.bench.kernel.now;
         match (&overlay, layout) {
             // toute disposition dessinée : le jeu retombe aussi à zéro entre deux Pokémon d'un double (environ 133 ms)
-            (Some(o), _) => self.held_bag = Some((layout, o.clone(), now)),
+            (Some(o), _) if !matches!(layout, Layout::MenuCorner) => self.held_bag = Some((layout, o.clone(), now)),
             (None, _) if self.battle_base().is_some() && (!shown || matches!(layout, Layout::Corner | Layout::SmallCorner)) => {
                 if let Some((held, o, _)) = self.held_bag.as_ref().filter(|h| now.saturating_sub(h.2) < BAG_HOLD_NS) {
                     (layout, shown, overlay) = (*held, true, Some(o.clone()));
@@ -1267,7 +1273,8 @@ pub fn run(settings: Settings) -> Result<(), String> {
         shot: shot.map(|(at, prefix)| ((at * 1e9) as u64, prefix)),
         shot_ready: false,
         scale: scale.clamp(1, 4),
-        menu: false,
+        // `PORTAGE_ECHAP` : la fenêtre s'ouvre Échap ouvert (captures du menu, que le journal ne rejoue pas)
+        menu: std::env::var_os("PORTAGE_ECHAP").is_some(),
         stylus: false,
         cursor: (0.0, 0.0),
         moves: [false; 4],

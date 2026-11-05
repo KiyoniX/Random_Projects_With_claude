@@ -42,6 +42,9 @@ pub struct Pill {
     pub kind: Option<usize>,
     pub image: Option<std::sync::Arc<Icon>>,
     pub lines: Vec<String>,
+    /// Un cadre : seulement un bord (contour noir, anneau gris en dégradé, liseré noir arrondi sur ce qu'il entoure), de cette
+    /// part de la hauteur de `to` ; le milieu reste vide.
+    pub frame: f32,
 }
 
 /// Les couleurs des dix-huit types, dans l'ordre du jeu (Normal, Combat, Vol, Poison, Sol, Roche, Insecte, Spectre, Acier,
@@ -85,6 +88,9 @@ impl Ui {
     }
 
     fn pill(&self, image: &mut Image, r: [f32; 4], pill: &Pill) {
+        if pill.frame > 0.0 {
+            return frame(image, r, pill.frame);
+        }
         if !pill.lines.is_empty() {
             return self.panel(image, r, pill);
         }
@@ -100,14 +106,14 @@ impl Ui {
             let k = 1.12 - 0.24 * t;
             [shade(cr, k), shade(cg, k), shade(cb, k), 235]
         });
-        image.rounded_ring(r, radius, height * 0.06, [shade(cr, 0.6), shade(cg, 0.6), shade(cb, 0.6), 255]);
+        image.rounded_ring(r, radius, height * 0.06, |_| [shade(cr, 0.6), shade(cg, 0.6), shade(cb, 0.6), 255]);
         let mut x = r[0] + radius * 0.35;
         if let Some(tree) = pill.kind.and_then(|k| self.icons.get(k)) {
             // l'icône du type, ronde, à gauche, cerclée de blanc
             let d = height * 0.72;
             let (ix, iy) = (x, (r[1] + r[3] - d) / 2.0);
             image.icon(tree, ix, iy, d);
-            image.rounded_ring([ix, iy, ix + d, iy + d], d / 2.0, d * 0.07, [255, 255, 255, 220]);
+            image.rounded_ring([ix, iy, ix + d, iy + d], d / 2.0, d * 0.07, |_| [255, 255, 255, 220]);
             x += d + radius * 0.3;
         } else if let Some(icon) = &pill.image {
             // l'icône du jeu, à sa hauteur dans la pastille (un peu plus haute : les icônes ont du vide autour)
@@ -157,7 +163,7 @@ impl Ui {
             let k = 1.05 - 0.15 * (y - r[1]) / height;
             [shade(cr, k), shade(cg, k), shade(cb, k), 230]
         });
-        image.rounded_ring(r, radius, line * 0.08, [shade(cr, 0.6), shade(cg, 0.6), shade(cb, 0.6), 255]);
+        image.rounded_ring(r, radius, line * 0.08, |_| [shade(cr, 0.6), shade(cg, 0.6), shade(cb, 0.6), 255]);
         let pad = line * 0.4;
         let mut x = r[0] + pad;
         let title = line * 0.75;
@@ -214,6 +220,23 @@ impl Ui {
             }
         }
     }
+}
+
+/// Le cadre d'une pastille `frame` : le dessin des plaques de PV redessinées (`outils/pack_dessins.py`), autour d'un écran.
+fn frame(image: &mut Image, r: [f32; 4], part: f32) {
+    let m = (r[3] - r[1]) * part;
+    let radius = m * 1.8;
+    image.rounded_ring(r, radius, m, |_| [0, 0, 0, 255]);
+    let rim = [r[0] + m * 0.2, r[1] + m * 0.2, r[2] - m * 0.2, r[3] - m * 0.2];
+    let (top, height) = (rim[1], rim[3] - rim[1]);
+    image.rounded_ring(rim, radius - m * 0.2, m * 0.5, |y| {
+        let t = ((y - top) / height).clamp(0.0, 1.0);
+        let g = |a: f32, b: f32| (a + (b - a) * t) as u8;
+        [g(0x93 as f32, 0x3a as f32), g(0x90 as f32, 0x38 as f32), g(0x8e as f32, 0x36 as f32), 255]
+    });
+    // le liseré sur l'écran : ses coins arrondis
+    let hole = [r[0] + m, r[1] + m, r[2] - m, r[3] - m];
+    image.rounded_ring(hole, m * 0.7, m * 0.3, |_| [0, 0, 0, 255]);
 }
 
 fn shade(c: u8, k: f32) -> u8 {
@@ -305,10 +328,11 @@ impl Image {
     }
 
     /// Le bord intérieur, d'épaisseur `width`.
-    fn rounded_ring(&mut self, r: [f32; 4], radius: f32, width: f32, color: [u8; 4]) {
+    fn rounded_ring(&mut self, r: [f32; 4], radius: f32, width: f32, color: impl Fn(f32) -> [u8; 4]) {
         let inner = [r[0] + width, r[1] + width, r[2] - width, r[3] - width];
         let (xs, ys) = self.rows(r);
         for y in ys {
+            let color = color(y as f32 + 0.5);
             for x in xs.clone() {
                 let (px, py) = (x as f32 + 0.5, y as f32 + 0.5);
                 let a = Self::coverage(r, radius, px, py) - Self::coverage(inner, (radius - width).max(0.0), px, py);

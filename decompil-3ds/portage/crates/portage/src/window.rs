@@ -50,6 +50,9 @@ pub enum Layout {
     Overlaid,
     /// Le haut remplit un 400 x 240 ; le bas, à moitié de sa taille, occupe le coin en bas à droite (l'interface de combat).
     Corner,
+    /// Échap : le bas dans le coin en bas à droite (`MENU_CORNER`), dans un cadre dessiné par la fenêtre (celui des plaques
+    /// de PV), le jeu visible autour.
+    MenuCorner,
     /// Le haut remplit un 400 x 240 ; seuls les deux boutons d'une question, l'un au-dessus de l'autre, en bas à droite.
     YesNo,
     /// Le haut remplit un 400 x 240 ; les quatre boutons de capacité sont empilés à droite.
@@ -120,6 +123,9 @@ struct Piece {
 }
 
 const TOP_WHOLE: [f32; 4] = [0.0, 0.0, 400.0, 240.0];
+/// L'écran du bas d'Échap : 110 x 82,5 (4 : 3) à 4 du bord, la zone choisie par l'utilisateur ; son cadre a `MENU_FRAME` de large.
+pub const MENU_CORNER: [f32; 4] = [286.0, 153.5, 396.0, 236.0];
+pub const MENU_FRAME: f32 = 3.5;
 const BOTTOM_WHOLE: [f32; 4] = [0.0, 0.0, 320.0, 240.0];
 /// Les quatre boutons de l'écran des capacités, deux par deux, en pixels de l'écran du bas.
 const MOVE_BUTTONS: [[f32; 4]; 4] = [[0.0, 40.0, 160.0, 99.0], [160.0, 40.0, 320.0, 99.0], [0.0, 101.0, 160.0, 160.0], [160.0, 101.0, 320.0, 160.0]];
@@ -200,6 +206,7 @@ impl Layout {
             Layout::Stacked => vec![top, bottom([40.0, 240.0, 360.0, 480.0])],
             Layout::Overlaid => vec![top, bottom([40.0, 0.0, 360.0, 240.0])],
             Layout::Corner => vec![top, bottom([240.0, 120.0, 400.0, 240.0])],
+            Layout::MenuCorner => vec![top, bottom(MENU_CORNER)],
             Layout::YesNo => {
                 let mut pieces = vec![top];
                 for (i, from) in YES_NO_BUTTONS.into_iter().enumerate() {
