@@ -63,10 +63,9 @@ struct Settings {
     /// Le randomizer : la graine (vide : aucun) et ses parties cochées.
     seed: String,
     parts: Vec<String>,
-    /// À plusieurs : seul, hôte (nom de session, port, règle) ou joueur (adresse de l'hôte).
+    /// À plusieurs : seul, hôte (nom de session, règle) ou joueur (le code de session que l'hôte lui a donné).
     multi: Multi,
     session: String,
-    port: u16,
     address: String,
     nuzlocke: bool,
 }
@@ -93,7 +92,6 @@ impl Default for Settings {
             parts: PARTS.iter().map(|p| p.0.to_string()).collect(),
             multi: Multi::Solo,
             session: "potes".to_string(),
-            port: 47300,
             address: String::new(),
             nuzlocke: true,
         }
@@ -224,14 +222,14 @@ impl Launcher {
                     ..Default::default()
                 });
                 session.save(&self.root)?;
-                arguments.extend(["--session".into(), s.session.clone(), "--joueur".into(), player, "--heberger".into(), s.port.to_string()]);
+                arguments.extend(["--session".into(), s.session.clone(), "--joueur".into(), player, "--heberger".into()]);
                 (session.seed, session.parts)
             }
             Multi::Join => {
                 // l'hôte relance peut-être (quelqu'un a perdu un Pokémon) : quelques essais
                 let mut found = Err(String::new());
                 for _ in 0..10 {
-                    found = session::fetch(&s.address, &player);
+                    found = session::fetch(&s.address, &player, session::Relays::Public);
                     if found.is_ok() {
                         break;
                     }
@@ -416,14 +414,30 @@ impl eframe::App for Launcher {
                         ui.label("");
                         ui.horizontal(|ui| {
                             ui.add(egui::TextEdit::singleline(&mut self.settings.session).hint_text("session").desired_width(110.0));
-                            ui.add(egui::DragValue::new(&mut self.settings.port).prefix("port "));
                             ui.checkbox(&mut self.settings.nuzlocke, "Nuzlocke : un K.O., tout le monde recommence");
                         });
+                        ui.end_row();
+                        // le code que le jeu de l'hôte écrit au lancement : à envoyer aux potes
+                        ui.label("Code");
+                        match session::Session::code(&self.root, &self.settings.session) {
+                            Some(code) => {
+                                ui.horizontal(|ui| {
+                                    ui.label(format!("{}…", code.chars().take(24).collect::<String>()));
+                                    if ui.button("Copier le code").clicked() {
+                                        ui.ctx().copy_text(code.clone());
+                                        self.status = "Code copié : envoie-le à tes potes.".to_string();
+                                    }
+                                });
+                            }
+                            None => {
+                                ui.label("lance la partie : le code apparaît ici");
+                            }
+                        }
                         ui.end_row();
                     }
                     Multi::Join => {
                         ui.label("");
-                        ui.add(egui::TextEdit::singleline(&mut self.settings.address).hint_text("adresse de l'hôte:port").desired_width(200.0));
+                        ui.add(egui::TextEdit::singleline(&mut self.settings.address).hint_text("code de session de l'hôte (coller)").desired_width(300.0));
                         ui.end_row();
                     }
                 }

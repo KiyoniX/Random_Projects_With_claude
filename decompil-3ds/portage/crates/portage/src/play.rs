@@ -605,11 +605,11 @@ pub struct Settings {
     pub session: Option<SessionSettings>,
 }
 
-/// Rejoindre ou héberger une session : son nom, le nom du joueur, le port de l'hôte ou l'adresse à rejoindre.
+/// Rejoindre ou héberger une session : son nom, le nom du joueur, hôte ou le code de session à rejoindre.
 pub struct SessionSettings {
     pub name: String,
     pub player: String,
-    pub host_port: Option<u16>,
+    pub host: bool,
     pub join: Option<String>,
 }
 
@@ -1552,12 +1552,12 @@ pub fn run(settings: Settings) -> Result<(), String> {
 fn join_session(root: &std::path::Path, s: &SessionSettings) -> Result<(session::Link, String, std::path::PathBuf), String> {
     let party = session::Session::folder(root, &s.name).join("partie");
     let local = session::Session::load(root, &s.name);
-    let (link, current) = if let Some(port) = s.host_port {
+    let (link, current) = if s.host {
         let current = local.ok_or_else(|| format!("session « {} » introuvable (le launcher la crée)", s.name))?;
-        (session::Link::Host(session::Host::start(root, current.clone(), &s.player, port)?), current)
+        (session::Link::Host(session::Host::start(root, current.clone(), &s.player, session::Relays::Public)?), current)
     } else {
-        let address = s.join.clone().ok_or("ni hôte ni adresse à rejoindre")?;
-        let (client, host) = session::Client::join(&address, &s.player)?;
+        let code = s.join.clone().ok_or("ni hôte ni code de session à rejoindre")?;
+        let (client, host) = session::Client::join(&code, &s.player, session::Relays::Public)?;
         let behind = local.as_ref().is_some_and(|l| l.generation < host.generation);
         if behind {
             let _ = std::fs::remove_dir_all(party.join("archives"));
