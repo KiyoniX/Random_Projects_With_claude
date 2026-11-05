@@ -42,6 +42,8 @@ const LUT_BYTES: u64 = 24 * 256 * 8;
 
 const COLOR_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Rgba8Unorm;
 /// Les textures gardées sur le GPU : au-delà, le quart le moins récemment lu part.
+/// Une texture qui a changé de contenu tant de fois n'est plus filtrée (`changes`).
+const CHANGING: u32 = 3;
 const TEXTURE_CACHE: usize = 600;
 const DEPTH_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32Float;
 const DEPTH_STENCIL_FORMAT: wgpu::TextureFormat = wgpu::TextureFormat::Depth32FloatStencil8;
@@ -305,6 +307,13 @@ pub struct Renderer {
     /// Les textures (adresse) relues d'un tampon de rendu : une image déjà dessinée par le jeu (les noms du combat, écrits
     /// d'avance dans une texture 512 x 128), que le filtre ne ferait que délaver.
     rendered: std::collections::HashSet<u32>,
+    /// Pour chaque texture (adresse, taille, format) : combien de fois de suite elle a changé de contenu moins de 30 images
+    /// après le changement d'avant, et l'image de ce changement. Au-delà de `CHANGING`, elle n'est plus filtrée (l'écran titre
+    /// en réécrit à chaque image, et ScaleForce sur le processeur faisait tomber le jeu à 0,85x) ; une autre texture chargée
+    /// plus tard à la même place (une nouvelle zone) ne compte pas.
+    changes: std::collections::HashMap<(u32, usize, usize, u32), (u32, u64)>,
+    /// Les images envoyées vers l'écran du haut : l'horloge de `changes`.
+    frames: u64,
     /// Les textures remplacées pendant la partie (`replace_texture`), avant le pack.
     replaced: std::collections::HashMap<u32, Picture>,
     /// Avec `texture_dump` : les textures lues depuis le dernier transfert vers un écran. Le jeu dessine les deux écrans dans
@@ -527,6 +536,8 @@ impl Renderer {
             bottom_seen: Default::default(),
             since_sent: Default::default(),
             replaced: Default::default(),
+            changes: Default::default(),
+            frames: 0,
             texture_dump: None,
             layout,
             pipeline_layout,
@@ -1303,7 +1314,14 @@ struct Out { @builtin(frag_depth) d: f32 }
             new_crc = crc32fast::hash(&raw);
             match self.textures.get_mut(&key) {
                 Some(e) if e.crc == new_crc => e.checked = clock,
-                _ => fresh = true,
+                Some(_) => {
+                    fresh = true;
+                    let frames = self.frames;
+                    let (count, last) = self.changes.entry(key).or_default();
+                    *count = if frames.saturating_sub(*last) <= 30 { *count + 1 } else { 1 };
+                    *last = frames;
+                }
+                None => fresh = true,
             }
         }
         if fresh {
@@ -1324,10 +1342,26 @@ struct Out { @builtin(frag_depth) d: f32 }
                 }
             }
             // assez petite pour en valoir la peine : les grandes textures sont des images déjà détaillées
-            let upscale = self.texture_filter != crate::upscale::TextureFilter::None && width <= 512 && height <= 512 && !self.rendered.contains(&address);
+            let changing = self.changes.get(&key).is_some_and(|&(n, last)| n >= CHANGING && self.frames.saturating_sub(last) <= 30);
+            let upscale = self.texture_filter != crate::upscale::TextureFilter::None && width <= 512 && height <= 512 && !self.rendered.contains(&address) && !changing;
             let (mut stored_width, mut stored_height) = if upscale { (width * 2, height * 2) } else { (width, height) };
             let repeats = (matches!((config >> 12) & 7, 2 | 6 | 7), matches!((config >> 8) & 7, 2 | 6 | 7));
             let mut pixels = if upscale { crate::upscale::upscale2x(self.texture_filter, &pixels, width, height, repeats) } else { pixels };
+            // une image que le jeu a dessinée (les noms du combat) : agrandie au plus proche à l'échelle du rendu, le lissage du
+            // jeu ne floute alors plus qu'un bord de point quand il l'étire (le nom de l'adversaire) ; pas celles qui changent
+            // sans cesse
+            let k = self.scale as usize;
+            if self.rendered.contains(&address) && levels == 1 && k > 1 && !changing {
+                let source = pixels;
+                pixels = Vec::with_capacity(source.len() * k * k);
+                for y in 0..height * k {
+                    let row = &source[(y / k) * width * 4..(y / k + 1) * width * 4];
+                    for x in 0..width * k {
+                        pixels.extend_from_slice(&row[(x / k) * 4..(x / k) * 4 + 4]);
+                    }
+                }
+                (stored_width, stored_height) = (width * k, height * k);
+            }
             let mut stored_levels = levels;
             if let (Some(folder), None) = (&self.texture_pack, &self.pack_names) {
                 let names = std::fs::read_dir(folder).into_iter().flatten().flatten().filter_map(|e| {
@@ -1398,9 +1432,6 @@ struct Out { @builtin(frag_depth) d: f32 }
             let view = texture.create_view(&wgpu::TextureViewDescriptor::default());
             self.textures.insert(key, TextureEntry { stored: [stored_width as f32, stored_height as f32], levels: stored_levels, id, crc: new_crc, checked: clock, used: clock, texture, view });
         }
-        // une image que le jeu a dessinée (les noms du combat) : lue au plus proche, le lissage du jeu la floutait quand il
-        // l'étire (le nom de l'adversaire). Pas d'agrandissement sur le processeur : le terrain en redessine à chaque image.
-        let linear = if self.rendered.contains(&address) { 0.0 } else { linear };
         let entry = self.textures.get_mut(&key)?;
         entry.used = clock;
         let entry = &*entry;
@@ -1432,6 +1463,7 @@ struct Out { @builtin(frag_depth) d: f32 }
     /// Un transfert vers un écran : avec `texture_dump`, les textures lues depuis le précédent sont notées dans `bas.txt` si
     /// c'est l'écran du bas, pour un pack qui ne touche que l'interface.
     pub fn screen_sent(&mut self, top: bool) {
+        self.frames += top as u64;
         let read = std::mem::take(&mut self.since_sent);
         let Some(folder) = &self.texture_dump else { return };
         if top {
