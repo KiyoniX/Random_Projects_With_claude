@@ -2,7 +2,11 @@
 plus grandes, écrites dans le pack de police (`pack_police.py`) sous le nom que le moteur leur donne (crc32 de leurs octets).
 
 Seulement ce que l'utilisateur a demandé : les deux plaques de PV (cadre arrondi, fente de la barre, « PV », « N. » ; la
-nôtre a aussi la barre d'expérience). La fente a la taille de la barre agrandie par `mod_jauge.py`. Les mesures sont relevées sur les textures du jeu (128 x 32, une case = un point) :
+nôtre a aussi la barre d'expérience). La barre passe derrière la plaque (`mod_jauge.py`) : la fente est transparente,
+l'anneau arrondit le bout de la barre, et le fond sombre de la partie vide est un petit dégradé posé dans un coin vide de la
+texture, sous la plaque (`fond`, lignes 32 à 39 que le mod cache à la plaque), que la case de fond ajoutée par le mod
+affiche. Les mesures sont relevées sur les textures du jeu (128 x 32,
+une case = un point) :
 anneaux de la plaque (noir, reflet gris dégradé, noir, fond sombre translucide), fente noire de 47 points et son dégradé,
 pastille verte des lettres. Les lettres sont tracées en polygones aux mêmes cases que les lettres pixel du jeu.
 
@@ -17,7 +21,6 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import mod_jauge
 import pack_police
 
 FOIS = 4
@@ -25,13 +28,17 @@ SUR = 4  # suréchantillonnage : dessin à FOIS * SUR, réduit ensuite
 NOIR = (0, 0, 0, 255)
 VERT = (0xbb, 0xff, 0x45, 255)
 OR = (0xee, 0xc6, 0x3a, 255)
+LONGUEUR = 52  # la barre à PV pleins, en points de la plaque (`mod_jauge.py`)
+HAUTEUR = 40  # la texture : les 32 lignes de la plaque, puis 8 pour le fond de la barre, que la plaque n'affiche pas
 
 # Les plaques : coin haut gauche (ox, oy) de l'anneau noir (14 points de haut), largeur, bord gauche de la fente (47 points
 # de fond entre deux bords noirs), pastille des lettres, lettres P et V (bord gauche, largeur de V), N (bord gauche, haut,
-# hauteur), reflet blanc sur le bout gauche, barre d'expérience.
+# hauteur), reflet blanc sur le bout gauche, barre d'expérience, fond de la barre (x0, y0, x1, y1 : un coin vide).
 PLAQUES = {
-    0x2ccf7c12: dict(ox=42, oy=13, w=76, fente=62, pastille=(47, 62), p=48, v=(54, 6), n=(83, 9, 5), reflet=False, exp=False),
-    0x5ea935f9: dict(ox=28, oy=8, w=80, fente=52, pastille=(35, 52), p=36, v=(43, 7), n=(77, 3, 6), reflet=True, exp=True),
+    0x2ccf7c12: dict(ox=42, oy=13, w=76, fente=62, pastille=(47, 62), p=48, v=(54, 6), n=(83, 9, 5), reflet=False, exp=False,
+                     fond=(2, 34, 54, 38)),
+    0x5ea935f9: dict(ox=28, oy=8, w=80, fente=52, pastille=(35, 52), p=36, v=(43, 7), n=(77, 3, 6), reflet=True, exp=True,
+                     fond=(2, 34, 54, 38)),
 }
 
 
@@ -88,7 +95,7 @@ def n_point(d, k, x, y, h, couleur, epaisseur):
 def plaque(c):
     """La texture `c` de PLAQUES, 4 fois plus grande (RGBA)."""
     k = FOIS * SUR
-    image = Image.new('RGBA', (128 * k, 32 * k))
+    image = Image.new('RGBA', (128 * k, HAUTEUR * k))
     ox, oy, w = c['ox'], c['oy'], c['w']
     d = ImageDraw.Draw(image)
     stade(d, k, ox, oy, ox + w, oy + 14, NOIR)
@@ -103,17 +110,19 @@ def plaque(c):
     trou = masque(image, lambda m: stade(m, k, ox + 5, oy + 3, ox + w - 3, oy + 11, 255))
     image.paste(Image.new('RGBA', image.size), (0, 0), trou)
     remplir(image, trou, fond)
-    # la fente de la barre, sans bord : la place de la barre agrandie par `mod_jauge.py` (52 x 8), jusqu'à l'arrondi du
-    # fond sombre ; plus claire en bas et à gauche
+    # la fente : transparente de la fin de la pastille à l'arrondi, la barre et son fond sont dessinés derrière
     f = c['fente']
-    fente = Image.new('RGBA', image.size)
-    for y in range(8 * k):
-        t = y / (8 * k - 1)
+    fente = Image.composite(trou, Image.new('L', image.size), masque(image, lambda m: m.rectangle([f * k, 0, image.size[0], image.size[1]], fill=255)))
+    image.paste(Image.new('RGBA', image.size), (0, 0), fente)
+    # le fond de la barre : plus clair en bas et à gauche, un point de plus autour (le lissage lit les voisins)
+    x0, y0, x1, y1 = c['fond']
+    for y in range((y0 - 1) * k, (y1 + 1) * k):
+        t = min(1, max(0, (y - y0 * k) / ((y1 - y0) * k - 1)))
         gauche, droite = 0x2d + (0x68 - 0x2d) * t, 0x17 + (0x35 - 0x17) * t
-        for x in range(mod_jauge.LONGUEUR * k):
-            g = round(gauche + (droite - gauche) * x / (mod_jauge.LONGUEUR * k - 1))
-            fente.putpixel((f * k + x, (oy + 3) * k + y), (g, g, g, 255))
-    remplir(image, trou, fente)
+        for x in range((x0 - 1) * k, (x1 + 1) * k):
+            u = min(1, max(0, (x - x0 * k) / ((x1 - x0) * k - 1)))
+            g = round(gauche + (droite - gauche) * u)
+            image.putpixel((x, y), (g, g, g, 255))
     # la pastille des lettres
     a, b = c['pastille']
     d.rectangle([a * k, (oy + 3) * k, b * k - 1, (oy + 11) * k - 1], fill=(0x0a, 0x0b, 0x08, 255))
@@ -128,7 +137,7 @@ def plaque(c):
     if c['exp']:
         d.rectangle([11 * k, 28 * k, 115 * k - 1, 32 * k - 1], fill=NOIR)
         d.rectangle([17 * k, 29 * k, 109 * k - 1, 31 * k - 1], fill=(0xbf, 0xbf, 0xbf, 255))
-    return image.resize((128 * FOIS, 32 * FOIS), Image.LANCZOS)
+    return image.resize((128 * FOIS, HAUTEUR * FOIS), Image.LANCZOS)
 
 
 def pack(sortie):
@@ -140,10 +149,11 @@ def pack(sortie):
 
 def test():
     image = plaque(PLAQUES[0x5ea935f9])
-    assert image.size == (512, 128)
+    assert image.size == (512, 160)
     k = FOIS
-    fente = image.getpixel(((52 + 10) * k, (8 + 8) * k))
-    assert fente[3] == 255 and 0x30 < fente[0] < 0x70 and fente[0] == fente[1], f'le fond gris de la fente : {fente}'
+    assert image.getpixel(((52 + 10) * k, (8 + 6) * k))[3] == 0, 'la fente est transparente : la barre est derrière'
+    fond = image.getpixel((20 * k, 36 * k))
+    assert fond[3] == 255 and 0x30 < fond[0] < 0x70 and fond[0] == fond[1], f'le fond gris de la barre : {fond}'
     assert image.getpixel((4 * k, 4 * k))[3] == 0, 'transparent hors de la plaque'
     p = image.getpixel(((36 + 0.5) * k, (12 + 3) * k))
     assert p[1] > 200 and p[2] < 120, f'le trait du P est vert : {p}'
