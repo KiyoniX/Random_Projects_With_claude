@@ -28,7 +28,7 @@ SUR = 4  # suréchantillonnage : dessin à FOIS * SUR, réduit ensuite
 NOIR = (0, 0, 0, 255)
 VERT = (0xbb, 0xff, 0x45, 255)
 OR = (0xee, 0xc6, 0x3a, 255)
-LONGUEUR = 52  # la barre à PV pleins, en points de la plaque (`mod_jauge.py`)
+LONGUEUR = 55  # la barre à PV pleins, en points de la plaque (`mod_jauge.py`) : son bout passe sous l'anneau, qui le cache
 HAUTEUR = 40  # la texture : les 32 lignes de la plaque, puis 8 pour le fond de la barre, que la plaque n'affiche pas
 
 # Les plaques : coin haut gauche (ox, oy) de l'anneau noir (14 points de haut), largeur, bord gauche de la fente (47 points
@@ -123,10 +123,13 @@ def plaque(c):
             u = min(1, max(0, (x - x0 * k) / ((x1 - x0) * k - 1)))
             g = round(gauche + (droite - gauche) * u)
             image.putpixel((x, y), (g, g, g, 255))
-    # la pastille des lettres
+    # la pastille des lettres, arrondie à gauche comme le fond sombre (l'anneau passe devant)
     a, b = c['pastille']
-    d.rectangle([a * k, (oy + 3) * k, b * k - 1, (oy + 11) * k - 1], fill=(0x0a, 0x0b, 0x08, 255))
-    d.rectangle([a * k, (oy + 3) * k, b * k - 1, (oy + 4) * k - 1], fill=(0x1d, 0x26, 0x0c, 255))
+    pastille = Image.new('RGBA', image.size)
+    dp = ImageDraw.Draw(pastille)
+    dp.rectangle([a * k, (oy + 3) * k, b * k - 1, (oy + 11) * k - 1], fill=(0x0a, 0x0b, 0x08, 255))
+    dp.rectangle([a * k, (oy + 3) * k, b * k - 1, (oy + 4) * k - 1], fill=(0x1d, 0x26, 0x0c, 255))
+    remplir(image, trou, pastille)
     lettres(d, k, c['p'], c['v'], oy + 4, (0x19, 0x22, 0x09, 255), 1.9)
     lettres(d, k, c['p'], c['v'], oy + 4, VERT, 1.0)
     if c['reflet']:
